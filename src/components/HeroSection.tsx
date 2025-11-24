@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   return (
@@ -7,11 +8,11 @@ const HeroSection = () => {
       <div className="container px-4 py-16 md:py-24">
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div className="space-y-6">
-            <div className="flex gap-4 text-sm font-medium text-white/70">
+            {/* <div className="flex gap-4 text-sm font-medium text-white/70">
               <button className="text-white border-b-2 border-primary pb-1">COMICS</button>
               <button className="hover:text-white transition-colors">NOVELS</button>
               <button className="hover:text-white transition-colors">MANGA</button>
-            </div>
+            </div> */}
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
               Welcome to WorldStories!<br />
@@ -22,11 +23,11 @@ const HeroSection = () => {
             </p>
             
             <Button size="lg" className="text-base px-8">
-              Browse Stories
+              <Link to="/catalogue">Explore</Link> 
             </Button>
           </div>
           
-          <div className="relative">
+          <div className="relative hidden md:block">
             <div className="relative aspect-3/4 max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
               <img 
                 src="https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=800&fit=crop" 

@@ -19,7 +19,7 @@ const spotlightStories = [
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       <HeroSection />
       
       <div className="container px-4 py-12">
@@ -93,7 +93,7 @@ const Index = () => {
         </div>
       </div>
 
-      < Footer />
+      {/* < Footer /> */}
 
       {/* <footer className="border-t border-border bg-muted/50 mt-16">
         <div className="container px-4 py-8">

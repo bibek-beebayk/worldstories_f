@@ -13,13 +13,15 @@ const Trending = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-3">Trending Now</h1>
-          <p className="text-lg text-muted-foreground">The hottest stories everyone's reading</p>
+
+        <div className="mb-8 bg-blue-800 p-8 rounded-lg shadow-md">
+          <h1 className="text-4xl font-bold mb-3 text-gray-100">Trending Now</h1>
+          <p className="text-lg text-muted-foreground text-gray-300">The hottest stories everyone's reading</p>
         </div>
+        
 
         <AdSpace size="banner" className="mb-8" />
 

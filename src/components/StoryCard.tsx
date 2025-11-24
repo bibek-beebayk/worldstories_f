@@ -3,25 +3,27 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 
 interface StoryCardProps {
+  id: number;
+  slug: string;
   title: string;
-  image: string;
+  cover_image: string;
   rating: number;
-  views: string;
-  genre?: string;
+  views: number;
+  story_type?: string;
 }
 
-const StoryCard = ({ title, image, rating, views, genre }: StoryCardProps) => {
+const StoryCard = ({ title, cover_image, rating, views, story_type, slug }: StoryCardProps) => {
   return (
-    <Link to="/story/1" className="group cursor-pointer block">
+    <Link to={`/story/${slug}/`} className="group cursor-pointer block">
       <div className="relative aspect-[3/4] rounded-lg overflow-hidden mb-3 shadow-md">
         <img 
-          src={image} 
+          src={cover_image} 
           alt={title}
           className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {genre && (
+        {story_type && (
           <Badge className="absolute top-2 left-2 bg-black/70 text-white border-0">
-            {genre}
+            {story_type}
           </Badge>
         )}
       </div>
