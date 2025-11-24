@@ -26,28 +26,6 @@ const StoryDetail = () => {
     return <div>Error loading story.</div>;
   }
 
-  // const story = {
-  //   title: "Echoes of Tomorrow",
-  //   author: "Sarah Chen",
-  //   image: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=800&q=80",
-  //   rating: 4.8,
-  //   views: "2.3M",
-  //   genre: "Sci-Fi",
-  //   status: "Ongoing",
-  //   chapters: 24,
-  //   description: "In a world where memories can be bought and sold, Maya discovers she has the rare ability to see the true past. When a powerful corporation tries to exploit her gift, she must navigate a dangerous conspiracy that threatens not just her future, but the fabric of reality itself.",
-  //   tags: ["Dystopian", "Thriller", "Romance", "Action"],
-  //   lastUpdated: "2 days ago"
-  // };
-
-  // const chapters = [
-  //   { number: 1, title: "The Beginning", date: "Jan 15, 2024", views: "450K" },
-  //   { number: 2, title: "First Memories", date: "Jan 18, 2024", views: "420K" },
-  //   { number: 3, title: "The Discovery", date: "Jan 22, 2024", views: "390K" },
-  //   { number: 4, title: "Running Away", date: "Jan 25, 2024", views: "380K" },
-  //   { number: 5, title: "New Allies", date: "Jan 29, 2024", views: "370K" },
-  // ];
-
   const relatedStories = [
     { title: "Memory Wars", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80", rating: 4.7, views: "1.8M", genre: "Sci-Fi" },
     { title: "Digital Dreams", image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80", rating: 4.6, views: "1.5M", genre: "Sci-Fi" },
@@ -76,7 +54,7 @@ const StoryDetail = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Badge>{story.story_type}</Badge>
-                    <Badge variant="outline">{story.is_completed? "Complete" : "Ongoing"}</Badge>
+                    <Badge variant="outline">{story.is_completed ? "Complete" : "Ongoing"}</Badge>
                   </div>
                   <h1 className="text-4xl font-bold mb-2">{story.title}</h1>
                   <div className="flex items-center gap-2 mb-4">
@@ -181,7 +159,7 @@ const StoryDetail = () => {
                       <h3 className="font-semibold mb-2">About the Author</h3>
                       <div className="flex items-center gap-3 mb-3">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" />
+                          <AvatarImage src={story.author.image} />
                           <AvatarFallback>SC</AvatarFallback>
                         </Avatar>
                         <div>

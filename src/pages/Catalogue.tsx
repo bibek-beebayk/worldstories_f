@@ -1,38 +1,50 @@
-import { useState } from "react";
-import Header from "@/components/Header";
-import StoryCard from "@/components/StoryCard";
 import AdSpace from "@/components/AdSpace";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import FullScreenLoader from "@/components/FullScreenLoader";
+import StoryCard from "@/components/StoryCard";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { useGenres } from "@/hooks/useGenres";
+import { useStories } from "@/hooks/useStories";
+import { formatViews } from "@/lib/utils";
 import { Filter } from "lucide-react";
+import { useState } from "react";
 
 const Catalogue = () => {
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  // -------------------------------
+  // Applied filters (used in API)
+  // -------------------------------
+  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("popular");
+
+  // -------------------------------
+  // Temporary filters (UI only)
+  // -------------------------------
+  const [tempGenres, setTempGenres] = useState<number[]>(selectedGenres);
+  const [tempStatus, setTempStatus] = useState(status);
+  const [tempSort, setTempSort] = useState(sort);
+
   const [openFilter, setOpenFilter] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const genres = ["Romance", "Fantasy", "Mystery", "Sci-Fi", "Horror", "Drama", "Comedy", "Action"];
+  const { data: stories, isLoading } = useStories(page, selectedGenres, sort, status);
+  const { data: genres } = useGenres();
 
-  const stories = [
-    { title: "Echoes of Tomorrow", image: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=400&q=80", rating: 4.8, views: "2.3M", genre: "Sci-Fi" },
-    { title: "The Last Kingdom", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80", rating: 4.9, views: "3.1M", genre: "Fantasy" },
-    { title: "Mystery at Midnight", image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80", rating: 4.7, views: "1.8M", genre: "Mystery" },
-    { title: "Love in Paris", image: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&q=80", rating: 4.6, views: "2.9M", genre: "Romance" },
-    { title: "Dark Waters", image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80", rating: 4.5, views: "1.5M", genre: "Horror" },
-    { title: "The Silent Witness", image: "https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=400&q=80", rating: 4.8, views: "2.1M", genre: "Drama" },
-    { title: "Galactic Warriors", image: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400&q=80", rating: 4.7, views: "2.7M", genre: "Action" },
-    { title: "The Comedy Club", image: "https://images.unsplash.com/photo-1533167649158-6d508895b680?w=400&q=80", rating: 4.4, views: "1.2M", genre: "Comedy" },
-  ];
-
+  // -------------------------------
+  // Filters panel content
+  // -------------------------------
   const Filters = (
     <div className="space-y-6 p-4 flex flex-col h-full overflow-auto">
+
+      {/* Sort */}
       <div>
         <Label className="text-sm font-medium mb-3 block">Sort By</Label>
-        <Select defaultValue="popular">
-          <SelectTrigger>
+        <Select value={tempSort} onValueChange={(v) => setTempSort(v)}>
+          <SelectTrigger type="button">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -46,10 +58,11 @@ const Catalogue = () => {
 
       <Separator />
 
+      {/* Status */}
       <div>
         <Label className="text-sm font-medium mb-3 block">Status</Label>
-        <Select defaultValue="all">
-          <SelectTrigger>
+        <Select value={tempStatus} onValueChange={(v) => setTempStatus(v)}>
+          <SelectTrigger type="button">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -62,24 +75,23 @@ const Catalogue = () => {
 
       <Separator />
 
+      {/* Genres */}
       <div>
         <Label className="text-sm font-medium mb-3 block">Genres</Label>
         <div className="space-y-3">
-          {genres.map((genre) => (
-            <div key={genre} className="flex items-center space-x-2">
+          {genres?.map((genre) => (
+            <div key={genre.id} className="flex items-center space-x-2">
               <Checkbox
-                id={genre}
-                checked={selectedGenres.includes(genre)}
+                id={genre.id.toString()}
+                checked={tempGenres.includes(genre.id)}
                 onCheckedChange={(checked) => {
-                  if (checked) {
-                    setSelectedGenres([...selectedGenres, genre]);
-                  } else {
-                    setSelectedGenres(selectedGenres.filter((g) => g !== genre));
-                  }
+                  setTempGenres((prev) =>
+                    checked ? [...prev, genre.id] : prev.filter((g) => g !== genre.id)
+                  );
                 }}
               />
-              <Label htmlFor={genre} className="text-sm font-normal cursor-pointer">
-                {genre}
+              <Label htmlFor={genre.id.toString()} className="text-xs cursor-pointer">
+                {genre.name + ` ( ${formatViews(genre.stories_count)} )`}
               </Label>
             </div>
           ))}
@@ -88,10 +100,11 @@ const Catalogue = () => {
 
       <Separator />
 
+      {/* Rating (static for now) */}
       <div>
         <Label className="text-sm font-medium mb-3 block">Rating</Label>
         <Select defaultValue="all">
-          <SelectTrigger>
+          <SelectTrigger type="button">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -103,20 +116,45 @@ const Catalogue = () => {
         </Select>
       </div>
 
+      {/* Apply Filters Button */}
+      <Button
+        className="w-full mt-4"
+        onClick={() => {
+          setSort(tempSort);
+          setStatus(tempStatus);
+          setSelectedGenres(tempGenres);
+          setOpenFilter(false); // close mobile sheet
+        }}
+      >
+        Apply Filters
+      </Button>
+
+      {/* Optional Reset Button */}
+      <Button
+        variant="outline"
+        className="w-full mt-2"
+        onClick={() => {
+          setTempSort("popular");
+          setTempStatus("all");
+          setTempGenres([]);
+        }}
+      >
+        Reset Filters
+      </Button>
+
       <AdSpace size="rectangle" />
     </div>
   );
 
+  if (isLoading) return <FullScreenLoader />;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* <Header /> */}
-
       <main className="container mx-auto px-4 py-6">
 
-        {/* Mobile Filter Button */}
+        {/* Mobile Filters */}
         <div className="flex justify-between items-center mb-6 md:hidden">
           <h1 className="text-2xl font-bold">Browse Stories</h1>
-
           <Sheet open={openFilter} onOpenChange={setOpenFilter}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm">
@@ -133,25 +171,25 @@ const Catalogue = () => {
         <div className="flex gap-8">
 
           {/* Desktop Sidebar */}
-          <aside className="w-64 flex-shrink-0 hidden md:block">
+          <aside className="w-64 hidden md:block">
             <div className="sticky top-24 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
               {Filters}
             </div>
           </aside>
 
-
-
           {/* Story Grid */}
           <div className="flex-1">
             <div className="hidden md:block mb-6">
               <h1 className="text-3xl font-bold mb-2">Browse Stories</h1>
-              <p className="text-muted-foreground">Discover amazing stories from talented creators</p>
+              <p className="text-muted-foreground">
+                Discover amazing stories from talented creators
+              </p>
             </div>
 
             <AdSpace size="banner" className="mb-8" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-              {stories.map((story, index) => (
+              {stories?.results?.map((story, index) => (
                 <StoryCard key={index} {...story} />
               ))}
             </div>

@@ -1,4 +1,4 @@
-const BASE_URL = "https://betunnel.worldstories.net/api";
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 export async function apiClient<T>(
   endpoint: string,

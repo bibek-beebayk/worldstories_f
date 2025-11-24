@@ -1,6 +1,7 @@
 import { Eye, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { formatViews } from "@/lib/utils";
 
 interface StoryCardProps {
   id: number;
@@ -39,7 +40,7 @@ const StoryCard = ({ title, cover_image, rating, views, story_type, slug }: Stor
         </div>
         <div className="flex items-center gap-1">
           <Eye className="h-3 w-3" />
-          <span>{views}</span>
+          <span>{formatViews(views)}</span>
         </div>
       </div>
     </Link>

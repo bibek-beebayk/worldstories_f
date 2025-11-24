@@ -18,6 +18,7 @@ export interface Chapter {
 export interface Genre{
   id: number;
   name: string;
+  stories_count: number;
 }
 
 export interface Story {
