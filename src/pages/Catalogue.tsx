@@ -186,15 +186,15 @@ const Catalogue = () => {
               </p>
             </div>
 
-            <AdSpace size="banner" className="mb-8" />
+            {/* {<AdSpace size="banner" className="mb-8" />} */}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 mb-8">
               {stories?.results?.map((story, index) => (
                 <StoryCard key={index} {...story} />
               ))}
             </div>
 
-            <AdSpace size="banner" />
+            {/* <AdSpace size="banner" /> */}
           </div>
         </div>
       </main>

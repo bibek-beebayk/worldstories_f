@@ -7,16 +7,47 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStory } from "@/hooks/useStory";
-import { BookMarked, Clock, Eye, Heart, Share2, Star } from "lucide-react";
+import { BookMarked, Eye, Headphones, Heart, Share2, Star } from "lucide-react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
 
 const StoryDetail = () => {
   const { slug } = useParams();
+  const { data: story, isLoading, isError } = useStory(slug);
+  // const [pendingScroll, setPendingScroll] = useState<"chapters" | "audios" | null>(null);
+
   // const slug = "the-raven"
 
-  console.log("Slug: ", slug);
+  debugger;
 
-  const { data: story, isLoading, isError } = useStory(slug);
+  const [activeTab, setActiveTab] = useState("chapters");
+
+  const chaptersRef = useRef<HTMLDivElement | null>(null);
+  const audiosRef = useRef<HTMLDivElement | null>(null);
+
+  // useEffect(() => {
+  //   if (pendingScroll === "chapters" && chaptersRef.current) {
+  //     chaptersRef.current.scrollIntoView({ behavior: "smooth" });
+  //     setPendingScroll(null);
+  //   }
+  //   if (pendingScroll === "audios" && audiosRef.current) {
+  //     audiosRef.current.scrollIntoView({ behavior: "smooth" });
+  //     setPendingScroll(null);
+  //   }
+  // }, [pendingScroll, activeTab]);
+
+  // const goToChapters = () => {
+  //   setActiveTab("chapters");
+  //   setPendingScroll("chapters");  // tell effect to scroll later
+  // };
+
+  // const goToAudios = () => {
+  //   setActiveTab("audios");
+  //   setPendingScroll("audios");
+  // };
+
+
 
   if (isLoading) {
     return < FullScreenLoader />;
@@ -25,12 +56,6 @@ const StoryDetail = () => {
   if (isError || !story) {
     return <div>Error loading story.</div>;
   }
-
-  const relatedStories = [
-    { title: "Memory Wars", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80", rating: 4.7, views: "1.8M", genre: "Sci-Fi" },
-    { title: "Digital Dreams", image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80", rating: 4.6, views: "1.5M", genre: "Sci-Fi" },
-    { title: "The Last Code", image: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&q=80", rating: 4.8, views: "2.1M", genre: "Sci-Fi" },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,35 +120,56 @@ const StoryDetail = () => {
                   ))}
                 </div>
 
-                <Link to={"/read/1/1"} className="flex gap-3 pt-4 w-full flex-wrap">
-                  <Button size="lg" className="flex-1 min-w-[140px]">
-                    <BookMarked className="h-4 w-4 mr-2" />
-                    Start Reading
-                  </Button>
+                <div className="flex flex-wrap gap-1">
+
+                  <Link to={`/read/${story.slug}/${story.chapters[0].slug}`} className="">
+                    {story.chapters.length > 0 && (
+                      <Button size="lg" className="flex-1 min-w-[140px]">
+                        <BookMarked className="h-4 w-4 mr-2" />
+                        Start Reading
+                      </Button>
+                    )}
+                  </Link>
+
+                  {story.audios.length > 0 && (
+                    <Link to={`/listen/${story.slug}/${story.audios[0].slug}`} className="">
+                      <Button size="lg" variant="secondary" className="flex-1 min-w-[140px]">
+                        <Headphones className="h-4 w-4 mr-2" />
+                        Listen to Audio
+                      </Button>
+                    </Link>
+                  )}
+
                   <Button size="lg" variant="outline">
                     <Heart className="h-4 w-4" />
                   </Button>
                   <Button size="lg" variant="outline">
                     <Share2 className="h-4 w-4" />
                   </Button>
-                </Link>
+                  {/* </Link> */}
+                </div>
+
               </div>
             </div>
 
             <AdSpace size="banner" className="mb-8" />
 
             {/* Tabs */}
-            <Tabs defaultValue="chapters" className="mb-8">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="chapters">Chapters</TabsTrigger>
+                {/* {story.audios.length > 0 && ( */}
+                <TabsTrigger value="audios">Audios</TabsTrigger>
+                {/* )} */}
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
+
               </TabsList>
 
-              <TabsContent value="chapters" className="mt-6">
+              <TabsContent value="chapters" className="mt-6" ref={chaptersRef}>
                 <Card >
                   <CardContent className="p-0">
-                    {story?.chapters?.map((chapter, index) => (
+                    {story.chapters.length > 0 ? <>{story?.chapters?.map((chapter, index) => (
                       <Link to={`/read/${slug}/${chapter.slug}/`} key={index}>
                         <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
                           <div className="flex items-center gap-4">
@@ -142,10 +188,39 @@ const StoryDetail = () => {
                         </div>
                         {index < story.chapters.length - 1 && <Separator />}
                       </Link>
-                    ))}
+                    ))}</> : <p className="p-4 text-muted-foreground">No chapters available.</p>}
+
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="audios" className="mt-6" ref={audiosRef}>
+                <Card >
+                  <CardContent className="p-0">
+                    {story.audios.length > 0 ? <>{story?.audios?.map((chapter, index) => (
+                      <Link to={`/read/${slug}/${chapter.slug}/`} key={index}>
+                        <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-semibold text-muted-foreground w-8">
+                              {chapter.order}
+                            </span>
+                            <div>
+                              <h3 className="font-medium">{chapter.title}</h3>
+                              {/* <p className="text-xs text-muted-foreground">{chapter.date}</p> */}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Headphones className="h-3 w-3" />
+                            {/* <span>{chapter.views}</span> */}
+                          </div>
+                        </div>
+                        {index < story.chapters.length - 1 && <Separator />}
+                      </Link>
+                    ))}</> : <p className="p-4 text-muted-foreground">No audio available.</p>}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
 
               <TabsContent value="about" className="mt-6">
                 <Card>
@@ -164,7 +239,7 @@ const StoryDetail = () => {
                         </Avatar>
                         <div>
                           <p className="font-medium">{story.author.name}</p>
-                          <p className="text-sm text-muted-foreground">15 stories · 5.2M readers</p>
+                          <p className="text-sm text-muted-foreground">{story.author.stories_count} stories · 5.2M readers</p>
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground">

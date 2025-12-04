@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useChapter } from "@/hooks/useChapter";
+import { useStory } from "@/hooks/useStory";
 import {
   ArrowLeft,
   BookMarked,
@@ -15,22 +16,19 @@ const StoryReader = () => {
   const { story_slug, chapter_slug } = useParams();
   const { data: chapter, isLoading, isError } = useChapter(
     story_slug,
-    chapter_slug
+    chapter_slug,
+    "text"
   );
 
-  // ---------------------------
-  // ALL HOOKS AT THE TOP (Fixes your hook-order error)
-  // ---------------------------
+  const {data: story} = useStory(story_slug);
+
   const [fontSize, setFontSize] = useState(18);
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const hiddenRef = useRef<HTMLDivElement>(null);
 
-  const pageHeight = 1300;
+  const pageHeight = 100;
 
-  // ---------------------------
-  // Pagination Logic (Fixed)
-  // ---------------------------
   useEffect(() => {
     if (!chapter?.content) return;
 
@@ -98,14 +96,8 @@ const StoryReader = () => {
     }, 50);
   }, [chapter, fontSize]);
 
-  // ---------------------------
-  // Loading
-  // ---------------------------
   if (isLoading) return <FullScreenLoader />;
 
-  // ---------------------------
-  // Error
-  // ---------------------------
   if (isError || !chapter) {
     return (
       <div className="p-6 text-center">

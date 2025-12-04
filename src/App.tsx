@@ -13,6 +13,7 @@ import Publish from "./pages/Publish";
 import NotFound from "./pages/NotFound";
 import StoryDetail from "./pages/StoryDetail";
 import StoryReader from "./pages/StoryReader";
+import AudiobookPlayer from "./pages/AudiobookPlayer";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="publish" element={<Publish />} />
             <Route path="/story/:slug" element={<StoryDetail />} />
             <Route path="/read/:story_slug/:chapter_slug" element={<StoryReader />} />
+            <Route path="/listen/:story_slug/:chapter_slug" element={<AudiobookPlayer />} />
 
 
             {/* catch-all for unknown paths (inside layout) */}

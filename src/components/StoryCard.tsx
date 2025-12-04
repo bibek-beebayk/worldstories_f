@@ -1,4 +1,4 @@
-import { Eye, Star } from "lucide-react";
+import { Eye, Star, Headphones } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { formatViews } from "@/lib/utils";
@@ -11,9 +11,10 @@ interface StoryCardProps {
   rating: number;
   views: number;
   story_type?: string;
+  has_audio?: boolean;
 }
 
-const StoryCard = ({ title, cover_image, rating, views, story_type, slug }: StoryCardProps) => {
+const StoryCard = ({ title, cover_image, rating, views, story_type, slug, has_audio }: StoryCardProps) => {
   return (
     <Link to={`/story/${slug}/`} className="group cursor-pointer block">
       <div className="relative aspect-[3/4] rounded-lg overflow-hidden mb-3 shadow-md">
@@ -26,6 +27,14 @@ const StoryCard = ({ title, cover_image, rating, views, story_type, slug }: Stor
           <Badge className="absolute top-2 left-2 bg-black/70 text-white border-0">
             {story_type}
           </Badge>
+        )}
+        {has_audio && (
+          // <Badge className="absolute top-2 right-2 bg-black/70 text-white border-0">
+          //   {story_type}
+          // </Badge>
+          <div className="absolute w-5 h-5 top-2 right-2 p-1 bg-red-600 rounded-full opacity-80">
+            <Headphones className="w-3 h-3 text-white" />
+          </div>
         )}
       </div>
       

@@ -15,6 +15,14 @@ export interface Chapter {
   slug: string;
 }
 
+export interface Audio {
+  id: string;
+  title: string;
+  audio_file: File;
+  order: number;
+  slug: string;
+}
+
 export interface Genre{
   id: number;
   name: string;
@@ -45,6 +53,7 @@ export interface Author{
   name: string;
   bio: string;
   image: string;
+  stories_count: number;
 }
 
 export interface StoryDetail extends Story {
@@ -55,4 +64,5 @@ export interface StoryDetail extends Story {
   chapter_count: number;
   chapters: Chapter[];
   tags: string[] | [];
+  audios: Audio[] | [];
 }
