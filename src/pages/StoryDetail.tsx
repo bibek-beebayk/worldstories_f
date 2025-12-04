@@ -19,7 +19,7 @@ const StoryDetail = () => {
 
   // const slug = "the-raven"
 
-  debugger;
+  // debugger;
 
   const [activeTab, setActiveTab] = useState("chapters");
 
@@ -121,15 +121,17 @@ const StoryDetail = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-1">
+                  {story.chapters.length > 0 && (
 
-                  <Link to={`/read/${story.slug}/${story.chapters[0].slug}`} className="">
-                    {story.chapters.length > 0 && (
-                      <Button size="lg" className="flex-1 min-w-[140px]">
-                        <BookMarked className="h-4 w-4 mr-2" />
-                        Start Reading
-                      </Button>
-                    )}
-                  </Link>
+                    <Link to={`/read/${story.slug}/${story.chapters[0].slug}`} className="">
+                      {story.chapters.length > 0 && (
+                        <Button size="lg" className="flex-1 min-w-[140px]">
+                          <BookMarked className="h-4 w-4 mr-2" />
+                          Start Reading
+                        </Button>
+                      )}
+                    </Link>
+                  )}
 
                   {story.audios.length > 0 && (
                     <Link to={`/listen/${story.slug}/${story.audios[0].slug}`} className="">

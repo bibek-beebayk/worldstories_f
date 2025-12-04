@@ -20,14 +20,15 @@ const StoryReader = () => {
     "text"
   );
 
-  const {data: story} = useStory(story_slug);
+  const { data: story } = useStory(story_slug);
 
   const [fontSize, setFontSize] = useState(18);
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const hiddenRef = useRef<HTMLDivElement>(null);
+  const contentTopRef = useRef<HTMLDivElement>(null);
 
-  const pageHeight = 100;
+  const pageHeight = 800;
 
   useEffect(() => {
     if (!chapter?.content) return;
@@ -96,6 +97,16 @@ const StoryReader = () => {
     }, 50);
   }, [chapter, fontSize]);
 
+  useEffect(() => {
+    if (contentTopRef.current) {
+      contentTopRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }, [currentPage]);
+
+
   if (isLoading) return <FullScreenLoader />;
 
   if (isError || !chapter) {
@@ -154,11 +165,15 @@ const StoryReader = () => {
         </p>
 
         <Card className="bg-[#f4ede0]">
+          <div className=" w-full py-2 text-xs text-muted-foreground text-center italic">
+            Page {currentPage + 1} / {pages.length}
+          </div>
           <CardContent className="p-6">
             {pages.length > 0 ? (
               <div
+                ref={contentTopRef}
                 className="prose prose-neutral max-w-none leading-relaxed"
-                style={{ fontSize: `${fontSize}px` }}
+                style={{ fontSize: `${fontSize}px`, scrollMarginTop: '280px' }}
                 dangerouslySetInnerHTML={{
                   __html: pages[currentPage],
                 }}
@@ -170,9 +185,18 @@ const StoryReader = () => {
             {/* Hidden pagination measurement div */}
             <div
               ref={hiddenRef}
-              className="prose max-w-3xl absolute opacity-0 pointer-events-none"
-              style={{ fontSize: `${fontSize}px` }}
+              className="prose max-w-3xl"
+              style={{
+                position: "absolute",
+                top: "-9999px",
+                left: "-9999px",
+                opacity: 0,
+                pointerEvents: "none",
+                fontSize: `${fontSize}px`,
+                width: "100%",
+              }}
             ></div>
+
           </CardContent>
 
           {/* Page Navigation */}
