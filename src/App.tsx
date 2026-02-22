@@ -14,6 +14,8 @@ import NotFound from "./pages/NotFound";
 import StoryDetail from "./pages/StoryDetail";
 import StoryReader from "./pages/StoryReader";
 import AudiobookPlayer from "./pages/AudiobookPlayer";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,8 @@ const App = () => (
           {/* Parent route that applies DefaultLayout to its children */}
           <Route path="/" element={<DefaultLayout />}>
             <Route index element={<Index />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
             <Route path="catalogue" element={<Catalogue />} />
             <Route path="originals" element={<Originals />} />
             <Route path="trending" element={<Trending />} />

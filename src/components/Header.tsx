@@ -1,18 +1,27 @@
-import { Search, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
+import { clearTokens, getAccessToken } from "@/api/client";
 import {
   Sheet,
-  SheetTrigger,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetClose,
+  SheetTrigger,
 } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
+import { Menu, Search } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Header = () => {
+  const navigate = useNavigate();
+  const isLoggedIn = Boolean(getAccessToken());
+
+  const handleLogout = () => {
+    clearTokens();
+    navigate("/login");
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -61,10 +70,22 @@ const Header = () => {
             <Button className="hidden sm:inline-flex">Publish</Button>
           </Link>
 
-          {/* Login Button */}
-          <Button variant="outline" className="hidden sm:inline-flex">
-            Log In
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="outline" className="hidden sm:inline-flex" onClick={handleLogout}>
+              Logout
+            </Button>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="outline" className="hidden sm:inline-flex">
+                  Log In
+                </Button>
+              </Link>
+              {/* <Link to="/register">
+                <Button className="hidden sm:inline-flex">Register</Button>
+              </Link> */}
+            </>
+          )}
 
           {/* Mobile Menu Trigger */}
           <Sheet>
@@ -146,11 +167,31 @@ const Header = () => {
                   </Link>
                 </SheetClose>
 
-                <SheetClose asChild>
-                  <Button variant="outline" className="w-full">
-                    Log In
-                  </Button>
-                </SheetClose>
+                {isLoggedIn ? (
+                  <SheetClose asChild>
+                    <Button variant="outline" className="w-full" onClick={handleLogout}>
+                      Logout
+                    </Button>
+                  </SheetClose>
+                ) : (
+                  <>
+                    <SheetClose asChild>
+                      <Link to="/login">
+                        <Button variant="outline" className="w-full">
+                          Log In
+                        </Button>
+                      </Link>
+                    </SheetClose>
+
+                    {/* <SheetClose asChild>
+                      <Link to="/register">
+                        <Button className="w-full">
+                          Register
+                        </Button>
+                      </Link>
+                    </SheetClose> */}
+                  </>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
