@@ -6,7 +6,6 @@ import DefaultLayout from "@/layouts/DefaultLayout";
 
 import Index from "./pages/Index";
 import Catalogue from "./pages/Catalogue";
-import Originals from "./pages/Originals";
 import Trending from "./pages/Trending";
 import Discover from "./pages/Discover";
 import Publish from "./pages/Publish";
@@ -30,7 +29,6 @@ const App = () => (
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="catalogue" element={<Catalogue />} />
-            <Route path="originals" element={<Originals />} />
             <Route path="trending" element={<Trending />} />
             <Route path="discover" element={<Discover />} />
             <Route path="publish" element={<Publish />} />

@@ -1,8 +1,13 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Story } from "@/api/types";
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  featuredStory?: Story | null;
+}
+
+const HeroSection = ({ featuredStory }: HeroSectionProps) => {
   return (
     <section className="relative overflow-hidden bg-blue-900">
       <div className="container px-4 py-16 md:py-24">
@@ -15,23 +20,27 @@ const HeroSection = () => {
             </div> */}
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              Welcome to WorldStories!<br />
+              {featuredStory?.title || "Welcome to WorldStories!"}
             </h1>
             
             <p className="text-lg text-white/80 max-w-xl">
-              WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres.
+              {featuredStory
+                ? "Featured this week. Dive into one of our most-read stories."
+                : "WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres."}
             </p>
             
             <Button size="lg" className="text-base px-8">
-              <Link to="/catalogue">Explore</Link> 
+              <Link to={featuredStory ? `/story/${featuredStory.slug}/` : "/catalogue"}>
+                {featuredStory ? "Read Featured Story" : "Explore"}
+              </Link> 
             </Button>
           </div>
           
           <div className="relative hidden md:block">
             <div className="relative aspect-3/4 max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
               <img 
-                src="https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=800&fit=crop" 
-                alt="Featured Story"
+                src={featuredStory?.cover_image || "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=800&fit=crop"}
+                alt={featuredStory?.title || "Featured Story"}
                 className="w-full h-full object-cover"
               />
             </div>

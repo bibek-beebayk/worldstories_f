@@ -1,5 +1,14 @@
 import { apiClient } from "./client";
-import { StoryListResponse, Chapter, StoryDetail, Genre, Audio } from "./types";
+import {
+  StoryListResponse,
+  Chapter,
+  StoryDetail,
+  Genre,
+  HomeDataResponse,
+  TrendingDataResponse,
+  OriginalsDataResponse,
+  DiscoverDataResponse,
+} from "./types";
 
 export const storyApi = {
   getStories: (page: number, genres: number[] | [], sort: string, status: string) => apiClient<StoryListResponse>(`/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}`),
@@ -14,4 +23,8 @@ export const storyApi = {
   //   apiClient<Audio>(`/stories/${story_slug}/audios/${audio_slug}/`),
 
   getGenres: () => apiClient<Genre[]>("/genres/"),
+  getHomeData: () => apiClient<HomeDataResponse>("/home/"),
+  getTrendingData: () => apiClient<TrendingDataResponse>("/trending/"),
+  getOriginalsData: () => apiClient<OriginalsDataResponse>("/originals/"),
+  getDiscoverData: () => apiClient<DiscoverDataResponse>("/discover/"),
 };

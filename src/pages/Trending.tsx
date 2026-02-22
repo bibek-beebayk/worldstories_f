@@ -1,15 +1,13 @@
-import Header from "@/components/Header";
 import StoryCard from "@/components/StoryCard";
 import AdSpace from "@/components/AdSpace";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FullScreenLoader from "@/components/FullScreenLoader";
+import { useTrendingData } from "@/hooks/useTrendingData";
 
 const Trending = () => {
-  const trendingStories = [
-    { title: "Echoes of Tomorrow", image: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=400&q=80", rating: 4.8, views: "2.3M", genre: "Sci-Fi" },
-    { title: "The Last Kingdom", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80", rating: 4.9, views: "3.1M", genre: "Fantasy" },
-    { title: "Mystery at Midnight", image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80", rating: 4.7, views: "1.8M", genre: "Mystery" },
-    { title: "Love in Paris", image: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&q=80", rating: 4.6, views: "2.9M", genre: "Romance" },
-  ];
+  const { data, isLoading, isError } = useTrendingData();
+  if (isLoading) return <FullScreenLoader />;
+  if (isError || !data) return <div className="container mx-auto px-4 py-8">Failed to load trending stories.</div>;
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,32 +33,32 @@ const Trending = () => {
           
           <TabsContent value="today" className="mt-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {trendingStories.map((story, index) => (
-                <StoryCard key={index} {...story} />
+              {data.today.map((story) => (
+                <StoryCard key={story.id} {...story} />
               ))}
             </div>
           </TabsContent>
           
           <TabsContent value="week" className="mt-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {trendingStories.map((story, index) => (
-                <StoryCard key={index} {...story} />
+              {data.week.map((story) => (
+                <StoryCard key={story.id} {...story} />
               ))}
             </div>
           </TabsContent>
           
           <TabsContent value="month" className="mt-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {trendingStories.map((story, index) => (
-                <StoryCard key={index} {...story} />
+              {data.month.map((story) => (
+                <StoryCard key={story.id} {...story} />
               ))}
             </div>
           </TabsContent>
           
           <TabsContent value="alltime" className="mt-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {trendingStories.map((story, index) => (
-                <StoryCard key={index} {...story} />
+              {data.alltime.map((story) => (
+                <StoryCard key={story.id} {...story} />
               ))}
             </div>
           </TabsContent>

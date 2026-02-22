@@ -40,6 +40,8 @@ export interface Story {
   rating: number;
   views: number;
   is_completed: boolean;
+  genres?: string[];
+  has_audio?: boolean;
 }
 
 export interface StoryListResponse {
@@ -65,4 +67,47 @@ export interface StoryDetail extends Story {
   chapters: Chapter[];
   tags: string[] | [];
   audios: Audio[] | [];
+}
+
+export interface HomeStats {
+  creators: number;
+  stories: number;
+  readers: number;
+}
+
+export interface HomeTabs {
+  recommended: Story[];
+  popular: Story[];
+  originals: Story[];
+  new: Story[];
+}
+
+export interface HomeSidebar {
+  recommended: Story[];
+  stats: HomeStats;
+}
+
+export interface HomeDataResponse {
+  featured_story: Story | null;
+  weekly_spotlight: Story[];
+  new_trending: Story[];
+  tabs: HomeTabs;
+  sidebar: HomeSidebar;
+}
+
+export interface TrendingDataResponse {
+  today: Story[];
+  week: Story[];
+  month: Story[];
+  alltime: Story[];
+}
+
+export interface OriginalsDataResponse {
+  stories: Story[];
+}
+
+export interface DiscoverDataResponse {
+  genres: Genre[];
+  new_releases: Story[];
+  hidden_gems: Story[];
 }
