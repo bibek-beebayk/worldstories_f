@@ -6,9 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { storyApi } from "@/api/story";
+import { getAccessToken } from "@/api/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
 import { BookMarked, Eye, Headphones, Heart, Share2, Star } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 
@@ -22,9 +26,35 @@ const StoryDetail = () => {
   // debugger;
 
   const [activeTab, setActiveTab] = useState("chapters");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const isAuthenticated = Boolean(getAccessToken());
 
   const chaptersRef = useRef<HTMLDivElement | null>(null);
   const audiosRef = useRef<HTMLDivElement | null>(null);
+
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
+    queryKey: ["story-reviews", slug],
+    queryFn: () => storyApi.getStoryReviews(slug!),
+    enabled: !!slug && activeTab === "reviews",
+  });
+
+  const { data: myReview } = useQuery({
+    queryKey: ["story-reviews", slug, "me"],
+    queryFn: () => storyApi.getMyStoryReview(slug!),
+    enabled: !!slug && !!isAuthenticated && activeTab === "reviews",
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (myReview) {
+      setReviewRating(myReview.rating);
+      setReviewComment(myReview.comment || "");
+    }
+  }, [myReview]);
 
   // useEffect(() => {
   //   if (pendingScroll === "chapters" && chaptersRef.current) {
@@ -56,6 +86,47 @@ const StoryDetail = () => {
   if (isError || !story) {
     return <div>Error loading story.</div>;
   }
+
+  const submitReview = async () => {
+    if (!slug) return;
+    setReviewError("");
+    setReviewLoading(true);
+    try {
+      if (myReview) {
+        await storyApi.updateMyStoryReview(slug, reviewRating, reviewComment);
+      } else {
+        await storyApi.createStoryReview(slug, reviewRating, reviewComment);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug] });
+      await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug, "me"] });
+      await queryClient.invalidateQueries({ queryKey: ["story", slug] });
+      setReviewComment("");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to submit review.";
+      setReviewError(message);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const deleteReview = async () => {
+    if (!slug) return;
+    setReviewError("");
+    setReviewLoading(true);
+    try {
+      await storyApi.deleteMyStoryReview(slug);
+      await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug] });
+      await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug, "me"] });
+      await queryClient.invalidateQueries({ queryKey: ["story", slug] });
+      setReviewComment("");
+      setReviewRating(5);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete review.";
+      setReviewError(message);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,6 +174,9 @@ const StoryDetail = () => {
                   <div className="flex items-center gap-1">
                     <BookMarked className="h-4 w-4 text-muted-foreground" />
                     <span>{story.chapter_count} chapters</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>{story.reviews_count || 0} reviews</span>
                   </div>
                   {/* <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
@@ -255,7 +329,84 @@ const StoryDetail = () => {
               <TabsContent value="reviews" className="mt-6">
                 <Card>
                   <CardContent className="p-6">
-                    <p className="text-muted-foreground">Reviews coming soon...</p>
+                    <div className="space-y-6">
+                      {isAuthenticated ? (
+                        <div className="space-y-3 rounded-md border p-4">
+                          <h3 className="font-semibold">
+                            {myReview ? "Update your review" : "Write a review"}
+                          </h3>
+                          <div className="space-y-2">
+                            <label className="text-sm">Rating</label>
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((value) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => setReviewRating(value)}
+                                  className="rounded p-1 hover:bg-muted"
+                                  aria-label={`Rate ${value} star${value > 1 ? "s" : ""}`}
+                                >
+                                  <Star
+                                    className={`h-5 w-5 ${
+                                      value <= reviewRating
+                                        ? "fill-amber-400 text-amber-400"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  />
+                                </button>
+                              ))}
+                              <span className="ml-2 text-sm text-muted-foreground">
+                                {reviewRating}/5
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm">Review</label>
+                            <Textarea
+                              value={reviewComment}
+                              onChange={(e) => setReviewComment(e.target.value)}
+                              placeholder="Share your thoughts about this story..."
+                            />
+                          </div>
+                          {reviewError && <p className="text-sm text-red-500">{reviewError}</p>}
+                          <div className="flex gap-2">
+                            <Button onClick={submitReview} disabled={reviewLoading}>
+                              {reviewLoading ? "Saving..." : myReview ? "Update Review" : "Submit Review"}
+                            </Button>
+                            {myReview && (
+                              <Button variant="outline" onClick={deleteReview} disabled={reviewLoading}>
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          <Link to="/login" className="text-primary hover:underline">Log in</Link> to rate and review this story.
+                        </p>
+                      )}
+
+                      <div>
+                        <h3 className="font-semibold mb-4">Community Reviews</h3>
+                        {reviewsLoading ? (
+                          <p className="text-muted-foreground">Loading reviews...</p>
+                        ) : (reviewsData?.results?.length || 0) === 0 ? (
+                          <p className="text-muted-foreground">No reviews yet.</p>
+                        ) : (
+                          <div className="space-y-4">
+                            {reviewsData?.results?.map((review) => (
+                              <div key={review.id} className="rounded-md border p-4">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <p className="font-medium">{review.user.username}</p>
+                                  <p className="text-sm text-muted-foreground">{review.rating}/5</p>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{review.comment || "No comment provided."}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

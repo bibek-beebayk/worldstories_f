@@ -42,6 +42,7 @@ export interface Story {
   is_completed: boolean;
   genres?: string[];
   has_audio?: boolean;
+  reviews_count?: number;
 }
 
 export interface StoryListResponse {
@@ -67,6 +68,27 @@ export interface StoryDetail extends Story {
   chapters: Chapter[];
   tags: string[] | [];
   audios: Audio[] | [];
+  reviews_count: number;
+}
+
+export interface ReviewUser {
+  id: string;
+  email: string;
+  username: string;
+}
+
+export interface Review {
+  id: number;
+  user: ReviewUser;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewListResponse {
+  pagination: Pagination;
+  results: Review[];
 }
 
 export interface HomeStats {
