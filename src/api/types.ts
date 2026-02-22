@@ -91,6 +91,18 @@ export interface ReviewListResponse {
   results: Review[];
 }
 
+export interface ReadingProgress {
+  chapter_slug: string | null;
+  progress: number;
+  overall_progress: number;
+  chapter_progresses: Array<{
+    chapter_slug: string;
+    progress: number;
+  }>;
+  last_element_id: string | null;
+  updated_at: string;
+}
+
 export interface HomeStats {
   creators: number;
   stories: number;

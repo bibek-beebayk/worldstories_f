@@ -10,6 +10,7 @@ import {
   DiscoverDataResponse,
   ReviewListResponse,
   Review,
+  ReadingProgress,
 } from "./types";
 
 export const storyApi = {
@@ -50,5 +51,17 @@ export const storyApi = {
   deleteMyStoryReview: (slug: string) =>
     apiClient<void>(`/stories/${slug}/reviews/me/`, {
       method: "DELETE",
+    }),
+  getReadingProgress: (story_slug: string) =>
+    apiClient<ReadingProgress>(`/reading-progress/${story_slug}/`),
+  saveReadingProgress: (
+    story_slug: string,
+    chapter_slug: string,
+    progress: number,
+    last_element_id: string = ""
+  ) =>
+    apiClient<ReadingProgress>(`/reading-progress/${story_slug}/`, {
+      method: "PUT",
+      body: JSON.stringify({ chapter_slug, progress, last_element_id }),
     }),
 };

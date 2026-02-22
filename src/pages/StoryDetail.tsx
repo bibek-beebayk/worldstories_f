@@ -49,6 +49,13 @@ const StoryDetail = () => {
     retry: false,
   });
 
+  const { data: readingProgress } = useQuery({
+    queryKey: ["reading-progress", slug],
+    queryFn: () => storyApi.getReadingProgress(slug!),
+    enabled: !!slug && !!isAuthenticated,
+    retry: false,
+  });
+
   useEffect(() => {
     if (myReview) {
       setReviewRating(myReview.rating);
@@ -128,6 +135,16 @@ const StoryDetail = () => {
     }
   };
 
+  const firstChapterSlug = story.chapters[0]?.slug;
+  const savedChapterSlug = readingProgress?.chapter_slug;
+  const hasSavedChapter =
+    !!savedChapterSlug && story.chapters.some((chapter) => chapter.slug === savedChapterSlug);
+  const readChapterSlug = hasSavedChapter ? savedChapterSlug : firstChapterSlug;
+  const chapterProgressMap = Object.fromEntries(
+    (readingProgress?.chapter_progresses || []).map((item) => [item.chapter_slug, item.progress])
+  );
+  const completionPercentage = Math.round((readingProgress?.overall_progress || 0) * 100);
+
   return (
     <div className="min-h-screen bg-background">
       {/* <Header /> */}
@@ -197,11 +214,11 @@ const StoryDetail = () => {
                 <div className="flex flex-wrap gap-1">
                   {story.chapters.length > 0 && (
 
-                    <Link to={`/read/${story.slug}/${story.chapters[0].slug}`} className="">
+                    <Link to={`/read/${story.slug}/${readChapterSlug}`} className="">
                       {story.chapters.length > 0 && (
                         <Button size="lg" className="flex-1 min-w-[140px]">
                           <BookMarked className="h-4 w-4 mr-2" />
-                          Start Reading
+                          {hasSavedChapter ? "Continue Reading" : "Start Reading"}
                         </Button>
                       )}
                     </Link>
@@ -224,6 +241,24 @@ const StoryDetail = () => {
                   </Button>
                   {/* </Link> */}
                 </div>
+                {isAuthenticated && hasSavedChapter && (
+                  <p className="text-sm text-muted-foreground">
+                    Completion: {completionPercentage}%
+                  </p>
+                )}
+                {isAuthenticated && !hasSavedChapter && (
+                  <p className="text-sm text-muted-foreground">
+                    Completion: {completionPercentage}%
+                  </p>
+                )}
+                {!isAuthenticated && (
+                  <p className="text-sm text-muted-foreground">
+                    <Link to="/login" className="text-primary hover:underline">
+                      Login
+                    </Link>{" "}
+                    to Track progress
+                  </p>
+                )}
 
               </div>
             </div>
@@ -259,7 +294,11 @@ const StoryDetail = () => {
                           </div>
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Eye className="h-3 w-3" />
-                            {/* <span>{chapter.views}</span> */}
+                            {isAuthenticated && (
+                              <span className="ml-2">
+                                {Math.round((chapterProgressMap[chapter.slug] || 0) * 100)}%
+                              </span>
+                            )}
                           </div>
                         </div>
                         {index < story.chapters.length - 1 && <Separator />}
