@@ -16,6 +16,7 @@ import AudiobookPlayer from "./pages/AudiobookPlayer";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Search from "./pages/Search";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="discover" element={<Discover />} />
             <Route path="search" element={<Search />} />
             <Route path="publish" element={<Publish />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="/story/:slug" element={<StoryDetail />} />
             <Route path="/read/:story_slug/:chapter_slug" element={<StoryReader />} />
             <Route path="/listen/:story_slug/:chapter_slug" element={<AudiobookPlayer />} />

@@ -1,10 +1,15 @@
-interface Pagination {
+export interface Pagination {
     count: number;
     page: number;
     pages: number;
     previous: string | null;
     next: string | null;
     size: number;
+}
+
+export interface PaginatedResponse<T> {
+  pagination: Pagination;
+  results: T[];
 }
 
 export interface Chapter {
@@ -166,4 +171,51 @@ export interface DiscoverDataResponse {
   genres: Genre[];
   new_releases: Story[];
   hidden_gems: Story[];
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  username: string;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  date_joined: string;
+  favorites_count: number;
+  reviews_count: number;
+  reading_in_progress_count: number;
+  listening_in_progress_count: number;
+}
+
+export interface ContinueReadingItem {
+  story: Story;
+  chapter_slug: string | null;
+  chapter_title: string | null;
+  chapter_progress: number;
+  overall_progress: number;
+  updated_at: string;
+}
+
+export interface ContinueListeningItem {
+  story: Story;
+  audio_slug: string | null;
+  audio_title: string | null;
+  audio_progress: number;
+  overall_progress: number;
+  updated_at: string;
+}
+
+export interface FavoriteItem {
+  id: number;
+  story: Story;
+  created_at: string;
+}
+
+export interface MyReviewItem {
+  id: number;
+  story: Story;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
 }

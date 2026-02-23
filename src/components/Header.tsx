@@ -162,9 +162,16 @@ const Header = () => {
           </Link>
 
           {isLoggedIn ? (
-            <Button variant="outline" className="hidden sm:inline-flex" onClick={handleLogout}>
-              Logout
-            </Button>
+            <>
+              <Link to="/profile">
+                <Button variant="outline" className="hidden sm:inline-flex">
+                  Profile
+                </Button>
+              </Link>
+              <Button variant="outline" className="hidden sm:inline-flex" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
           ) : (
             <>
               <Link to="/login">
@@ -252,11 +259,20 @@ const Header = () => {
                 </SheetClose>
 
                 {isLoggedIn ? (
-                  <SheetClose asChild>
-                    <Button variant="outline" className="w-full" onClick={handleLogout}>
-                      Logout
-                    </Button>
-                  </SheetClose>
+                  <>
+                    <SheetClose asChild>
+                      <Link to="/profile">
+                        <Button variant="outline" className="w-full">
+                          Profile
+                        </Button>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button variant="outline" className="w-full" onClick={handleLogout}>
+                        Logout
+                      </Button>
+                    </SheetClose>
+                  </>
                 ) : (
                   <>
                     <SheetClose asChild>
