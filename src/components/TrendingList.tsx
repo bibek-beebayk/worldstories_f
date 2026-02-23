@@ -12,7 +12,11 @@ const TrendingList = ({ stories }: TrendingListProps) => {
   return (
     <div className="space-y-4">
       {stories.map((story, index) => (
-        <Link to={`/story/${story.slug}/`} key={story.id} className="flex gap-4 group cursor-pointer">
+        <Link
+          to={`/story/${story.slug}/`}
+          key={story.id}
+          className="group flex w-full min-w-0 gap-3 cursor-pointer sm:gap-4"
+        >
           <div className="flex-shrink-0 w-8 text-2xl font-bold text-muted-foreground">
             {index + 1}
           </div>
@@ -28,7 +32,7 @@ const TrendingList = ({ stories }: TrendingListProps) => {
           </div>
           
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm mb-1 truncate group-hover:text-primary transition-colors">
+            <h4 className="mb-1 line-clamp-2 break-words font-semibold text-sm transition-colors group-hover:text-primary">
               {story.title}
             </h4>
             
@@ -43,9 +47,9 @@ const TrendingList = ({ stories }: TrendingListProps) => {
               </div>
             </div>
             
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex flex-wrap gap-1">
               {(story.genres || []).map((genre) => (
-                <Badge key={genre} variant="secondary" className="text-xs">
+                <Badge key={genre} variant="secondary" className="max-w-full truncate text-xs">
                   {genre}
                 </Badge>
               ))}
