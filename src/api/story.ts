@@ -11,6 +11,7 @@ import {
   ReviewListResponse,
   Review,
   ReadingProgress,
+  AudioReadingProgress,
 } from "./types";
 
 export const storyApi = {
@@ -63,5 +64,23 @@ export const storyApi = {
     apiClient<ReadingProgress>(`/reading-progress/${story_slug}/`, {
       method: "PUT",
       body: JSON.stringify({ chapter_slug, progress, last_element_id }),
+    }),
+  getAudioProgress: (story_slug: string) =>
+    apiClient<AudioReadingProgress>(`/audio-progress/${story_slug}/`),
+  saveAudioProgress: (
+    story_slug: string,
+    audio_slug: string,
+    progress: number,
+    position_seconds: number,
+    duration_seconds: number
+  ) =>
+    apiClient<AudioReadingProgress>(`/audio-progress/${story_slug}/`, {
+      method: "PUT",
+      body: JSON.stringify({
+        audio_slug,
+        progress,
+        position_seconds,
+        duration_seconds,
+      }),
     }),
 };

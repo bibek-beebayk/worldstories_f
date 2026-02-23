@@ -103,6 +103,21 @@ export interface ReadingProgress {
   updated_at: string;
 }
 
+export interface AudioReadingProgress {
+  audio_slug: string | null;
+  progress: number;
+  position_seconds: number;
+  duration_seconds: number;
+  overall_progress: number;
+  audio_progresses: Array<{
+    audio_slug: string;
+    progress: number;
+    position_seconds: number;
+    duration_seconds: number;
+  }>;
+  updated_at: string;
+}
+
 export interface HomeStats {
   creators: number;
   stories: number;

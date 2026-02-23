@@ -56,6 +56,13 @@ const StoryDetail = () => {
     retry: false,
   });
 
+  const { data: audioProgress } = useQuery({
+    queryKey: ["audio-progress", slug],
+    queryFn: () => storyApi.getAudioProgress(slug!),
+    enabled: !!slug && !!isAuthenticated,
+    retry: false,
+  });
+
   useEffect(() => {
     if (myReview) {
       setReviewRating(myReview.rating);
@@ -144,6 +151,11 @@ const StoryDetail = () => {
     (readingProgress?.chapter_progresses || []).map((item) => [item.chapter_slug, item.progress])
   );
   const completionPercentage = Math.round((readingProgress?.overall_progress || 0) * 100);
+  const firstAudioSlug = story.audios[0]?.slug;
+  const savedAudioSlug = audioProgress?.audio_slug;
+  const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
+  const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
+  const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
 
   return (
     <div className="min-h-screen bg-background">
@@ -224,11 +236,11 @@ const StoryDetail = () => {
                     </Link>
                   )}
 
-                  {story.audios.length > 0 && (
-                    <Link to={`/listen/${story.slug}/${story.audios[0].slug}`} className="">
+                  {story.audios.length > 0 && listenAudioSlug && (
+                    <Link to={`/listen/${story.slug}/${listenAudioSlug}`} className="">
                       <Button size="lg" variant="secondary" className="flex-1 min-w-[140px]">
                         <Headphones className="h-4 w-4 mr-2" />
-                        Listen to Audio
+                        {hasSavedAudio ? "Continue Listening" : "Listen to Audio"}
                       </Button>
                     </Link>
                   )}
@@ -249,6 +261,11 @@ const StoryDetail = () => {
                 {isAuthenticated && !hasSavedChapter && (
                   <p className="text-sm text-muted-foreground">
                     Completion: {completionPercentage}%
+                  </p>
+                )}
+                {isAuthenticated && story.audios.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Audio completion: {audioCompletionPercentage}%
                   </p>
                 )}
                 {!isAuthenticated && (
