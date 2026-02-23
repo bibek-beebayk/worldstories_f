@@ -11,7 +11,7 @@ import { useGenres } from "@/hooks/useGenres";
 import { useStories } from "@/hooks/useStories";
 import { formatViews } from "@/lib/utils";
 import { Filter } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const Catalogue = () => {
   // -------------------------------
@@ -33,6 +33,24 @@ const Catalogue = () => {
 
   const { data: stories, isLoading } = useStories(page, selectedGenres, sort, status);
   const { data: genres } = useGenres();
+  const totalPages = stories?.pagination?.pages || 1;
+  const currentPage = stories?.pagination?.page || page;
+
+  const visiblePages = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, -1, totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [1, -1, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, -1, currentPage - 1, currentPage, currentPage + 1, -1, totalPages];
+  }, [currentPage, totalPages]);
 
   // -------------------------------
   // Filters panel content
@@ -123,6 +141,7 @@ const Catalogue = () => {
           setSort(tempSort);
           setStatus(tempStatus);
           setSelectedGenres(tempGenres);
+          setPage(1);
           setOpenFilter(false); // close mobile sheet
         }}
       >
@@ -137,6 +156,10 @@ const Catalogue = () => {
           setTempSort("popular");
           setTempStatus("all");
           setTempGenres([]);
+          setSort("popular");
+          setStatus("all");
+          setSelectedGenres([]);
+          setPage(1);
         }}
       >
         Reset Filters
@@ -193,6 +216,57 @@ const Catalogue = () => {
                 <StoryCard key={index} {...story} />
               ))}
             </div>
+
+            {(stories?.results?.length || 0) === 0 && (
+              <div className="rounded-lg border border-border p-6 text-center text-muted-foreground">
+                No stories found for the selected filters.
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="mt-2 mb-4 flex flex-col items-center gap-4">
+                <p className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </p>
+
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                  >
+                    Previous
+                  </Button>
+
+                  {visiblePages.map((pageNumber, idx) =>
+                    pageNumber === -1 ? (
+                      <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                        ...
+                      </span>
+                    ) : (
+                      <Button
+                        key={pageNumber}
+                        size="sm"
+                        variant={pageNumber === currentPage ? "default" : "outline"}
+                        onClick={() => setPage(pageNumber)}
+                      >
+                        {pageNumber}
+                      </Button>
+                    )
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* <AdSpace size="banner" /> */}
           </div>
