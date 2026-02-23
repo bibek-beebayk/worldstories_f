@@ -12,6 +12,7 @@ import {
   Review,
   ReadingProgress,
   AudioReadingProgress,
+  FavoriteStatusResponse,
 } from "./types";
 
 export const storyApi = {
@@ -82,5 +83,13 @@ export const storyApi = {
         position_seconds,
         duration_seconds,
       }),
+    }),
+  addFavorite: (slug: string) =>
+    apiClient<FavoriteStatusResponse>(`/stories/${slug}/favorite/`, {
+      method: "POST",
+    }),
+  removeFavorite: (slug: string) =>
+    apiClient<FavoriteStatusResponse>(`/stories/${slug}/favorite/`, {
+      method: "DELETE",
     }),
 };

@@ -13,11 +13,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
 import { BookMarked, Eye, Headphones, Heart, Share2, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 
 const StoryDetail = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { data: story, isLoading, isError } = useStory(slug);
   // const [pendingScroll, setPendingScroll] = useState<"chapters" | "audios" | null>(null);
 
@@ -30,6 +31,10 @@ const StoryDetail = () => {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [favoriteError, setFavoriteError] = useState("");
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState(0);
   const queryClient = useQueryClient();
   const isAuthenticated = Boolean(getAccessToken());
 
@@ -69,6 +74,12 @@ const StoryDetail = () => {
       setReviewComment(myReview.comment || "");
     }
   }, [myReview]);
+
+  useEffect(() => {
+    if (!story) return;
+    setIsFavorite(Boolean(story.is_favorite));
+    setFavoritesCount(story.favorites_count || 0);
+  }, [story]);
 
   // useEffect(() => {
   //   if (pendingScroll === "chapters" && chaptersRef.current) {
@@ -142,6 +153,34 @@ const StoryDetail = () => {
     }
   };
 
+  const toggleFavorite = async () => {
+    if (!slug) return;
+    setFavoriteError("");
+
+    if (!isAuthenticated) {
+      setFavoriteError("Please log in to favorite stories.");
+      navigate("/login");
+      return;
+    }
+
+    setFavoriteLoading(true);
+    try {
+      const response = isFavorite
+        ? await storyApi.removeFavorite(slug)
+        : await storyApi.addFavorite(slug);
+      setIsFavorite(response.is_favorite);
+      setFavoritesCount(response.favorites_count);
+      await queryClient.invalidateQueries({ queryKey: ["story", slug] });
+      await queryClient.invalidateQueries({ queryKey: ["stories"] });
+      await queryClient.invalidateQueries({ queryKey: ["home-data"] });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update favorite.";
+      setFavoriteError(message);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
   const firstChapterSlug = story.chapters[0]?.slug;
   const savedChapterSlug = readingProgress?.chapter_slug;
   const hasSavedChapter =
@@ -207,6 +246,10 @@ const StoryDetail = () => {
                   <div className="flex items-center gap-1">
                     <span>{story.reviews_count || 0} reviews</span>
                   </div>
+                  <div className="flex items-center gap-1">
+                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+                    <span>{favoritesCount}</span>
+                  </div>
                   {/* <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>{story.lastUpdated}</span>
@@ -245,8 +288,14 @@ const StoryDetail = () => {
                     </Link>
                   )}
 
-                  <Button size="lg" variant="outline">
-                    <Heart className="h-4 w-4" />
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={toggleFavorite}
+                    disabled={favoriteLoading}
+                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
                   </Button>
                   <Button size="lg" variant="outline">
                     <Share2 className="h-4 w-4" />
@@ -275,6 +324,9 @@ const StoryDetail = () => {
                     </Link>{" "}
                     to Track progress
                   </p>
+                )}
+                {favoriteError && (
+                  <p className="text-sm text-red-500">{favoriteError}</p>
                 )}
 
               </div>

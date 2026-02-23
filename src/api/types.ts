@@ -43,6 +43,8 @@ export interface Story {
   genres?: string[];
   has_audio?: boolean;
   reviews_count?: number;
+  is_favorite?: boolean;
+  favorites_count?: number;
 }
 
 export interface StoryListResponse {
@@ -116,6 +118,11 @@ export interface AudioReadingProgress {
     duration_seconds: number;
   }>;
   updated_at: string;
+}
+
+export interface FavoriteStatusResponse {
+  is_favorite: boolean;
+  favorites_count: number;
 }
 
 export interface HomeStats {
