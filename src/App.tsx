@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
+import Contest from "./pages/Contest";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="catalogue" element={<Catalogue />} />
             <Route path="trending" element={<Trending />} />
             <Route path="discover" element={<Discover />} />
+            <Route path="contest" element={<Contest />} />
             <Route path="search" element={<Search />} />
             <Route path="publish" element={<Publish />} />
             <Route path="profile" element={<Profile />} />
