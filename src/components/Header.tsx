@@ -196,7 +196,11 @@ const Header = () => {
               </Button>
             </SheetTrigger>
 
-            <SheetContent side="left" className="w-72 p-4">
+            <SheetContent
+              side="left"
+              className="w-72 p-4"
+              onOpenAutoFocus={(event) => event.preventDefault()}
+            >
               <SheetHeader className="flex flex-row items-center justify-between">
                 <SheetTitle className="text-xl font-bold"><Link to="/" className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
