@@ -733,7 +733,7 @@ const StoryReader = () => {
             style={activeTheme.cardStyle}
           >
             <div
-              className="m-0 px-4 py-3 md:px-8 md:py-5 lg:px-12 lg:py-6"
+              className="mx-auto w-full px-4 py-3 md:px-8 md:py-5 lg:max-w-4xl lg:px-10 lg:py-6"
               onTouchStart={handleReaderTouchStart}
               onTouchMove={handleReaderTouchMove}
               onTouchEnd={finishPinchZoom}
