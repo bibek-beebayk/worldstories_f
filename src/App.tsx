@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import Contest from "./pages/Contest";
+import PdfReader from "./pages/PdfReader";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="publish" element={<Publish />} />
             <Route path="profile" element={<Profile />} />
             <Route path="/story/:slug" element={<StoryDetail />} />
+            <Route path="/story/:slug/pdf" element={<PdfReader />} />
             <Route path="/read/:story_slug/:chapter_slug" element={<StoryReader />} />
             <Route path="/listen/:story_slug/:chapter_slug" element={<AudiobookPlayer />} />
 

@@ -71,6 +71,8 @@ export interface StoryDetail extends Story {
   about: string;
   author: Author;
   genres: Genre[];
+  pdf_file: string | null;
+  epub_file: string | null;
   chapter_count: number;
   chapters: Chapter[];
   tags: string[] | [];
@@ -231,6 +233,7 @@ export interface Submission {
   cover_image_file?: string | null;
   notes: string | null;
   pdf_file: string | null;
+  epub_file?: string | null;
   status: "pending" | "approved" | "rejected";
   published_story?: number | null;
   reviewer_notes: string | null;

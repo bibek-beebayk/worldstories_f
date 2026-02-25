@@ -30,6 +30,7 @@ const Publish = () => {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [epubFile, setEpubFile] = useState<File | null>(null);
   const [contentHtml, setContentHtml] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,6 +94,9 @@ const Publish = () => {
     if (pdfFile) {
       formData.append("pdf_file", pdfFile);
     }
+    if (epubFile) {
+      formData.append("epub_file", epubFile);
+    }
 
     try {
       setIsSubmitting(true);
@@ -106,6 +110,7 @@ const Publish = () => {
       setCoverImageFile(null);
       setNotes("");
       setPdfFile(null);
+      setEpubFile(null);
       setContentHtml("");
       if (editorRef.current) {
         editorRef.current.innerHTML = "";
@@ -280,6 +285,18 @@ const Publish = () => {
                 onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
               />
               <p className="mt-1 text-xs text-muted-foreground">Attach a draft manuscript if needed.</p>
+            </div>
+
+            <div>
+              <Label htmlFor="epub-file">EPUB File (optional)</Label>
+              <Input
+                id="epub-file"
+                type="file"
+                accept=".epub,application/epub+zip"
+                className="mt-2"
+                onChange={(e) => setEpubFile(e.target.files?.[0] || null)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Upload EPUB if available.</p>
             </div>
 
             <div>

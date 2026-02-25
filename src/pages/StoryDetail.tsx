@@ -11,7 +11,7 @@ import { storyApi } from "@/api/story";
 import { getAccessToken } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
-import { BookMarked, Eye, Headphones, Heart, Share2, Star } from "lucide-react";
+import { BookMarked, Download, Eye, FileText, Headphones, Heart, Share2, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -195,6 +195,7 @@ const StoryDetail = () => {
   const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
+  const hasStoryFiles = Boolean(story.pdf_file || story.epub_file);
 
   return (
     <div className="min-h-screen bg-background">
@@ -302,6 +303,32 @@ const StoryDetail = () => {
                   </Button>
                   {/* </Link> */}
                 </div>
+                {hasStoryFiles && (
+                  <div className="rounded-lg border bg-muted/30 p-3">
+                    <p className="mb-2 flex items-center gap-2 text-sm font-medium">
+                      <FileText className="h-4 w-4" />
+                      Story Files
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {story.pdf_file && (
+                        <Link to={`/story/${story.slug}/pdf`}>
+                          <Button size="sm" variant="outline">
+                            <Download className="mr-2 h-4 w-4" />
+                            View PDF
+                          </Button>
+                        </Link>
+                      )}
+                      {story.epub_file && (
+                        <a href={story.epub_file} target="_blank" rel="noreferrer">
+                          <Button size="sm" variant="outline">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download EPUB
+                          </Button>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {isAuthenticated && hasSavedChapter && (
                   <p className="text-sm text-muted-foreground">
                     Completion: {completionPercentage}%
