@@ -26,6 +26,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
 type ReaderThemeKey = string;
 type ReaderFontKey = string;
+type TouchPointLike = { clientX: number; clientY: number };
 type ReaderThemeConfig = {
   label: string;
   cardClass: string;
@@ -622,7 +623,7 @@ const StoryReader = () => {
 
   const clampFontSize = (value: number) => Math.min(42, Math.max(14, value));
 
-  const getTouchDistance = (touchA: Touch, touchB: Touch) => {
+  const getTouchDistance = (touchA: TouchPointLike, touchB: TouchPointLike) => {
     const dx = touchA.clientX - touchB.clientX;
     const dy = touchA.clientY - touchB.clientY;
     return Math.sqrt(dx * dx + dy * dy);
