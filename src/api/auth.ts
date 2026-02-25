@@ -36,6 +36,7 @@ interface TestEmailPayload {
   to: string;
   subject: string;
   message: string;
+  apiKey?: string;
 }
 
 export const authApi = {
@@ -87,6 +88,11 @@ export const authApi = {
   sendTestEmail: (payload: TestEmailPayload) =>
     apiClient<{ message: string }>("/test-email/", {
       method: "POST",
+      headers: payload.apiKey
+        ? {
+            "X-Email-Test-Key": payload.apiKey,
+          }
+        : undefined,
       body: JSON.stringify(payload),
     }),
 };

@@ -10,6 +10,7 @@ export default function TestEmail() {
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("WorldStories Test Email");
   const [message, setMessage] = useState("This is a test email from WorldStories.");
+  const [apiKey, setApiKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +22,12 @@ export default function TestEmail() {
     setLoading(true);
 
     try {
-      const res = await authApi.sendTestEmail({ to, subject, message });
+      const res = await authApi.sendTestEmail({
+        to,
+        subject,
+        message,
+        apiKey: apiKey.trim() || undefined,
+      });
       setStatusMessage(res.message || "Email sent.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to send test email.";
@@ -51,6 +57,17 @@ export default function TestEmail() {
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
                 placeholder="user@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">Test API Key (Prod only)</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Optional in dev; required in prod if not staff"
               />
             </div>
 
@@ -87,4 +104,3 @@ export default function TestEmail() {
     </div>
   );
 }
-
