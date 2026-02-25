@@ -3,13 +3,14 @@ import StoryCard from "@/components/StoryCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useGenres } from "@/hooks/useGenres";
 import { useStories } from "@/hooks/useStories";
 import { formatViews } from "@/lib/utils";
-import { BookOpen, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { BookOpen, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const Catalogue = () => {
@@ -17,10 +18,18 @@ const Catalogue = () => {
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("popular");
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [openGenres, setOpenGenres] = useState(false);
   const [tempGenres, setTempGenres] = useState<number[]>([]);
 
-  const { data: stories, isLoading } = useStories(page, selectedGenres, sort, status);
+  const { data: stories, isLoading } = useStories(
+    page,
+    selectedGenres,
+    sort,
+    status,
+    searchQuery
+  );
   const { data: genres } = useGenres();
 
   useEffect(() => {
@@ -58,6 +67,13 @@ const Catalogue = () => {
     setSort("popular");
     setSelectedGenres([]);
     setTempGenres([]);
+    setSearchInput("");
+    setSearchQuery("");
+    setPage(1);
+  };
+
+  const applyCatalogueSearch = () => {
+    setSearchQuery(searchInput.trim());
     setPage(1);
   };
 
@@ -86,6 +102,27 @@ const Catalogue = () => {
               <span className="font-semibold">{formatViews(totalCount)}</span>
               <span className="text-muted-foreground">stories</span>
             </div>
+
+            <form
+              className="flex min-w-[220px] flex-1 items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                applyCatalogueSearch();
+              }}
+            >
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder="Search in catalogue..."
+                  className="h-9 pl-8 text-xs sm:text-sm"
+                />
+              </div>
+              <Button type="submit" size="sm" className="h-9">
+                Search
+              </Button>
+            </form>
 
             <div className="min-w-[140px] flex-1 sm:flex-none">
               <Select
@@ -185,16 +222,37 @@ const Catalogue = () => {
               </SheetContent>
             </Sheet>
 
-            {(selectedGenres.length > 0 || status !== "all" || sort !== "popular") && (
+            {(selectedGenres.length > 0 ||
+              status !== "all" ||
+              sort !== "popular" ||
+              searchQuery.length > 0) && (
               <Button variant="ghost" size="sm" onClick={clearAllFilters}>
                 Reset All
               </Button>
             )}
           </div>
 
-          {(selectedGenreNames.length > 0 || status !== "all" || sort !== "popular") && (
+          {(selectedGenreNames.length > 0 ||
+            status !== "all" ||
+            sort !== "popular" ||
+            searchQuery.length > 0) && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Active filters</Badge>
+              {searchQuery.length > 0 && (
+                <Badge variant="outline" className="gap-1">
+                  Search: {searchQuery}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearchQuery("");
+                      setPage(1);
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
               {sort !== "popular" && (
                 <Badge variant="outline" className="gap-1">
                   Sort: {sort}

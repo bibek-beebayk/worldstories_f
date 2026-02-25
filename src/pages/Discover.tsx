@@ -19,7 +19,7 @@ const Discover = () => {
         <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">
             <Compass className="h-3.5 w-3.5" />
-            Explore
+            Discover
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Discover</h1>
           <p className="mt-2 text-sm text-slate-700 sm:text-base">

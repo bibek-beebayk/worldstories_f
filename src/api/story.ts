@@ -16,7 +16,16 @@ import {
 } from "./types";
 
 export const storyApi = {
-  getStories: (page: number, genres: number[] | [], sort: string, status: string) => apiClient<StoryListResponse>(`/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}`),
+  getStories: (
+    page: number,
+    genres: number[] | [],
+    sort: string,
+    status: string,
+    q: string = ""
+  ) =>
+    apiClient<StoryListResponse>(
+      `/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}`
+    ),
 
   getStory: (slug: string) => 
     apiClient<StoryDetail>(`/stories/${slug}/`),
