@@ -13,6 +13,8 @@ import {
   ReadingProgress,
   AudioReadingProgress,
   FavoriteStatusResponse,
+  PaginatedResponse,
+  Submission,
 } from "./types";
 
 export const storyApi = {
@@ -101,4 +103,11 @@ export const storyApi = {
     apiClient<FavoriteStatusResponse>(`/stories/${slug}/favorite/`, {
       method: "DELETE",
     }),
+  createSubmission: (formData: FormData) =>
+    apiClient<Submission>("/submissions/", {
+      method: "POST",
+      body: formData,
+    }),
+  getMySubmissions: (page: number = 1) =>
+    apiClient<PaginatedResponse<Submission>>(`/submissions/?page=${page}`),
 };

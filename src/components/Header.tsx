@@ -6,7 +6,6 @@ import { Separator } from "@/components/ui/separator";
 import { clearTokens, getAccessToken } from "@/api/client";
 import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { useSearchStories } from "@/hooks/useSearchStories";
-import { toast } from "@/components/ui/sonner";
 import {
   Sheet,
   SheetClose,
@@ -66,13 +65,6 @@ const Header = () => {
     setShowLoginModal(false);
     setAuthUiTick((t) => t + 1);
     navigate("/");
-  };
-
-  const handlePublishClick = (event: React.MouseEvent<HTMLElement>) => {
-    if (isLoggedIn) return;
-    event.preventDefault();
-    toast.info("Please log in to publish your story.");
-    openLoginModal();
   };
 
   const goToSearchPage = (q: string) => {
@@ -191,11 +183,6 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Publish Button */}
-          <Link to="/publish" onClick={handlePublishClick}>
-            <Button className="hidden sm:inline-flex">Publish</Button>
-          </Link>
-
           {isLoggedIn ? (
             <>
               <Link to="/profile">
@@ -297,12 +284,6 @@ const Header = () => {
                 </SheetClose>
 
                 <Separator className="my-2" />
-
-                <SheetClose asChild>
-                  <Link to="/publish" onClick={handlePublishClick}>
-                    <Button className="w-full">Publish</Button>
-                  </Link>
-                </SheetClose>
 
                 {isLoggedIn ? (
                   <>

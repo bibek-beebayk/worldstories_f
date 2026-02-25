@@ -219,3 +219,22 @@ export interface MyReviewItem {
   created_at: string;
   updated_at: string;
 }
+
+export interface Submission {
+  id: number;
+  title: string;
+  about: string;
+  content: string;
+  story_type: string;
+  genres: number[] | Genre[];
+  cover_image: string | null;
+  cover_image_file?: string | null;
+  notes: string | null;
+  pdf_file: string | null;
+  status: "pending" | "approved" | "rejected";
+  published_story?: number | null;
+  reviewer_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  user_email?: string;
+}

@@ -29,12 +29,13 @@ export async function apiClient<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = getAccessToken();
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
+      ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
-      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
@@ -58,7 +59,7 @@ export async function apiClient<T>(
   }
 
   const error = await res.json().catch(() => ({}));
-  throw new Error(error?.message || "API request failed");
+  throw new Error(error?.detail || error?.message || "API request failed");
 }
 
 // ----------------------------
