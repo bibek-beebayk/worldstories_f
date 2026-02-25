@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { clearTokens, getAccessToken } from "@/api/client";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
 import { useSearchStories } from "@/hooks/useSearchStories";
+import { toast } from "@/components/ui/sonner";
 import {
   Sheet,
   SheetClose,
@@ -12,13 +15,17 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, Search } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatViews } from "@/lib/utils";
 
 const Header = () => {
   const navigate = useNavigate();
+  const [, setAuthUiTick] = useState(0);
   const isLoggedIn = Boolean(getAccessToken());
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopQuery, setDesktopQuery] = useState("");
   const [mobileQuery, setMobileQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -40,7 +47,32 @@ const Header = () => {
 
   const handleLogout = () => {
     clearTokens();
-    navigate("/login");
+    setAuthUiTick((t) => t + 1);
+    setShowLogoutModal(false);
+    navigate("/");
+  };
+
+  const requestLogout = () => {
+    setShowLogoutModal(true);
+    setMobileMenuOpen(false);
+  };
+
+  const openLoginModal = () => {
+    setShowLoginModal(true);
+    setMobileMenuOpen(false);
+  };
+
+  const handleGoogleLoginSuccess = () => {
+    setShowLoginModal(false);
+    setAuthUiTick((t) => t + 1);
+    navigate("/");
+  };
+
+  const handlePublishClick = (event: React.MouseEvent<HTMLElement>) => {
+    if (isLoggedIn) return;
+    event.preventDefault();
+    toast.info("Please log in to publish your story.");
+    openLoginModal();
   };
 
   const goToSearchPage = (q: string) => {
@@ -160,7 +192,7 @@ const Header = () => {
           </div>
 
           {/* Publish Button */}
-          <Link to="/publish">
+          <Link to="/publish" onClick={handlePublishClick}>
             <Button className="hidden sm:inline-flex">Publish</Button>
           </Link>
 
@@ -171,17 +203,15 @@ const Header = () => {
                   Profile
                 </Button>
               </Link>
-              <Button variant="outline" className="hidden sm:inline-flex" onClick={handleLogout}>
+              <Button variant="outline" className="hidden sm:inline-flex" onClick={requestLogout}>
                 Logout
               </Button>
             </>
           ) : (
             <>
-              <Link to="/login">
-                <Button variant="outline" className="hidden sm:inline-flex">
-                  Log In
-                </Button>
-              </Link>
+              <Button variant="outline" className="hidden sm:inline-flex" onClick={openLoginModal}>
+                Log In
+              </Button>
               {/* <Link to="/register">
                 <Button className="hidden sm:inline-flex">Register</Button>
               </Link> */}
@@ -189,7 +219,7 @@ const Header = () => {
           )}
 
           {/* Mobile Menu Trigger */}
-          <Sheet>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="h-5 w-5" />
@@ -269,7 +299,7 @@ const Header = () => {
                 <Separator className="my-2" />
 
                 <SheetClose asChild>
-                  <Link to="/publish">
+                  <Link to="/publish" onClick={handlePublishClick}>
                     <Button className="w-full">Publish</Button>
                   </Link>
                 </SheetClose>
@@ -283,21 +313,15 @@ const Header = () => {
                         </Button>
                       </Link>
                     </SheetClose>
-                    <SheetClose asChild>
-                      <Button variant="outline" className="w-full" onClick={handleLogout}>
-                        Logout
-                      </Button>
-                    </SheetClose>
+                    <Button variant="outline" className="w-full" onClick={requestLogout}>
+                      Logout
+                    </Button>
                   </>
                 ) : (
                   <>
-                    <SheetClose asChild>
-                      <Link to="/login">
-                        <Button variant="outline" className="w-full">
-                          Log In
-                        </Button>
-                      </Link>
-                    </SheetClose>
+                    <Button variant="outline" className="w-full" onClick={openLoginModal}>
+                      Log In
+                    </Button>
 
                     {/* <SheetClose asChild>
                       <Link to="/register">
@@ -313,6 +337,76 @@ const Header = () => {
           </Sheet>
         </div>
       </div>
+
+      {showLoginModal && (
+        <div
+          className="fixed inset-0 z-[70] flex min-h-dvh items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={() => setShowLoginModal(false)}
+        >
+          <Card
+            className="mx-auto w-full max-w-md border shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="google-login-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle id="google-login-title" className="text-lg">
+                Log In
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setShowLoginModal(false)}
+                aria-label="Close login modal"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pb-6">
+              <p className="mb-4 text-sm text-muted-foreground">Continue with your Google account.</p>
+              <div className="flex justify-center">
+                <GoogleLoginButton onSuccess={handleGoogleLoginSuccess} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showLogoutModal && (
+        <div
+          className="fixed inset-0 z-[70] flex min-h-dvh items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={() => setShowLogoutModal(false)}
+        >
+          <Card
+            className="mx-auto w-full max-w-md border shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-confirm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader>
+              <CardTitle id="logout-confirm-title" className="text-lg">
+                Confirm logout
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pb-6">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to log out?
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowLogoutModal(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </header>
   );
 };

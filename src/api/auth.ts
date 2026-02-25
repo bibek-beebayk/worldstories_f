@@ -32,13 +32,6 @@ interface ProfileUpdatePayload {
   avatar_url?: string;
 }
 
-interface TestEmailPayload {
-  to: string;
-  subject: string;
-  message: string;
-  apiKey?: string;
-}
-
 export const authApi = {
   register: (email: string, password: string) =>
     apiClient<RegisterResponse>("/auth/register/", {
@@ -85,14 +78,4 @@ export const authApi = {
     apiClient<PaginatedResponse<FavoriteItem>>(`/auth/library/favorites/?page=${page}`),
   getMyReviews: (page: number = 1) =>
     apiClient<PaginatedResponse<MyReviewItem>>(`/auth/library/reviews/?page=${page}`),
-  sendTestEmail: (payload: TestEmailPayload) =>
-    apiClient<{ message: string }>("/test-email/", {
-      method: "POST",
-      headers: payload.apiKey
-        ? {
-            "X-Email-Test-Key": payload.apiKey,
-          }
-        : undefined,
-      body: JSON.stringify(payload),
-    }),
 };

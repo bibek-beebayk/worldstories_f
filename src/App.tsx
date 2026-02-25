@@ -1,6 +1,6 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DefaultLayout from "@/layouts/DefaultLayout";
 
@@ -14,11 +14,9 @@ import StoryDetail from "./pages/StoryDetail";
 import StoryReader from "./pages/StoryReader";
 import AudiobookPlayer from "./pages/AudiobookPlayer";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import Contest from "./pages/Contest";
-import TestEmail from "./pages/TestEmail";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +29,7 @@ const App = () => (
           <Route path="/" element={<DefaultLayout />}>
             <Route index element={<Index />} />
             <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
+            <Route path="register" element={<Navigate to="/login" replace />} />
             <Route path="catalogue" element={<Catalogue />} />
             <Route path="trending" element={<Trending />} />
             <Route path="discover" element={<Discover />} />
@@ -39,7 +37,6 @@ const App = () => (
             <Route path="search" element={<Search />} />
             <Route path="publish" element={<Publish />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="email-test" element={<TestEmail />} />
             <Route path="/story/:slug" element={<StoryDetail />} />
             <Route path="/read/:story_slug/:chapter_slug" element={<StoryReader />} />
             <Route path="/listen/:story_slug/:chapter_slug" element={<AudiobookPlayer />} />
