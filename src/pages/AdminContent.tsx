@@ -498,7 +498,9 @@ const AdminContent = () => {
     );
   };
 
-  const persistStory = async (forceDraft = false) => {
+  const persistStory = async (options?: { forceDraft?: boolean; forcePublish?: boolean }) => {
+    const forceDraft = Boolean(options?.forceDraft);
+    const forcePublish = Boolean(options?.forcePublish);
     if (!canSave) return;
 
     const formData = new FormData();
@@ -512,7 +514,7 @@ const AdminContent = () => {
       formData.append("author", "");
     }
     formData.append("is_completed", String(isCompleted));
-    const publishValue = forceDraft ? false : isPublished;
+    const publishValue = forceDraft ? false : forcePublish ? true : isPublished;
     formData.append("is_published", String(publishValue));
     if (publishValue && publishedDate) {
       formData.append("published_date", publishedDate);
@@ -581,11 +583,14 @@ const AdminContent = () => {
 
   const saveStory = async (event: FormEvent) => {
     event.preventDefault();
-    await persistStory(false);
+    await persistStory();
   };
 
   const saveStoryAsDraft = async () => {
-    await persistStory(true);
+    await persistStory({ forceDraft: true });
+  };
+  const publishStory = async () => {
+    await persistStory({ forcePublish: true });
   };
 
   const updateStoryFile = async (field: "cover_image_file" | "pdf_file" | "epub_file", file: File) => {
@@ -910,10 +915,14 @@ const AdminContent = () => {
                     variant="outline"
                     disabled={isSubmitting || !canSave}
                     onClick={() => {
-                      void saveStoryAsDraft();
+                      if (isPublished) {
+                        void saveStoryAsDraft();
+                      } else {
+                        void publishStory();
+                      }
                     }}
                   >
-                    {isSubmitting ? "Saving..." : "Save as Draft"}
+                    {isSubmitting ? "Saving..." : isPublished ? "Save as Draft" : "Publish"}
                   </Button>
                   {mode === "edit" && (
                     <Button
