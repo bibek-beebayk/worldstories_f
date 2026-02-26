@@ -50,9 +50,9 @@ const Index = () => {
                 subtitle="Handpicked stories with high engagement this week."
               />
 
-              <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-                {data.weekly_spotlight.slice(0, 4).map((story) => (
-                  <StoryCard key={story.id} {...story} />
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+                {data.weekly_spotlight.slice(0, 6).map((story) => (
+                  <StoryCard key={story.id} {...story} compact />
                 ))}
               </div>
             </div>

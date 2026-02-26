@@ -12,19 +12,20 @@ interface StoryCardProps {
   views: number;
   story_type?: string;
   has_audio?: boolean;
+  compact?: boolean;
 }
 
-const StoryCard = ({ title, cover_image, rating, views, story_type, slug, has_audio }: StoryCardProps) => {
+const StoryCard = ({ title, cover_image, rating, views, story_type, slug, has_audio, compact = false }: StoryCardProps) => {
   return (
     <Link to={`/story/${slug}/`} className="group cursor-pointer block">
-      <div className="relative aspect-[3/4] rounded-lg overflow-hidden mb-3 shadow-md">
+      <div className={`relative overflow-hidden rounded-lg ${compact ? "mb-2 aspect-[4/5] shadow-sm" : "mb-3 aspect-[3/4] shadow-md"}`}>
         <img 
           src={cover_image} 
           alt={title}
           className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         {story_type && (
-          <Badge className="absolute top-2 left-2 bg-black/70 text-white border-0">
+          <Badge className={`absolute left-2 border-0 bg-black/70 text-white ${compact ? "top-1.5 px-1.5 py-0 text-[10px]" : "top-2"}`}>
             {story_type}
           </Badge>
         )}
@@ -32,23 +33,23 @@ const StoryCard = ({ title, cover_image, rating, views, story_type, slug, has_au
           // <Badge className="absolute top-2 right-2 bg-black/70 text-white border-0">
           //   {story_type}
           // </Badge>
-          <div className="absolute w-5 h-5 top-2 right-2 p-1 bg-red-600 rounded-full opacity-80">
-            <Headphones className="w-3 h-3 text-white" />
+          <div className={`absolute rounded-full bg-red-600 opacity-80 ${compact ? "right-1.5 top-1.5 h-4 w-4 p-[3px]" : "right-2 top-2 h-5 w-5 p-1"}`}>
+            <Headphones className={`text-white ${compact ? "h-2.5 w-2.5" : "h-3 w-3"}`} />
           </div>
         )}
       </div>
       
-      <h3 className="font-semibold text-sm mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+      <h3 className={`line-clamp-2 font-semibold transition-colors group-hover:text-primary ${compact ? "mb-1 text-xs" : "mb-2 text-sm"}`}>
         {title}
       </h3>
       
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <div className={`flex items-center text-muted-foreground ${compact ? "gap-2 text-[11px]" : "gap-3 text-xs"}`}>
         <div className="flex items-center gap-1">
-          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+          <Star className={`${compact ? "h-2.5 w-2.5" : "h-3 w-3"} fill-amber-400 text-amber-400`} />
           <span>{rating}</span>
         </div>
         <div className="flex items-center gap-1">
-          <Eye className="h-3 w-3" />
+          <Eye className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
           <span>{formatViews(views)}</span>
         </div>
       </div>
