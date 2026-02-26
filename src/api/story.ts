@@ -15,6 +15,13 @@ import {
   FavoriteStatusResponse,
   PaginatedResponse,
   Submission,
+  AdminStory,
+  AdminChapter,
+  AdminAudio,
+  AdminSubmission,
+  AdminOverviewResponse,
+  AdminAuthor,
+  AdminGenre,
 } from "./types";
 
 export const storyApi = {
@@ -110,4 +117,112 @@ export const storyApi = {
     }),
   getMySubmissions: (page: number = 1) =>
     apiClient<PaginatedResponse<Submission>>(`/submissions/?page=${page}`),
+  getMySubmission: (id: number) =>
+    apiClient<Submission>(`/submissions/${id}/`),
+  updateMySubmission: (id: number, formData: FormData) =>
+    apiClient<Submission>(`/submissions/${id}/`, {
+      method: "PATCH",
+      body: formData,
+    }),
+  deleteMySubmission: (id: number) =>
+    apiClient<void>(`/submissions/${id}/`, {
+      method: "DELETE",
+    }),
+  getAdminStories: (page: number = 1, q: string = "") =>
+    apiClient<PaginatedResponse<AdminStory>>(
+      `/admin/stories/?page=${page}&search=${encodeURIComponent(q)}`
+    ),
+  getAdminStory: (id: number) =>
+    apiClient<AdminStory>(`/admin/stories/${id}/`),
+  createAdminStory: (formData: FormData) =>
+    apiClient<AdminStory>("/admin/stories/", {
+      method: "POST",
+      body: formData,
+    }),
+  updateAdminStory: (id: number, formData: FormData) =>
+    apiClient<AdminStory>(`/admin/stories/${id}/`, {
+      method: "PATCH",
+      body: formData,
+    }),
+  getAdminChapters: (storyId: number) =>
+    apiClient<PaginatedResponse<AdminChapter>>(`/admin/chapters/?story=${storyId}`),
+  getAdminAudios: (storyId: number) =>
+    apiClient<PaginatedResponse<AdminAudio>>(`/admin/audios/?story=${storyId}`),
+  getAdminSubmissions: (page: number = 1, q: string = "", status: string = "all") =>
+    apiClient<PaginatedResponse<AdminSubmission>>(
+      `/admin/submissions/?page=${page}&search=${encodeURIComponent(q)}${
+        status !== "all" ? `&status=${encodeURIComponent(status)}` : ""
+      }`
+    ),
+  getAdminSubmission: (id: number) =>
+    apiClient<AdminSubmission>(`/admin/submissions/${id}/`),
+  getAdminOverview: () =>
+    apiClient<AdminOverviewResponse>("/admin/overview/"),
+  getAdminAuthors: () =>
+    apiClient<AdminAuthor[]>("/admin/authors/"),
+  createAdminAuthor: (payload: { name: string; bio?: string; image?: string }) =>
+    apiClient<AdminAuthor>("/admin/authors/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  getAdminGenres: () =>
+    apiClient<AdminGenre[]>("/admin/genres/"),
+  createAdminGenre: (name: string) =>
+    apiClient<AdminGenre>("/admin/genres/", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  createAdminChapter: (payload: {
+    story: number;
+    title: string;
+    slug?: string;
+    content: string;
+    order: number;
+  }) =>
+    apiClient<AdminChapter>("/admin/chapters/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminChapter: (
+    id: number,
+    payload: Partial<{
+      title: string;
+      slug: string;
+      content: string;
+      order: number;
+    }>
+  ) =>
+    apiClient<AdminChapter>(`/admin/chapters/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminChapter: (id: number) =>
+    apiClient<void>(`/admin/chapters/${id}/`, {
+      method: "DELETE",
+    }),
+  createAdminAudio: (formData: FormData) =>
+    apiClient<AdminAudio>("/admin/audios/", {
+      method: "POST",
+      body: formData,
+    }),
+  updateAdminAudio: (id: number, formData: FormData) =>
+    apiClient<AdminAudio>(`/admin/audios/${id}/`, {
+      method: "PATCH",
+      body: formData,
+    }),
+  deleteAdminAudio: (id: number) =>
+    apiClient<void>(`/admin/audios/${id}/`, {
+      method: "DELETE",
+    }),
+  updateAdminSubmission: (
+    id: number,
+    payload: Partial<{
+      status: "pending" | "requires_edit" | "approved" | "rejected";
+      reviewer_notes: string;
+    }>
+  ) =>
+    apiClient<AdminSubmission>(`/admin/submissions/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
 };

@@ -224,11 +224,21 @@ const StoryDetail = () => {
                   <h1 className="text-4xl font-bold mb-2">{story.title}</h1>
                   <div className="flex items-center gap-2 mb-4">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={story.author.image} />
+                      <AvatarImage src={story.author?.image || ""} />
                       <AvatarFallback>SC</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-muted-foreground">by <span className="text-foreground font-medium">{story.author.name}</span></span>
+                    <span className="text-sm text-muted-foreground">
+                      by <span className="text-foreground font-medium">{story.author?.name || "Unknown"}</span>
+                    </span>
                   </div>
+                  {story.submitted_by && (
+                    <p className="text-sm text-muted-foreground">
+                      Submitted by{" "}
+                      <span className="text-foreground font-medium">
+                        {story.submitted_by.display_name || story.submitted_by.username || story.submitted_by.email}
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-6 text-sm">

@@ -78,4 +78,9 @@ export const authApi = {
     apiClient<PaginatedResponse<FavoriteItem>>(`/auth/library/favorites/?page=${page}`),
   getMyReviews: (page: number = 1) =>
     apiClient<PaginatedResponse<MyReviewItem>>(`/auth/library/reviews/?page=${page}`),
+  adminLogin: (email: string, password: string) =>
+    apiClient<AuthResponse>("/auth/admin-login/", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
 };

@@ -69,7 +69,8 @@ export interface Author{
 export interface StoryDetail extends Story {
   story_type: string;
   about: string;
-  author: Author;
+  author: Author | null;
+  submitted_by: StorySubmittedBy | null;
   genres: Genre[];
   pdf_file: string | null;
   epub_file: string | null;
@@ -84,6 +85,13 @@ export interface ReviewUser {
   id: string;
   email: string;
   username: string;
+}
+
+export interface StorySubmittedBy {
+  id: string;
+  email: string;
+  username: string;
+  display_name: string | null;
 }
 
 export interface Review {
@@ -179,6 +187,7 @@ export interface UserProfile {
   id: string;
   email: string;
   username: string;
+  is_superuser: boolean;
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
@@ -234,10 +243,149 @@ export interface Submission {
   notes: string | null;
   pdf_file: string | null;
   epub_file?: string | null;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "requires_edit" | "approved" | "rejected";
   published_story?: number | null;
   reviewer_notes: string | null;
   created_at: string;
   updated_at: string;
   user_email?: string;
+}
+
+export interface AdminStory {
+  id: number;
+  title: string;
+  slug: string;
+  about: string | null;
+  story_type: string;
+  author: number | null;
+  submitted_by: StorySubmittedBy | null;
+  published_date: string | null;
+  cover_image: string | null;
+  cover_image_file: string | null;
+  cover_image_url: string;
+  pdf_file: string | null;
+  pdf_file_url: string | null;
+  epub_file: string | null;
+  epub_file_url: string | null;
+  is_completed: boolean;
+  is_published: boolean;
+  genres: number[];
+  tags: number[];
+  rating: number;
+  views: number;
+  source: "admin" | "submission";
+}
+
+export interface AdminAuthor {
+  id: number;
+  name: string;
+  bio?: string | null;
+  image?: string | null;
+}
+
+export interface AdminGenre {
+  id: number;
+  name: string;
+}
+
+export interface AdminChapter {
+  id: number;
+  story: number;
+  title: string;
+  slug: string;
+  content: string;
+  order: number;
+}
+
+export interface AdminAudio {
+  id: number;
+  story: number;
+  title: string;
+  slug: string;
+  audio_file: string | null;
+  order: number;
+}
+
+export interface AdminSubmission {
+  id: number;
+  user: string;
+  user_email: string;
+  title: string;
+  about: string;
+  content: string;
+  story_type: string;
+  genres: Genre[];
+  cover_image: string | null;
+  cover_image_url: string | null;
+  notes: string | null;
+  pdf_file: string | null;
+  pdf_file_url: string | null;
+  epub_file: string | null;
+  epub_file_url: string | null;
+  status: "pending" | "requires_edit" | "approved" | "rejected";
+  reviewer_notes: string | null;
+  published_story: number | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminOverviewSummary {
+  stories: number;
+  chapters: number;
+  audios: number;
+  users: number;
+  submissions_pending: number;
+  submissions_approved: number;
+  submissions_rejected: number;
+  reviews: number;
+  favorites: number;
+  total_story_views: number;
+  active_readers: number;
+  active_listeners: number;
+}
+
+export interface AdminMostReadStory {
+  id: number;
+  title: string;
+  slug: string;
+  cover_image: string | null;
+  readers_count: number;
+  views: number;
+  rating: number;
+}
+
+export interface AdminMostListenedAudio {
+  id: number;
+  title: string;
+  slug: string;
+  story_id: number;
+  story_title: string;
+  story_slug: string;
+  listeners_count: number;
+  avg_progress: number;
+}
+
+export interface AdminTopFavoritedStory {
+  id: number;
+  title: string;
+  slug: string;
+  favorites_count: number;
+}
+
+export interface AdminTopRatedStory {
+  id: number;
+  title: string;
+  slug: string;
+  rating: number;
+  views: number;
+}
+
+export interface AdminOverviewResponse {
+  summary: AdminOverviewSummary;
+  most_read_stories: AdminMostReadStory[];
+  most_listened_audios: AdminMostListenedAudio[];
+  top_favorited_stories: AdminTopFavoritedStory[];
+  top_rated_stories: AdminTopRatedStory[];
 }
