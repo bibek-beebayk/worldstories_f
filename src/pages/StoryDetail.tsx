@@ -453,19 +453,29 @@ const StoryDetail = () => {
                     <Separator />
                     <div>
                       <h3 className="font-semibold mb-2">About the Author</h3>
-                      <div className="flex items-center gap-3 mb-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={story.author.image} />
-                          <AvatarFallback>SC</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{story.author.name}</p>
-                          <p className="text-sm text-muted-foreground">{story.author.stories_count} stories · 5.2M readers</p>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {story.author.bio}
-                      </p>
+                      {story.author ? (
+                        <>
+                          <div className="mb-3 flex items-center gap-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={story.author.image || ""} />
+                              <AvatarFallback>SC</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{story.author.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {story.author.stories_count} stories
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {story.author.bio || "No author bio available."}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No author information available for this story.
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
