@@ -1,5 +1,12 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL;
 const BASE_URL = API_BASE_URL;
+export const AUTH_CHANGE_EVENT = "worldstories-auth-change";
+
+function notifyAuthChanged() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+  }
+}
 
 // ----------------------------
 // TOKEN HELPERS
@@ -7,6 +14,7 @@ const BASE_URL = API_BASE_URL;
 export function saveTokens(access: string, refresh: string) {
   localStorage.setItem("access", access);
   localStorage.setItem("refresh", refresh);
+  notifyAuthChanged();
 }
 
 export function getAccessToken() {
@@ -20,6 +28,7 @@ export function getRefreshToken() {
 export function clearTokens() {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
+  notifyAuthChanged();
 }
 
 // ----------------------------

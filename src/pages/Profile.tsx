@@ -34,7 +34,7 @@ import {
   X,
 } from "lucide-react";
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
 type ReaderView =
@@ -45,9 +45,12 @@ type ReaderView =
   | "reviews";
 
 const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
+const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings"];
+const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews"];
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const isAuthenticated = Boolean(getAccessToken());
 
@@ -164,6 +167,19 @@ const Profile = () => {
     queryFn: () => storyApi.getMySubmission(activeSubmissionId!),
     enabled: isAuthenticated && activeSubmissionId !== null && (showSubmissionViewModal || showSubmissionEditModal),
   });
+
+  useEffect(() => {
+    const section = searchParams.get("section");
+    const view = searchParams.get("view");
+
+    if (section && profileSections.includes(section as ProfileSection)) {
+      setActiveSection(section as ProfileSection);
+    }
+
+    if (view && readerViews.includes(view as ReaderView)) {
+      setActiveReaderView(view as ReaderView);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!profile) return;

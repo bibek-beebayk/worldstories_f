@@ -1,12 +1,16 @@
+import { useEffect, useState } from "react";
 import HeroSection from "@/components/HeroSection";
+import ContinueReadingSection from "@/components/ContinueReadingSection";
 import StoryCard from "@/components/StoryCard";
 import TrendingList from "@/components/TrendingList";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import { AUTH_CHANGE_EVENT, getAccessToken } from "@/api/client";
 import { useHomeData } from "@/hooks/useHomeData";
-import { BookOpenText, Compass, Flame, Sparkles, Users } from "lucide-react";
+import { useContinueReading } from "@/hooks/useContinueReading";
+import { ArrowRight, BookOpenText, Compass, Flame, Sparkles, Users } from "lucide-react";
 import { ComponentType } from "react";
 import { formatViews } from "@/lib/utils";
 
@@ -31,7 +35,27 @@ const SectionTitle = ({
 );
 
 const Index = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getAccessToken()));
   const { data, isLoading, isError } = useHomeData();
+  const {
+    data: continueReadingData,
+    isLoading: isContinueReadingLoading,
+    isError: isContinueReadingError,
+  } = useContinueReading(isLoggedIn);
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsLoggedIn(Boolean(getAccessToken()));
+    };
+
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuthState);
+    window.addEventListener("storage", syncAuthState);
+
+    return () => {
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncAuthState);
+      window.removeEventListener("storage", syncAuthState);
+    };
+  }, []);
 
   if (isLoading) return <FullScreenLoader />;
   if (isError || !data) return <div className="container px-4 py-12">Failed to load home data.</div>;
@@ -42,6 +66,14 @@ const Index = () => {
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
         <main className="space-y-8 md:space-y-10">
+          {isLoggedIn && (
+            <ContinueReadingSection
+              items={continueReadingData?.results || []}
+              isLoading={isContinueReadingLoading}
+              isError={isContinueReadingError}
+            />
+          )}
+
           <section className="grid gap-4 sm:gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
               <SectionTitle
@@ -164,14 +196,37 @@ const Index = () => {
                 <p className="text-xs font-medium uppercase tracking-wide text-primary">Continue Discovering</p>
                 <h2 className="text-lg font-semibold sm:text-xl">More stories for your reading queue</h2>
               </div>
-              <Button asChild variant="outline" className="w-full sm:w-auto">
-                <Link to="/catalogue">View all stories</Link>
-              </Button>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
               {[...data.tabs.recommended, ...data.tabs.new].slice(0, 12).map((story) => (
-                <StoryCard key={`${story.id}-${story.slug}`} {...story} />
+                <div
+                  key={`${story.id}-${story.slug}`}
+                  className="w-[170px] shrink-0 sm:w-[185px]"
+                >
+                  <StoryCard {...story} compact />
+                </div>
               ))}
+              <Link
+                to="/catalogue"
+                className="flex w-[170px] shrink-0 flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/50 hover:bg-primary/10 sm:w-[185px]"
+              >
+                <div>
+                  <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
+                    Show All
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Explore the full catalogue
+                  </h3>
+                  <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                    Browse every available story and find your next favorite read.
+                  </p>
+                </div>
+
+                <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
+                  <span>Open catalogue</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </div>
+              </Link>
             </div>
           </section>
         </main>
