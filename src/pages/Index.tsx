@@ -66,11 +66,14 @@ const Index = () => {
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
         <main className="space-y-8 md:space-y-10">
-          {isLoggedIn && (
+          {isLoggedIn &&
+            !isContinueReadingLoading &&
+            !isContinueReadingError &&
+            (continueReadingData?.results.length || 0) > 0 && (
             <ContinueReadingSection
-              items={continueReadingData?.results || []}
-              isLoading={isContinueReadingLoading}
-              isError={isContinueReadingError}
+              items={continueReadingData!.results}
+              isLoading={false}
+              isError={false}
             />
           )}
 

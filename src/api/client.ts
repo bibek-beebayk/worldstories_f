@@ -1,4 +1,5 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL;
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 const BASE_URL = API_BASE_URL;
 export const AUTH_CHANGE_EVENT = "worldstories-auth-change";
 
@@ -44,6 +45,7 @@ export async function apiClient<T>(
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
+      Accept: "application/json",
       ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -58,12 +60,16 @@ export async function apiClient<T>(
 
     const contentType = res.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
-      return undefined as T;
+      throw new Error(
+        `Expected a JSON response from ${endpoint}, but received ${
+          contentType || "an unknown content type"
+        }. Check VITE_API_URL and restart the frontend server.`
+      );
     }
 
     const text = await res.text();
     if (!text) {
-      return undefined as T;
+      throw new Error(`The API returned an empty response for ${endpoint}.`);
     }
 
     return JSON.parse(text) as T;

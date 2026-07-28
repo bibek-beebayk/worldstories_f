@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,10 @@ import { saveTokens } from "@/api/client";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const accessDenied = Boolean(
+    (location.state as { adminAccessDenied?: boolean } | null)?.adminAccessDenied
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,6 +41,11 @@ const AdminLogin = () => {
           <CardDescription>Email/password login for superuser content access.</CardDescription>
         </CardHeader>
         <CardContent>
+          {accessDenied && (
+            <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              Superuser privileges are required to access the admin area.
+            </p>
+          )}
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
               <Label htmlFor="admin-email">Email</Label>

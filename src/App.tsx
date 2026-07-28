@@ -1,9 +1,11 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { getAccessToken } from "@/api/client";
+import { authApi } from "@/api/auth";
+import FullScreenLoader from "@/components/FullScreenLoader";
 
 import DefaultLayout from "@/layouts/DefaultLayout";
 import AdminLayout from "@/layouts/AdminLayout";
@@ -31,10 +33,37 @@ import AdminSubmissions from "./pages/AdminSubmissions";
 const queryClient = new QueryClient();
 
 const RequireAdminAuth = () => {
-  const isAuthenticated = Boolean(getAccessToken());
-  if (!isAuthenticated) {
+  const accessToken = getAccessToken();
+  const {
+    data: user,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["admin-auth", accessToken],
+    queryFn: authApi.getMe,
+    enabled: Boolean(accessToken),
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  if (!accessToken) {
     return <Navigate to="/admin/login" replace />;
   }
+
+  if (isLoading) {
+    return <FullScreenLoader />;
+  }
+
+  if (isError || !user?.is_superuser) {
+    return (
+      <Navigate
+        to="/admin/login"
+        replace
+        state={{ adminAccessDenied: true }}
+      />
+    );
+  }
+
   return <Outlet />;
 };
 
