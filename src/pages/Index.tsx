@@ -74,7 +74,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
-      <HeroSection featuredStory={data.featured_story} />
+      <HeroSection featuredStories={data.featured_stories} />
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
         <main className="space-y-8 md:space-y-10">

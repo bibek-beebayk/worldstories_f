@@ -158,8 +158,12 @@ export interface HomeSidebar {
   stats: HomeStats;
 }
 
+export interface FeaturedStory extends Story {
+  about?: string;
+}
+
 export interface HomeDataResponse {
-  featured_story: Story | null;
+  featured_stories: FeaturedStory[];
   weekly_spotlight: Story[];
   new_trending: Story[];
   tabs: HomeTabs;
