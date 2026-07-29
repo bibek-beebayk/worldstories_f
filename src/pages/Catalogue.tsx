@@ -4,14 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useGenres } from "@/hooks/useGenres";
-import { useStories } from "@/hooks/useStories";
+import { useInfiniteStories } from "@/hooks/useInfiniteStories";
 import { formatViews } from "@/lib/utils";
-import { BookOpen, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Library, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
 
@@ -25,32 +24,50 @@ const Catalogue = () => {
   const [selectedGenres, setSelectedGenres] = useState<number[]>(() => getInitialGenreFromUrl(searchParams));
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("popular");
-  const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [openGenres, setOpenGenres] = useState(false);
   const [tempGenres, setTempGenres] = useState<number[]>([]);
 
-  const { data: stories, isLoading } = useStories(
-    page,
-    selectedGenres,
-    sort,
-    status,
-    searchQuery
-  );
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteStories(selectedGenres, sort, status, searchQuery);
   const { data: genres } = useGenres();
+
+  const stories = useMemo(() => data?.pages.flatMap((page) => page.results) || [], [data]);
+  const totalCount = data?.pages[0]?.pagination?.count || 0;
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "400px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [page]);
+  }, [selectedGenres, sort, status, searchQuery]);
 
   useEffect(() => {
     setTempGenres(selectedGenres);
   }, [selectedGenres, openGenres]);
 
-  const totalPages = stories?.pagination?.pages || 1;
-  const currentPage = stories?.pagination?.page || page;
-  const totalCount = stories?.pagination?.count || 0;
   const selectedGenreNames = useMemo(() => {
     const genreMap = new Map((genres || []).map((genre) => [genre.id, genre.name]));
     return selectedGenres
@@ -58,17 +75,8 @@ const Catalogue = () => {
       .filter((item): item is { id: number; name: string } => Boolean(item.name));
   }, [selectedGenres, genres]);
 
-  const visiblePages = useMemo(() => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-
-    if (currentPage <= 4) return [1, 2, 3, 4, 5, -1, totalPages];
-    if (currentPage >= totalPages - 3) {
-      return [1, -1, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-    }
-    return [1, -1, currentPage - 1, currentPage, currentPage + 1, -1, totalPages];
-  }, [currentPage, totalPages]);
+  const hasActiveFilters =
+    selectedGenreNames.length > 0 || status !== "all" || sort !== "popular" || searchQuery.length > 0;
 
   const clearAllFilters = () => {
     setStatus("all");
@@ -77,18 +85,16 @@ const Catalogue = () => {
     setTempGenres([]);
     setSearchInput("");
     setSearchQuery("");
-    setPage(1);
   };
 
   const applyCatalogueSearch = () => {
     setSearchQuery(searchInput.trim());
-    setPage(1);
   };
 
   if (isLoading) return <FullScreenLoader />;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.08),transparent_52%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
+    <div className="min-h-screen bg-background">
       <Seo
         title="Catalogue — Browse Every Story | WorldStories"
         description="Browse the full WorldStories catalogue. Filter by genre, status, and popularity to find your next short story, novel, or poetry collection."
@@ -100,7 +106,7 @@ const Catalogue = () => {
           url: `${SITE_URL}/catalogue`,
           mainEntity: {
             "@type": "ItemList",
-            itemListElement: (stories?.results || []).slice(0, 20).map((story, index) => ({
+            itemListElement: stories.slice(0, 20).map((story, index) => ({
               "@type": "ListItem",
               position: index + 1,
               url: `${SITE_URL}/story/${story.slug}`,
@@ -109,24 +115,25 @@ const Catalogue = () => {
           },
         }}
       />
-      <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-        <section className="mb-6 rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-100 p-5 sm:p-6">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white/85 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
-            <Sparkles className="h-3.5 w-3.5" />
-            Explore Library
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Catalogue
-          </h1>
-          <p className="mt-2 text-sm text-slate-700 sm:text-base">
-            Filter quickly, browse smoothly, and jump into your next read.
-          </p>
-        </section>
 
-        <section className="mb-5 rounded-xl border bg-card p-3 sm:p-4">
+      <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100">
+        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700">
+            <Library className="h-3.5 w-3.5" />
+            The Full Library
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Catalogue</h1>
+          <p className="mt-2 text-sm text-slate-700 sm:text-base">
+            Every story on WorldStories, indexed and filterable — keep scrolling and more loads in.
+          </p>
+        </div>
+      </div>
+
+      <div className="sticky top-16 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="container mx-auto px-3 py-3 sm:px-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="inline-flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs sm:text-sm">
-              <BookOpen className="h-4 w-4 text-primary" />
+              <Library className="h-4 w-4 text-primary" />
               <span className="font-semibold">{formatViews(totalCount)}</span>
               <span className="text-muted-foreground">stories</span>
             </div>
@@ -153,13 +160,7 @@ const Catalogue = () => {
             </form>
 
             <div className="min-w-[140px] flex-1 sm:flex-none">
-              <Select
-                value={sort}
-                onValueChange={(value) => {
-                  setSort(value);
-                  setPage(1);
-                }}
-              >
+              <Select value={sort} onValueChange={setSort}>
                 <SelectTrigger type="button" className="h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
@@ -173,13 +174,7 @@ const Catalogue = () => {
             </div>
 
             <div className="min-w-[130px] flex-1 sm:flex-none">
-              <Select
-                value={status}
-                onValueChange={(value) => {
-                  setStatus(value);
-                  setPage(1);
-                }}
-              >
+              <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger type="button" className="h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -228,7 +223,6 @@ const Catalogue = () => {
                       className="w-full"
                       onClick={() => {
                         setSelectedGenres(tempGenres);
-                        setPage(1);
                         setOpenGenres(false);
                       }}
                     >
@@ -240,7 +234,6 @@ const Catalogue = () => {
                       onClick={() => {
                         setTempGenres([]);
                         setSelectedGenres([]);
-                        setPage(1);
                       }}
                     >
                       Clear Genres
@@ -250,20 +243,14 @@ const Catalogue = () => {
               </SheetContent>
             </Sheet>
 
-            {(selectedGenres.length > 0 ||
-              status !== "all" ||
-              sort !== "popular" ||
-              searchQuery.length > 0) && (
+            {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearAllFilters}>
                 Reset All
               </Button>
             )}
           </div>
 
-          {(selectedGenreNames.length > 0 ||
-            status !== "all" ||
-            sort !== "popular" ||
-            searchQuery.length > 0) && (
+          {hasActiveFilters && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Active filters</Badge>
               {searchQuery.length > 0 && (
@@ -274,7 +261,6 @@ const Catalogue = () => {
                     onClick={() => {
                       setSearchInput("");
                       setSearchQuery("");
-                      setPage(1);
                     }}
                   >
                     <X className="h-3 w-3" />
@@ -284,13 +270,7 @@ const Catalogue = () => {
               {sort !== "popular" && (
                 <Badge variant="outline" className="gap-1">
                   Sort: {sort}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSort("popular");
-                      setPage(1);
-                    }}
-                  >
+                  <button type="button" onClick={() => setSort("popular")}>
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -298,13 +278,7 @@ const Catalogue = () => {
               {status !== "all" && (
                 <Badge variant="outline" className="gap-1">
                   Status: {status}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStatus("all");
-                      setPage(1);
-                    }}
-                  >
+                  <button type="button" onClick={() => setStatus("all")}>
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -317,7 +291,6 @@ const Catalogue = () => {
                     onClick={() => {
                       setSelectedGenres((prev) => prev.filter((id) => id !== genre.id));
                       setTempGenres((prev) => prev.filter((id) => id !== genre.id));
-                      setPage(1);
                     }}
                   >
                     <X className="h-3 w-3" />
@@ -326,72 +299,33 @@ const Catalogue = () => {
               ))}
             </div>
           )}
-        </section>
+        </div>
+      </div>
 
+      <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {stories?.results?.map((story) => (
+          {stories.map((story) => (
             <StoryCard key={story.id} {...story} />
           ))}
         </section>
 
-        {(stories?.results?.length || 0) === 0 && (
+        {stories.length === 0 && (
           <div className="mt-6 rounded-lg border border-border p-6 text-center text-muted-foreground">
             No stories found for the selected filters.
           </div>
         )}
 
-        {totalCount > 0 && (
-          <nav
-            className="mt-8 flex flex-col items-center gap-4"
-            aria-label="Catalogue pagination"
-          >
-            <p className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                aria-label="Go to previous catalogue page"
-              >
-                Previous
-              </Button>
-
-              {totalPages > 1 &&
-                visiblePages.map((pageNumber, idx) =>
-                  pageNumber === -1 ? (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
-                      ...
-                    </span>
-                  ) : (
-                    <Button
-                      key={pageNumber}
-                      size="sm"
-                      variant={pageNumber === currentPage ? "default" : "outline"}
-                      onClick={() => setPage(pageNumber)}
-                      aria-label={`Go to catalogue page ${pageNumber}`}
-                      aria-current={pageNumber === currentPage ? "page" : undefined}
-                    >
-                      {pageNumber}
-                    </Button>
-                  )
-                )}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                aria-label="Go to next catalogue page"
-              >
-                Next
-              </Button>
+        <div ref={sentinelRef} className="mt-8 flex items-center justify-center py-4">
+          {isFetchingNextPage && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading more stories...
             </div>
-          </nav>
-        )}
+          )}
+          {!hasNextPage && stories.length > 0 && (
+            <p className="text-sm text-muted-foreground">You've reached the end of the catalogue.</p>
+          )}
+        </div>
       </main>
     </div>
   );
