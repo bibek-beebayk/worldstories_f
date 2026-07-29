@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import Seo from "@/components/Seo";
 
 type ReaderThemeKey = string;
 type ReaderFontKey = string;
@@ -672,6 +673,12 @@ const StoryReader = () => {
         isReaderMode ? "h-screen overflow-y-auto" : ""
       }`}
     >
+      <Seo
+        title={`${chapter.title}${story?.title ? ` — ${story.title}` : ""} | WorldStories`}
+        description={`Read ${chapter.title}${story?.title ? ` from ${story.title}` : ""} on WorldStories.`}
+        path={`/read/${story_slug}/${chapter_slug}`}
+        noIndex
+      />
       {!isReaderMode && (
         <div className="sticky top-0 z-40 border-b bg-background/90 p-4 backdrop-blur">
           <div className="flex items-center justify-between gap-3">

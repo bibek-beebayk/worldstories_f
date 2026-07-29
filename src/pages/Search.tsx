@@ -3,6 +3,9 @@ import StoryCard from "@/components/StoryCard";
 import { Button } from "@/components/ui/button";
 import { useSearchStories } from "@/hooks/useSearchStories";
 import { useSearchParams } from "react-router-dom";
+import Seo from "@/components/Seo";
+
+const searchSeo = <Seo title="Search | WorldStories" description="Search stories on WorldStories." path="/search" noIndex />;
 
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,17 +24,30 @@ const Search = () => {
   };
 
   if (!q) {
-    return <div className="container mx-auto px-4 py-8">Enter a keyword to search stories.</div>;
+    return (
+      <>
+        {searchSeo}
+        <div className="container mx-auto px-4 py-8">Enter a keyword to search stories.</div>
+      </>
+    );
   }
 
-  if (isLoading) return <FullScreenLoader />;
-  if (isError) return <div className="container mx-auto px-4 py-8">Failed to load search results.</div>;
+  if (isLoading) return <>{searchSeo}<FullScreenLoader /></>;
+  if (isError) {
+    return (
+      <>
+        {searchSeo}
+        <div className="container mx-auto px-4 py-8">Failed to load search results.</div>
+      </>
+    );
+  }
 
   const results = data?.results || [];
   const pagination = data?.pagination;
 
   return (
     <div className="min-h-screen bg-background">
+      {searchSeo}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>

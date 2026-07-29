@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { useTrendingData } from "@/hooks/useTrendingData";
 import { Flame, TrendingUp } from "lucide-react";
+import Seo from "@/components/Seo";
 
 const Trending = () => {
   const { data, isLoading, isError } = useTrendingData();
@@ -53,6 +54,11 @@ const Trending = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.09),transparent_52%),linear-gradient(to_bottom,#f8fafc,transparent_260px)]">
+      <Seo
+        title="Trending Now — Today's Most-Read Stories | WorldStories"
+        description="See which stories readers are opening, sharing, and finishing right now, ranked by today, this week, this month, and all time."
+        path="/trending"
+      />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <div className="mb-6 rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-100 p-5 sm:p-6">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">

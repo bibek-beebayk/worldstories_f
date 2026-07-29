@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import AdSpace from "@/components/AdSpace";
+import Seo from "@/components/Seo";
 import { useStory } from "@/hooks/useStory";
 import { getAccessToken } from "@/api/client";
 import { storyApi } from "@/api/story";
@@ -161,6 +162,12 @@ const AudioPlayerPage = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_55%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
+      <Seo
+        title={`${currentAudio?.title ? `${currentAudio.title} — ` : ""}${story.title} Audiobook | WorldStories`}
+        description={`Listen to ${story.title} on WorldStories.`}
+        path={`/listen/${story_slug}/${chapter_slug}`}
+        noIndex
+      />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-r from-cyan-50 via-sky-50 to-blue-50 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">

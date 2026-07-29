@@ -12,6 +12,7 @@ import { useStories } from "@/hooks/useStories";
 import { formatViews } from "@/lib/utils";
 import { BookOpen, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import Seo from "@/components/Seo";
 
 const Catalogue = () => {
   const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
@@ -81,6 +82,11 @@ const Catalogue = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.08),transparent_52%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
+      <Seo
+        title="Catalogue — Browse Every Story | WorldStories"
+        description="Browse the full WorldStories catalogue. Filter by genre, status, and popularity to find your next short story, novel, or poetry collection."
+        path="/catalogue"
+      />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <section className="mb-6 rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-100 p-5 sm:p-6">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-sky-300 bg-white/85 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">

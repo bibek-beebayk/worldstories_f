@@ -2,10 +2,16 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
+import Seo from "@/components/Seo";
 
 const Contest = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Contests — Coming Soon | WorldStories"
+        description="WorldStories writing contests are coming soon. Stay tuned for updates and get ready to participate."
+        path="/contest"
+      />
       <main className="container mx-auto px-4 py-16">
         <Card className="mx-auto max-w-2xl border-dashed">
           <CardContent className="flex flex-col items-center gap-4 px-6 py-14 text-center">

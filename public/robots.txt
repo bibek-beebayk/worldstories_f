@@ -8,4 +8,4 @@ Disallow: /read/
 Disallow: /listen/
 Disallow: /search
 
-Sitemap: https://worldstories-f.netlify.app/sitemap.xml
+Sitemap: https://worldstories.net/sitemap.xml

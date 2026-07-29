@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import Seo from "@/components/Seo";
 
 GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -180,6 +181,12 @@ const PdfReader = () => {
 
   return (
     <main className="min-h-screen bg-background px-2 py-2 sm:px-4 sm:py-4">
+      <Seo
+        title={`${story.title} — PDF | WorldStories`}
+        description={`Read the PDF edition of ${story.title} on WorldStories.`}
+        path={`/story/${slug}/pdf`}
+        noIndex
+      />
       <div ref={readerContainerRef} className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 sm:p-3" : ""}`}>
         <div className="flex items-center justify-between gap-2 rounded-xl border bg-card px-2 py-2 sm:px-3 sm:py-3">
           <div className="min-w-0">

@@ -13,6 +13,7 @@ import { getAccessToken } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useGenres } from "@/hooks/useGenres";
 import { Link2, Bold, Italic, Underline, Heading2, List, ListOrdered } from "lucide-react";
+import Seo from "@/components/Seo";
 
 const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
 
@@ -125,6 +126,7 @@ const Publish = () => {
   if (!isAuthenticated) {
     return (
       <div className="container mx-auto px-4 py-10">
+        <Seo title="Submit Your Story | WorldStories" description="Submit your story to WorldStories." path="/publish" noIndex />
         <Card className="mx-auto max-w-xl">
           <CardHeader>
             <CardTitle>Login Required</CardTitle>
@@ -140,6 +142,7 @@ const Publish = () => {
 
   return (
     <main className="container mx-auto max-w-5xl px-4 py-8">
+      <Seo title="Submit Your Story | WorldStories" description="Submit your story to WorldStories." path="/publish" noIndex />
       <div className="mb-8">
         <h1 className="text-3xl font-bold sm:text-4xl">Submit Your Story</h1>
         <p className="mt-2 text-muted-foreground">

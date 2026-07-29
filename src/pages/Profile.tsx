@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import Seo from "@/components/Seo";
 
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
 type ReaderView =
@@ -583,6 +584,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
+      <Seo title="Your Profile | WorldStories" description="Manage your WorldStories profile, library, and reading activity." path="/profile" noIndex />
       <main className="w-full px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-6">
         <div className="mb-4 flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4 shadow-sm">
           <Avatar className="h-16 w-16">

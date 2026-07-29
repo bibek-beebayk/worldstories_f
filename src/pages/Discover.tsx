@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDiscoverData } from "@/hooks/useDiscoverData";
 import { formatViews } from "@/lib/utils";
 import { Compass, Gem, Sparkles, Tag } from "lucide-react";
+import Seo from "@/components/Seo";
 
 const Discover = () => {
   const { data, isLoading, isError } = useDiscoverData();
@@ -15,6 +16,11 @@ const Discover = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
+      <Seo
+        title="Discover — New Releases & Hidden Gems | WorldStories"
+        description="Find new releases, hidden gems, and stories matched to your taste. Browse by genre and discover your next favorite read on WorldStories."
+        path="/discover"
+      />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">

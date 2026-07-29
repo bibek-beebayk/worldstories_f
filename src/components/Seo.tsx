@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://worldstories-f.netlify.app")
+const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://worldstories.net")
   .replace(/\/+$/, "");
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 

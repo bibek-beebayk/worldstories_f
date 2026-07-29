@@ -14,6 +14,7 @@ import { useContinueReading } from "@/hooks/useContinueReading";
 import { ArrowRight, BookOpenText, Compass, Flame, Sparkles, Users } from "lucide-react";
 import { ComponentType } from "react";
 import { formatViews } from "@/lib/utils";
+import Seo from "@/components/Seo";
 
 const SectionTitle = ({
   icon: Icon,
@@ -75,6 +76,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
+      <Seo
+        title="WorldStories - Home of Stories"
+        description="WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres."
+        path="/"
+      />
       <HeroSection featuredStories={data.featured_stories} />
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
