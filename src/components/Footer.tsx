@@ -11,7 +11,7 @@ const Footer = () => {
             </div>
             
             <div className="text-sm text-muted-foreground">
-              © 2024 WorldStories, All rights reserved.
+              © {new Date().getFullYear()} WorldStories, All rights reserved.
             </div>
           </div>
         </div>

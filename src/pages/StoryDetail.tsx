@@ -617,15 +617,6 @@ const StoryDetail = () => {
           <div className="space-y-6">
             <AdSpace size="rectangle" />
 
-            {/* <div>
-              <h2 className="text-xl font-bold mb-4">More by {story.author}</h2>
-              <div className="space-y-4">
-                {relatedStories.map((relStory, index) => (
-                  <StoryCard key={index} {...relStory} />
-                ))}
-              </div>
-            </div> */}
-
             {/* <AdSpace size="rectangle" /> */}
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, Star } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Eye, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
@@ -118,18 +118,24 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
           <div className="relative hidden md:block">
             <div className="relative mx-auto aspect-[16/10] max-w-md overflow-hidden rounded-2xl border border-white/20 shadow-2xl">
               <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              <img
-                key={story?.id ?? "empty"}
-                src={
-                  story?.cover_image ||
-                  "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=800&fit=crop"
-                }
-                alt={story?.title || "Featured Story"}
-                loading="eager"
-                decoding="async"
-                fetchpriority="high"
-                className="h-full w-full animate-in fade-in-0 object-cover duration-500"
-              />
+              {story?.cover_image ? (
+                <img
+                  key={story.id}
+                  src={story.cover_image}
+                  alt={story.title}
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                  className="h-full w-full animate-in fade-in-0 object-cover duration-500"
+                />
+              ) : (
+                <div
+                  key={story?.id ?? "empty"}
+                  className="flex h-full w-full animate-in fade-in-0 items-center justify-center bg-gradient-to-br from-white/10 to-transparent duration-500"
+                >
+                  <BookOpen className="h-16 w-16 text-white/30" />
+                </div>
+              )}
               <div className="absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">
                 <p className="line-clamp-1 text-sm font-medium text-white">
                   {story?.title || "Welcome to WorldStories!"}
