@@ -14,6 +14,7 @@ import { useStory } from "@/hooks/useStory";
 import { BookMarked, Download, Eye, FileText, Headphones, Heart, Share2, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import Seo, { SITE_URL } from "@/components/Seo";
 
 
 const StoryDetail = () => {
@@ -196,9 +197,50 @@ const StoryDetail = () => {
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
   const hasStoryFiles = Boolean(story.pdf_file || story.epub_file);
+  const seoDescription = (story.about || `Read ${story.title} on WorldStories.`)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160);
+  const storyPath = `/story/${story.slug}`;
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title={`${story.title}${
+          story.author?.name ? ` by ${story.author.name}` : ""
+        } | WorldStories`}
+        description={seoDescription}
+        path={storyPath}
+        image={story.cover_image}
+        type="book"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": story.has_audio ? ["CreativeWork", "Audiobook"] : "CreativeWork",
+          name: story.title,
+          description: seoDescription,
+          url: `${SITE_URL}${storyPath}`,
+          image: story.cover_image || undefined,
+          genre: story.genres.map((genre) => genre.name),
+          datePublished: story.published_date || undefined,
+          author: story.author
+            ? {
+                "@type": "Person",
+                name: story.author.name,
+              }
+            : undefined,
+          aggregateRating:
+            story.reviews_count > 0
+              ? {
+                  "@type": "AggregateRating",
+                  ratingValue: story.rating,
+                  reviewCount: story.reviews_count,
+                  bestRating: 5,
+                  worstRating: 1,
+                }
+              : undefined,
+        }}
+      />
       {/* <Header /> */}
 
       <main className="container mx-auto px-4 py-8">

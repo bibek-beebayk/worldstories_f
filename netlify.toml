@@ -1,4 +1,10 @@
 [[redirects]]
+  from = "/sitemap.xml"
+  to = "https://worldstories-b-production.up.railway.app/api/sitemap.xml"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

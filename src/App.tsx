@@ -6,29 +6,30 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { getAccessToken } from "@/api/client";
 import { authApi } from "@/api/auth";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import { lazy, Suspense } from "react";
 
 import DefaultLayout from "@/layouts/DefaultLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import AdminShellLayout from "@/layouts/AdminShellLayout";
 
-import Index from "./pages/Index";
-import Catalogue from "./pages/Catalogue";
-import Trending from "./pages/Trending";
-import Discover from "./pages/Discover";
-import Publish from "./pages/Publish";
-import NotFound from "./pages/NotFound";
-import StoryDetail from "./pages/StoryDetail";
-import StoryReader from "./pages/StoryReader";
-import AudiobookPlayer from "./pages/AudiobookPlayer";
-import Login from "./pages/Login";
-import Search from "./pages/Search";
-import Profile from "./pages/Profile";
-import Contest from "./pages/Contest";
-import PdfReader from "./pages/PdfReader";
-import AdminContent from "./pages/AdminContent";
-import AdminLogin from "./pages/AdminLogin";
-import AdminHome from "./pages/AdminHome";
-import AdminSubmissions from "./pages/AdminSubmissions";
+const Index = lazy(() => import("./pages/Index"));
+const Catalogue = lazy(() => import("./pages/Catalogue"));
+const Trending = lazy(() => import("./pages/Trending"));
+const Discover = lazy(() => import("./pages/Discover"));
+const Publish = lazy(() => import("./pages/Publish"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const StoryDetail = lazy(() => import("./pages/StoryDetail"));
+const StoryReader = lazy(() => import("./pages/StoryReader"));
+const AudiobookPlayer = lazy(() => import("./pages/AudiobookPlayer"));
+const Login = lazy(() => import("./pages/Login"));
+const Search = lazy(() => import("./pages/Search"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Contest = lazy(() => import("./pages/Contest"));
+const PdfReader = lazy(() => import("./pages/PdfReader"));
+const AdminContent = lazy(() => import("./pages/AdminContent"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminHome = lazy(() => import("./pages/AdminHome"));
+const AdminSubmissions = lazy(() => import("./pages/AdminSubmissions"));
 
 const queryClient = new QueryClient();
 
@@ -73,7 +74,8 @@ const App = () => (
       <BrowserRouter>
         <Toaster />
         <Sonner />
-        <Routes>
+        <Suspense fallback={<FullScreenLoader />}>
+          <Routes>
           {/* Parent route that applies DefaultLayout to its children */}
           <Route path="/" element={<DefaultLayout />}>
             <Route index element={<Index />} />
@@ -111,7 +113,8 @@ const App = () => (
           {/* Example: if you want a route WITHOUT the default layout,
               add it OUTSIDE the parent route. */}
           {/* <Route path="/login" element={<Login />} /> */}
-        </Routes>
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
