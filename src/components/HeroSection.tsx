@@ -109,7 +109,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
             )}
 
             <Button size="lg" className="px-7 text-sm md:text-base" asChild>
-              <Link to={story ? `/story/${story.slug}/` : "/catalogue"}>
+              <Link to={story ? `/story/${story.slug}` : "/catalogue"}>
                 {story ? "Read Featured Story" : "Explore"}
               </Link>
             </Button>

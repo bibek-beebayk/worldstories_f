@@ -12,7 +12,7 @@ import { useStories } from "@/hooks/useStories";
 import { formatViews } from "@/lib/utils";
 import { BookOpen, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import Seo from "@/components/Seo";
+import Seo, { SITE_URL } from "@/components/Seo";
 
 const Catalogue = () => {
   const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
@@ -86,6 +86,21 @@ const Catalogue = () => {
         title="Catalogue — Browse Every Story | WorldStories"
         description="Browse the full WorldStories catalogue. Filter by genre, status, and popularity to find your next short story, novel, or poetry collection."
         path="/catalogue"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Catalogue — WorldStories",
+          url: `${SITE_URL}/catalogue`,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: (stories?.results || []).slice(0, 20).map((story, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              url: `${SITE_URL}/story/${story.slug}`,
+              name: story.title,
+            })),
+          },
+        }}
       />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <section className="mb-6 rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-100 p-5 sm:p-6">

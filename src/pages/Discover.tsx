@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDiscoverData } from "@/hooks/useDiscoverData";
 import { formatViews } from "@/lib/utils";
 import { Compass, Gem, Sparkles, Tag } from "lucide-react";
-import Seo from "@/components/Seo";
+import Seo, { SITE_URL } from "@/components/Seo";
 
 const Discover = () => {
   const { data, isLoading, isError } = useDiscoverData();
@@ -20,6 +20,21 @@ const Discover = () => {
         title="Discover — New Releases & Hidden Gems | WorldStories"
         description="Find new releases, hidden gems, and stories matched to your taste. Browse by genre and discover your next favorite read on WorldStories."
         path="/discover"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Discover — WorldStories",
+          url: `${SITE_URL}/discover`,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: data.new_releases.slice(0, 20).map((story, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              url: `${SITE_URL}/story/${story.slug}`,
+              name: story.title,
+            })),
+          },
+        }}
       />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">

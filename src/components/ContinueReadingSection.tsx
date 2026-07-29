@@ -82,7 +82,7 @@ const ContinueReadingSection = ({
             const progress = getCompletionPercentage(item.overall_progress);
             const continueHref = item.chapter_slug
               ? `/read/${item.story.slug}/${item.chapter_slug}`
-              : `/story/${item.story.slug}/`;
+              : `/story/${item.story.slug}`;
 
             return (
               <article

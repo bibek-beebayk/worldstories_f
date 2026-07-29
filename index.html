@@ -28,6 +28,29 @@
     <meta name="twitter:image" content="https://worldstories.net/og-image.png" />
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "name": "WorldStories",
+            "url": "https://worldstories.net",
+            "logo": "https://worldstories.net/worldstories-mark.svg"
+          },
+          {
+            "@type": "WebSite",
+            "name": "WorldStories",
+            "url": "https://worldstories.net",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://worldstories.net/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
 
   <body>

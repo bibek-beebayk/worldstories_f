@@ -13,7 +13,7 @@ const TrendingList = ({ stories }: TrendingListProps) => {
     <div className="space-y-4">
       {stories.map((story, index) => (
         <Link
-          to={`/story/${story.slug}/`}
+          to={`/story/${story.slug}`}
           key={story.id}
           className="group flex w-full min-w-0 gap-3 cursor-pointer sm:gap-4"
         >

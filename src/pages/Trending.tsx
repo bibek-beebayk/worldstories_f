@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { useTrendingData } from "@/hooks/useTrendingData";
 import { Flame, TrendingUp } from "lucide-react";
-import Seo from "@/components/Seo";
+import Seo, { SITE_URL } from "@/components/Seo";
 
 const Trending = () => {
   const { data, isLoading, isError } = useTrendingData();
@@ -58,6 +58,21 @@ const Trending = () => {
         title="Trending Now — Today's Most-Read Stories | WorldStories"
         description="See which stories readers are opening, sharing, and finishing right now, ranked by today, this week, this month, and all time."
         path="/trending"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Trending Now — WorldStories",
+          url: `${SITE_URL}/trending`,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: data.today.slice(0, 20).map((story, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              url: `${SITE_URL}/story/${story.slug}`,
+              name: story.title,
+            })),
+          },
+        }}
       />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <div className="mb-6 rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-100 p-5 sm:p-6">

@@ -833,7 +833,7 @@ const Profile = () => {
                           <p className="mt-1 text-sm text-muted-foreground">
                             Completed {new Date(item.updated_at).toLocaleDateString()}
                           </p>
-                          <Link to={`/story/${item.story.slug}/`}>
+                          <Link to={`/story/${item.story.slug}`}>
                             <Button size="sm" className="mt-3" variant="outline">
                               View Story
                             </Button>
@@ -906,7 +906,7 @@ const Profile = () => {
                               Added {new Date(item.created_at).toLocaleDateString()}
                             </p>
                           </div>
-                          <Button size="sm" variant="outline" onClick={() => navigate(`/story/${item.story.slug}/`)}>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/story/${item.story.slug}`)}>
                             View
                           </Button>
                         </div>
@@ -942,7 +942,7 @@ const Profile = () => {
                             size="sm"
                             variant="outline"
                             className="mt-2"
-                            onClick={() => navigate(`/story/${item.story.slug}/`)}
+                            onClick={() => navigate(`/story/${item.story.slug}`)}
                           >
                             Open Story
                           </Button>

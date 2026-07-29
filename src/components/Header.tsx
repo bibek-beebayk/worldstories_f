@@ -146,7 +146,7 @@ const Header = () => {
                             if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
                           }}
                           onClick={() => {
-                            navigate(`/story/${story.slug}/`);
+                            navigate(`/story/${story.slug}`);
                             setShowSuggestions(false);
                           }}
                           className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
