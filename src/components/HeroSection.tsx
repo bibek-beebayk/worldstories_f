@@ -40,6 +40,14 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
     if (activeIndex >= featuredStories.length) setActiveIndex(0);
   }, [featuredStories.length, activeIndex]);
 
+  useEffect(() => {
+    if (featuredStories.length < 2) return;
+    const nextStory = featuredStories[(activeIndex + 1) % featuredStories.length];
+    if (!nextStory?.cover_image) return;
+    const preloadImage = new Image();
+    preloadImage.src = nextStory.cover_image;
+  }, [activeIndex, featuredStories]);
+
   return (
     <section
       className="relative overflow-hidden bg-gradient-to-br from-hero-gradient-start via-hero-dark to-hero-gradient-end"
@@ -117,6 +125,9 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                   "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=800&fit=crop"
                 }
                 alt={story?.title || "Featured Story"}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
                 className="h-full w-full animate-in fade-in-0 object-cover duration-500"
               />
               <div className="absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">

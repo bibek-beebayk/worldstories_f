@@ -211,6 +211,9 @@ const StoryDetail = () => {
                 <img
                   src={story.cover_image}
                   alt={story.title}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                   className="w-full h-full object-cover"
                 />
               </div>

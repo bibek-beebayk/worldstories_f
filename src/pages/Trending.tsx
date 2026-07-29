@@ -26,6 +26,9 @@ const Trending = () => {
                 <img
                   src={featured.cover_image}
                   alt={featured.title}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                   className="aspect-[3/4] w-full object-cover"
                 />
               </div>
