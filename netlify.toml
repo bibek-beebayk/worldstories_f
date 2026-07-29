@@ -4,7 +4,86 @@
   status = 200
   force = true
 
+[[edge_functions]]
+  path = "/story/*"
+  function = "social-meta"
+
+# Known client-side routes: served the SPA shell with a genuine 200.
+# NOTE — add a matching entry here whenever a new top-level route is added to App.tsx,
+# otherwise it will fall through to the 404 catch-all below.
+[[redirects]]
+  from = "/admin/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/register"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/catalogue"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/trending"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/discover"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/contest"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/search"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/publish"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/story/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/read/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/listen/*"
+  to = "/index.html"
+  status = 200
+
+# Anything else is a genuine miss — serve the SPA shell (so client-side routing can render
+# the NotFound page) but report a real 404 status instead of masking it as 200.
 [[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200
+  status = 404
