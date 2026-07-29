@@ -213,7 +213,7 @@ const StoryDetail = () => {
                   alt={story.title}
                   loading="eager"
                   decoding="async"
-                  fetchPriority="high"
+                  fetchpriority="high"
                   className="w-full h-full object-cover"
                 />
               </div>

@@ -4,13 +4,6 @@ interface AdSpaceProps {
 }
 
 const AdSpace = ({ size, className = "" }: AdSpaceProps) => {
-  void size;
-  void className;
-
-  // Ads are temporarily disabled; keep component usage intact for easy re-enable later.
-  return null;
-
-  /*
   const sizeClasses = {
     banner: "h-24 md:h-32",
     square: "aspect-square",
@@ -27,7 +20,6 @@ const AdSpace = ({ size, className = "" }: AdSpaceProps) => {
       </div>
     </div>
   );
-  */
 };
 
 export default AdSpace;

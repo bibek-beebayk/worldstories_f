@@ -28,7 +28,7 @@ const Trending = () => {
                   alt={featured.title}
                   loading="eager"
                   decoding="async"
-                  fetchPriority="high"
+                  fetchpriority="high"
                   className="aspect-[3/4] w-full object-cover"
                 />
               </div>

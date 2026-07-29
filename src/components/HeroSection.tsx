@@ -127,7 +127,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                 alt={story?.title || "Featured Story"}
                 loading="eager"
                 decoding="async"
-                fetchPriority="high"
+                fetchpriority="high"
                 className="h-full w-full animate-in fade-in-0 object-cover duration-500"
               />
               <div className="absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">

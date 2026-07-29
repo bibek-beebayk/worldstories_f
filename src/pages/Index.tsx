@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import HeroSection from "@/components/HeroSection";
 import ContinueReadingSection from "@/components/ContinueReadingSection";
+import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
 import TrendingList from "@/components/TrendingList";
 import { Link } from "react-router-dom";
@@ -180,6 +181,8 @@ const Index = () => {
               </TabsContent>
             </Tabs>
           </section>
+
+          <AdSpace size="banner" />
 
           <section className="grid gap-4 sm:gap-6 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
