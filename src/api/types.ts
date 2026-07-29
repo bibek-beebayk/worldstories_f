@@ -409,3 +409,121 @@ export interface AdminOverviewResponse {
   top_favorited_stories: AdminTopFavoritedStory[];
   top_rated_stories: AdminTopRatedStory[];
 }
+
+export type AdminAnalyticsRangeDays = 7 | 30 | 90 | 365;
+
+export interface AdminAnalyticsDayCount {
+  day: string;
+  count: number;
+}
+
+export interface AdminAnalyticsGenrePerformance {
+  id: number;
+  name: string;
+  stories_count: number;
+  avg_rating: number;
+  total_views: number;
+  total_favorites: number;
+}
+
+export interface AdminAnalyticsStoryTypeBreakdown {
+  story_type: string;
+  count: number;
+  avg_rating: number;
+  avg_views: number;
+}
+
+export interface AdminAnalyticsCompletionSplit {
+  is_completed: boolean;
+  count: number;
+  avg_rating: number;
+  avg_views: number;
+}
+
+export interface AdminAnalyticsContentResponse {
+  range_days: AdminAnalyticsRangeDays;
+  views_over_time: AdminAnalyticsDayCount[];
+  genre_performance: AdminAnalyticsGenrePerformance[];
+  story_type_breakdown: AdminAnalyticsStoryTypeBreakdown[];
+  completion_split: AdminAnalyticsCompletionSplit[];
+  publishing_over_time: AdminAnalyticsDayCount[];
+}
+
+export interface AdminAnalyticsProgressBucket {
+  bucket: string;
+  count: number;
+}
+
+export interface AdminAnalyticsChapterDropoff {
+  chapter_order: number;
+  avg_progress: number;
+  readers: number;
+}
+
+export interface AdminAnalyticsRatingCount {
+  rating: number;
+  count: number;
+}
+
+export interface AdminAnalyticsRatingTrendPoint {
+  day: string;
+  avg_rating: number;
+  count: number;
+}
+
+export interface AdminAnalyticsEngagementResponse {
+  range_days: AdminAnalyticsRangeDays;
+  reading_progress_buckets: AdminAnalyticsProgressBucket[];
+  chapter_dropoff: AdminAnalyticsChapterDropoff[];
+  audio_listen_through: { avg_progress: number; listeners: number };
+  favorites_over_time: AdminAnalyticsDayCount[];
+  rating_distribution: AdminAnalyticsRatingCount[];
+  rating_trend: AdminAnalyticsRatingTrendPoint[];
+  view_to_read_conversion: { views: number; readers: number; conversion_rate: number };
+}
+
+export interface AdminAnalyticsLoginBucket {
+  bucket: string;
+  count: number;
+}
+
+export interface AdminAnalyticsUsersResponse {
+  range_days: AdminAnalyticsRangeDays;
+  signups_over_time: AdminAnalyticsDayCount[];
+  total_users: number;
+  active_users: number;
+  login_frequency_buckets: AdminAnalyticsLoginBucket[];
+  otp_conversion: { joined: number; verified: number; rate: number };
+}
+
+export interface AdminAnalyticsSubmissionsOverTimePoint {
+  day: string;
+  status: string;
+  count: number;
+}
+
+export interface AdminAnalyticsFunnelRow {
+  status: string;
+  count: number;
+  percent: number;
+}
+
+export interface AdminAnalyticsStoryTypeCount {
+  story_type: string;
+  count: number;
+}
+
+export interface AdminAnalyticsGenreCount {
+  id: number;
+  name: string;
+  count: number;
+}
+
+export interface AdminAnalyticsSubmissionsResponse {
+  range_days: AdminAnalyticsRangeDays;
+  submissions_over_time: AdminAnalyticsSubmissionsOverTimePoint[];
+  funnel: AdminAnalyticsFunnelRow[];
+  avg_time_to_review_hours: number;
+  by_story_type: AdminAnalyticsStoryTypeCount[];
+  by_genre: AdminAnalyticsGenreCount[];
+}

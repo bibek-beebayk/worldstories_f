@@ -23,6 +23,11 @@ import {
   AdminAuthor,
   AdminGenre,
   LibraryShelvesResponse,
+  AdminAnalyticsRangeDays,
+  AdminAnalyticsContentResponse,
+  AdminAnalyticsEngagementResponse,
+  AdminAnalyticsUsersResponse,
+  AdminAnalyticsSubmissionsResponse,
 } from "./types";
 
 export const storyApi = {
@@ -161,6 +166,14 @@ export const storyApi = {
     apiClient<AdminSubmission>(`/admin/submissions/${id}/`),
   getAdminOverview: () =>
     apiClient<AdminOverviewResponse>("/admin/overview/"),
+  getAdminAnalyticsContent: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminAnalyticsContentResponse>(`/admin/analytics/content/?days=${days}`),
+  getAdminAnalyticsEngagement: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminAnalyticsEngagementResponse>(`/admin/analytics/engagement/?days=${days}`),
+  getAdminAnalyticsUsers: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminAnalyticsUsersResponse>(`/admin/analytics/users/?days=${days}`),
+  getAdminAnalyticsSubmissions: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminAnalyticsSubmissionsResponse>(`/admin/analytics/submissions/?days=${days}`),
   getAdminAuthors: () =>
     apiClient<AdminAuthor[]>("/admin/authors/"),
   createAdminAuthor: (payload: { name: string; bio?: string; image?: string }) =>

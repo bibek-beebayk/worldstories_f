@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Library, Inbox, Globe, LogOut } from "lucide-react";
+import { LayoutDashboard, Library, Inbox, Globe, LogOut, BarChart3 } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
@@ -11,6 +11,7 @@ const menuItems = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/admin/content", label: "Stories", icon: Library, exact: false },
   { to: "/admin/submissions", label: "Submissions", icon: Inbox, exact: false },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart3, exact: false },
 ];
 
 const isActive = (pathname: string, to: string, exact: boolean) => {
