@@ -20,10 +20,12 @@ const SectionTitle = ({
   icon: Icon,
   title,
   subtitle,
+  seeAllHref,
 }: {
   icon: ComponentType<{ className?: string }>;
   title: string;
   subtitle?: string;
+  seeAllHref?: string;
 }) => (
   <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5 sm:gap-4">
     <div>
@@ -33,6 +35,15 @@ const SectionTitle = ({
       </div>
       {subtitle && <p className="text-xs text-muted-foreground sm:text-sm">{subtitle}</p>}
     </div>
+    {seeAllHref && (
+      <Link
+        to={seeAllHref}
+        className="mb-1 flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline sm:text-sm"
+      >
+        See all
+        <ArrowRight className="h-3 w-3" />
+      </Link>
+    )}
   </div>
 );
 
@@ -61,18 +72,6 @@ const Index = () => {
 
   if (isLoading) return <FullScreenLoader />;
   if (isError || !data) return <div className="container px-4 py-12">Failed to load home data.</div>;
-
-  const seenStoryIds = new Set<number>();
-  const continueDiscoveringStories = [
-    ...data.tabs.recommended,
-    ...data.tabs.new,
-  ]
-    .filter((story) => {
-      if (seenStoryIds.has(story.id)) return false;
-      seenStoryIds.add(story.id);
-      return true;
-    })
-    .slice(0, 12);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
@@ -154,6 +153,7 @@ const Index = () => {
               icon={Compass}
               title="Discover Your Next Read"
               subtitle="Switch tabs to browse by intent."
+              seeAllHref="/discover"
             />
             <Tabs defaultValue="recommended" className="w-full">
               <TabsList className="mb-5 flex h-auto w-full justify-start gap-2 overflow-x-auto rounded-xl p-1 whitespace-nowrap">
@@ -196,6 +196,7 @@ const Index = () => {
                 icon={Flame}
                 title="New & Trending"
                 subtitle="Stories readers are actively sharing."
+                seeAllHref="/trending"
               />
               <TrendingList stories={data.new_trending.slice(0, 8)} />
             </div>
@@ -222,7 +223,7 @@ const Index = () => {
               </div>
             </div>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
-              {continueDiscoveringStories.map((story) => (
+              {data.more_to_explore.map((story) => (
                 <div
                   key={story.id}
                   className="w-[170px] shrink-0 sm:w-[185px]"

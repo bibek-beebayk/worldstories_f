@@ -1,18 +1,16 @@
+import { Link } from "react-router-dom";
 import AdSpace from "@/components/AdSpace";
 import FullScreenLoader from "@/components/FullScreenLoader";
-import StoryCard from "@/components/StoryCard";
-import { Badge } from "@/components/ui/badge";
 import { useDiscoverData } from "@/hooks/useDiscoverData";
-import { formatViews } from "@/lib/utils";
-import { Compass, Gem, Sparkles, Tag } from "lucide-react";
+import { formatRelativeDate, formatViews } from "@/lib/utils";
+import { Compass, Eye, Gem, Sparkles, Star, Tag } from "lucide-react";
 import Seo, { SITE_URL } from "@/components/Seo";
 
 const Discover = () => {
   const { data, isLoading, isError } = useDiscoverData();
 
-  if (isLoading) return < FullScreenLoader />;
+  if (isLoading) return <FullScreenLoader />;
   if (isError || !data) return <div className="container mx-auto px-4 py-8">Failed to load discover content.</div>;
-
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
@@ -44,50 +42,120 @@ const Discover = () => {
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Discover</h1>
           <p className="mt-2 text-sm text-slate-700 sm:text-base">
-            Find new releases, hidden gems, and stories matched to your taste.
+            Browse by genre, catch what's fresh, and dig up stories most readers miss.
           </p>
         </div>
 
-        <section className="mb-8 rounded-2xl border bg-card p-4 sm:p-5">
+        {/* Genre browsing — the primary entry point into this page. Clicking a genre hands
+            off to the Catalogue's full filtering experience rather than duplicating it here. */}
+        <section className="mb-8">
           <div className="mb-4 flex items-center gap-2">
             <Tag className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-semibold sm:text-xl">Browse by Genre</h2>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
             {data.genres.map((genre) => (
-              <Badge
+              <Link
                 key={genre.id}
-                variant="outline"
-                className="cursor-pointer rounded-full px-3 py-1 text-xs hover:bg-primary hover:text-primary-foreground sm:text-sm"
+                to={`/catalogue?genre=${genre.id}`}
+                className="group flex w-36 shrink-0 flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-primary/5 sm:w-40"
               >
-                {genre.name} ({formatViews(genre.stories_count)})
-              </Badge>
+                <Sparkles className="h-4 w-4 text-primary/70 transition-colors group-hover:text-primary" />
+                <div className="mt-3">
+                  <p className="text-sm font-semibold leading-tight">{genre.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatViews(genre.stories_count)} {genre.stories_count === 1 ? "story" : "stories"}
+                  </p>
+                </div>
+              </Link>
             ))}
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border bg-card p-4 sm:p-5">
+        {/* New Releases — a horizontal shelf emphasizing recency, not another grid-in-a-box. */}
+        <section className="mb-8">
           <div className="mb-4 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-semibold sm:text-xl">New Releases</h2>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
             {data.new_releases.map((story) => (
-              <StoryCard key={story.id} {...story} />
+              <Link
+                key={story.id}
+                to={`/story/${story.slug}`}
+                className="group w-36 shrink-0 sm:w-40"
+              >
+                <div className="relative mb-2 aspect-[3/4] overflow-hidden rounded-lg bg-muted shadow-sm">
+                  {story.cover_image && (
+                    <img
+                      src={story.cover_image}
+                      alt={story.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  )}
+                  {story.published_date && (
+                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                      {formatRelativeDate(story.published_date)}
+                    </span>
+                  )}
+                </div>
+                <h3 className="line-clamp-2 text-xs font-semibold transition-colors group-hover:text-primary sm:text-sm">
+                  {story.title}
+                </h3>
+              </Link>
             ))}
           </div>
         </section>
 
         <AdSpace size="banner" className="mb-8" />
 
+        {/* Hidden Gems — a list, not a grid, so the rating (the whole point of this section)
+            reads as the headline rather than competing visually with cover art. */}
         <section className="rounded-2xl border bg-card p-4 sm:p-5">
           <div className="mb-4 flex items-center gap-2">
             <Gem className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-semibold sm:text-xl">Hidden Gems</h2>
+            <span className="text-xs text-muted-foreground">Highly rated, quietly read</span>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <div className="space-y-2">
             {data.hidden_gems.map((story) => (
-              <StoryCard key={story.id} {...story} />
+              <Link
+                key={story.id}
+                to={`/story/${story.slug}`}
+                className="group flex items-center gap-3 rounded-xl border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/50 sm:gap-4"
+              >
+                <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-20 sm:w-14">
+                  {story.cover_image && (
+                    <img
+                      src={story.cover_image}
+                      alt={story.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">
+                    {story.title}
+                  </h3>
+                  {(story.genres?.length ?? 0) > 0 && (
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{story.genres!.join(" · ")}</p>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground sm:text-sm">
+                  <div className="flex items-center gap-1 font-semibold text-amber-600">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    {story.rating.toFixed(1)}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3.5 w-3.5" />
+                    {formatViews(story.views)}
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
         </section>

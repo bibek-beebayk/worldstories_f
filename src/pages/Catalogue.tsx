@@ -12,10 +12,17 @@ import { useStories } from "@/hooks/useStories";
 import { formatViews } from "@/lib/utils";
 import { BookOpen, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
 
+function getInitialGenreFromUrl(searchParams: URLSearchParams): number[] {
+  const genreId = parseInt(searchParams.get("genre") || "", 10);
+  return Number.isNaN(genreId) ? [] : [genreId];
+}
+
 const Catalogue = () => {
-  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [searchParams] = useSearchParams();
+  const [selectedGenres, setSelectedGenres] = useState<number[]>(() => getInitialGenreFromUrl(searchParams));
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("popular");
   const [page, setPage] = useState(1);

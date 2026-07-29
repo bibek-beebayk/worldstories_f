@@ -42,6 +42,7 @@ export interface Story {
   story_type: string;
   description: string;
   cover_image: string;
+  published_date?: string | null;
   rating: number;
   views: number;
   is_completed: boolean;
@@ -149,7 +150,6 @@ export interface HomeStats {
 export interface HomeTabs {
   recommended: Story[];
   popular: Story[];
-  originals: Story[];
   new: Story[];
 }
 
@@ -166,15 +166,16 @@ export interface HomeDataResponse {
   featured_stories: FeaturedStory[];
   weekly_spotlight: Story[];
   new_trending: Story[];
+  more_to_explore: Story[];
   tabs: HomeTabs;
   sidebar: HomeSidebar;
 }
 
 export interface TrendingDataResponse {
-  today: Story[];
-  week: Story[];
-  month: Story[];
-  alltime: Story[];
+  most_viewed: Story[];
+  highest_rated: Story[];
+  most_favorited: Story[];
+  most_discussed: Story[];
 }
 
 export interface OriginalsDataResponse {
