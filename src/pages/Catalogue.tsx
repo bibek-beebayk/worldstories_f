@@ -312,8 +312,11 @@ const Catalogue = () => {
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="mt-8 flex flex-col items-center gap-4">
+        {totalCount > 0 && (
+          <nav
+            className="mt-8 flex flex-col items-center gap-4"
+            aria-label="Catalogue pagination"
+          >
             <p className="text-sm text-muted-foreground">
               Page {currentPage} of {totalPages}
             </p>
@@ -324,37 +327,42 @@ const Catalogue = () => {
                 size="sm"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
+                aria-label="Go to previous catalogue page"
               >
                 Previous
               </Button>
 
-              {visiblePages.map((pageNumber, idx) =>
-                pageNumber === -1 ? (
-                  <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
-                    ...
-                  </span>
-                ) : (
-                  <Button
-                    key={pageNumber}
-                    size="sm"
-                    variant={pageNumber === currentPage ? "default" : "outline"}
-                    onClick={() => setPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </Button>
-                )
-              )}
+              {totalPages > 1 &&
+                visiblePages.map((pageNumber, idx) =>
+                  pageNumber === -1 ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                      ...
+                    </span>
+                  ) : (
+                    <Button
+                      key={pageNumber}
+                      size="sm"
+                      variant={pageNumber === currentPage ? "default" : "outline"}
+                      onClick={() => setPage(pageNumber)}
+                      aria-label={`Go to catalogue page ${pageNumber}`}
+                      aria-current={pageNumber === currentPage ? "page" : undefined}
+                    >
+                      {pageNumber}
+                    </Button>
+                  )
+                )}
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
+                aria-label="Go to next catalogue page"
               >
                 Next
               </Button>
             </div>
-          </div>
+          </nav>
         )}
       </main>
     </div>

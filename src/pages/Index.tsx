@@ -60,6 +60,18 @@ const Index = () => {
   if (isLoading) return <FullScreenLoader />;
   if (isError || !data) return <div className="container px-4 py-12">Failed to load home data.</div>;
 
+  const seenStoryIds = new Set<number>();
+  const continueDiscoveringStories = [
+    ...data.tabs.recommended,
+    ...data.tabs.new,
+  ]
+    .filter((story) => {
+      if (seenStoryIds.has(story.id)) return false;
+      seenStoryIds.add(story.id);
+      return true;
+    })
+    .slice(0, 12);
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
       <HeroSection featuredStory={data.featured_story} />
@@ -201,9 +213,9 @@ const Index = () => {
               </div>
             </div>
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
-              {[...data.tabs.recommended, ...data.tabs.new].slice(0, 12).map((story) => (
+              {continueDiscoveringStories.map((story) => (
                 <div
-                  key={`${story.id}-${story.slug}`}
+                  key={story.id}
                   className="w-[170px] shrink-0 sm:w-[185px]"
                 >
                   <StoryCard {...story} compact />
