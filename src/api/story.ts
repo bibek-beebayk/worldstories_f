@@ -22,6 +22,7 @@ import {
   AdminOverviewResponse,
   AdminAuthor,
   AdminGenre,
+  LibraryShelvesResponse,
 } from "./types";
 
 export const storyApi = {
@@ -46,6 +47,8 @@ export const storyApi = {
   //   apiClient<Audio>(`/stories/${story_slug}/audios/${audio_slug}/`),
 
   getGenres: () => apiClient<Genre[]>("/genres/"),
+  getLibraryShelves: (page: number) =>
+    apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
   getHomeData: () => apiClient<HomeDataResponse>("/home/"),
   getTrendingData: () => apiClient<TrendingDataResponse>("/trending/"),
   getOriginalsData: () => apiClient<OriginalsDataResponse>("/originals/"),

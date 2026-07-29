@@ -6,7 +6,8 @@ export function useInfiniteStories(
   genres: number[] = [],
   sort: string = "popular",
   status: string = "all",
-  q: string = ""
+  q: string = "",
+  enabled: boolean = true
 ) {
   return useInfiniteQuery<StoryListResponse>({
     queryKey: ["infinite-stories", genres, sort, status, q],
@@ -14,5 +15,6 @@ export function useInfiniteStories(
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.pagination.page < lastPage.pagination.pages ? lastPage.pagination.page + 1 : undefined,
+    enabled,
   });
 }

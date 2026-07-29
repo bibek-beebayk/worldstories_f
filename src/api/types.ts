@@ -58,6 +58,21 @@ export interface StoryListResponse {
     results: Story[];
 }
 
+export interface LibraryShelf {
+  id: number;
+  name: string;
+  stories_count: number;
+  preview_stories: Story[];
+}
+
+export interface LibraryShelvesResponse {
+  pagination: Pagination;
+  results: LibraryShelf[];
+  aggregate: {
+    total_stories: number;
+  };
+}
+
 
 export interface Author{
   id: number;
