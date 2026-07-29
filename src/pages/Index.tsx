@@ -142,7 +142,7 @@ const Index = () => {
                   Jump into curated genres and keep your reading streak going.
                 </p>
                 <Button asChild className="mt-4 w-full">
-                  <Link to="/catalogue">Explore Catalogue</Link>
+                  <Link to="/library">Explore Library</Link>
                 </Button>
               </div>
             </div>
@@ -232,7 +232,7 @@ const Index = () => {
                 </div>
               ))}
               <Link
-                to="/catalogue"
+                to="/library"
                 className="flex w-[170px] shrink-0 flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/50 hover:bg-primary/10 sm:w-[185px]"
               >
                 <div>
@@ -240,7 +240,7 @@ const Index = () => {
                     Show All
                   </div>
                   <h3 className="text-sm font-semibold text-foreground">
-                    Explore the full catalogue
+                    Explore the full library
                   </h3>
                   <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
                     Browse every available story and find your next favorite read.
@@ -248,7 +248,7 @@ const Index = () => {
                 </div>
 
                 <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
-                  <span>Open catalogue</span>
+                  <span>Open library</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </div>
               </Link>

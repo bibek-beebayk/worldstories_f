@@ -31,8 +31,16 @@
   to = "/index.html"
   status = 200
 
+# /catalogue was renamed to /library; redirect old links/bookmarks/indexed search
+# results instead of letting them 404.
 [[redirects]]
   from = "/catalogue"
+  to = "/library"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/library"
   to = "/index.html"
   status = 200
 

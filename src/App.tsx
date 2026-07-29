@@ -13,7 +13,7 @@ import AdminLayout from "@/layouts/AdminLayout";
 import AdminShellLayout from "@/layouts/AdminShellLayout";
 
 const Index = lazy(() => import("./pages/Index"));
-const Catalogue = lazy(() => import("./pages/Catalogue"));
+const Library = lazy(() => import("./pages/Library"));
 const Trending = lazy(() => import("./pages/Trending"));
 const Discover = lazy(() => import("./pages/Discover"));
 const Publish = lazy(() => import("./pages/Publish"));
@@ -81,7 +81,7 @@ const App = () => (
             <Route index element={<Index />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Navigate to="/login" replace />} />
-            <Route path="catalogue" element={<Catalogue />} />
+            <Route path="library" element={<Library />} />
             <Route path="trending" element={<Trending />} />
             <Route path="discover" element={<Discover />} />
             <Route path="contest" element={<Contest />} />

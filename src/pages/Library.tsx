@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useGenres } from "@/hooks/useGenres";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
 import { formatViews } from "@/lib/utils";
-import { Library, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
+import { Library as LibraryIcon, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
@@ -19,7 +19,7 @@ function getInitialGenreFromUrl(searchParams: URLSearchParams): number[] {
   return Number.isNaN(genreId) ? [] : [genreId];
 }
 
-const Catalogue = () => {
+const Library = () => {
   const [searchParams] = useSearchParams();
   const [selectedGenres, setSelectedGenres] = useState<number[]>(() => getInitialGenreFromUrl(searchParams));
   const [status, setStatus] = useState("all");
@@ -87,7 +87,7 @@ const Catalogue = () => {
     setSearchQuery("");
   };
 
-  const applyCatalogueSearch = () => {
+  const applyLibrarySearch = () => {
     setSearchQuery(searchInput.trim());
   };
 
@@ -96,14 +96,14 @@ const Catalogue = () => {
   return (
     <div className="min-h-screen bg-background">
       <Seo
-        title="Catalogue — Browse Every Story | WorldStories"
-        description="Browse the full WorldStories catalogue. Filter by genre, status, and popularity to find your next short story, novel, or poetry collection."
-        path="/catalogue"
+        title="Library — Browse Every Story | WorldStories"
+        description="Browse the full WorldStories library. Filter by genre, status, and popularity to find your next short story, novel, or poetry collection."
+        path="/library"
         structuredData={{
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: "Catalogue — WorldStories",
-          url: `${SITE_URL}/catalogue`,
+          name: "Library — WorldStories",
+          url: `${SITE_URL}/library`,
           mainEntity: {
             "@type": "ItemList",
             itemListElement: stories.slice(0, 20).map((story, index) => ({
@@ -119,10 +119,10 @@ const Catalogue = () => {
       <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700">
-            <Library className="h-3.5 w-3.5" />
+            <LibraryIcon className="h-3.5 w-3.5" />
             The Full Library
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Catalogue</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Library</h1>
           <p className="mt-2 text-sm text-slate-700 sm:text-base">
             Every story on WorldStories, indexed and filterable — keep scrolling and more loads in.
           </p>
@@ -133,7 +133,7 @@ const Catalogue = () => {
         <div className="container mx-auto px-3 py-3 sm:px-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="inline-flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs sm:text-sm">
-              <Library className="h-4 w-4 text-primary" />
+              <LibraryIcon className="h-4 w-4 text-primary" />
               <span className="font-semibold">{formatViews(totalCount)}</span>
               <span className="text-muted-foreground">stories</span>
             </div>
@@ -142,7 +142,7 @@ const Catalogue = () => {
               className="flex min-w-[220px] flex-1 items-center gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
-                applyCatalogueSearch();
+                applyLibrarySearch();
               }}
             >
               <div className="relative flex-1">
@@ -150,7 +150,7 @@ const Catalogue = () => {
                 <Input
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Search in catalogue..."
+                  placeholder="Search in library..."
                   className="h-9 pl-8 text-xs sm:text-sm"
                 />
               </div>
@@ -323,7 +323,7 @@ const Catalogue = () => {
             </div>
           )}
           {!hasNextPage && stories.length > 0 && (
-            <p className="text-sm text-muted-foreground">You've reached the end of the catalogue.</p>
+            <p className="text-sm text-muted-foreground">You've reached the end of the library.</p>
           )}
         </div>
       </main>
@@ -331,4 +331,4 @@ const Catalogue = () => {
   );
 };
 
-export default Catalogue;
+export default Library;

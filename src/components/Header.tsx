@@ -98,8 +98,8 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/catalogue" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Catalogue
+            <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Library
             </Link>
             <Link to="/trending" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Trending
@@ -248,10 +248,10 @@ const Header = () => {
               <nav className="flex flex-col gap-4 mt-4">
                 <SheetClose asChild>
                   <Link
-                    to="/catalogue"
+                    to="/library"
                     className="text-lg font-medium hover:text-primary"
                   >
-                    Catalogue
+                    Library
                   </Link>
                 </SheetClose>
 

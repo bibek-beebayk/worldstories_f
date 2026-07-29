@@ -71,7 +71,7 @@ const ContinueReadingSection = ({
             You do not have any in-progress stories yet.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/catalogue">Start Reading</Link>
+            <Link to="/library">Start Reading</Link>
           </Button>
         </div>
       )}

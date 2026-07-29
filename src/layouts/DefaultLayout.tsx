@@ -10,10 +10,10 @@ const routeSeo: Record<string, { title: string; description: string; noIndex?: b
     description:
       "Discover original stories, trending reads, audiobooks, and diverse voices from around the world on WorldStories.",
   },
-  "/catalogue": {
-    title: "Story Catalogue | WorldStories",
+  "/library": {
+    title: "Story Library | WorldStories",
     description:
-      "Browse the WorldStories catalogue by genre, popularity, rating, and publication status.",
+      "Browse the WorldStories library by genre, popularity, rating, and publication status.",
   },
   "/trending": {
     title: "Trending Stories | WorldStories",

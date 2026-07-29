@@ -47,7 +47,7 @@ const Discover = () => {
         </div>
 
         {/* Genre browsing — the primary entry point into this page. Clicking a genre hands
-            off to the Catalogue's full filtering experience rather than duplicating it here. */}
+            off to the Library's full filtering experience rather than duplicating it here. */}
         <section className="mb-8">
           <div className="mb-4 flex items-center gap-2">
             <Tag className="h-4 w-4 text-primary" />
@@ -57,7 +57,7 @@ const Discover = () => {
             {data.genres.map((genre) => (
               <Link
                 key={genre.id}
-                to={`/catalogue?genre=${genre.id}`}
+                to={`/library?genre=${genre.id}`}
                 className="group flex w-36 shrink-0 flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-primary/5 sm:w-40"
               >
                 <Sparkles className="h-4 w-4 text-primary/70 transition-colors group-hover:text-primary" />
