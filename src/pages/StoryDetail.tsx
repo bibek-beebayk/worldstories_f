@@ -7,11 +7,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/sonner";
 import { storyApi } from "@/api/story";
 import { getAccessToken } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
-import { BookMarked, Download, Eye, FileText, Headphones, Heart, Share2, Star } from "lucide-react";
+import {
+  BookMarked,
+  Download,
+  Eye,
+  Facebook,
+  FileText,
+  Headphones,
+  Heart,
+  Link2,
+  Share2,
+  Star,
+  Twitter,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
@@ -203,6 +222,30 @@ const StoryDetail = () => {
     .trim()
     .slice(0, 160);
   const storyPath = `/story/${story.slug}`;
+  const shareUrl = `${SITE_URL}${storyPath}`;
+
+  const openShareWindow = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer,width=600,height=500");
+  };
+
+  const shareToFacebook = () => {
+    openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
+  };
+
+  const shareToTwitter = () => {
+    openShareWindow(
+      `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(story.title)}`
+    );
+  };
+
+  const copyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard.");
+    } catch {
+      toast.error("Couldn't copy the link. Please copy it manually.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -353,9 +396,27 @@ const StoryDetail = () => {
                   >
                     <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
                   </Button>
-                  <Button size="lg" variant="outline">
-                    <Share2 className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="lg" variant="outline" aria-label="Share this story">
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={shareToFacebook}>
+                        <Facebook className="h-4 w-4" />
+                        Share on Facebook
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={shareToTwitter}>
+                        <Twitter className="h-4 w-4" />
+                        Share on X (Twitter)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copyShareLink}>
+                        <Link2 className="h-4 w-4" />
+                        Copy link
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {/* </Link> */}
                 </div>
                 {hasStoryFiles && (
