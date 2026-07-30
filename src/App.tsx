@@ -26,6 +26,10 @@ const Search = lazy(() => import("./pages/Search"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Contest = lazy(() => import("./pages/Contest"));
 const PdfReader = lazy(() => import("./pages/PdfReader"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
 const AdminContent = lazy(() => import("./pages/AdminContent"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminHome = lazy(() => import("./pages/AdminHome"));
@@ -89,6 +93,10 @@ const App = () => (
             <Route path="search" element={<Search />} />
             <Route path="publish" element={<Publish />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="about" element={<About />} />
+            <Route path="contact" element={<Contact />} />
+            <Route path="privacy" element={<Privacy />} />
+            <Route path="terms" element={<Terms />} />
             <Route path="/story/:slug" element={<StoryDetail />} />
             <Route path="/story/:slug/pdf" element={<PdfReader />} />
             <Route path="/read/:story_slug/:chapter_slug" element={<StoryReader />} />
