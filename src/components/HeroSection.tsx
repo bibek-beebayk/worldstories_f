@@ -90,6 +90,12 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               )}
             </div>
 
+            {/* Always-visible, load-state-independent statement of what WorldStories is,
+                so the site's purpose is never fully dependent on which story is featured. */}
+            <p className="text-xs font-medium uppercase tracking-wide text-white/60 sm:text-sm">
+              WorldStories — read and publish free stories, novels, poetry, and audiobooks from writers around the world.
+            </p>
+
             <h1 className="max-w-3xl text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
               {story?.title || "Welcome to WorldStories!"}
             </h1>

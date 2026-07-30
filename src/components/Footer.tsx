@@ -9,14 +9,13 @@ const footerLinks = [
 
 const Footer = () => {
     return (
-        <footer className="border-t border-border bg-muted/50 mt-16">
+        <footer className="border-t border-border bg-muted/50 mt-8">
         <div className="container px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-                <span className="text-lg font-bold text-primary-foreground">W</span>
+              <div className="flex h-20 w-20 items-center justify-center rounded-md">
+                <img src="/worldstories-logo.png" alt="" />
               </div>
-              <span className="text-lg font-bold">WorldStories</span>
             </div>
 
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">

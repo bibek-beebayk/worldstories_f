@@ -91,10 +91,11 @@ const Header = () => {
         {/* Logo */}
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">W</span>
+            <div className="flex h-20 w-20 items-center justify-center rounded-md">
+              {/* <span className="text-lg font-bold text-primary-foreground">W</span> */}
+              <img src="/worldstories-logo.png" alt="" />
             </div>
-            <span className="text-xl font-bold">WorldStories</span>
+            {/* <span className="text-xl font-bold">WorldStories</span> */}
           </Link>
 
           {/* Desktop Navigation */}

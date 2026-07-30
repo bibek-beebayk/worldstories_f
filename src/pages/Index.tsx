@@ -14,7 +14,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import FullScreenLoader from "@/components/FullScreenLoader";
 import { AUTH_CHANGE_EVENT, getAccessToken } from "@/api/client";
 import { useHomeData } from "@/hooks/useHomeData";
 import { useContinueReading } from "@/hooks/useContinueReading";
@@ -77,9 +76,6 @@ const Index = () => {
     };
   }, []);
 
-  if (isLoading) return <FullScreenLoader />;
-  if (isError || !data) return <div className="container px-4 py-12">Failed to load home data.</div>;
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
       <Seo
@@ -87,10 +83,30 @@ const Index = () => {
         description="WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres."
         path="/"
       />
-      <HeroSection featuredStories={data.featured_stories} />
+      {/* Renders immediately with its own "Welcome to WorldStories" fallback copy —
+          never blocked behind the home-data fetch, so the page's purpose is visible
+          the instant it loads instead of hiding behind a full-screen spinner. */}
+      <HeroSection featuredStories={data?.featured_stories ?? []} />
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
         <main className="space-y-8 md:space-y-10">
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+              <p className="text-sm text-muted-foreground">Loading today's stories…</p>
+            </div>
+          )}
+
+          {!isLoading && (isError || !data) && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                We couldn't load today's stories. Please refresh the page.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && data && (
+            <>
           {isLoggedIn &&
             !isContinueReadingLoading &&
             !isContinueReadingError &&
@@ -264,6 +280,8 @@ const Index = () => {
               <CarouselNext />
             </Carousel>
           </section>
+            </>
+          )}
         </main>
       </div>
     </div>
