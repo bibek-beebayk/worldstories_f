@@ -42,7 +42,7 @@ export interface Story {
   story_type: string;
   description: string;
   cover_image: string;
-  published_date?: string | null;
+  site_published_date?: string | null;
   rating: number;
   views: number;
   is_completed: boolean;
@@ -85,6 +85,7 @@ export interface Author{
 export interface StoryDetail extends Story {
   story_type: string;
   about: string;
+  original_published_date: string | null;
   author: Author | null;
   submitted_by: StorySubmittedBy | null;
   genres: Genre[];
@@ -279,7 +280,8 @@ export interface AdminStory {
   story_type: string;
   author: number | null;
   submitted_by: StorySubmittedBy | null;
-  published_date: string | null;
+  original_published_date: string | null;
+  site_published_date: string | null;
   cover_image: string | null;
   cover_image_file: string | null;
   cover_image_url: string;

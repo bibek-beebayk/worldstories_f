@@ -44,7 +44,8 @@ const AdminContent = () => {
   const [about, setAbout] = useState("");
   const [authorId, setAuthorId] = useState<string>("none");
   const [storyType, setStoryType] = useState("Short Story");
-  const [publishedDate, setPublishedDate] = useState("");
+  const [originalPublishedDate, setOriginalPublishedDate] = useState("");
+  const [sitePublishedDate, setSitePublishedDate] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [coverImage, setCoverImage] = useState("");
@@ -146,7 +147,8 @@ const AdminContent = () => {
     setAbout("");
     setAuthorId("none");
     setStoryType("Short Story");
-    setPublishedDate("");
+    setOriginalPublishedDate("");
+    setSitePublishedDate("");
     setIsCompleted(false);
     setIsPublished(false);
     setCoverImage("");
@@ -413,7 +415,8 @@ const AdminContent = () => {
     setAbout(selectedStory.about || "");
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
     setStoryType(selectedStory.story_type || "Short Story");
-    setPublishedDate(selectedStory.published_date || "");
+    setOriginalPublishedDate(selectedStory.original_published_date || "");
+    setSitePublishedDate(selectedStory.site_published_date || "");
     setIsCompleted(Boolean(selectedStory.is_completed));
     setIsPublished(Boolean(selectedStory.is_published));
     setCoverImage(selectedStory.cover_image || "");
@@ -516,10 +519,15 @@ const AdminContent = () => {
     formData.append("is_completed", String(isCompleted));
     const publishValue = forceDraft ? false : forcePublish ? true : isPublished;
     formData.append("is_published", String(publishValue));
-    if (publishValue && publishedDate) {
-      formData.append("published_date", publishedDate);
+    if (originalPublishedDate) {
+      formData.append("original_published_date", originalPublishedDate);
     } else if (mode === "edit") {
-      formData.append("published_date", "");
+      formData.append("original_published_date", "");
+    }
+    if (publishValue && sitePublishedDate) {
+      formData.append("site_published_date", sitePublishedDate);
+    } else if (mode === "edit") {
+      formData.append("site_published_date", "");
     }
     if (coverImage.trim()) formData.append("cover_image", coverImage.trim());
     if (coverImageFile) formData.append("cover_image_file", coverImageFile);
@@ -800,8 +808,26 @@ const AdminContent = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="admin-published-date">Published Date</Label>
-                    <Input id="admin-published-date" type="date" value={publishedDate || ""} onChange={(e) => setPublishedDate(e.target.value)} className="mt-2" />
+                    <Label htmlFor="admin-original-published-date">Original Published Date</Label>
+                    <Input
+                      id="admin-original-published-date"
+                      type="date"
+                      value={originalPublishedDate || ""}
+                      onChange={(e) => setOriginalPublishedDate(e.target.value)}
+                      className="mt-2"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">When the work was originally published.</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="admin-site-published-date">Published on Site Date</Label>
+                    <Input
+                      id="admin-site-published-date"
+                      type="date"
+                      value={sitePublishedDate || ""}
+                      onChange={(e) => setSitePublishedDate(e.target.value)}
+                      className="mt-2"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">When this story went live on WorldStories.</p>
                   </div>
                   <div className="flex items-end">
                     <label className="flex items-center gap-2 text-sm">
@@ -1058,7 +1084,8 @@ const AdminContent = () => {
                           ? (selectedStory.submitted_by.display_name || selectedStory.submitted_by.username || selectedStory.submitted_by.email)
                           : "-"}
                       </p>
-                      <p><span className="text-muted-foreground">Published:</span> {selectedStory.published_date || "-"}</p>
+                      <p><span className="text-muted-foreground">Original Published Date:</span> {selectedStory.original_published_date || "-"}</p>
+                      <p><span className="text-muted-foreground">Published on Site Date:</span> {selectedStory.site_published_date || "-"}</p>
                       <p><span className="text-muted-foreground">Completed:</span> {selectedStory.is_completed ? "Yes" : "No"}</p>
                       <p><span className="text-muted-foreground">Published:</span> {selectedStory.is_published ? "Yes" : "No"}</p>
                       <p><span className="text-muted-foreground">Rating:</span> {selectedStory.rating.toFixed(1)}</p>

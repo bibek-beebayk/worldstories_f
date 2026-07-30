@@ -95,9 +95,9 @@ const Discover = () => {
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   )}
-                  {story.published_date && (
+                  {story.site_published_date && (
                     <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {formatRelativeDate(story.published_date)}
+                      {formatRelativeDate(story.site_published_date)}
                     </span>
                   )}
                 </div>

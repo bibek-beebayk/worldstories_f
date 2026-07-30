@@ -265,7 +265,7 @@ const StoryDetail = () => {
           url: `${SITE_URL}${storyPath}`,
           image: story.cover_image || undefined,
           genre: story.genres.map((genre) => genre.name),
-          datePublished: story.published_date || undefined,
+          datePublished: story.original_published_date || undefined,
           author: story.author
             ? {
                 "@type": "Person",
