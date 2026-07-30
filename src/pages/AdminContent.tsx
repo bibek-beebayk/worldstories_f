@@ -160,10 +160,33 @@ const AdminContent = () => {
     setEpubFile(null);
     setSelectedGenreNames([]);
     setGenreQuery("");
+    setPendingTranslationSourceId(null);
+    setPendingTranslationSourceTitle("");
   };
 
   const openNewStoryForm = () => {
     resetForm();
+    setShowChapterModal(false);
+    setShowStoryForm(true);
+  };
+
+  const openAddTranslationForm = () => {
+    if (!selectedStoryId || !selectedStory) return;
+    const sourceId = selectedStoryId;
+    resetForm();
+    // Carry over the details that describe the same underlying work — title/about
+    // still need to be written in the new language, so those stay blank.
+    setStoryType(selectedStory.story_type || "Short Story");
+    setOriginalPublishedDate(selectedStory.original_published_date || "");
+    setIsCompleted(Boolean(selectedStory.is_completed));
+    setCoverImage(selectedStory.cover_image || "");
+    setSelectedGenreNames(
+      (selectedStory.genres || [])
+        .map((genreId) => genreNameById.get(genreId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setPendingTranslationSourceId(sourceId);
+    setPendingTranslationSourceTitle(selectedStory.title || "");
     setShowChapterModal(false);
     setShowStoryForm(true);
   };
@@ -413,6 +436,8 @@ const AdminContent = () => {
 
   useEffect(() => {
     if (!selectedStory) return;
+    setPendingTranslationSourceId(null);
+    setPendingTranslationSourceTitle("");
     setTitle(selectedStory.title || "");
     setSlug(selectedStory.slug || "");
     setAbout(selectedStory.about || "");
@@ -574,7 +599,15 @@ const AdminContent = () => {
         setShowStoryForm(false);
       } else {
         const created = await storyApi.createAdminStory(formData);
-        toast.success("Story created.");
+        if (pendingTranslationSourceId) {
+          await storyApi.linkStoryTranslation(created.id, pendingTranslationSourceId);
+          await queryClient.invalidateQueries({ queryKey: ["admin-story", pendingTranslationSourceId] });
+          setPendingTranslationSourceId(null);
+          setPendingTranslationSourceTitle("");
+          toast.success("Story created and linked as a translation.");
+        } else {
+          toast.success("Story created.");
+        }
         setSelectedStoryId(created.id);
         setShowStoryForm(false);
       }
@@ -643,6 +676,8 @@ const AdminContent = () => {
   const [translationSearchQuery, setTranslationSearchQuery] = useState("");
   const [debouncedTranslationQuery, setDebouncedTranslationQuery] = useState("");
   const [translationActionId, setTranslationActionId] = useState<number | null>(null);
+  const [pendingTranslationSourceId, setPendingTranslationSourceId] = useState<number | null>(null);
+  const [pendingTranslationSourceTitle, setPendingTranslationSourceTitle] = useState<string>("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -808,6 +843,12 @@ const AdminContent = () => {
                 <CardTitle className="text-base">{mode === "edit" ? "Edit Story" : "Create Story"}</CardTitle>
               </CardHeader>
               <CardContent className="min-h-0 flex-1 overflow-y-auto">
+                {pendingTranslationSourceId && (
+                  <div className="mb-4 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary">
+                    Adding a new translation of <span className="font-medium">{pendingTranslationSourceTitle}</span>.
+                    It will be linked automatically once you save.
+                  </div>
+                )}
                 {(mode === "edit" && selectedLoading) ? (
                   <p className="text-sm text-muted-foreground">Loading story details...</p>
                 ) : (
@@ -1140,6 +1181,7 @@ const AdminContent = () => {
                       <p><span className="text-muted-foreground">Title:</span> {selectedStory.title}</p>
                       <p><span className="text-muted-foreground">Slug:</span> /{selectedStory.slug}</p>
                       <p><span className="text-muted-foreground">Type:</span> {selectedStory.story_type}</p>
+                      <p><span className="text-muted-foreground">Language:</span> {getLanguageLabel(selectedStory.language)}</p>
                       <p><span className="text-muted-foreground">Author:</span> {selectedStory.author ? (authorNameById.get(selectedStory.author) || "-") : "-"}</p>
                       <p>
                         <span className="text-muted-foreground">Submitted By:</span>{" "}
@@ -1176,6 +1218,86 @@ const AdminContent = () => {
                 ) : (
                   <p className="text-sm text-muted-foreground">No story selected.</p>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {!showStoryForm && !showChapterModal && selectedStoryId && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">Translations</CardTitle>
+                <Button size="sm" onClick={openAddTranslationForm}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add Translation
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {(selectedStory?.translations?.length || 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">No other language editions linked yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedStory!.translations.map((sibling) => (
+                      <div
+                        key={sibling.id}
+                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{sibling.title}</p>
+                          <p className="text-xs text-muted-foreground">{getLanguageLabel(sibling.language)}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setSelectedStoryId(sibling.id)}>
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={translationActionId === sibling.id}
+                            onClick={() => handleUnlinkTranslation(sibling.id)}
+                          >
+                            {translationActionId === sibling.id ? "Removing..." : "Unlink"}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="border-t pt-3">
+                  <Label htmlFor="admin-translation-search">Link another story as a translation</Label>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="admin-translation-search"
+                      placeholder="Search by title..."
+                      className="pl-9"
+                      value={translationSearchQuery}
+                      onChange={(e) => setTranslationSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  {debouncedTranslationQuery.length >= 2 && (
+                    <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
+                      {(translationSearchResults?.results || [])
+                        .filter((story) => story.id !== selectedStoryId)
+                        .map((story) => (
+                          <button
+                            key={story.id}
+                            type="button"
+                            className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                            disabled={translationActionId !== null}
+                            onClick={() => handleLinkTranslation(story.id)}
+                          >
+                            <span className="truncate">{story.title}</span>
+                            <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                              {getLanguageLabel(story.language)}
+                            </span>
+                          </button>
+                        ))}
+                      {(translationSearchResults?.results || []).filter((s) => s.id !== selectedStoryId).length ===
+                        0 && <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1414,81 +1536,6 @@ const AdminContent = () => {
             </Card>
           )}
 
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Translations</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {(selectedStory?.translations?.length || 0) === 0 ? (
-                  <p className="text-sm text-muted-foreground">No other language editions linked yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedStory!.translations.map((sibling) => (
-                      <div
-                        key={sibling.id}
-                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{sibling.title}</p>
-                          <p className="text-xs text-muted-foreground">{getLanguageLabel(sibling.language)}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => setSelectedStoryId(sibling.id)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={translationActionId === sibling.id}
-                            onClick={() => handleUnlinkTranslation(sibling.id)}
-                          >
-                            {translationActionId === sibling.id ? "Removing..." : "Unlink"}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="border-t pt-3">
-                  <Label htmlFor="admin-translation-search">Link another story as a translation</Label>
-                  <div className="relative mt-2">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="admin-translation-search"
-                      placeholder="Search by title..."
-                      className="pl-9"
-                      value={translationSearchQuery}
-                      onChange={(e) => setTranslationSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  {debouncedTranslationQuery.length >= 2 && (
-                    <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
-                      {(translationSearchResults?.results || [])
-                        .filter((story) => story.id !== selectedStoryId)
-                        .map((story) => (
-                          <button
-                            key={story.id}
-                            type="button"
-                            className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                            disabled={translationActionId !== null}
-                            onClick={() => handleLinkTranslation(story.id)}
-                          >
-                            <span className="truncate">{story.title}</span>
-                            <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                              {getLanguageLabel(story.language)}
-                            </span>
-                          </button>
-                        ))}
-                      {(translationSearchResults?.results || []).filter((s) => s.id !== selectedStoryId).length ===
-                        0 && <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 
