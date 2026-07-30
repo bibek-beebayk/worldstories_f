@@ -179,7 +179,7 @@ const AdminAnalytics = () => {
                     series={[{ key: "count", label: "Views" }]}
                   />
                 </ChartCard>
-                <ChartCard title="Publishing velocity" subtitle="Stories published per day">
+                <ChartCard title="Publishing velocity" subtitle="Stories added to the site per day">
                   <TrendLineChart
                     data={contentQuery.data.publishing_over_time}
                     xKey="day"
