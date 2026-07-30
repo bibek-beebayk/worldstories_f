@@ -7,6 +7,13 @@ import TrendingList from "@/components/TrendingList";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { AUTH_CHANGE_EVENT, getAccessToken } from "@/api/client";
 import { useHomeData } from "@/hooks/useHomeData";
@@ -156,10 +163,10 @@ const Index = () => {
               seeAllHref="/discover"
             />
             <Tabs defaultValue="recommended" className="w-full">
-              <TabsList className="mb-5 flex h-auto w-full justify-start gap-2 overflow-x-auto rounded-xl p-1 whitespace-nowrap">
-                <TabsTrigger value="recommended" className="shrink-0 text-xs sm:text-sm">Recommended for You</TabsTrigger>
-                <TabsTrigger value="popular" className="shrink-0 text-xs sm:text-sm">Popular</TabsTrigger>
-                <TabsTrigger value="new" className="shrink-0 text-xs sm:text-sm">What's New</TabsTrigger>
+              <TabsList className="mb-5 grid h-auto w-full grid-cols-3 gap-1 rounded-xl p-1">
+                <TabsTrigger value="recommended" className="text-xs sm:text-sm">For You</TabsTrigger>
+                <TabsTrigger value="popular" className="text-xs sm:text-sm">Popular</TabsTrigger>
+                <TabsTrigger value="new" className="text-xs sm:text-sm">New</TabsTrigger>
               </TabsList>
 
               <TabsContent value="recommended">
@@ -222,37 +229,40 @@ const Index = () => {
                 <h2 className="text-lg font-semibold sm:text-xl">More stories for your reading queue</h2>
               </div>
             </div>
-            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
-              {data.more_to_explore.map((story) => (
-                <div
-                  key={story.id}
-                  className="w-[170px] shrink-0 sm:w-[185px]"
-                >
-                  <StoryCard {...story} compact />
-                </div>
-              ))}
-              <Link
-                to="/library"
-                className="flex w-[170px] shrink-0 flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/50 hover:bg-primary/10 sm:w-[185px]"
-              >
-                <div>
-                  <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
-                    Show All
-                  </div>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Explore the full library
-                  </h3>
-                  <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                    Browse every available story and find your next favorite read.
-                  </p>
-                </div>
+            <Carousel opts={{ align: "start" }} className="px-1">
+              <CarouselContent>
+                {data.more_to_explore.map((story) => (
+                  <CarouselItem key={story.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                    <StoryCard {...story} compact />
+                  </CarouselItem>
+                ))}
+                <CarouselItem className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                  <Link
+                    to="/library"
+                    className="flex aspect-[4/5] flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 transition-colors hover:border-primary/50 hover:bg-primary/10"
+                  >
+                    <div>
+                      <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
+                        Show All
+                      </div>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        Explore the full library
+                      </h3>
+                      <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                        Browse every available story and find your next favorite read.
+                      </p>
+                    </div>
 
-                <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
-                  <span>Open library</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </div>
-              </Link>
-            </div>
+                    <div className="inline-flex items-center gap-2 text-xs font-medium text-primary">
+                      <span>Open library</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </div>
+                  </Link>
+                </CarouselItem>
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
           </section>
         </main>
       </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
 import { BookOpen, ChevronLeft, ChevronRight, Eye, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,25 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
   const goNext = useCallback(() => goTo(activeIndex + 1), [goTo, activeIndex]);
   const goPrev = useCallback(() => goTo(activeIndex - 1), [goTo, activeIndex]);
 
+  const touchStartX = useRef<number | null>(null);
+  const SWIPE_THRESHOLD = 40;
+
+  const handleTouchStart = (event: TouchEvent) => {
+    touchStartX.current = event.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (event: TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = event.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+    if (deltaX < 0) {
+      goNext();
+    } else {
+      goPrev();
+    }
+  };
+
   useEffect(() => {
     if (!hasStories || featuredStories.length < 2 || isPaused) return;
     const timer = window.setInterval(goNext, AUTOPLAY_INTERVAL);
@@ -54,8 +73,8 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="absolute -top-20 -right-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
-      <div className="absolute -bottom-24 -left-12 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute -top-20 -right-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-12 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
 
       <div className="container px-4 py-10 md:py-12">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-center">
@@ -115,9 +134,13 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
             </Button>
           </div>
 
-          <div className="relative hidden md:block">
-            <div className="relative mx-auto aspect-[16/10] max-w-md overflow-hidden rounded-2xl border border-white/20 shadow-2xl">
-              <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div
+            className="relative mx-auto max-w-md"
+            onTouchStart={hasStories && featuredStories.length > 1 ? handleTouchStart : undefined}
+            onTouchEnd={hasStories && featuredStories.length > 1 ? handleTouchEnd : undefined}
+          >
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/20 shadow-2xl">
+              <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               {story?.cover_image ? (
                 <img
                   key={story.id}
@@ -136,7 +159,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                   <BookOpen className="h-16 w-16 text-white/30" />
                 </div>
               )}
-              <div className="absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">
+              <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">
                 <p className="line-clamp-1 text-sm font-medium text-white">
                   {story?.title || "Welcome to WorldStories!"}
                 </p>
