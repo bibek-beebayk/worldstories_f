@@ -35,6 +35,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
+import { getLanguageLabel } from "@/lib/languages";
 
 
 const StoryDetail = () => {
@@ -258,6 +259,13 @@ const StoryDetail = () => {
         path={storyPath}
         image={story.cover_image}
         type="book"
+        alternateLanguages={[
+          { language: story.language, path: storyPath },
+          ...story.translations.map((sibling) => ({
+            language: sibling.language,
+            path: `/story/${sibling.slug}`,
+          })),
+        ]}
         structuredData={{
           "@context": "https://schema.org",
           "@type": story.has_audio ? ["CreativeWork", "Audiobook"] : "CreativeWork",
@@ -310,6 +318,23 @@ const StoryDetail = () => {
                     <Badge>{story.story_type}</Badge>
                     <Badge variant="outline">{story.is_completed ? "Complete" : "Ongoing"}</Badge>
                   </div>
+                  {story.translations.length > 0 && (
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">Available in:</span>
+                      <span className="rounded-full border border-primary bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                        {getLanguageLabel(story.language)}
+                      </span>
+                      {story.translations.map((sibling) => (
+                        <Link
+                          key={sibling.id}
+                          to={`/story/${sibling.slug}`}
+                          className="rounded-full border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                        >
+                          {getLanguageLabel(sibling.language)}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                   <h1 className="text-4xl font-bold mb-2">{story.title}</h1>
                   <div className="flex items-center gap-2 mb-4">
                     <Avatar className="h-8 w-8">

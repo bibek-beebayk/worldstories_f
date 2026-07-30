@@ -14,6 +14,7 @@ import { storyApi } from "@/api/story";
 import { useGenres } from "@/hooks/useGenres";
 import { Link2, Bold, Italic, Underline, Heading2, List, ListOrdered } from "lucide-react";
 import Seo from "@/components/Seo";
+import { LANGUAGE_OPTIONS } from "@/lib/languages";
 
 const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
 
@@ -26,6 +27,7 @@ const Publish = () => {
   const [title, setTitle] = useState("");
   const [about, setAbout] = useState("");
   const [storyType, setStoryType] = useState("Short Story");
+  const [language, setLanguage] = useState("en");
   const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
   const [coverImage, setCoverImage] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -80,6 +82,7 @@ const Publish = () => {
     formData.append("title", title.trim());
     formData.append("about", about.trim());
     formData.append("story_type", storyType);
+    formData.append("language", language);
     formData.append("content", contentHtml);
     selectedGenres.forEach((genreId) => formData.append("genres", String(genreId)));
 
@@ -106,6 +109,7 @@ const Publish = () => {
       setTitle("");
       setAbout("");
       setStoryType("Short Story");
+      setLanguage("en");
       setSelectedGenres([]);
       setCoverImage("");
       setCoverImageFile(null);
@@ -182,7 +186,7 @@ const Publish = () => {
               />
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-3">
               <div>
                 <Label htmlFor="story-type">Story Type *</Label>
                 <Select value={storyType} onValueChange={setStoryType}>
@@ -193,6 +197,22 @@ const Publish = () => {
                     {storyTypes.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="language">Language *</Label>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger id="language" className="mt-2">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.code} value={option.code}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

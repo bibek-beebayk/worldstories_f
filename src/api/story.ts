@@ -36,10 +36,11 @@ export const storyApi = {
     genres: number[] | [],
     sort: string,
     status: string,
-    q: string = ""
+    q: string = "",
+    language: string = "all"
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}`
     ),
 
   getStory: (slug: string) => 
@@ -58,9 +59,9 @@ export const storyApi = {
   getTrendingData: () => apiClient<TrendingDataResponse>("/trending/"),
   getOriginalsData: () => apiClient<OriginalsDataResponse>("/originals/"),
   getDiscoverData: () => apiClient<DiscoverDataResponse>("/discover/"),
-  searchStories: (q: string, page: number = 1, sort: string = "popular") =>
+  searchStories: (q: string, page: number = 1, sort: string = "popular", language: string = "all") =>
     apiClient<StoryListResponse>(
-      `/search/?q=${encodeURIComponent(q)}&page=${page}&sort=${sort}`
+      `/search/?q=${encodeURIComponent(q)}&page=${page}&sort=${sort}&language=${encodeURIComponent(language)}`
     ),
   getStoryReviews: (slug: string, page: number = 1) =>
     apiClient<ReviewListResponse>(`/stories/${slug}/reviews/?page=${page}`),
@@ -151,6 +152,15 @@ export const storyApi = {
     apiClient<AdminStory>(`/admin/stories/${id}/`, {
       method: "PATCH",
       body: formData,
+    }),
+  linkStoryTranslation: (id: number, targetStoryId: number) =>
+    apiClient<AdminStory>(`/admin/stories/${id}/link-translation/`, {
+      method: "POST",
+      body: JSON.stringify({ target_story_id: targetStoryId }),
+    }),
+  unlinkStoryTranslation: (id: number) =>
+    apiClient<AdminStory>(`/admin/stories/${id}/unlink-translation/`, {
+      method: "POST",
     }),
   getAdminChapters: (storyId: number) =>
     apiClient<PaginatedResponse<AdminChapter>>(`/admin/chapters/?story=${storyId}`),

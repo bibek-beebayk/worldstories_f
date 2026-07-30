@@ -2,6 +2,7 @@ import { Eye, Star, Headphones } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { formatViews } from "@/lib/utils";
+import { getLanguageLabel } from "@/lib/languages";
 
 interface StoryCardProps {
   id: number;
@@ -11,11 +12,12 @@ interface StoryCardProps {
   rating: number;
   views: number;
   story_type?: string;
+  language?: string;
   has_audio?: boolean;
   compact?: boolean;
 }
 
-const StoryCard = ({ title, cover_image, rating, views, story_type, slug, has_audio, compact = false }: StoryCardProps) => {
+const StoryCard = ({ title, cover_image, rating, views, story_type, language, slug, has_audio, compact = false }: StoryCardProps) => {
   return (
     <Link to={`/story/${slug}`} className="group cursor-pointer block">
       <div className={`relative overflow-hidden rounded-lg ${compact ? "mb-2 aspect-[4/5] shadow-sm" : "mb-3 aspect-[3/4] shadow-md"}`}>
@@ -38,6 +40,14 @@ const StoryCard = ({ title, cover_image, rating, views, story_type, slug, has_au
           <div className={`absolute rounded-full bg-red-600 opacity-80 ${compact ? "right-1.5 top-1.5 h-4 w-4 p-[3px]" : "right-2 top-2 h-5 w-5 p-1"}`}>
             <Headphones className={`text-white ${compact ? "h-2.5 w-2.5" : "h-3 w-3"}`} />
           </div>
+        )}
+        {language && language !== "en" && (
+          <Badge
+            variant="outline"
+            className={`absolute right-2 bottom-2 border-0 bg-black/70 text-white ${compact ? "px-1.5 py-0 text-[10px]" : ""}`}
+          >
+            {getLanguageLabel(language)}
+          </Badge>
         )}
       </div>
       

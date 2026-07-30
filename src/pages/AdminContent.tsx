@@ -14,8 +14,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Bold, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
+import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 
-const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
+const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction"];
 const toTitleCase = (value: string) =>
   value
     .trim()
@@ -44,6 +45,7 @@ const AdminContent = () => {
   const [about, setAbout] = useState("");
   const [authorId, setAuthorId] = useState<string>("none");
   const [storyType, setStoryType] = useState("Short Story");
+  const [language, setLanguage] = useState("en");
   const [originalPublishedDate, setOriginalPublishedDate] = useState("");
   const [sitePublishedDate, setSitePublishedDate] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
@@ -147,6 +149,7 @@ const AdminContent = () => {
     setAbout("");
     setAuthorId("none");
     setStoryType("Short Story");
+    setLanguage("en");
     setOriginalPublishedDate("");
     setSitePublishedDate("");
     setIsCompleted(false);
@@ -415,6 +418,7 @@ const AdminContent = () => {
     setAbout(selectedStory.about || "");
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
     setStoryType(selectedStory.story_type || "Short Story");
+    setLanguage(selectedStory.language || "en");
     setOriginalPublishedDate(selectedStory.original_published_date || "");
     setSitePublishedDate(selectedStory.site_published_date || "");
     setIsCompleted(Boolean(selectedStory.is_completed));
@@ -511,6 +515,7 @@ const AdminContent = () => {
     if (slug.trim()) formData.append("slug", slug.trim());
     formData.append("about", about.trim());
     formData.append("story_type", storyType);
+    formData.append("language", language);
     if (authorId !== "none") {
       formData.append("author", authorId);
     } else if (mode === "edit") {
@@ -632,6 +637,53 @@ const AdminContent = () => {
       toast.error(error instanceof Error ? error.message : "Failed to remove file.");
     } finally {
       setFileActionLoading(null);
+    }
+  };
+
+  const [translationSearchQuery, setTranslationSearchQuery] = useState("");
+  const [debouncedTranslationQuery, setDebouncedTranslationQuery] = useState("");
+  const [translationActionId, setTranslationActionId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedTranslationQuery(translationSearchQuery.trim());
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [translationSearchQuery]);
+
+  const { data: translationSearchResults } = useQuery({
+    queryKey: ["admin-stories-translation-search", debouncedTranslationQuery],
+    queryFn: () => storyApi.getAdminStories(1, debouncedTranslationQuery),
+    enabled: debouncedTranslationQuery.length >= 2,
+  });
+
+  const handleLinkTranslation = async (targetStoryId: number) => {
+    if (!selectedStoryId) return;
+    try {
+      setTranslationActionId(targetStoryId);
+      await storyApi.linkStoryTranslation(selectedStoryId, targetStoryId);
+      setTranslationSearchQuery("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-story", selectedStoryId] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-story"] });
+      toast.success("Linked as a translation.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to link translation.");
+    } finally {
+      setTranslationActionId(null);
+    }
+  };
+
+  const handleUnlinkTranslation = async (siblingId: number) => {
+    try {
+      setTranslationActionId(siblingId);
+      await storyApi.unlinkStoryTranslation(siblingId);
+      await queryClient.invalidateQueries({ queryKey: ["admin-story", selectedStoryId] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-story"] });
+      toast.success("Translation unlinked.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlink translation.");
+    } finally {
+      setTranslationActionId(null);
     }
   };
 
@@ -784,6 +836,17 @@ const AdminContent = () => {
                       <SelectContent>
                         {storyTypes.map((type) => (
                           <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Language</Label>
+                    <Select value={language} onValueChange={setLanguage}>
+                      <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGE_OPTIONS.map((option) => (
+                          <SelectItem key={option.code} value={option.code}>{option.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1344,6 +1407,82 @@ const AdminContent = () => {
                     <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       Uploading EPUB...
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {!showStoryForm && !showChapterModal && selectedStoryId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Translations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {(selectedStory?.translations?.length || 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">No other language editions linked yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedStory!.translations.map((sibling) => (
+                      <div
+                        key={sibling.id}
+                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{sibling.title}</p>
+                          <p className="text-xs text-muted-foreground">{getLanguageLabel(sibling.language)}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setSelectedStoryId(sibling.id)}>
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={translationActionId === sibling.id}
+                            onClick={() => handleUnlinkTranslation(sibling.id)}
+                          >
+                            {translationActionId === sibling.id ? "Removing..." : "Unlink"}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="border-t pt-3">
+                  <Label htmlFor="admin-translation-search">Link another story as a translation</Label>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="admin-translation-search"
+                      placeholder="Search by title..."
+                      className="pl-9"
+                      value={translationSearchQuery}
+                      onChange={(e) => setTranslationSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  {debouncedTranslationQuery.length >= 2 && (
+                    <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
+                      {(translationSearchResults?.results || [])
+                        .filter((story) => story.id !== selectedStoryId)
+                        .map((story) => (
+                          <button
+                            key={story.id}
+                            type="button"
+                            className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                            disabled={translationActionId !== null}
+                            onClick={() => handleLinkTranslation(story.id)}
+                          >
+                            <span className="truncate">{story.title}</span>
+                            <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                              {getLanguageLabel(story.language)}
+                            </span>
+                          </button>
+                        ))}
+                      {(translationSearchResults?.results || []).filter((s) => s.id !== selectedStoryId).length ===
+                        0 && <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>}
                     </div>
                   )}
                 </div>

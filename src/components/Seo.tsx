@@ -4,6 +4,11 @@ const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://worldstories.net")
   .replace(/\/+$/, "");
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
+interface AlternateLanguage {
+  language: string;
+  path: string;
+}
+
 interface SeoProps {
   title: string;
   description: string;
@@ -12,6 +17,7 @@ interface SeoProps {
   type?: "website" | "article" | "book";
   noIndex?: boolean;
   structuredData?: Record<string, unknown>;
+  alternateLanguages?: AlternateLanguage[];
 }
 
 function setMeta(selector: string, attribute: "name" | "property", value: string) {
@@ -32,6 +38,7 @@ export default function Seo({
   type = "website",
   noIndex = false,
   structuredData,
+  alternateLanguages,
 }: SeoProps) {
   useEffect(() => {
     const canonicalUrl = `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
@@ -62,6 +69,16 @@ export default function Seo({
     }
     canonical.href = canonicalUrl;
 
+    document.head.querySelectorAll('link[data-hreflang-alternate="true"]').forEach((el) => el.remove());
+    (alternateLanguages || []).forEach((alt) => {
+      const link = document.createElement("link");
+      link.rel = "alternate";
+      link.hreflang = alt.language;
+      link.href = `${SITE_URL}${alt.path.startsWith("/") ? alt.path : `/${alt.path}`}`;
+      link.setAttribute("data-hreflang-alternate", "true");
+      document.head.appendChild(link);
+    });
+
     const scriptId = "worldstories-structured-data";
     document.getElementById(scriptId)?.remove();
     if (structuredData) {
@@ -74,8 +91,9 @@ export default function Seo({
 
     return () => {
       document.getElementById(scriptId)?.remove();
+      document.head.querySelectorAll('link[data-hreflang-alternate="true"]').forEach((el) => el.remove());
     };
-  }, [description, image, noIndex, path, structuredData, title, type]);
+  }, [description, image, noIndex, path, structuredData, title, type, alternateLanguages]);
 
   return null;
 }

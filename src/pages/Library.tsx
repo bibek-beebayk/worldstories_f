@@ -29,6 +29,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
+import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 
 function getInitialGenreFromUrl(searchParams: URLSearchParams): number[] {
   const genreId = parseInt(searchParams.get("genre") || "", 10);
@@ -39,6 +40,7 @@ const Library = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedGenres, setSelectedGenres] = useState<number[]>(() => getInitialGenreFromUrl(searchParams));
   const [status, setStatus] = useState("all");
+  const [language, setLanguage] = useState("all");
   const [sort, setSort] = useState("popular");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,7 +56,11 @@ const Library = () => {
   }, [selectedGenres, genres]);
 
   const hasActiveFilters =
-    selectedGenreNames.length > 0 || status !== "all" || sort !== "popular" || searchQuery.length > 0;
+    selectedGenreNames.length > 0 ||
+    status !== "all" ||
+    language !== "all" ||
+    sort !== "popular" ||
+    searchQuery.length > 0;
   const isBrowsing = !hasActiveFilters;
 
   // A genre picked from a shelf's "See all" link (or a deep link like /library?genre=4)
@@ -74,7 +80,7 @@ const Library = () => {
     fetchNextPage: fetchNextStoriesPage,
     hasNextPage: hasNextStoriesPage,
     isFetchingNextPage: isFetchingNextStoriesPage,
-  } = useInfiniteStories(selectedGenres, sort, status, searchQuery, !isBrowsing);
+  } = useInfiniteStories(selectedGenres, sort, status, searchQuery, language, !isBrowsing);
 
   const {
     data: shelvesData,
@@ -122,7 +128,7 @@ const Library = () => {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [selectedGenres, sort, status, searchQuery]);
+  }, [selectedGenres, sort, status, language, searchQuery]);
 
   useEffect(() => {
     setTempGenres(selectedGenres);
@@ -130,6 +136,7 @@ const Library = () => {
 
   const clearAllFilters = () => {
     setStatus("all");
+    setLanguage("all");
     setSort("popular");
     setSelectedGenres([]);
     setTempGenres([]);
@@ -250,6 +257,22 @@ const Library = () => {
               </Select>
             </div>
 
+            <div className="min-w-[130px] flex-1 sm:flex-none">
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger type="button" className="h-9 text-xs sm:text-sm">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Languages</SelectItem>
+                  {LANGUAGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.code} value={option.code}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Sheet open={openGenres} onOpenChange={setOpenGenres}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9">
@@ -343,6 +366,14 @@ const Library = () => {
                 <Badge variant="outline" className="gap-1">
                   Status: {status}
                   <button type="button" onClick={() => setStatus("all")}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {language !== "all" && (
+                <Badge variant="outline" className="gap-1">
+                  Language: {getLanguageLabel(language)}
+                  <button type="button" onClick={() => setLanguage("all")}>
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>

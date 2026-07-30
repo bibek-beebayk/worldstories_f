@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useSearchStories } from "@/hooks/useSearchStories";
 import { useSearchParams } from "react-router-dom";
 import Seo from "@/components/Seo";
+import { LANGUAGE_OPTIONS } from "@/lib/languages";
 
 const searchSeo = <Seo title="Search | WorldStories" description="Search stories on WorldStories." path="/search" noIndex />;
 
@@ -12,13 +13,15 @@ const Search = () => {
   const q = (searchParams.get("q") || "").trim();
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
   const sort = (searchParams.get("sort") || "popular").toLowerCase();
+  const language = (searchParams.get("language") || "all").toLowerCase();
 
-  const { data, isLoading, isError } = useSearchStories(q, page, sort);
+  const { data, isLoading, isError } = useSearchStories(q, page, sort, language);
 
-  const setParam = (next: { page?: number; sort?: string; q?: string }) => {
+  const setParam = (next: { page?: number; sort?: string; q?: string; language?: string }) => {
     const params = new URLSearchParams(searchParams);
     if (next.q !== undefined) params.set("q", next.q);
     if (next.sort !== undefined) params.set("sort", next.sort);
+    if (next.language !== undefined) params.set("language", next.language);
     if (next.page !== undefined) params.set("page", String(next.page));
     setSearchParams(params);
   };
@@ -56,18 +59,35 @@ const Search = () => {
               {pagination?.count || 0} result(s) for &quot;{q}&quot;
             </p>
           </div>
-          <div className="w-full md:w-56">
-            <label className="mb-1 block text-sm font-medium">Sort</label>
-            <select
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-              value={sort}
-              onChange={(e) => setParam({ sort: e.target.value, page: 1 })}
-            >
-              <option value="popular">Most Popular</option>
-              <option value="recent">Most Recent</option>
-              <option value="rating">Highest Rated</option>
-              <option value="views">Most Viewed</option>
-            </select>
+          <div className="flex gap-3">
+            <div className="w-full md:w-56">
+              <label className="mb-1 block text-sm font-medium">Sort</label>
+              <select
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={sort}
+                onChange={(e) => setParam({ sort: e.target.value, page: 1 })}
+              >
+                <option value="popular">Most Popular</option>
+                <option value="recent">Most Recent</option>
+                <option value="rating">Highest Rated</option>
+                <option value="views">Most Viewed</option>
+              </select>
+            </div>
+            <div className="w-full md:w-56">
+              <label className="mb-1 block text-sm font-medium">Language</label>
+              <select
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={language}
+                onChange={(e) => setParam({ language: e.target.value, page: 1 })}
+              >
+                <option value="all">All Languages</option>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 

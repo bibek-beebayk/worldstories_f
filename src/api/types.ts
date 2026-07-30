@@ -40,6 +40,7 @@ export interface Story {
   title: string;
   // author: string;
   story_type: string;
+  language: string;
   description: string;
   cover_image: string;
   site_published_date?: string | null;
@@ -82,10 +83,18 @@ export interface Author{
   stories_count: number;
 }
 
+export interface StoryTranslation {
+  id: number;
+  slug: string;
+  language: string;
+  title: string;
+}
+
 export interface StoryDetail extends Story {
   story_type: string;
   about: string;
   original_published_date: string | null;
+  translations: StoryTranslation[];
   author: Author | null;
   submitted_by: StorySubmittedBy | null;
   genres: Genre[];
@@ -258,6 +267,7 @@ export interface Submission {
   about: string;
   content: string;
   story_type: string;
+  language: string;
   genres: number[] | Genre[];
   cover_image: string | null;
   cover_image_file?: string | null;
@@ -278,6 +288,8 @@ export interface AdminStory {
   slug: string;
   about: string | null;
   story_type: string;
+  language: string;
+  translations: StoryTranslation[];
   author: number | null;
   submitted_by: StorySubmittedBy | null;
   original_published_date: string | null;
@@ -336,6 +348,7 @@ export interface AdminSubmission {
   about: string;
   content: string;
   story_type: string;
+  language: string;
   genres: Genre[];
   cover_image: string | null;
   cover_image_url: string | null;
