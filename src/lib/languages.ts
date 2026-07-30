@@ -9,6 +9,7 @@ export const LANGUAGE_OPTIONS: { code: string; label: string }[] = [
   { code: "pt", label: "Portuguese" },
   { code: "it", label: "Italian" },
   { code: "hi", label: "Hindi" },
+  { code: "ne", label: "Nepali" },
   { code: "ja", label: "Japanese" },
   { code: "ko", label: "Korean" },
   { code: "zh", label: "Chinese" },
