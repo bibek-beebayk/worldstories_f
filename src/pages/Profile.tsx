@@ -11,7 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { authApi } from "@/api/auth";
-import { getAccessToken } from "@/api/client";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -53,7 +54,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const isAuthenticated = Boolean(getAccessToken());
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
 
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [activeReaderView, setActiveReaderView] = useState<ReaderView>("reading");
@@ -569,9 +571,9 @@ const Profile = () => {
         <Card className="mx-auto max-w-xl">
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">
-              <Link to="/login" className="text-primary hover:underline">
+              <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
                 Login
-              </Link>{" "}
+              </button>{" "}
               to view and manage your profile.
             </p>
           </CardContent>

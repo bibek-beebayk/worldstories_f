@@ -1,5 +1,6 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
-import { getAccessToken } from "@/api/client";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -170,7 +171,8 @@ const StoryReader = () => {
 
   const { data: chapter, isLoading, isError } = useChapter(story_slug, chapter_slug, "text");
   const { data: story } = useStory(story_slug);
-  const isAuthenticated = Boolean(getAccessToken());
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
@@ -725,9 +727,9 @@ const StoryReader = () => {
             </>
           ) : (
             <div className="mt-3 text-xs text-muted-foreground">
-              <Link to="/login" className="text-primary hover:underline">
+              <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
                 Login
-              </Link>{" "}
+              </button>{" "}
               to Track progress
             </div>
           )}

@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import LoginModal from "@/components/LoginModal";
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Seo from "@/components/Seo";
@@ -30,11 +31,6 @@ const routeSeo: Record<string, { title: string; description: string; noIndex?: b
   "/publish": {
     title: "Submit Your Story | WorldStories",
     description: "Submit your original writing to the WorldStories editorial team.",
-    noIndex: true,
-  },
-  "/login": {
-    title: "Sign In | WorldStories",
-    description: "Sign in to your WorldStories account.",
     noIndex: true,
   },
   "/profile": {
@@ -76,6 +72,7 @@ export default function DefaultLayout() {
       </main>
 
       <Footer />
+      <LoginModal />
     </>
   );
 }

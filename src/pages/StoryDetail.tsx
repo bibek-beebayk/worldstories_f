@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/sonner";
 import { storyApi } from "@/api/story";
-import { getAccessToken } from "@/api/client";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
 import {
@@ -32,13 +33,12 @@ import {
   Twitter,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
 
 
 const StoryDetail = () => {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const { data: story, isLoading, isError } = useStory(slug);
   // const [pendingScroll, setPendingScroll] = useState<"chapters" | "audios" | null>(null);
 
@@ -56,7 +56,8 @@ const StoryDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const queryClient = useQueryClient();
-  const isAuthenticated = Boolean(getAccessToken());
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
 
   const chaptersRef = useRef<HTMLDivElement | null>(null);
   const audiosRef = useRef<HTMLDivElement | null>(null);
@@ -179,7 +180,7 @@ const StoryDetail = () => {
 
     if (!isAuthenticated) {
       setFavoriteError("Please log in to favorite stories.");
-      navigate("/login");
+      openLoginModal();
       return;
     }
 
@@ -462,9 +463,9 @@ const StoryDetail = () => {
                 )}
                 {!isAuthenticated && (
                   <p className="text-sm text-muted-foreground">
-                    <Link to="/login" className="text-primary hover:underline">
+                    <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
                       Login
-                    </Link>{" "}
+                    </button>{" "}
                     to Track progress
                   </p>
                 )}
@@ -643,7 +644,7 @@ const StoryDetail = () => {
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          <Link to="/login" className="text-primary hover:underline">Log in</Link> to rate and review this story.
+                          <button type="button" onClick={openLoginModal} className="text-primary hover:underline">Log in</button> to rate and review this story.
                         </p>
                       )}
 

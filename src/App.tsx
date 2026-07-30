@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { getAccessToken } from "@/api/client";
 import { authApi } from "@/api/auth";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import OpenLoginModalRedirect from "@/components/OpenLoginModalRedirect";
+import { AuthModalProvider } from "@/context/AuthModalContext";
 import { lazy, Suspense } from "react";
 
 import DefaultLayout from "@/layouts/DefaultLayout";
@@ -21,7 +23,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const StoryDetail = lazy(() => import("./pages/StoryDetail"));
 const StoryReader = lazy(() => import("./pages/StoryReader"));
 const AudiobookPlayer = lazy(() => import("./pages/AudiobookPlayer"));
-const Login = lazy(() => import("./pages/Login"));
 const Search = lazy(() => import("./pages/Search"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Contest = lazy(() => import("./pages/Contest"));
@@ -77,6 +78,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter>
+        <AuthModalProvider>
         <Toaster />
         <Sonner />
         <Suspense fallback={<FullScreenLoader />}>
@@ -84,8 +86,8 @@ const App = () => (
           {/* Parent route that applies DefaultLayout to its children */}
           <Route path="/" element={<DefaultLayout />}>
             <Route index element={<Index />} />
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Navigate to="/login" replace />} />
+            <Route path="login" element={<OpenLoginModalRedirect />} />
+            <Route path="register" element={<OpenLoginModalRedirect />} />
             <Route path="library" element={<Library />} />
             <Route path="trending" element={<Trending />} />
             <Route path="discover" element={<Discover />} />
@@ -119,12 +121,9 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Route>
-
-          {/* Example: if you want a route WITHOUT the default layout,
-              add it OUTSIDE the parent route. */}
-          {/* <Route path="/login" element={<Login />} /> */}
           </Routes>
         </Suspense>
+        </AuthModalProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

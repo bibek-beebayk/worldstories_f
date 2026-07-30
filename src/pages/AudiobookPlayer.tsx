@@ -19,7 +19,8 @@ import FullScreenLoader from "@/components/FullScreenLoader";
 import AdSpace from "@/components/AdSpace";
 import Seo from "@/components/Seo";
 import { useStory } from "@/hooks/useStory";
-import { getAccessToken } from "@/api/client";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
 
 const AudioPlayerPage = () => {
@@ -38,7 +39,8 @@ const AudioPlayerPage = () => {
     Record<string, { progress: number; position_seconds: number; duration_seconds: number }>
   >({});
 
-  const isAuthenticated = Boolean(getAccessToken());
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
   const { data: audioProgress } = useQuery({
     queryKey: ["audio-progress", story_slug],
     queryFn: () => storyApi.getAudioProgress(story_slug!),
@@ -243,9 +245,13 @@ const AudioPlayerPage = () => {
                       </div>
                     ) : (
                       <p className="text-sm text-slate-300">
-                        <Link to="/login" className="text-cyan-300 underline-offset-2 hover:underline">
+                        <button
+                          type="button"
+                          onClick={openLoginModal}
+                          className="text-cyan-300 underline-offset-2 hover:underline"
+                        >
                           Login
-                        </Link>{" "}
+                        </button>{" "}
                         to track audiobook progress
                       </p>
                     )}
