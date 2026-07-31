@@ -49,6 +49,19 @@ const StoryDetail = () => {
   // debugger;
 
   const [activeTab, setActiveTab] = useState("chapters");
+
+  // "chapters" is only a valid default if the story actually has chapters —
+  // once the story loads, fall back to the next-best tab that has content.
+  // Only adjusts while still on the initial default, so a tab the user has
+  // already clicked into themselves is never overridden.
+  useEffect(() => {
+    if (!story) return;
+    if (story.chapters.length > 0) return;
+    setActiveTab((current) => {
+      if (current !== "chapters") return current;
+      return story.audios.length > 0 ? "audios" : "about";
+    });
+  }, [story]);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewError, setReviewError] = useState("");
@@ -88,6 +101,20 @@ const StoryDetail = () => {
     queryKey: ["audio-progress", slug],
     queryFn: () => storyApi.getAudioProgress(slug!),
     enabled: !!slug && !!isAuthenticated,
+    retry: false,
+  });
+
+  const { data: epubProgress } = useQuery({
+    queryKey: ["file-reading-progress", slug, "epub"],
+    queryFn: () => storyApi.getFileReadingProgress(slug!, "epub"),
+    enabled: !!slug && !!isAuthenticated && !!story?.epub_file,
+    retry: false,
+  });
+
+  const { data: pdfProgress } = useQuery({
+    queryKey: ["file-reading-progress", slug, "pdf"],
+    queryFn: () => storyApi.getFileReadingProgress(slug!, "pdf"),
+    enabled: !!slug && !!isAuthenticated && !!story?.pdf_file,
     retry: false,
   });
 
@@ -218,7 +245,11 @@ const StoryDetail = () => {
   const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
-  const hasStoryFiles = Boolean(story.pdf_file || story.epub_file);
+  // Story Files (secondary format links) only matter when chapters aren't
+  // already the primary reading experience — and within it, only the
+  // higher-priority existing format shows, matching primaryReadHref's own
+  // chapters → epub → pdf priority rather than offering both at once.
+  const hasStoryFiles = story.chapters.length === 0 && Boolean(story.pdf_file || story.epub_file);
   // Best available reading format, in priority order: HTML chapters (the
   // default reading experience) → EPUB → PDF.
   const primaryReadHref =
@@ -229,6 +260,12 @@ const StoryDetail = () => {
       : story.pdf_file
       ? `/story/${story.slug}/pdf`
       : null;
+  // Whichever format primaryReadHref actually resolved to, when it's not
+  // chapters (hasSavedChapter already covers that case separately) — used to
+  // decide between "Start Reading" and "Continue Reading" for the EPUB/PDF
+  // fallback formats too, now that they track real per-account progress.
+  const primaryFileProgress = story.chapters.length > 0 ? null : story.epub_file ? epubProgress : pdfProgress;
+  const hasSavedPrimaryFileProgress = (primaryFileProgress?.progress || 0) > 0;
   const seoDescription = (story.about || `Read ${story.title} on WorldStories.`)
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
@@ -411,7 +448,9 @@ const StoryDetail = () => {
                           ? hasSavedChapter
                             ? "Continue Reading"
                             : "Start Reading"
-                          : "Read Now"}
+                          : hasSavedPrimaryFileProgress
+                          ? "Continue Reading"
+                          : "Start Reading"}
                       </Button>
                     </Link>
                   )}
@@ -464,22 +503,21 @@ const StoryDetail = () => {
                       Story Files
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {story.pdf_file && (
-                        <Link to={`/story/${story.slug}/pdf`}>
-                          <Button size="sm" variant="outline">
-                            <Download className="mr-2 h-4 w-4" />
-                            View PDF
-                          </Button>
-                        </Link>
-                      )}
-                      {story.epub_file && (
+                      {story.epub_file ? (
                         <Link to={`/story/${story.slug}/epub`}>
                           <Button size="sm" variant="outline">
                             <Download className="mr-2 h-4 w-4" />
                             View EPUB
                           </Button>
                         </Link>
-                      )}
+                      ) : story.pdf_file ? (
+                        <Link to={`/story/${story.slug}/pdf`}>
+                          <Button size="sm" variant="outline">
+                            <Download className="mr-2 h-4 w-4" />
+                            View PDF
+                          </Button>
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
                 )}
@@ -518,10 +556,8 @@ const StoryDetail = () => {
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
-                <TabsTrigger value="chapters">Chapters</TabsTrigger>
-                {/* {story.audios.length > 0 && ( */}
-                <TabsTrigger value="audios">Audios</TabsTrigger>
-                {/* )} */}
+                {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
+                {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
 
@@ -603,7 +639,7 @@ const StoryDetail = () => {
                   <CardContent className="p-6 space-y-4">
                     <div>
                       <h3 className="font-semibold mb-2">Story Description</h3>
-                      <p className="text-muted-foreground">{story.description}</p>
+                      <p className="text-muted-foreground">{story.about || "No description available."}</p>
                     </div>
                     <Separator />
                     <div>

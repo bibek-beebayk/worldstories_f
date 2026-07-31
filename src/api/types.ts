@@ -161,6 +161,15 @@ export interface AudioReadingProgress {
   updated_at: string;
 }
 
+export type FileReadingFormat = "epub" | "pdf";
+
+export interface FileReadingProgress {
+  format: FileReadingFormat;
+  progress: number;
+  position: string | null;
+  updated_at: string;
+}
+
 export interface FavoriteStatusResponse {
   is_favorite: boolean;
   favorites_count: number;

@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { API_BASE_URL } from "@/api/client";
+import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -84,12 +86,14 @@ const EpubReader = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
   const { data: story, isLoading, isError } = useStory(slug || "");
+  const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<HTMLDivElement | null>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const lastCfiRef = useRef<string | null>(null);
   const pageTurnCountRef = useRef(0);
+  const saveProgressTimerRef = useRef<number | null>(null);
 
   const [toc, setToc] = useState<NavItem[]>([]);
   const [isTocOpen, setIsTocOpen] = useState(false);
@@ -108,6 +112,22 @@ const EpubReader = () => {
     if (!story?.slug) return "";
     return `epub-reader-progress-${story.slug}`;
   }, [story?.slug]);
+
+  // localStorage remains the source of truth for anonymous readers (and as an
+  // instant local fallback for logged-in ones), but logged-in readers also get
+  // their position synced to their account via the API — mirrors the same
+  // debounced-save pattern StoryReader.tsx uses for chapter progress.
+  const queueSaveFileProgress = (cfi: string, progressFraction: number) => {
+    if (!isAuthenticated || !story?.slug) return;
+    if (saveProgressTimerRef.current) {
+      window.clearTimeout(saveProgressTimerRef.current);
+    }
+    saveProgressTimerRef.current = window.setTimeout(() => {
+      storyApi
+        .saveFileReadingProgress(story.slug, "epub", Math.min(1, Math.max(0, progressFraction)), cfi)
+        .catch(() => {});
+    }, 400);
+  };
 
   // epub.js paginates by slicing content into CSS columns whose height matches
   // the container's pixel height exactly. If that height isn't a whole multiple
@@ -229,10 +249,27 @@ const EpubReader = () => {
             const percentage = book.locations.percentageFromCfi(cfi);
             setProgressPercent(Math.round(percentage * 100));
             setCurrentLocation(book.locations.locationFromCfi(cfi));
+            queueSaveFileProgress(cfi, percentage);
           }
         });
 
-        const savedCfi = localStorage.getItem(storageKey) || undefined;
+        // A logged-in reader's account progress takes priority over
+        // localStorage (which only reflects this one browser/device) — but
+        // localStorage is still the fallback for anonymous readers, or if the
+        // account fetch fails (offline, no saved progress yet, etc).
+        let savedCfi = localStorage.getItem(storageKey) || undefined;
+        if (isAuthenticated) {
+          try {
+            const remoteProgress = await storyApi.getFileReadingProgress(story.slug, "epub");
+            if (remoteProgress.position) {
+              savedCfi = remoteProgress.position;
+            }
+          } catch {
+            // No saved progress yet (404) or request failed — localStorage
+            // fallback above already covers this.
+          }
+        }
+        if (!isMounted) return;
         await rendition.display(savedCfi);
         if (!isMounted) return;
         requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight(savedCfi)));

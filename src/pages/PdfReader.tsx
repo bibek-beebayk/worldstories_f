@@ -1,7 +1,9 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Button } from "@/components/ui/button";
 import { API_BASE_URL } from "@/api/client";
+import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { ArrowLeft, Loader2, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -15,8 +17,10 @@ const PdfReader = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
   const { data: story, isLoading, isError } = useStory(slug || "");
+  const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const saveProgressTimerRef = useRef<number | null>(null);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(0);
@@ -46,7 +50,26 @@ const PdfReader = () => {
         if (!isMounted) return;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
-        const savedPage = Number(localStorage.getItem(storageKey) || "1");
+
+        // A logged-in reader's account progress takes priority over
+        // localStorage (which only reflects this one browser/device) — but
+        // localStorage is still the fallback for anonymous readers, or if the
+        // account fetch fails (offline, no saved progress yet, etc).
+        let savedPageRaw = localStorage.getItem(storageKey);
+        if (isAuthenticated) {
+          try {
+            const remoteProgress = await storyApi.getFileReadingProgress(story.slug, "pdf");
+            if (remoteProgress.position) {
+              savedPageRaw = remoteProgress.position;
+            }
+          } catch {
+            // No saved progress yet (404) or request failed — localStorage
+            // fallback above already covers this.
+          }
+        }
+        if (!isMounted) return;
+
+        const savedPage = Number(savedPageRaw || "1");
         const safePage = Number.isFinite(savedPage)
           ? Math.max(1, Math.min(savedPage, doc.numPages))
           : 1;
@@ -65,7 +88,7 @@ const PdfReader = () => {
     return () => {
       isMounted = false;
     };
-  }, [story?.pdf_file, storageKey]);
+  }, [story?.pdf_file, storageKey, isAuthenticated]);
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
@@ -108,7 +131,19 @@ const PdfReader = () => {
   useEffect(() => {
     if (!storageKey || !pageNumber) return;
     localStorage.setItem(storageKey, String(pageNumber));
-  }, [storageKey, pageNumber]);
+
+    // localStorage above covers anonymous readers instantly; logged-in
+    // readers additionally get their position synced to their account,
+    // debounced the same way StoryReader.tsx debounces chapter progress.
+    if (!isAuthenticated || !story?.slug || !numPages) return;
+    if (saveProgressTimerRef.current) {
+      window.clearTimeout(saveProgressTimerRef.current);
+    }
+    saveProgressTimerRef.current = window.setTimeout(() => {
+      const fraction = Math.min(1, Math.max(0, pageNumber / numPages));
+      storyApi.saveFileReadingProgress(story.slug, "pdf", fraction, String(pageNumber)).catch(() => {});
+    }, 400);
+  }, [storageKey, pageNumber, isAuthenticated, story?.slug, numPages]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

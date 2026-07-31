@@ -12,6 +12,8 @@ import {
   Review,
   ReadingProgress,
   AudioReadingProgress,
+  FileReadingProgress,
+  FileReadingFormat,
   FavoriteStatusResponse,
   PaginatedResponse,
   Submission,
@@ -110,6 +112,18 @@ export const storyApi = {
         position_seconds,
         duration_seconds,
       }),
+    }),
+  getFileReadingProgress: (story_slug: string, format: FileReadingFormat) =>
+    apiClient<FileReadingProgress>(`/file-reading-progress/${story_slug}/${format}/`),
+  saveFileReadingProgress: (
+    story_slug: string,
+    format: FileReadingFormat,
+    progress: number,
+    position: string
+  ) =>
+    apiClient<FileReadingProgress>(`/file-reading-progress/${story_slug}/${format}/`, {
+      method: "PUT",
+      body: JSON.stringify({ progress, position }),
     }),
   addFavorite: (slug: string) =>
     apiClient<FavoriteStatusResponse>(`/stories/${slug}/favorite/`, {
