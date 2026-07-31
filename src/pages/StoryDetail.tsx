@@ -21,6 +21,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
 import {
   BookMarked,
+  CheckCircle2,
   Download,
   Eye,
   Facebook,
@@ -529,7 +530,10 @@ const StoryDetail = () => {
               <TabsContent value="chapters" className="mt-6" ref={chaptersRef}>
                 <Card >
                   <CardContent className="p-0">
-                    {story.chapters.length > 0 ? <>{story?.chapters?.map((chapter, index) => (
+                    {story.chapters.length > 0 ? <>{story?.chapters?.map((chapter, index) => {
+                      const chapterProgress = chapterProgressMap[chapter.slug] || 0;
+                      const isChapterCompleted = chapterProgress >= 1;
+                      return (
                       <Link to={`/read/${slug}/${chapter.slug}`} key={index}>
                         <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
                           <div className="flex items-center gap-4">
@@ -542,17 +546,25 @@ const StoryDetail = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Eye className="h-3 w-3" />
                             {isAuthenticated && (
-                              <span className="ml-2">
-                                {Math.round((chapterProgressMap[chapter.slug] || 0) * 100)}%
-                              </span>
+                              isChapterCompleted ? (
+                                <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Completed
+                                </span>
+                              ) : (
+                                <>
+                                  <Eye className="h-3 w-3" />
+                                  <span className="ml-2">{Math.round(chapterProgress * 100)}%</span>
+                                </>
+                              )
                             )}
                           </div>
                         </div>
                         {index < story.chapters.length - 1 && <Separator />}
                       </Link>
-                    ))}</> : <p className="p-4 text-muted-foreground">No chapters available.</p>}
+                      );
+                    })}</> : <p className="p-4 text-muted-foreground">No chapters available.</p>}
 
                   </CardContent>
                 </Card>
