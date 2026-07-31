@@ -5,6 +5,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Seo from "@/components/Seo";
+import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 
 const routeSeo: Record<string, { title: string; description: string; noIndex?: boolean }> = {
   "/": {
@@ -43,6 +44,7 @@ const routeSeo: Record<string, { title: string; description: string; noIndex?: b
 
 export default function DefaultLayout() {
   const location = useLocation();
+  const { isImmersiveReaderActive } = useImmersiveReader();
   const isPrivateUtilityRoute =
     location.pathname.startsWith("/read/") ||
     location.pathname.startsWith("/listen/") ||
@@ -53,8 +55,12 @@ export default function DefaultLayout() {
   // reading experience with their own internal header/controls — their height
   // math (calc(100vh-...)) is tuned assuming they own the whole viewport, so
   // the site's own nav header and footer would otherwise eat into that budget
-  // and push the reader's bottom bar off-screen.
-  const isImmersiveReaderRoute = location.pathname.endsWith("/pdf") || location.pathname.endsWith("/epub");
+  // and push the reader's bottom bar off-screen. The HTML chapter reader
+  // (StoryReader) isn't its own route — it toggles the same distraction-free
+  // state in place via isImmersiveReaderActive (set through
+  // ImmersiveReaderContext), rather than always hiding chrome for /read/.
+  const isImmersiveReaderRoute =
+    location.pathname.endsWith("/pdf") || location.pathname.endsWith("/epub") || isImmersiveReaderActive;
   const metadata = routeSeo[location.pathname] || {
     title: "WorldStories | Stories from Around the World",
     description: "Read and discover diverse stories from writers around the world.",
@@ -75,21 +81,21 @@ export default function DefaultLayout() {
       />
       {!isImmersiveReaderRoute && <Header />}
 
-      {isImmersiveReaderRoute ? (
-        <main>
+      {/* PullToRefresh always wraps <Outlet/> here (just internally disabled
+          for immersive routes/modes) rather than being conditionally present —
+          swapping which wrapper elements exist around <Outlet/> would change
+          its position in the tree and make React remount whatever route is
+          currently rendered (StoryReader included), wiping its in-place
+          "reader mode" state right as it turns on. Disabled because the
+          PDF/EPUB readers and the HTML reader's own fullscreen mode scroll
+          their own internal container rather than the window, and already
+          have their own touch handling (page-turn swipes / pinch-zoom), which
+          a window-level pull gesture would otherwise fight with. */}
+      <PullToRefresh disabled={isImmersiveReaderRoute}>
+        <main className={isImmersiveReaderRoute ? "" : "min-h-[calc(100vh-200px)]"}>
           <Outlet /> {/* child routes render here */}
         </main>
-      ) : (
-        // Excluded for the PDF/EPUB readers — they scroll their own internal
-        // container rather than the window, and already have their own touch
-        // handling (page-turn swipes), which a window-level pull gesture
-        // would otherwise fight with.
-        <PullToRefresh>
-          <main className="min-h-[calc(100vh-200px)]">
-            <Outlet /> {/* child routes render here */}
-          </main>
-        </PullToRefresh>
-      )}
+      </PullToRefresh>
 
       {!isImmersiveReaderRoute && <Footer />}
       <LoginModal />

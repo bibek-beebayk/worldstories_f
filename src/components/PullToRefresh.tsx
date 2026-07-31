@@ -15,7 +15,7 @@ const isStandalonePwa = () => {
   return window.matchMedia("(display-mode: standalone)").matches || iosStandalone === true;
 };
 
-const PullToRefresh = ({ children }: { children: ReactNode }) => {
+const PullToRefresh = ({ children, disabled = false }: { children: ReactNode; disabled?: boolean }) => {
   const [pullDistance, setPullDistance] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isReleased, setIsReleased] = useState(false);
@@ -24,7 +24,7 @@ const PullToRefresh = ({ children }: { children: ReactNode }) => {
   const isPullingRef = useRef(false);
 
   useEffect(() => {
-    if (!isStandalonePwa()) return;
+    if (disabled || !isStandalonePwa()) return;
 
     const reset = () => {
       isPullingRef.current = false;
@@ -86,7 +86,7 @@ const PullToRefresh = ({ children }: { children: ReactNode }) => {
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
     };
-  }, [isReleased]);
+  }, [isReleased, disabled]);
 
   const progress = Math.min(1, pullDistance / PULL_THRESHOLD);
 

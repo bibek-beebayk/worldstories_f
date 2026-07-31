@@ -8,6 +8,7 @@ import { authApi } from "@/api/auth";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import OpenLoginModalRedirect from "@/components/OpenLoginModalRedirect";
 import { AuthModalProvider } from "@/context/AuthModalContext";
+import { ImmersiveReaderProvider } from "@/context/ImmersiveReaderContext";
 import { lazy, Suspense } from "react";
 
 import DefaultLayout from "@/layouts/DefaultLayout";
@@ -80,6 +81,7 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthModalProvider>
+        <ImmersiveReaderProvider>
         <Toaster />
         <Sonner />
         <Suspense fallback={<FullScreenLoader />}>
@@ -125,6 +127,7 @@ const App = () => (
           </Route>
           </Routes>
         </Suspense>
+        </ImmersiveReaderProvider>
         </AuthModalProvider>
       </BrowserRouter>
     </TooltipProvider>

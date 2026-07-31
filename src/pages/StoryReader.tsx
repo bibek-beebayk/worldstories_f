@@ -1,6 +1,7 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { storyApi } from "@/api/story";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -200,6 +201,31 @@ const StoryReader = () => {
   const [newThemeIsDark, setNewThemeIsDark] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [isReaderMode, setIsReaderMode] = useState(false);
+  const [isReaderChromeVisible, setIsReaderChromeVisible] = useState(true);
+  const { setIsImmersiveReaderActive } = useImmersiveReader();
+
+  // Tells DefaultLayout (an ancestor, outside this component) to hide the
+  // site header/footer while reader mode is active — needed because our
+  // pseudo-fullscreen fallback (for platforms like iOS Safari that don't
+  // support the Fullscreen API on arbitrary elements) can't rely on the
+  // browser hiding sibling elements the way real fullscreen does. The
+  // cleanup resets this on every change and on unmount, so navigating away
+  // mid-reader-mode never leaves the header/footer stuck hidden.
+  useEffect(() => {
+    setIsImmersiveReaderActive(isReaderMode);
+    return () => setIsImmersiveReaderActive(false);
+  }, [isReaderMode, setIsImmersiveReaderActive]);
+
+  // Reader mode always starts with the floating settings button and progress
+  // indicator visible; a single tap on the reading area then toggles them.
+  useEffect(() => {
+    if (isReaderMode) setIsReaderChromeVisible(true);
+  }, [isReaderMode]);
+
+  const toggleReaderChrome = () => {
+    if (!isReaderMode) return;
+    setIsReaderChromeVisible((value) => !value);
+  };
   const [settingsButtonPos, setSettingsButtonPos] = useState<{ x: number; y: number }>(() => {
     if (typeof window === "undefined") return { x: 8, y: 80 };
     try {
@@ -218,6 +244,19 @@ const StoryReader = () => {
   const [isDraggingSettingsButton, setIsDraggingSettingsButton] = useState(false);
   const [liveProgress, setLiveProgress] = useState(0);
   const [pinchScale, setPinchScale] = useState(1);
+
+  // liveProgress alone is only how far through the *current* chapter the
+  // reader is. Overall book progress treats each chapter as an equal-sized
+  // slice of the whole story (chapters already completed, plus how far into
+  // the current one) — an approximation since chapters vary in length, but
+  // the same one most reading apps use since real per-chapter length isn't
+  // known up front.
+  const overallProgress = useMemo(() => {
+    const totalChapters = story?.chapter_count ?? 0;
+    if (!totalChapters || !chapter) return liveProgress;
+    const completedChapters = Math.max(0, chapter.order - 1);
+    return Math.min(1, Math.max(0, (completedChapters + liveProgress) / totalChapters));
+  }, [story?.chapter_count, chapter, liveProgress]);
 
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const readerContainerRef = useRef<HTMLDivElement>(null);
@@ -721,22 +760,13 @@ const StoryReader = () => {
           </div>
 
           {isAuthenticated ? (
-            <>
-              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${Math.round(liveProgress * 100)}%` }}
-                />
-              </div>
-
-              <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  Chapter {chapter.order}
-                  {story?.chapter_count ? ` of ${story.chapter_count}` : ""}
-                </span>
-                <span>{Math.round(liveProgress * 100)}% complete</span>
-              </div>
-            </>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span>
+                Chapter {chapter.order}
+                {story?.chapter_count ? ` of ${story.chapter_count}` : ""} — {Math.round(liveProgress * 100)}%
+              </span>
+              {story?.chapter_count ? <span>Overall: {Math.round(overallProgress * 100)}%</span> : null}
+            </div>
           ) : (
             <div className="mt-3 text-xs text-muted-foreground">
               <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
@@ -753,6 +783,7 @@ const StoryReader = () => {
           <div
             className={`${activeTheme.cardClass} min-h-screen rounded-none border-0 p-0`}
             style={activeTheme.cardStyle}
+            onClick={toggleReaderChrome}
           >
             <div
               className="mx-auto w-full px-4 py-3 md:px-8 md:py-5 lg:max-w-4xl lg:px-10 lg:py-6"
@@ -821,17 +852,14 @@ const StoryReader = () => {
         <Separator className="my-8" />
       </main>
 
-      {isReaderMode && isAuthenticated && (
-        <div className="pointer-events-none fixed bottom-3 left-1/2 z-40 w-[min(86vw,460px)] -translate-x-1/2">
-          <div className="relative h-5 w-full overflow-hidden rounded-full border bg-background/80 shadow-sm backdrop-blur">
-            <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${Math.round(liveProgress * 100)}%` }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-primary-foreground">
-              {Math.round(liveProgress * 100)}%
-            </div>
-          </div>
+      {isReaderMode && isAuthenticated && isReaderChromeVisible && (
+        // Top-left, opposite the draggable settings button (which defaults to
+        // top-right) — small text only, no bar, so it sits in the margin
+        // beside the reading column instead of covering any of it.
+        <div className="pointer-events-none fixed left-3 top-3 z-40 rounded-full border bg-background/70 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+          Ch {chapter.order}
+          {story?.chapter_count ? `/${story.chapter_count}` : ""} · {Math.round(liveProgress * 100)}%
+          {story?.chapter_count ? ` · Overall ${Math.round(overallProgress * 100)}%` : ""}
         </div>
       )}
 
@@ -1024,36 +1052,41 @@ const StoryReader = () => {
         </div>
       )}
 
-      <div
-        className="fixed z-50 flex flex-col items-end gap-2"
-        style={{ left: `${settingsButtonPos.x}px`, top: `${settingsButtonPos.y}px` }}
-      >
-        <Button
-          size="icon"
-          className="h-10 w-10 rounded-full shadow-md opacity-30 hover:opacity-100"
-          onPointerDown={(event) => {
-            if (event.pointerType === "mouse" && event.button !== 0) return;
-            dragDistanceRef.current = 0;
-            suppressToggleRef.current = false;
-            dragOffsetRef.current = {
-              x: event.clientX - settingsButtonPos.x,
-              y: event.clientY - settingsButtonPos.y,
-            };
-            setIsDraggingSettingsButton(true);
-          }}
-          onClick={() => {
-            if (suppressToggleRef.current) {
-              suppressToggleRef.current = false;
-              return;
-            }
-            setShowControls((value) => !value);
-          }}
-          aria-label={showControls ? "Collapse reader controls" : "Expand reader controls"}
-          style={{ touchAction: "none", cursor: isDraggingSettingsButton ? "grabbing" : "grab" }}
+      {/* In reader mode this follows the same tap-to-hide toggle as the
+          progress indicator — but stays visible whenever the settings modal
+          itself is open, since it doubles as that modal's close button. */}
+      {(!isReaderMode || isReaderChromeVisible || showControls) && (
+        <div
+          className="fixed z-50 flex flex-col items-end gap-2"
+          style={{ left: `${settingsButtonPos.x}px`, top: `${settingsButtonPos.y}px` }}
         >
-          {showControls ? <X className="h-5 w-5" /> : <SlidersHorizontal className="h-5 w-5" />}
-        </Button>
-      </div>
+          <Button
+            size="icon"
+            className="h-10 w-10 rounded-full shadow-md opacity-30 hover:opacity-100"
+            onPointerDown={(event) => {
+              if (event.pointerType === "mouse" && event.button !== 0) return;
+              dragDistanceRef.current = 0;
+              suppressToggleRef.current = false;
+              dragOffsetRef.current = {
+                x: event.clientX - settingsButtonPos.x,
+                y: event.clientY - settingsButtonPos.y,
+              };
+              setIsDraggingSettingsButton(true);
+            }}
+            onClick={() => {
+              if (suppressToggleRef.current) {
+                suppressToggleRef.current = false;
+                return;
+              }
+              setShowControls((value) => !value);
+            }}
+            aria-label={showControls ? "Collapse reader controls" : "Expand reader controls"}
+            style={{ touchAction: "none", cursor: isDraggingSettingsButton ? "grabbing" : "grab" }}
+          >
+            {showControls ? <X className="h-5 w-5" /> : <SlidersHorizontal className="h-5 w-5" />}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
