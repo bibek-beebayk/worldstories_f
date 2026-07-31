@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { clearTokens } from "@/api/client";
 import { useSearchStories } from "@/hooks/useSearchStories";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
 import { useAuthModal } from "@/context/AuthModalContext";
 import {
   Sheet,
@@ -29,6 +30,7 @@ const Header = () => {
   const [mobileQuery, setMobileQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const isScrolled = useIsHeaderScrolled();
   const blurTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -78,12 +80,32 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full">
+      {/* Background/border/rounding/margin live on this inner wrapper, not the
+          <header> itself — the header stays a plain, unconstrained w-full
+          block so this wrapper's own margin can inset it from the edges
+          without the two fighting (an explicit width:100% *plus* margin on
+          the same element overflows the viewport instead of insetting). */}
+      <div
+        className={`mx-auto border-border backdrop-blur transition-all duration-300 ease-in-out ${
+          isScrolled
+            ? "mx-2 mt-2 rounded-2xl border bg-background/70 shadow-md sm:mx-4 supports-[backdrop-filter]:bg-background/45"
+            : "mx-0 mt-0 rounded-none border-b bg-background/95 shadow-none supports-[backdrop-filter]:bg-background/60"
+        }`}
+      >
+        <div
+          className={`container flex items-center justify-between px-4 transition-[height] duration-300 ease-in-out ${
+            isScrolled ? "h-12" : "h-16"
+          }`}
+        >
         {/* Logo */}
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-20 w-20 items-center justify-center rounded-md">
+            <div
+              className={`flex items-center justify-center rounded-md transition-[height,width] duration-300 ease-in-out ${
+                isScrolled ? "h-10 w-10" : "h-20 w-20"
+              }`}
+            >
               {/* <span className="text-lg font-bold text-primary-foreground">W</span> */}
               <img src="/worldstories-logo.png" alt="" />
             </div>
@@ -311,6 +333,7 @@ const Header = () => {
             </SheetContent>
           </Sheet>
         </div>
+      </div>
       </div>
 
       {showLogoutModal && (

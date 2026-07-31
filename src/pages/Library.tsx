@@ -14,6 +14,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { useGenres } from "@/hooks/useGenres";
+import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
+import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
 import { useInfiniteLibraryShelves } from "@/hooks/useInfiniteLibraryShelves";
 import { formatViews } from "@/lib/utils";
@@ -36,7 +38,14 @@ function getInitialGenreFromUrl(searchParams: URLSearchParams): number[] {
   return Number.isNaN(genreId) ? [] : [genreId];
 }
 
+// Small deliberate breathing room between the header's live bottom edge and
+// the filters bar below it — the bar sits at exactly headerBottom + this,
+// not a separately-guessed offset.
+const FILTERS_BAR_GAP = 6;
+
 const Library = () => {
+  const isHeaderScrolled = useIsHeaderScrolled();
+  const headerBottom = useHeaderHeight();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedGenres, setSelectedGenres] = useState<number[]>(() => getInitialGenreFromUrl(searchParams));
   const [status, setStatus] = useState("all");
@@ -199,10 +208,28 @@ const Library = () => {
         </div>
       </div>
 
-      <div className="sticky top-16 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container mx-auto px-3 py-3 sm:px-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="inline-flex shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+      {/* top tracks the header's own live bottom edge (measured, not
+          guessed) plus a small fixed gap, so the two stay flush at every
+          point of the header's shrink animation instead of drifting. */}
+      <div
+        className="sticky z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        style={{ top: headerBottom > 0 ? headerBottom + FILTERS_BAR_GAP : undefined }}
+      >
+        <div
+          className={`container mx-auto px-3 transition-[padding] duration-300 ease-in-out sm:px-4 ${
+            isHeaderScrolled ? "py-1" : "py-3"
+          }`}
+        >
+          <div
+            className={`flex flex-wrap items-center transition-[gap] duration-300 ease-in-out ${
+              isHeaderScrolled ? "gap-1.5" : "gap-2 sm:gap-3"
+            }`}
+          >
+            <div
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 text-xs transition-all duration-300 ease-in-out sm:gap-2 sm:text-sm ${
+                isHeaderScrolled ? "px-2 py-1" : "px-2.5 py-2 sm:px-3"
+              }`}
+            >
               <LibraryIcon className="h-4 w-4 text-primary" />
               <span className="font-semibold">
                 {formatViews(isBrowsing ? totalLibraryStoriesCount : totalStoriesCount)}
@@ -223,7 +250,9 @@ const Library = () => {
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
                   placeholder="Search..."
-                  className="h-9 pl-8 text-xs sm:text-sm"
+                  className={`pl-8 text-xs transition-[height] duration-300 ease-in-out sm:text-sm ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
                 />
               </div>
             </form>
@@ -235,7 +264,12 @@ const Library = () => {
                 into a single "Filters" button opening one sheet instead. */}
             <div className="hidden min-w-[140px] flex-1 sm:block sm:flex-none">
               <Select value={sort} onValueChange={setSort}>
-                <SelectTrigger type="button" className="h-9 text-xs sm:text-sm">
+                <SelectTrigger
+                  type="button"
+                  className={`text-xs transition-[height] duration-300 ease-in-out sm:text-sm ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
+                >
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
@@ -249,7 +283,12 @@ const Library = () => {
 
             <div className="hidden min-w-[130px] flex-1 sm:block sm:flex-none">
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger type="button" className="h-9 text-xs sm:text-sm">
+                <SelectTrigger
+                  type="button"
+                  className={`text-xs transition-[height] duration-300 ease-in-out sm:text-sm ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
+                >
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -262,7 +301,12 @@ const Library = () => {
 
             <div className="hidden min-w-[130px] flex-1 sm:block sm:flex-none">
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger type="button" className="h-9 text-xs sm:text-sm">
+                <SelectTrigger
+                  type="button"
+                  className={`text-xs transition-[height] duration-300 ease-in-out sm:text-sm ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
+                >
                   <SelectValue placeholder="Language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -278,7 +322,13 @@ const Library = () => {
 
             <Sheet open={openGenres} onOpenChange={setOpenGenres}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="hidden h-9 sm:inline-flex">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`hidden transition-[height] duration-300 ease-in-out sm:inline-flex ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
+                >
                   <SlidersHorizontal className="mr-2 h-4 w-4" />
                   Genres
                 </Button>
@@ -343,7 +393,13 @@ const Library = () => {
                 into one sheet instead of each taking their own wrapped row. */}
             <Sheet open={openMobileFilters} onOpenChange={setOpenMobileFilters}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 shrink-0 px-2.5 sm:hidden">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`shrink-0 px-2.5 transition-[height] duration-300 ease-in-out sm:hidden ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
+                >
                   <SlidersHorizontal className="mr-2 h-4 w-4" />
                   Filters
                   {hasActiveFilters && (
