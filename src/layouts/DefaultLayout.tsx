@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoginModal from "@/components/LoginModal";
+import PullToRefresh from "@/components/PullToRefresh";
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Seo from "@/components/Seo";
@@ -74,9 +75,21 @@ export default function DefaultLayout() {
       />
       {!isImmersiveReaderRoute && <Header />}
 
-      <main className={isImmersiveReaderRoute ? "" : "min-h-[calc(100vh-200px)]"}>
-        <Outlet /> {/* child routes render here */}
-      </main>
+      {isImmersiveReaderRoute ? (
+        <main>
+          <Outlet /> {/* child routes render here */}
+        </main>
+      ) : (
+        // Excluded for the PDF/EPUB readers — they scroll their own internal
+        // container rather than the window, and already have their own touch
+        // handling (page-turn swipes), which a window-level pull gesture
+        // would otherwise fight with.
+        <PullToRefresh>
+          <main className="min-h-[calc(100vh-200px)]">
+            <Outlet /> {/* child routes render here */}
+          </main>
+        </PullToRefresh>
+      )}
 
       {!isImmersiveReaderRoute && <Footer />}
       <LoginModal />
