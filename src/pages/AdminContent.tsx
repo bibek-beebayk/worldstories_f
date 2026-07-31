@@ -16,7 +16,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bold, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 
-const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction"];
+const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Summary"];
 const toTitleCase = (value: string) =>
   value
     .trim()
