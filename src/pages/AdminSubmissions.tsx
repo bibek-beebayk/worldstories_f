@@ -128,8 +128,12 @@ const AdminSubmissions = () => {
 
   return (
     <main className="h-full w-full overflow-hidden">
-      <div className="grid h-full min-h-0 gap-6 overflow-hidden lg:grid-cols-[360px_1fr]">
-        <Card className="h-full min-h-0">
+      {/* Below lg, this switches from a two-column grid to a stacked flex
+          column — the submissions list gets a bounded height (with its own
+          internal scroll) instead of fighting the detail pane for h-full
+          inside an ambiguous implicit grid row on mobile. */}
+      <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden lg:grid lg:gap-6 lg:grid-cols-[360px_1fr]">
+        <Card className="h-[40vh] shrink-0 lg:h-full lg:min-h-0">
           <CardContent className="flex h-full flex-col gap-3 p-3">
             <div className="flex gap-2">
               <Input
@@ -214,7 +218,7 @@ const AdminSubmissions = () => {
           </CardContent>
         </Card>
 
-        <Card className="h-full min-h-0">
+        <Card className="min-h-0 flex-1 lg:h-full">
           <CardHeader>
             <CardTitle className="text-base">Submission Details</CardTitle>
           </CardHeader>

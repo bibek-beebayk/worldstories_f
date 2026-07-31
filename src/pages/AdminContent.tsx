@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bold, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
+import { ArrowLeft, Bold, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 
 const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction"];
@@ -751,10 +751,25 @@ const AdminContent = () => {
     );
   }
 
+  // On mobile the list and detail panes can't sit side by side, so only one
+  // is shown at a time (a "master-detail" pattern) instead of stacking both
+  // full-height panes vertically, which wasted most of the screen on a
+  // half-visible list. Both panes stay visible together at lg: and up.
+  const isMobileDetailActive = showStoryForm || showChapterModal || selectedStoryId !== null;
+
   return (
     <main className="h-full w-full overflow-hidden px-0 py-0">
-      <div className="grid h-full min-h-0 gap-6 overflow-hidden lg:grid-cols-[320px_1fr]">
-        <Card className="h-full min-h-0">
+      {/* Below lg, this switches from a two-column grid to a stacked flex
+          column — the story list gets a bounded height (with its own internal
+          scroll) instead of fighting the detail pane for h-full inside an
+          ambiguous implicit grid row, which is what made this unusable on
+          mobile before. */}
+      <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden lg:grid lg:gap-6 lg:grid-cols-[320px_1fr]">
+        <Card
+          className={`min-h-0 lg:block lg:h-full lg:min-h-0 ${
+            isMobileDetailActive ? "hidden" : "flex-1"
+          }`}
+        >
           <CardContent className="flex h-full flex-col space-y-3 p-3">
             <div className="flex gap-2">
               <Input
@@ -836,7 +851,26 @@ const AdminContent = () => {
           </CardContent>
         </Card>
 
-        <div className="flex h-full min-h-0 flex-col gap-6 overflow-y-auto pr-1">
+        <div
+          className={`min-h-0 flex-col gap-6 overflow-y-auto pr-1 lg:flex lg:h-full ${
+            isMobileDetailActive ? "flex flex-1" : "hidden"
+          }`}
+        >
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit lg:hidden"
+            onClick={() => {
+              setSelectedStoryId(null);
+              setShowStoryForm(false);
+              setShowChapterModal(false);
+            }}
+          >
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to List
+          </Button>
+
           {showStoryForm ? (
             <Card className="flex min-h-0 flex-1 flex-col">
               <CardHeader>
@@ -1082,7 +1116,7 @@ const AdminContent = () => {
             </Card>
           ) : showChapterModal && selectedStoryId ? (
             <Card className="flex min-h-0 flex-1 flex-col">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <CardTitle className="text-base">{editingChapterId ? "Edit Chapter" : "Add New Chapter"}</CardTitle>
                 <Button
                   type="button"
@@ -1166,7 +1200,7 @@ const AdminContent = () => {
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <CardTitle className="text-base">Story Details</CardTitle>
                 <Button size="sm" onClick={() => setShowStoryForm(true)}>
                   Edit Story
@@ -1224,7 +1258,7 @@ const AdminContent = () => {
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <CardTitle className="text-base">Translations</CardTitle>
                 <Button size="sm" onClick={openAddTranslationForm}>
                   <Plus className="mr-1 h-4 w-4" />
@@ -1304,7 +1338,7 @@ const AdminContent = () => {
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <CardTitle className="text-base">Chapters</CardTitle>
                 <Button size="sm" variant="outline" onClick={openCreateChapterModal}>
                   Add New Chapter
@@ -1315,9 +1349,9 @@ const AdminContent = () => {
                   {chaptersLoading && <p className="text-sm text-muted-foreground">Loading chapters...</p>}
                   {(chaptersData?.results || []).map((chapter) => (
                     <div key={chapter.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
-                      <div>
-                        <p className="text-sm font-medium">#{chapter.order} {chapter.title}</p>
-                        <p className="text-xs text-muted-foreground">/{chapter.slug}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">#{chapter.order} {chapter.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">/{chapter.slug}</p>
                       </div>
                       <div className="flex shrink-0 gap-2">
                         <Button size="sm" variant="outline" onClick={() => openEditChapterModal(chapter)}>
@@ -1339,7 +1373,7 @@ const AdminContent = () => {
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <CardTitle className="text-base">Audio List</CardTitle>
                 <Button size="sm" variant="outline" onClick={openCreateAudioModal}>
                   Add New Audio
@@ -1565,7 +1599,7 @@ const AdminContent = () => {
       {showAudioModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowAudioModal(false)}>
           <Card className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">{editingAudioId ? "Edit Audio" : "Add New Audio"}</CardTitle>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowAudioModal(false)}>
                 <X className="h-4 w-4" />
@@ -1635,7 +1669,7 @@ const AdminContent = () => {
       {showAuthorModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowAuthorModal(false)}>
           <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">Create Author</CardTitle>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowAuthorModal(false)}>
                 <X className="h-4 w-4" />
@@ -1670,7 +1704,7 @@ const AdminContent = () => {
       {showGenreModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowGenreModal(false)}>
           <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">Create Genre</CardTitle>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowGenreModal(false)}>
                 <X className="h-4 w-4" />
