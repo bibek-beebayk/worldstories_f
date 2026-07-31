@@ -214,8 +214,8 @@ const Header = () => {
             >
               <SheetHeader className="flex flex-row items-center justify-between">
                 <SheetTitle className="text-xl font-bold"><Link to="/" className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-                    <span className="text-lg font-bold text-primary-foreground">W</span>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md">
+                    <img src="/worldstories-logo.png" alt="" />
                   </div>
                   <span className="text-xl font-bold">WorldStories</span>
                 </Link></SheetTitle>
