@@ -243,7 +243,7 @@ const PdfReader = () => {
           </div>
         )}
 
-        <div className={`overflow-auto rounded-xl border bg-muted/20 p-2 sm:p-4 ${isFullscreen ? "h-[calc(100vh-190px)]" : "max-h-[calc(100vh-245px)] sm:max-h-[calc(100vh-220px)]"}`}>
+        <div className={`overflow-auto rounded-xl border bg-muted/20 p-2 sm:p-4 ${isFullscreen ? "h-[calc(100vh-250px)]" : "max-h-[calc(100vh-245px)]"}`}>
           {isPageRendering && !isPdfLoading && (
             <div className="mb-2 flex items-center justify-center gap-2 rounded-md border bg-card p-2 text-center text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -280,33 +280,31 @@ const PdfReader = () => {
           </div>
         </div>
 
-        {!isFullscreen && (
-          <div className="fixed bottom-2 left-2 right-2 z-30 rounded-xl border bg-card/95 p-2 shadow-md backdrop-blur sm:hidden">
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pageNumber <= 1}
-                onClick={() => setPageNumber((prev) => Math.max(1, prev - 1))}
-                className="h-8 px-3"
-              >
-                Prev
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Page {pageNumber} / {numPages || "-"}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={numPages === 0 || pageNumber >= numPages}
-                onClick={() => setPageNumber((prev) => Math.min(numPages, prev + 1))}
-                className="h-8 px-3"
-              >
-                Next
-              </Button>
-            </div>
+        <div className="fixed bottom-2 left-2 right-2 z-30 mx-auto max-w-xs rounded-xl border bg-card/95 p-2 shadow-md backdrop-blur sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pageNumber <= 1}
+              onClick={() => setPageNumber((prev) => Math.max(1, prev - 1))}
+              className="h-8 px-3"
+            >
+              Prev
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Page {pageNumber} / {numPages || "-"}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={numPages === 0 || pageNumber >= numPages}
+              onClick={() => setPageNumber((prev) => Math.min(numPages, prev + 1))}
+              className="h-8 px-3"
+            >
+              Next
+            </Button>
           </div>
-        )}
+        </div>
       </div>
     </main>
   );

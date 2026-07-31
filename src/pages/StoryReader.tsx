@@ -70,22 +70,22 @@ const THEMES: Record<string, ReaderThemeConfig> = {
   },
 };
 
-const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
+export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
   literata: {
     label: "Literata",
-    value: "\"Palatino Linotype\", \"Book Antiqua\", Palatino, serif",
+    value: "\"Literata\", \"Palatino Linotype\", \"Book Antiqua\", Palatino, serif",
   },
   georgia: {
     label: "Georgia",
-    value: "Georgia, serif",
+    value: "Georgia, \"Gelasio\", serif",
   },
   times: {
     label: "Times",
-    value: "\"Times New Roman\", Times, serif",
+    value: "\"Times New Roman\", Times, \"Tinos\", serif",
   },
   garamond: {
     label: "Garamond",
-    value: "Garamond, \"Times New Roman\", serif",
+    value: "\"EB Garamond\", Garamond, \"Times New Roman\", serif",
   },
   palatino: {
     label: "Palatino",
@@ -109,7 +109,7 @@ const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
   },
   helvetica: {
     label: "Helvetica",
-    value: "\"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    value: "\"Helvetica Neue\", Helvetica, \"Arimo\", Arial, sans-serif",
   },
   caveat: {
     label: "Caveat",

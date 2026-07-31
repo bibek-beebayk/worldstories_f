@@ -218,6 +218,16 @@ const StoryDetail = () => {
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
   const hasStoryFiles = Boolean(story.pdf_file || story.epub_file);
+  // Best available reading format, in priority order: HTML chapters (the
+  // default reading experience) → EPUB → PDF.
+  const primaryReadHref =
+    story.chapters.length > 0
+      ? `/read/${story.slug}/${readChapterSlug}`
+      : story.epub_file
+      ? `/story/${story.slug}/epub`
+      : story.pdf_file
+      ? `/story/${story.slug}/pdf`
+      : null;
   const seoDescription = (story.about || `Read ${story.title} on WorldStories.`)
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
@@ -392,15 +402,16 @@ const StoryDetail = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-1">
-                  {story.chapters.length > 0 && (
-
-                    <Link to={`/read/${story.slug}/${readChapterSlug}`} className="">
-                      {story.chapters.length > 0 && (
-                        <Button size="lg" className="flex-1 min-w-[140px]">
-                          <BookMarked className="h-4 w-4 mr-2" />
-                          {hasSavedChapter ? "Continue Reading" : "Start Reading"}
-                        </Button>
-                      )}
+                  {primaryReadHref && (
+                    <Link to={primaryReadHref}>
+                      <Button size="lg" className="flex-1 min-w-[140px]">
+                        <BookMarked className="h-4 w-4 mr-2" />
+                        {story.chapters.length > 0
+                          ? hasSavedChapter
+                            ? "Continue Reading"
+                            : "Start Reading"
+                          : "Read Now"}
+                      </Button>
                     </Link>
                   )}
 
@@ -461,12 +472,12 @@ const StoryDetail = () => {
                         </Link>
                       )}
                       {story.epub_file && (
-                        <a href={story.epub_file} target="_blank" rel="noreferrer">
+                        <Link to={`/story/${story.slug}/epub`}>
                           <Button size="sm" variant="outline">
                             <Download className="mr-2 h-4 w-4" />
-                            Download EPUB
+                            View EPUB
                           </Button>
-                        </a>
+                        </Link>
                       )}
                     </div>
                   </div>

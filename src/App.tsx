@@ -27,6 +27,7 @@ const Search = lazy(() => import("./pages/Search"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Contest = lazy(() => import("./pages/Contest"));
 const PdfReader = lazy(() => import("./pages/PdfReader"));
+const EpubReader = lazy(() => import("./pages/EpubReader"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const About = lazy(() => import("./pages/About"));
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="terms" element={<Terms />} />
             <Route path="/story/:slug" element={<StoryDetail />} />
             <Route path="/story/:slug/pdf" element={<PdfReader />} />
+            <Route path="/story/:slug/epub" element={<EpubReader />} />
             <Route path="/read/:story_slug/:chapter_slug" element={<StoryReader />} />
             <Route path="/listen/:story_slug/:chapter_slug" element={<AudiobookPlayer />} />
 

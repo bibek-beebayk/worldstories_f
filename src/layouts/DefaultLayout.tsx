@@ -46,7 +46,14 @@ export default function DefaultLayout() {
     location.pathname.startsWith("/read/") ||
     location.pathname.startsWith("/listen/") ||
     location.pathname.endsWith("/pdf") ||
+    location.pathname.endsWith("/epub") ||
     location.pathname === "/search";
+  // The PDF/EPUB readers are meant to be a full-viewport, distraction-free
+  // reading experience with their own internal header/controls — their height
+  // math (calc(100vh-...)) is tuned assuming they own the whole viewport, so
+  // the site's own nav header and footer would otherwise eat into that budget
+  // and push the reader's bottom bar off-screen.
+  const isImmersiveReaderRoute = location.pathname.endsWith("/pdf") || location.pathname.endsWith("/epub");
   const metadata = routeSeo[location.pathname] || {
     title: "WorldStories | Stories from Around the World",
     description: "Read and discover diverse stories from writers around the world.",
@@ -65,13 +72,13 @@ export default function DefaultLayout() {
         path={location.pathname}
         noIndex={metadata.noIndex}
       />
-      <Header />
+      {!isImmersiveReaderRoute && <Header />}
 
-      <main className="min-h-[calc(100vh-200px)]">
+      <main className={isImmersiveReaderRoute ? "" : "min-h-[calc(100vh-200px)]"}>
         <Outlet /> {/* child routes render here */}
       </main>
 
-      <Footer />
+      {!isImmersiveReaderRoute && <Footer />}
       <LoginModal />
     </>
   );
