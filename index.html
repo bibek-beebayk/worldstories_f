@@ -9,6 +9,16 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://worldstories.net/" />
     <link rel="icon" href="/worldstories-logo-min.png" type="image/png" />
+
+    <!-- PWA: vite-plugin-pwa injects the manifest link + SW registration
+         script at build time. iOS Safari doesn't read the manifest for these,
+         so they're set explicitly here. -->
+    <meta name="theme-color" content="#ED405A" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="WorldStories" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
