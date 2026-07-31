@@ -22,10 +22,8 @@ import { useStory } from "@/hooks/useStory";
 import {
   BookMarked,
   CheckCircle2,
-  Download,
   Eye,
   Facebook,
-  FileText,
   Headphones,
   Heart,
   Link2,
@@ -245,11 +243,6 @@ const StoryDetail = () => {
   const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
-  // Story Files (secondary format links) only matter when chapters aren't
-  // already the primary reading experience — and within it, only the
-  // higher-priority existing format shows, matching primaryReadHref's own
-  // chapters → epub → pdf priority rather than offering both at once.
-  const hasStoryFiles = story.chapters.length === 0 && Boolean(story.pdf_file || story.epub_file);
   // Best available reading format, in priority order: HTML chapters (the
   // default reading experience) → EPUB → PDF.
   const primaryReadHref =
@@ -266,6 +259,12 @@ const StoryDetail = () => {
   // fallback formats too, now that they track real per-account progress.
   const primaryFileProgress = story.chapters.length > 0 ? null : story.epub_file ? epubProgress : pdfProgress;
   const hasSavedPrimaryFileProgress = (primaryFileProgress?.progress || 0) > 0;
+  // completionPercentage only ever reflects chapter-based progress (from the
+  // chapter-specific reading-progress endpoint), which stays 0 for a
+  // chapterless story regardless of real EPUB/PDF progress — this is what
+  // the "Completion: X%" text should actually show in that case instead.
+  const primaryCompletionPercentage =
+    story.chapters.length > 0 ? completionPercentage : Math.round((primaryFileProgress?.progress || 0) * 100);
   const seoDescription = (story.about || `Read ${story.title} on WorldStories.`)
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
@@ -496,39 +495,9 @@ const StoryDetail = () => {
                   </DropdownMenu>
                   {/* </Link> */}
                 </div>
-                {hasStoryFiles && (
-                  <div className="rounded-lg border bg-muted/30 p-3">
-                    <p className="mb-2 flex items-center gap-2 text-sm font-medium">
-                      <FileText className="h-4 w-4" />
-                      Story Files
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {story.epub_file ? (
-                        <Link to={`/story/${story.slug}/epub`}>
-                          <Button size="sm" variant="outline">
-                            <Download className="mr-2 h-4 w-4" />
-                            View EPUB
-                          </Button>
-                        </Link>
-                      ) : story.pdf_file ? (
-                        <Link to={`/story/${story.slug}/pdf`}>
-                          <Button size="sm" variant="outline">
-                            <Download className="mr-2 h-4 w-4" />
-                            View PDF
-                          </Button>
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                )}
-                {isAuthenticated && hasSavedChapter && (
+                {isAuthenticated && primaryReadHref && (
                   <p className="text-sm text-muted-foreground">
-                    Completion: {completionPercentage}%
-                  </p>
-                )}
-                {isAuthenticated && !hasSavedChapter && (
-                  <p className="text-sm text-muted-foreground">
-                    Completion: {completionPercentage}%
+                    Completion: {primaryCompletionPercentage}%
                   </p>
                 )}
                 {isAuthenticated && story.audios.length > 0 && (
