@@ -419,14 +419,26 @@ const StoryReader = () => {
       setLiveProgress(normalized);
     }
 
+    // iOS Safari (specifically iPhone — iPad is different) doesn't support
+    // the Fullscreen API for arbitrary elements at all, only for <video>, so
+    // requestFullscreen() always fails there and the previous version of
+    // this function (which only updated isReaderMode via the fullscreenchange
+    // listener) silently did nothing visible on iPhone. Toggling isReaderMode
+    // optimistically up front drives the same reader-mode layout either way,
+    // so iOS still gets an immersive fallback even though real OS-level
+    // fullscreen (hiding Safari's own chrome) isn't possible there.
+    const next = !isReaderMode;
+    setIsReaderMode(next);
+
     try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
+      if (next && document.fullscreenEnabled) {
         await target.requestFullscreen();
+      } else if (!next && document.fullscreenElement) {
+        await document.exitFullscreen();
       }
     } catch {
-      // Ignore fullscreen request failures (browser/security context restrictions).
+      // No-op: the reader-mode layout above already applied, which is the
+      // best available experience on platforms without real fullscreen.
     }
   };
 

@@ -135,15 +135,24 @@ const PdfReader = () => {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
+  // iOS Safari (specifically iPhone — iPad is different) doesn't support the
+  // Fullscreen API for arbitrary elements at all, only for <video>, so
+  // requestFullscreen() always fails there. isFullscreen is toggled
+  // optimistically up front, driving the same CSS full-viewport layout either
+  // way, so the reader still gets an immersive fallback on iOS even though
+  // real OS-level fullscreen (hiding Safari's own chrome) isn't possible.
   const toggleFullscreen = async () => {
+    const next = !isFullscreen;
+    setIsFullscreen(next);
     try {
-      if (!document.fullscreenElement && readerContainerRef.current) {
+      if (next && document.fullscreenEnabled && readerContainerRef.current) {
         await readerContainerRef.current.requestFullscreen();
-      } else if (document.fullscreenElement) {
+      } else if (!next && document.fullscreenElement) {
         await document.exitFullscreen();
       }
     } catch {
-      setReaderError("Fullscreen mode is not available on this device/browser.");
+      // No-op: the CSS-driven layout above already applied, which is the
+      // best available experience on platforms without real fullscreen.
     }
   };
 
