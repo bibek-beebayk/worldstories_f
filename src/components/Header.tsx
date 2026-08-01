@@ -89,7 +89,7 @@ const Header = () => {
       <div
         className={`mx-auto border-border backdrop-blur transition-all duration-300 ease-in-out ${
           isScrolled
-            ? "mx-2 mt-2 rounded-2xl border bg-background/70 shadow-md sm:mx-4 supports-[backdrop-filter]:bg-background/45"
+            ? "mx-2 mt-2 rounded-2xl border bg-gradient-to-br from-primary/10 to-background/100 shadow-md sm:mx-4 supports-[backdrop-filter]:from-primary/10 supports-[backdrop-filter]:to-background/45"
             : "mx-0 mt-0 rounded-none border-b bg-background/95 shadow-none supports-[backdrop-filter]:bg-background/60"
         }`}
       >
