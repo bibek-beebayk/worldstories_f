@@ -579,7 +579,7 @@ const StoryDetail = () => {
                 <Card >
                   <CardContent className="p-0">
                     {story.audios.length > 0 ? <>{story?.audios?.map((chapter, index) => (
-                      <Link to={`/read/${slug}/${chapter.slug}`} key={index}>
+                      <Link to={`/listen/${slug}/${chapter.slug}`} key={index}>
                         <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
                           <div className="flex items-center gap-4">
                             <span className="text-sm font-semibold text-muted-foreground w-8">
