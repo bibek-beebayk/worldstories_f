@@ -72,6 +72,17 @@ export default function ProfileDownloadedStory({
   const defaultTab = chapters.length > 0 ? "chapters" : "audios";
   const backTo = `/profile?section=downloads&story=${storySlug}`;
 
+  const overallProgressLabels: string[] = [];
+  if (chapters.length > 0 && chapterProgress?.overall_progress != null) {
+    overallProgressLabels.push(`Reading ${Math.round(chapterProgress.overall_progress * 100)}%`);
+  }
+  if (audios.length > 0 && audioProgress?.overall_progress != null) {
+    overallProgressLabels.push(`Listening ${Math.round(audioProgress.overall_progress * 100)}%`);
+  }
+  if (fileDownload && fileProgress?.progress != null) {
+    overallProgressLabels.push(`${Math.round(fileProgress.progress * 100)}% complete`);
+  }
+
   const renderRow = (item: DownloadRecord, progress: number, readHref: string) => (
     <Link
       key={item.id}
@@ -113,7 +124,12 @@ export default function ProfileDownloadedStory({
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-          <h3 className="min-w-0 flex-1 truncate font-semibold">{storyTitle}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-semibold">{storyTitle}</h3>
+            {overallProgressLabels.length > 0 && (
+              <p className="text-xs font-medium text-primary">{overallProgressLabels.join(" · ")}</p>
+            )}
+          </div>
         </div>
 
         {fileDownload ? (

@@ -41,6 +41,7 @@ import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Seo from "@/components/Seo";
 import ProfileDownloadedStory from "@/components/ProfileDownloadedStory";
+import DownloadStorySummaryRow from "@/components/DownloadStorySummaryRow";
 import { DownloadRecord, groupDownloadsByStory, listDownloads } from "@/lib/offlineDb";
 import { formatBytes } from "@/lib/utils";
 
@@ -1055,30 +1056,14 @@ const Profile = () => {
                       </div>
 
                       {groupDownloadsByStory(downloads).map((summary) => (
-                        <button
+                        <DownloadStorySummaryRow
                           key={summary.story_slug}
-                          type="button"
+                          summary={summary}
                           onClick={() => {
                             setSelectedDownloadStory(summary.story_slug);
                             setSearchParams({ section: "downloads", story: summary.story_slug });
                           }}
-                          className="flex w-full items-center gap-3 rounded-md border p-3 text-left transition hover:bg-muted/50"
-                        >
-                          <img
-                            src={summary.story_cover_image}
-                            alt=""
-                            className="h-16 w-12 shrink-0 rounded object-cover"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="line-clamp-1 font-medium">{summary.story_title}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                              {summary.chapterCount > 0 && <span>{summary.chapterCount} chapters</span>}
-                              {summary.audioCount > 0 && <span>{summary.audioCount} audios</span>}
-                              {summary.fileType && <span>{summary.fileType.toUpperCase()}</span>}
-                              <span>{formatBytes(summary.totalBytes)}</span>
-                            </div>
-                          </div>
-                        </button>
+                        />
                       ))}
                       {downloads.length === 0 && (
                         <p className="flex items-center gap-2 text-sm text-muted-foreground">
