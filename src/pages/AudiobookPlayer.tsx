@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
+  ArrowLeft,
   Headphones,
   Pause,
   Play,
@@ -292,6 +293,13 @@ const AudioPlayerPage = () => {
         noIndex
       />
       <main className="container mx-auto px-3 py-4 sm:px-4 sm:py-8">
+        <Link to={`/story/${story.slug}`} className="mb-4 inline-block">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to story
+          </Button>
+        </Link>
+
         <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.55fr_1fr]">
         <section className="space-y-4 sm:space-y-6">
             <Card className="overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
