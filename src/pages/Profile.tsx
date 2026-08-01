@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { authApi } from "@/api/auth";
@@ -28,9 +29,9 @@ import {
   Link2,
   List,
   ListOrdered,
+  Menu,
   MessageSquare,
   Settings,
-  Trash2,
   Underline,
   Italic,
   User,
@@ -39,21 +40,16 @@ import {
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Seo from "@/components/Seo";
-import { DownloadRecord, deleteDownload, listDownloads } from "@/lib/offlineDb";
+import ProfileDownloadedStory from "@/components/ProfileDownloadedStory";
+import { DownloadRecord, groupDownloadsByStory, listDownloads } from "@/lib/offlineDb";
 import { formatBytes } from "@/lib/utils";
 
-type ProfileSection = "overview" | "reader" | "creator" | "settings";
-type ReaderView =
-  | "reading"
-  | "completed"
-  | "listening"
-  | "favorites"
-  | "reviews"
-  | "downloads";
+type ProfileSection = "overview" | "reader" | "creator" | "settings" | "downloads";
+type ReaderView = "reading" | "completed" | "listening" | "favorites" | "reviews";
 
 const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
-const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings"];
-const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews", "downloads"];
+const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings", "downloads"];
+const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews"];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -64,6 +60,7 @@ const Profile = () => {
 
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [activeReaderView, setActiveReaderView] = useState<ReaderView>("reading");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const [readingPage, setReadingPage] = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
@@ -74,7 +71,7 @@ const Profile = () => {
 
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
-  const [removingDownloadId, setRemovingDownloadId] = useState<string | null>(null);
+  const [selectedDownloadStory, setSelectedDownloadStory] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -123,7 +120,7 @@ const Profile = () => {
   const shouldLoadListening = isOverviewSection || (isReaderSection && activeReaderView === "listening");
   const shouldLoadFavorites = isOverviewSection || (isReaderSection && activeReaderView === "favorites");
   const shouldLoadReviews = isOverviewSection || (isReaderSection && activeReaderView === "reviews");
-  const shouldLoadDownloads = isReaderSection && activeReaderView === "downloads";
+  const shouldLoadDownloads = activeSection === "downloads";
 
   const refreshDownloads = () => {
     listDownloads().then(setDownloads);
@@ -138,15 +135,9 @@ const Profile = () => {
     if (shouldLoadDownloads) refreshDownloads();
   }, [shouldLoadDownloads]);
 
-  const handleRemoveDownload = async (id: string) => {
-    setRemovingDownloadId(id);
-    try {
-      await deleteDownload(id);
-      refreshDownloads();
-    } finally {
-      setRemovingDownloadId(null);
-    }
-  };
+  useEffect(() => {
+    if (!shouldLoadDownloads) setSelectedDownloadStory(null);
+  }, [shouldLoadDownloads]);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile-me"],
@@ -542,13 +533,13 @@ const Profile = () => {
     { key: "listening", label: "Continue Listening" },
     { key: "favorites", label: "Favorites" },
     { key: "reviews", label: "Reviews" },
-    { key: "downloads", label: "Downloads" },
   ];
 
   const profileNavItems: Array<{ key: ProfileSection; label: string; icon: typeof LayoutGrid; helper: string }> = [
     { key: "overview", label: "Overview", icon: LayoutGrid, helper: "General account summary." },
     { key: "reader", label: "Reader", icon: BookMarked, helper: "Reading, listening, favorites and reviews." },
     { key: "creator", label: "Creator", icon: FileText, helper: "Story submissions and moderation status." },
+    { key: "downloads", label: "Downloads", icon: Download, helper: "Content saved on this device for offline access." },
     { key: "settings", label: "Settings", icon: Settings, helper: "Manage profile details and preferences." },
   ];
 
@@ -641,31 +632,59 @@ const Profile = () => {
           <Badge variant="outline">@{profile.username}</Badge>
         </div>
 
-        <Card className="mb-4 lg:hidden">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">Modules</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {profileNavItems.map((item) => {
-                const Icon = item.icon;
-                const active = activeSection === item.key;
-                return (
-                  <Button
-                    key={item.key}
-                    size="sm"
-                    variant={active ? "default" : "outline"}
-                    className="shrink-0 gap-2"
-                    onClick={() => setActiveSection(item.key)}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-4 lg:hidden">
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  {(() => {
+                    const ActiveIcon =
+                      profileNavItems.find((item) => item.key === activeSection)?.icon || LayoutGrid;
+                    return <ActiveIcon className="h-4 w-4" />;
+                  })()}
+                  {profileNavItems.find((item) => item.key === activeSection)?.label || "Modules"}
+                </span>
+                <Menu className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80 p-0">
+              <div className="flex h-full flex-col p-4">
+                <SheetHeader className="mb-3 space-y-0 text-left">
+                  <SheetTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Modules
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="space-y-2 overflow-y-auto">
+                  {profileNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = activeSection === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={`w-full rounded-md border px-3 py-2 text-left transition ${
+                          active ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
+                        }`}
+                        onClick={() => {
+                          setActiveSection(item.key);
+                          setMobileNavOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </div>
+                        <p className={`mt-1 text-xs ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                          {item.helper}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
 
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <aside className="hidden space-y-3 lg:block">
@@ -996,7 +1015,22 @@ const Profile = () => {
                   </Card>
                 )}
 
-                {activeReaderView === "downloads" && (
+              </>
+            )}
+
+            {activeSection === "downloads" && (
+              <>
+                {selectedDownloadStory ? (
+                  <ProfileDownloadedStory
+                    storySlug={selectedDownloadStory}
+                    storyTitle={
+                      downloads.find((item) => item.story_slug === selectedDownloadStory)?.story_title || ""
+                    }
+                    downloads={downloads.filter((item) => item.story_slug === selectedDownloadStory)}
+                    onBack={() => setSelectedDownloadStory(null)}
+                    onChange={refreshDownloads}
+                  />
+                ) : (
                   <Card className="shadow-sm">
                     <CardContent className="space-y-4 p-5">
                       <div className="flex items-center justify-between rounded-md border bg-muted/40 p-3 text-sm">
@@ -1012,30 +1046,28 @@ const Profile = () => {
                         )}
                       </div>
 
-                      {downloads.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border p-4">
-                          <div className="min-w-0">
-                            <p className="line-clamp-1 font-medium">{item.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.story_title} · {item.type} · {formatBytes(item.size_bytes)} · Downloaded{" "}
-                              {new Date(item.downloaded_at).toLocaleDateString()}
-                            </p>
+                      {groupDownloadsByStory(downloads).map((summary) => (
+                        <button
+                          key={summary.story_slug}
+                          type="button"
+                          onClick={() => setSelectedDownloadStory(summary.story_slug)}
+                          className="flex w-full items-center gap-3 rounded-md border p-3 text-left transition hover:bg-muted/50"
+                        >
+                          <img
+                            src={summary.story_cover_image}
+                            alt=""
+                            className="h-16 w-12 shrink-0 rounded object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-1 font-medium">{summary.story_title}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              {summary.chapterCount > 0 && <span>{summary.chapterCount} chapters</span>}
+                              {summary.audioCount > 0 && <span>{summary.audioCount} audios</span>}
+                              {summary.fileType && <span>{summary.fileType.toUpperCase()}</span>}
+                              <span>{formatBytes(summary.totalBytes)}</span>
+                            </div>
                           </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <Button size="sm" variant="outline" onClick={() => navigate(`/story/${item.story_slug}`)}>
-                              Open Story
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={removingDownloadId === item.id}
-                              onClick={() => handleRemoveDownload(item.id)}
-                              aria-label="Remove download"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
+                        </button>
                       ))}
                       {downloads.length === 0 && (
                         <p className="flex items-center gap-2 text-sm text-muted-foreground">

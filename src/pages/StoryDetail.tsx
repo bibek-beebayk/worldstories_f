@@ -496,34 +496,38 @@ const StoryDetail = () => {
                     <Button
                       size="lg"
                       variant="outline"
-                      aria-label={
-                        downloadedIds.has(primaryFileDownloadId)
-                          ? "Remove downloaded copy"
-                          : `Download ${primaryFileType.toUpperCase()} for offline reading`
-                      }
+                      className="flex-1 min-w-[140px]"
                       disabled={isDownloadPending(primaryFileDownloadId)}
                       onClick={async () => {
                         if (downloadedIds.has(primaryFileDownloadId)) {
                           await removeDownloadItem(primaryFileDownloadId);
                         } else {
-                          await downloadFile(story.slug, story.title, primaryFileType, story.title);
+                          await downloadFile(
+                            { slug: story.slug, title: story.title, cover_image: story.cover_image },
+                            primaryFileType,
+                            story.title
+                          );
                         }
                         refreshDownloadedIds();
                       }}
                     >
                       {isDownloadPending(primaryFileDownloadId) ? (
-                        <span className="flex items-center gap-1.5">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          {getDownloadProgress(primaryFileDownloadId) != null && (
-                            <span className="text-xs tabular-nums">
-                              {Math.round((getDownloadProgress(primaryFileDownloadId) || 0) * 100)}%
-                            </span>
-                          )}
-                        </span>
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {getDownloadProgress(primaryFileDownloadId) != null
+                            ? `Downloading… ${Math.round((getDownloadProgress(primaryFileDownloadId) || 0) * 100)}%`
+                            : "Downloading…"}
+                        </>
                       ) : downloadedIds.has(primaryFileDownloadId) ? (
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2 text-destructive" />
+                          Delete Download
+                        </>
                       ) : (
-                        <Download className="h-4 w-4" />
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download for Offline Reading
+                        </>
                       )}
                     </Button>
                   )}
@@ -642,7 +646,12 @@ const StoryDetail = () => {
                                 if (isDownloaded) {
                                   await removeDownloadItem(downloadId);
                                 } else {
-                                  await downloadChapter(story.slug, story.title, chapter.slug, chapter.title);
+                                  await downloadChapter(
+                                    { slug: story.slug, title: story.title, cover_image: story.cover_image },
+                                    chapter.slug,
+                                    chapter.title,
+                                    chapter.order
+                                  );
                                 }
                                 refreshDownloadedIds();
                               }}
@@ -703,7 +712,12 @@ const StoryDetail = () => {
                                 if (isDownloaded) {
                                   await removeDownloadItem(downloadId);
                                 } else {
-                                  await downloadAudio(story.slug, story.title, chapter.slug, chapter.title);
+                                  await downloadAudio(
+                                    { slug: story.slug, title: story.title, cover_image: story.cover_image },
+                                    chapter.slug,
+                                    chapter.title,
+                                    chapter.order
+                                  );
                                 }
                                 refreshDownloadedIds();
                               }}

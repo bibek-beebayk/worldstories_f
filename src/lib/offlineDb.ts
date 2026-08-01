@@ -19,9 +19,11 @@ export interface DownloadRecord {
   id: string;
   story_slug: string;
   story_title: string;
+  story_cover_image: string;
   type: DownloadType;
   item_slug: string;
   title: string;
+  order: number;
   size_bytes: number;
   downloaded_at: string;
   ciphertext: ArrayBuffer;
@@ -131,6 +133,40 @@ export async function listDownloads(): Promise<DownloadRecord[]> {
 export async function getTotalDownloadedBytes(): Promise<number> {
   const all = await listDownloads();
   return all.reduce((sum, record) => sum + record.size_bytes, 0);
+}
+
+export interface DownloadStorySummary {
+  story_slug: string;
+  story_title: string;
+  story_cover_image: string;
+  chapterCount: number;
+  audioCount: number;
+  fileType: "epub" | "pdf" | null;
+  totalBytes: number;
+}
+
+export function groupDownloadsByStory(records: DownloadRecord[]): DownloadStorySummary[] {
+  const summaries = new Map<string, DownloadStorySummary>();
+  for (const record of records) {
+    let summary = summaries.get(record.story_slug);
+    if (!summary) {
+      summary = {
+        story_slug: record.story_slug,
+        story_title: record.story_title,
+        story_cover_image: record.story_cover_image,
+        chapterCount: 0,
+        audioCount: 0,
+        fileType: null,
+        totalBytes: 0,
+      };
+      summaries.set(record.story_slug, summary);
+    }
+    summary.totalBytes += record.size_bytes;
+    if (record.type === "chapter") summary.chapterCount += 1;
+    else if (record.type === "audio") summary.audioCount += 1;
+    else summary.fileType = record.type;
+  }
+  return Array.from(summaries.values());
 }
 
 export async function queuePendingSave(save: PendingSave): Promise<void> {
