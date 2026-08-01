@@ -11,6 +11,12 @@ export function formatViews(num: number): string {
   return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
 }
 
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function formatDurationMinutes(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

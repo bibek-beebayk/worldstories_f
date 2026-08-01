@@ -4,6 +4,8 @@ import { API_BASE_URL } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
+import { makeDownloadId } from "@/lib/offlineDb";
 import { ArrowLeft, Loader2, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -43,9 +45,14 @@ const PdfReader = () => {
       try {
         setReaderError("");
         setIsPdfLoading(true);
-        const loadingTask = getDocument({
-          url: `${API_BASE_URL}/stories/${story.slug}/pdf-stream/`,
-        });
+        // Offline: read a previously-downloaded, decrypted copy straight into
+        // memory instead of hitting the network at all.
+        const offlineBuffer = !navigator.onLine
+          ? await getDecryptedBinary(makeDownloadId(story.slug, "pdf")).catch(() => null)
+          : null;
+        const loadingTask = offlineBuffer
+          ? getDocument({ data: offlineBuffer })
+          : getDocument({ url: `${API_BASE_URL}/stories/${story.slug}/pdf-stream/` });
         const doc = await loadingTask.promise;
         if (!isMounted) return;
         setPdfDoc(doc);

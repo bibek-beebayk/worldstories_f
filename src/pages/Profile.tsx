@@ -19,6 +19,7 @@ import {
   Bold,
   BookMarked,
   Bell,
+  Download,
   FileText,
   Heading2,
   Headphones,
@@ -29,6 +30,7 @@ import {
   ListOrdered,
   MessageSquare,
   Settings,
+  Trash2,
   Underline,
   Italic,
   User,
@@ -37,6 +39,8 @@ import {
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Seo from "@/components/Seo";
+import { DownloadRecord, deleteDownload, listDownloads } from "@/lib/offlineDb";
+import { formatBytes } from "@/lib/utils";
 
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
 type ReaderView =
@@ -44,11 +48,12 @@ type ReaderView =
   | "completed"
   | "listening"
   | "favorites"
-  | "reviews";
+  | "reviews"
+  | "downloads";
 
 const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
 const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings"];
-const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews"];
+const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews", "downloads"];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -66,6 +71,10 @@ const Profile = () => {
   const [favoritesPage, setFavoritesPage] = useState(1);
   const [reviewsPage, setReviewsPage] = useState(1);
   const [submissionsPage, setSubmissionsPage] = useState(1);
+
+  const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
+  const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
+  const [removingDownloadId, setRemovingDownloadId] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -114,6 +123,30 @@ const Profile = () => {
   const shouldLoadListening = isOverviewSection || (isReaderSection && activeReaderView === "listening");
   const shouldLoadFavorites = isOverviewSection || (isReaderSection && activeReaderView === "favorites");
   const shouldLoadReviews = isOverviewSection || (isReaderSection && activeReaderView === "reviews");
+  const shouldLoadDownloads = isReaderSection && activeReaderView === "downloads";
+
+  const refreshDownloads = () => {
+    listDownloads().then(setDownloads);
+    if (navigator.storage?.estimate) {
+      navigator.storage.estimate().then((estimate) =>
+        setStorageEstimate({ usage: estimate.usage || 0, quota: estimate.quota || 0 })
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (shouldLoadDownloads) refreshDownloads();
+  }, [shouldLoadDownloads]);
+
+  const handleRemoveDownload = async (id: string) => {
+    setRemovingDownloadId(id);
+    try {
+      await deleteDownload(id);
+      refreshDownloads();
+    } finally {
+      setRemovingDownloadId(null);
+    }
+  };
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile-me"],
@@ -509,6 +542,7 @@ const Profile = () => {
     { key: "listening", label: "Continue Listening" },
     { key: "favorites", label: "Favorites" },
     { key: "reviews", label: "Reviews" },
+    { key: "downloads", label: "Downloads" },
   ];
 
   const profileNavItems: Array<{ key: ProfileSection; label: string; icon: typeof LayoutGrid; helper: string }> = [
@@ -957,6 +991,58 @@ const Profile = () => {
                         reviewsData?.pagination?.page || 1,
                         reviewsData?.pagination?.pages || 1,
                         setReviewsPage
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {activeReaderView === "downloads" && (
+                  <Card className="shadow-sm">
+                    <CardContent className="space-y-4 p-5">
+                      <div className="flex items-center justify-between rounded-md border bg-muted/40 p-3 text-sm">
+                        <span className="text-muted-foreground">
+                          {downloads.length} item{downloads.length === 1 ? "" : "s"} downloaded ·{" "}
+                          {formatBytes(downloads.reduce((sum, item) => sum + item.size_bytes, 0))}
+                        </span>
+                        {storageEstimate && storageEstimate.quota > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatBytes(storageEstimate.usage)} / {formatBytes(storageEstimate.quota)} used on
+                            this device
+                          </span>
+                        )}
+                      </div>
+
+                      {downloads.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border p-4">
+                          <div className="min-w-0">
+                            <p className="line-clamp-1 font-medium">{item.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.story_title} · {item.type} · {formatBytes(item.size_bytes)} · Downloaded{" "}
+                              {new Date(item.downloaded_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Button size="sm" variant="outline" onClick={() => navigate(`/story/${item.story_slug}`)}>
+                              Open Story
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={removingDownloadId === item.id}
+                              onClick={() => handleRemoveDownload(item.id)}
+                              aria-label="Remove download"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {downloads.length === 0 && (
+                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Download className="h-4 w-4" />
+                          Nothing downloaded yet — look for the download icon on a story's chapters or audio
+                          tracks.
+                        </p>
                       )}
                     </CardContent>
                   </Card>

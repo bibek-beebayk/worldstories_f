@@ -23,18 +23,23 @@ import {
   BookMarked,
   CheckCircle2,
   Clock,
+  Download,
   Eye,
   Facebook,
   Headphones,
   Heart,
   Link2,
+  Loader2,
   Share2,
   Star,
+  Trash2,
   Twitter,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
+import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
+import { makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
 import { formatDurationMinutes } from "@/lib/utils";
 
@@ -42,6 +47,14 @@ import { formatDurationMinutes } from "@/lib/utils";
 const StoryDetail = () => {
   const { slug } = useParams();
   const { data: story, isLoading, isError } = useStory(slug);
+  const { downloadedIds, refresh: refreshDownloadedIds } = useDownloadedIds(slug || "");
+  const {
+    downloadChapter,
+    downloadAudio,
+    downloadFile,
+    removeDownloadItem,
+    isPending: isDownloadPending,
+  } = useOfflineDownload();
   // const [pendingScroll, setPendingScroll] = useState<"chapters" | "audios" | null>(null);
 
   // const slug = "the-raven"
@@ -260,6 +273,9 @@ const StoryDetail = () => {
   // decide between "Start Reading" and "Continue Reading" for the EPUB/PDF
   // fallback formats too, now that they track real per-account progress.
   const primaryFileProgress = story.chapters.length > 0 ? null : story.epub_file ? epubProgress : pdfProgress;
+  const primaryFileType: "epub" | "pdf" | null =
+    story.chapters.length > 0 ? null : story.epub_file ? "epub" : story.pdf_file ? "pdf" : null;
+  const primaryFileDownloadId = primaryFileType ? makeDownloadId(story.slug, primaryFileType) : null;
   const hasSavedPrimaryFileProgress = (primaryFileProgress?.progress || 0) > 0;
   // completionPercentage only ever reflects chapter-based progress (from the
   // chapter-specific reading-progress endpoint), which stays 0 for a
@@ -475,6 +491,35 @@ const StoryDetail = () => {
                     </Link>
                   )}
 
+                  {primaryFileType && primaryFileDownloadId && (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      aria-label={
+                        downloadedIds.has(primaryFileDownloadId)
+                          ? "Remove downloaded copy"
+                          : `Download ${primaryFileType.toUpperCase()} for offline reading`
+                      }
+                      disabled={isDownloadPending(primaryFileDownloadId)}
+                      onClick={async () => {
+                        if (downloadedIds.has(primaryFileDownloadId)) {
+                          await removeDownloadItem(primaryFileDownloadId);
+                        } else {
+                          await downloadFile(story.slug, story.title, primaryFileType, story.title);
+                        }
+                        refreshDownloadedIds();
+                      }}
+                    >
+                      {isDownloadPending(primaryFileDownloadId) ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : downloadedIds.has(primaryFileDownloadId) ? (
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+
                   <Button
                     size="lg"
                     variant="outline"
@@ -550,6 +595,9 @@ const StoryDetail = () => {
                     {story.chapters.length > 0 ? <>{story?.chapters?.map((chapter, index) => {
                       const chapterProgress = chapterProgressMap[chapter.slug] || 0;
                       const isChapterCompleted = chapterProgress >= 1;
+                      const downloadId = makeDownloadId(story.slug, "chapter", chapter.slug);
+                      const isDownloaded = downloadedIds.has(downloadId);
+                      const isPending = isDownloadPending(downloadId);
                       return (
                       <Link to={`/read/${slug}/${chapter.slug}`} key={index}>
                         <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
@@ -562,20 +610,44 @@ const StoryDetail = () => {
                               {/* <p className="text-xs text-muted-foreground">{chapter.date}</p> */}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             {isAuthenticated && (
                               isChapterCompleted ? (
-                                <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                                   <CheckCircle2 className="h-3 w-3" />
                                   Completed
                                 </span>
                               ) : (
                                 <>
                                   <Eye className="h-3 w-3" />
-                                  <span className="ml-2">{Math.round(chapterProgress * 100)}%</span>
+                                  <span>{Math.round(chapterProgress * 100)}%</span>
                                 </>
                               )
                             )}
+                            <button
+                              type="button"
+                              title={isDownloaded ? "Remove download" : "Download for offline reading"}
+                              onClick={async (event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (isPending) return;
+                                if (isDownloaded) {
+                                  await removeDownloadItem(downloadId);
+                                } else {
+                                  await downloadChapter(story.slug, story.title, chapter.slug, chapter.title);
+                                }
+                                refreshDownloadedIds();
+                              }}
+                              className="rounded-full p-1.5 hover:bg-muted"
+                            >
+                              {isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : isDownloaded ? (
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </button>
                           </div>
                         </div>
                         {index < story.chapters.length - 1 && <Separator />}
@@ -590,7 +662,11 @@ const StoryDetail = () => {
               <TabsContent value="audios" className="mt-6" ref={audiosRef}>
                 <Card >
                   <CardContent className="p-0">
-                    {story.audios.length > 0 ? <>{story?.audios?.map((chapter, index) => (
+                    {story.audios.length > 0 ? <>{story?.audios?.map((chapter, index) => {
+                      const downloadId = makeDownloadId(story.slug, "audio", chapter.slug);
+                      const isDownloaded = downloadedIds.has(downloadId);
+                      const isPending = isDownloadPending(downloadId);
+                      return (
                       <Link to={`/listen/${slug}/${chapter.slug}`} key={index}>
                         <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
                           <div className="flex items-center gap-4">
@@ -602,14 +678,38 @@ const StoryDetail = () => {
                               {/* <p className="text-xs text-muted-foreground">{chapter.date}</p> */}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Headphones className="h-3 w-3" />
-                            {/* <span>{chapter.views}</span> */}
+                            <button
+                              type="button"
+                              title={isDownloaded ? "Remove download" : "Download for offline listening"}
+                              onClick={async (event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (isPending) return;
+                                if (isDownloaded) {
+                                  await removeDownloadItem(downloadId);
+                                } else {
+                                  await downloadAudio(story.slug, story.title, chapter.slug, chapter.title);
+                                }
+                                refreshDownloadedIds();
+                              }}
+                              className="rounded-full p-1.5 hover:bg-muted"
+                            >
+                              {isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : isDownloaded ? (
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </button>
                           </div>
                         </div>
                         {index < story.chapters.length - 1 && <Separator />}
                       </Link>
-                    ))}</> : <p className="p-4 text-muted-foreground">No audio available.</p>}
+                      );
+                    })}</> : <p className="p-4 text-muted-foreground">No audio available.</p>}
                   </CardContent>
                 </Card>
               </TabsContent>

@@ -97,6 +97,31 @@ export async function apiClient<T>(
   throw new Error(message);
 }
 
+// Like apiClient, but for endpoints that return raw bytes (epub/pdf/audio
+// streams) rather than JSON — used by the offline-download flow to pull
+// plaintext content into memory for client-side encryption.
+export async function fetchAuthenticatedBinary(endpoint: string): Promise<ArrayBuffer> {
+  const token = getAccessToken();
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (res.status === 401) {
+    const refreshed = await tryRefreshTokens();
+    if (refreshed) {
+      return fetchAuthenticatedBinary(endpoint);
+    }
+    clearTokens();
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${endpoint} (${res.status}).`);
+  }
+
+  return res.arrayBuffer();
+}
+
 // ----------------------------
 // ERROR FORMATTING
 // ----------------------------
@@ -131,7 +156,7 @@ function formatValidationErrors(payload: unknown): string | null {
 let isRefreshing = false;
 let queuedRequests: ((token: string | null) => void)[] = [];
 
-async function tryRefreshTokens() {
+export async function tryRefreshTokens() {
   if (isRefreshing) {
     // queue the request
     return new Promise((resolve) => {

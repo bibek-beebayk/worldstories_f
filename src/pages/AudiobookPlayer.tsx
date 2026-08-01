@@ -25,6 +25,8 @@ import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
+import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
+import { makeDownloadId } from "@/lib/offlineDb";
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -78,6 +80,61 @@ const AudioPlayerPage = () => {
   }, []);
 
   const currentAudio = story?.audios[currentIndex];
+
+  // While online, keep using the direct R2 URL — it streams progressively,
+  // whereas a blob: URL needs the whole file decrypted into memory before
+  // playback can start at all. Offline, fall back to a downloaded/decrypted
+  // copy if one exists for this exact chapter.
+  const [audioSrc, setAudioSrc] = useState<string | null>(null);
+  const audioObjectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const revokePrevious = () => {
+      if (audioObjectUrlRef.current) {
+        URL.revokeObjectURL(audioObjectUrlRef.current);
+        audioObjectUrlRef.current = null;
+      }
+    };
+
+    const resolveSrc = async () => {
+      if (!currentAudio || !story_slug) {
+        if (!cancelled) setAudioSrc(null);
+        return;
+      }
+
+      if (!navigator.onLine) {
+        const buffer = await getDecryptedBinary(
+          makeDownloadId(story_slug, "audio", currentAudio.slug)
+        ).catch(() => null);
+        if (buffer && !cancelled) {
+          revokePrevious();
+          const objectUrl = URL.createObjectURL(new Blob([buffer], { type: "audio/mpeg" }));
+          audioObjectUrlRef.current = objectUrl;
+          setAudioSrc(objectUrl);
+          return;
+        }
+      }
+
+      if (!cancelled) {
+        revokePrevious();
+        setAudioSrc(currentAudio.audio_file.toString());
+      }
+    };
+
+    resolveSrc();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentAudio, story_slug]);
+
+  useEffect(() => {
+    return () => {
+      if (audioObjectUrlRef.current) URL.revokeObjectURL(audioObjectUrlRef.current);
+    };
+  }, []);
+
   const audioProgressMap = useMemo(() => {
     const map: Record<
       string,
@@ -461,10 +518,10 @@ const AudioPlayerPage = () => {
                     </p>
                   )}
 
-                  {currentAudio && (
+                  {currentAudio && audioSrc && (
                     <audio
                       ref={audioRef}
-                      src={currentAudio.audio_file.toString()}
+                      src={audioSrc}
                       autoPlay
                       className="hidden"
                       onLoadedMetadata={() => {

@@ -6,6 +6,8 @@ import { API_BASE_URL } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
+import { makeDownloadId } from "@/lib/offlineDb";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -184,11 +186,17 @@ const EpubReader = () => {
         setReaderError("");
         setIsEpubLoading(true);
         pageTurnCountRef.current = 0;
-        // The stream URL doesn't end in ".epub", so epub.js can't infer from the
-        // extension that this is a packed archive (it would otherwise try to
-        // fetch internal paths like "META-INF/container.xml" as if this were an
-        // already-unpacked directory) — openAs forces the correct interpretation.
-        const book = Epub(`${API_BASE_URL}/stories/${story.slug}/epub-stream/`, { openAs: "epub" });
+        // Offline: read a previously-downloaded, decrypted copy straight into
+        // memory instead of hitting the network at all — epub.js accepts an
+        // ArrayBuffer directly and treats it as a packed archive, so no
+        // openAs hint is needed for that path (only the URL form needs it,
+        // since it lacks a ".epub" extension for epub.js to infer from).
+        const offlineBuffer = !navigator.onLine
+          ? await getDecryptedBinary(makeDownloadId(story.slug, "epub")).catch(() => null)
+          : null;
+        const book = offlineBuffer
+          ? Epub(offlineBuffer)
+          : Epub(`${API_BASE_URL}/stories/${story.slug}/epub-stream/`, { openAs: "epub" });
         bookRef.current = book;
 
         // epub.js's page-turn step size ("layout.delta") is just the container
