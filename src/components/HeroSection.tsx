@@ -68,17 +68,47 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
   }, [activeIndex, featuredStories]);
 
   return (
-    <section
-      className="relative overflow-hidden bg-gradient-to-br from-hero-gradient-start via-hero-dark to-hero-gradient-end"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <div className="pointer-events-none absolute -top-20 -right-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-12 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+    <>
+      {/* Always-visible, load-state-independent statement of what WorldStories
+          is, kept in its own minimal strip so the site's purpose is never
+          fully dependent on which story happens to be featured below. */}
+      <div className="bg-hero-dark px-4 py-1.5 text-center">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-white/60 sm:text-xs">
+          WorldStories — read and publish free stories, novels, poetry, and audiobooks from writers around the world.
+        </p>
+      </div>
 
-      <div className="container px-4 py-10 md:py-12">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-center">
-          <div key={`text-${story?.id ?? "empty"}`} className="animate-in fade-in-0 duration-500 space-y-4">
+      <section
+        className="relative isolate overflow-hidden bg-gradient-to-br from-hero-gradient-start via-hero-dark to-hero-gradient-end"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={hasStories && featuredStories.length > 1 ? handleTouchStart : undefined}
+        onTouchEnd={hasStories && featuredStories.length > 1 ? handleTouchEnd : undefined}
+      >
+        {/* Background: the featured story's cover image, full-bleed */}
+        <div className="absolute inset-0">
+          {story?.cover_image ? (
+            <img
+              key={story.id}
+              src={story.cover_image}
+              alt=""
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              className="h-full w-full animate-in fade-in-0 object-cover duration-700"
+            />
+          ) : (
+            <div className="pointer-events-none absolute -top-20 -right-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+          )}
+          {/* Dark overlay — layered vertical + horizontal gradients so the
+              overlaid text stays legible no matter how light or busy the
+              underlying cover image is. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent" />
+        </div>
+
+        <div className="relative z-10 container flex min-h-[440px] items-end px-4 py-10 sm:min-h-[480px] md:min-h-[560px] md:py-14">
+          <div key={`text-${story?.id ?? "empty"}`} className="max-w-2xl animate-in fade-in-0 space-y-4 duration-500">
             <div className="flex items-center gap-3">
               <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/90">
                 Featured Story
@@ -89,12 +119,6 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                 </span>
               )}
             </div>
-
-            {/* Always-visible, load-state-independent statement of what WorldStories is,
-                so the site's purpose is never fully dependent on which story is featured. */}
-            <p className="text-xs font-medium uppercase tracking-wide text-white/60 sm:text-sm">
-              WorldStories — read and publish free stories, novels, poetry, and audiobooks from writers around the world.
-            </p>
 
             <h1 className="max-w-3xl text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
               {story?.title || "Welcome to WorldStories!"}
@@ -139,79 +163,52 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               </Link>
             </Button>
           </div>
-
-          <div
-            className="relative mx-auto max-w-md"
-            onTouchStart={hasStories && featuredStories.length > 1 ? handleTouchStart : undefined}
-            onTouchEnd={hasStories && featuredStories.length > 1 ? handleTouchEnd : undefined}
-          >
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/20 shadow-2xl">
-              <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              {story?.cover_image ? (
-                <img
-                  key={story.id}
-                  src={story.cover_image}
-                  alt={story.title}
-                  loading="eager"
-                  decoding="async"
-                  fetchpriority="high"
-                  className="h-full w-full animate-in fade-in-0 object-cover duration-500"
-                />
-              ) : (
-                <div
-                  key={story?.id ?? "empty"}
-                  className="flex h-full w-full animate-in fade-in-0 items-center justify-center bg-gradient-to-br from-white/10 to-transparent duration-500"
-                >
-                  <BookOpen className="h-16 w-16 text-white/30" />
-                </div>
-              )}
-              <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">
-                <p className="line-clamp-1 text-sm font-medium text-white">
-                  {story?.title || "Welcome to WorldStories!"}
-                </p>
-              </div>
-            </div>
-
-            {hasStories && featuredStories.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  aria-label="Previous featured story"
-                  className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={goNext}
-                  aria-label="Next featured story"
-                  className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70"
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </button>
-
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  {featuredStories.map((s, index) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => goTo(index)}
-                      aria-label={`Go to featured story ${index + 1}`}
-                      aria-current={index === activeIndex}
-                      className={`h-1.5 rounded-full transition-all ${
-                        index === activeIndex ? "w-6 bg-white" : "w-1.5 bg-white/40 hover:bg-white/60"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
         </div>
-      </div>
-    </section>
+
+        {!story?.cover_image && !hasStories && (
+          <div className="pointer-events-none absolute right-10 top-10 z-[5] hidden md:block">
+            <BookOpen className="h-24 w-24 text-white/10" />
+          </div>
+        )}
+
+        {hasStories && featuredStories.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Previous featured story"
+              className="absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70 sm:left-5"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Next featured story"
+              className="absolute right-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70 sm:right-5"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+
+            <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2">
+              {featuredStories.map((s, index) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => goTo(index)}
+                  aria-label={`Go to featured story ${index + 1}`}
+                  aria-current={index === activeIndex}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === activeIndex ? "w-6 bg-white" : "w-1.5 bg-white/40 hover:bg-white/60"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+    </>
   );
 };
 
