@@ -11,6 +11,14 @@ export function formatViews(num: number): string {
   return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
 }
 
+export function formatDurationMinutes(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
 export function formatRelativeDate(dateString: string): string {
   const diffDays = Math.floor((Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays <= 0) return "Today";

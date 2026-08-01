@@ -22,6 +22,7 @@ import { useStory } from "@/hooks/useStory";
 import {
   BookMarked,
   CheckCircle2,
+  Clock,
   Eye,
   Facebook,
   Headphones,
@@ -35,6 +36,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
 import { getLanguageLabel } from "@/lib/languages";
+import { formatDurationMinutes } from "@/lib/utils";
 
 
 const StoryDetail = () => {
@@ -402,30 +404,40 @@ const StoryDetail = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-6 text-sm">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-foreground sm:gap-x-6 sm:text-sm">
                   <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 sm:h-4 sm:w-4" />
                     <span className="font-semibold">{story.rating}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
                     <span>{story.views}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <BookMarked className="h-4 w-4 text-muted-foreground" />
+                    <BookMarked className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
                     <span>{story.chapter_count} chapters</span>
                   </div>
+                  {story.reading_time_minutes != null && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
+                      <span>{formatDurationMinutes(story.reading_time_minutes)} read</span>
+                    </div>
+                  )}
+                  {story.listening_time_minutes != null && (
+                    <div className="flex items-center gap-1">
+                      <Headphones className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
+                      <span>{formatDurationMinutes(story.listening_time_minutes)} listen</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     <span>{story.reviews_count || 0} reviews</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+                    <Heart
+                      className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                    />
                     <span>{favoritesCount}</span>
                   </div>
-                  {/* <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{story.lastUpdated}</span>
-                  </div> */}
                 </div>
 
                 <p className="text-muted-foreground leading-relaxed">

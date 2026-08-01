@@ -105,6 +105,8 @@ export interface StoryDetail extends Story {
   tags: string[] | [];
   audios: Audio[] | [];
   reviews_count: number;
+  reading_time_minutes: number | null;
+  listening_time_minutes: number | null;
 }
 
 export interface ReviewUser {
