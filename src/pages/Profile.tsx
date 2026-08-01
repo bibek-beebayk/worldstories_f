@@ -53,7 +53,7 @@ const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorit
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
@@ -198,6 +198,7 @@ const Profile = () => {
   useEffect(() => {
     const section = searchParams.get("section");
     const view = searchParams.get("view");
+    const story = searchParams.get("story");
 
     if (section && profileSections.includes(section as ProfileSection)) {
       setActiveSection(section as ProfileSection);
@@ -205,6 +206,10 @@ const Profile = () => {
 
     if (view && readerViews.includes(view as ReaderView)) {
       setActiveReaderView(view as ReaderView);
+    }
+
+    if (section === "downloads" && story) {
+      setSelectedDownloadStory(story);
     }
   }, [searchParams]);
 
@@ -1027,7 +1032,10 @@ const Profile = () => {
                       downloads.find((item) => item.story_slug === selectedDownloadStory)?.story_title || ""
                     }
                     downloads={downloads.filter((item) => item.story_slug === selectedDownloadStory)}
-                    onBack={() => setSelectedDownloadStory(null)}
+                    onBack={() => {
+                      setSelectedDownloadStory(null);
+                      setSearchParams({ section: "downloads" });
+                    }}
                     onChange={refreshDownloads}
                   />
                 ) : (
@@ -1050,7 +1058,10 @@ const Profile = () => {
                         <button
                           key={summary.story_slug}
                           type="button"
-                          onClick={() => setSelectedDownloadStory(summary.story_slug)}
+                          onClick={() => {
+                            setSelectedDownloadStory(summary.story_slug);
+                            setSearchParams({ section: "downloads", story: summary.story_slug });
+                          }}
                           className="flex w-full items-center gap-3 rounded-md border p-3 text-left transition hover:bg-muted/50"
                         >
                           <img

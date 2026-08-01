@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,9 +70,15 @@ export default function ProfileDownloadedStory({
   };
 
   const defaultTab = chapters.length > 0 ? "chapters" : "audios";
+  const backTo = `/profile?section=downloads&story=${storySlug}`;
 
-  const renderRow = (item: DownloadRecord, progress: number) => (
-    <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
+  const renderRow = (item: DownloadRecord, progress: number, readHref: string) => (
+    <Link
+      key={item.id}
+      to={readHref}
+      state={{ backTo }}
+      className="flex items-center justify-between gap-3 rounded-md border p-3 transition hover:bg-muted/50"
+    >
       <div className="min-w-0">
         <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
         <p className="text-xs text-muted-foreground">
@@ -82,7 +89,11 @@ export default function ProfileDownloadedStory({
         size="sm"
         variant="outline"
         disabled={removingId === item.id}
-        onClick={() => handleRemove(item.id)}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          handleRemove(item.id);
+        }}
         aria-label="Delete download"
       >
         {removingId === item.id ? (
@@ -91,7 +102,7 @@ export default function ProfileDownloadedStory({
           <Trash2 className="h-4 w-4 text-destructive" />
         )}
       </Button>
-    </div>
+    </Link>
   );
 
   return (
@@ -106,14 +117,18 @@ export default function ProfileDownloadedStory({
         </div>
 
         {fileDownload ? (
-          <div className="flex items-center justify-between gap-3 rounded-md border p-4">
+          <Link
+            to={`/story/${storySlug}/${fileDownload.type}`}
+            state={{ backTo }}
+            className="flex items-center justify-between gap-3 rounded-md border p-4 transition hover:bg-muted/50"
+          >
             <div className="min-w-0">
-              <p className="flex items-center gap-2 font-medium">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                {fileDownload.type.toUpperCase()} file
+              <p className="line-clamp-1 flex items-center gap-2 font-medium">
+                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                {storyTitle}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatBytes(fileDownload.size_bytes)}
+                {fileDownload.type.toUpperCase()} · {formatBytes(fileDownload.size_bytes)}
                 {fileProgress?.progress != null && ` · ${Math.round(fileProgress.progress * 100)}% complete`}
               </p>
             </div>
@@ -121,7 +136,11 @@ export default function ProfileDownloadedStory({
               size="sm"
               variant="outline"
               disabled={removingId === fileDownload.id}
-              onClick={() => handleRemove(fileDownload.id)}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                handleRemove(fileDownload.id);
+              }}
               aria-label="Delete download"
             >
               {removingId === fileDownload.id ? (
@@ -130,7 +149,7 @@ export default function ProfileDownloadedStory({
                 <Trash2 className="h-4 w-4 text-destructive" />
               )}
             </Button>
-          </div>
+          </Link>
         ) : (
           <Tabs defaultValue={defaultTab}>
             <TabsList>
@@ -140,13 +159,17 @@ export default function ProfileDownloadedStory({
 
             {chapters.length > 0 && (
               <TabsContent value="chapters" className="mt-3 space-y-2">
-                {chapters.map((item) => renderRow(item, chapterProgressMap[item.item_slug] || 0))}
+                {chapters.map((item) =>
+                  renderRow(item, chapterProgressMap[item.item_slug] || 0, `/read/${storySlug}/${item.item_slug}`)
+                )}
               </TabsContent>
             )}
 
             {audios.length > 0 && (
               <TabsContent value="audios" className="mt-3 space-y-2">
-                {audios.map((item) => renderRow(item, audioProgressMap[item.item_slug] || 0))}
+                {audios.map((item) =>
+                  renderRow(item, audioProgressMap[item.item_slug] || 0, `/listen/${storySlug}/${item.item_slug}`)
+                )}
               </TabsContent>
             )}
           </Tabs>

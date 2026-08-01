@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Seo from "@/components/Seo";
 
 type ReaderThemeKey = string;
@@ -170,6 +170,11 @@ export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
 const StoryReader = () => {
   const { story_slug, chapter_slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Coming from the Downloads page should return there, not to the story
+  // page — the entry point passes this via navigation state (see
+  // ProfileDownloadedStory.tsx).
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${story_slug}`;
 
   const { data: chapter, isLoading, isError } = useChapter(story_slug, chapter_slug, "text");
   const { data: story } = useStory(story_slug);
@@ -739,7 +744,7 @@ const StoryReader = () => {
         <div className="sticky top-0 z-40 border-b bg-background/90 p-4 backdrop-blur">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Link to={`/story/${story_slug}`}>
+              <Link to={backHref}>
                 <Button variant="ghost" size="icon">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
@@ -834,7 +839,7 @@ const StoryReader = () => {
               <Button
                 variant="outline"
                 className="h-11 rounded-full px-5"
-                onClick={() => navigate(`/read/${story_slug}/${prevChapterSlug}`)}
+                onClick={() => navigate(`/read/${story_slug}/${prevChapterSlug}`, { state: location.state })}
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
                 Previous Chapter
@@ -843,7 +848,7 @@ const StoryReader = () => {
             {nextChapterSlug && (
               <Button
                 className="h-11 rounded-full px-5"
-                onClick={() => navigate(`/read/${story_slug}/${nextChapterSlug}`)}
+                onClick={() => navigate(`/read/${story_slug}/${nextChapterSlug}`, { state: location.state })}
               >
                 Next Chapter
                 <ChevronRight className="ml-1 h-4 w-4" />

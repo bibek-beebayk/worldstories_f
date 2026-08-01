@@ -23,7 +23,7 @@ import {
   Type,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Epub, { type Book, type Rendition } from "epubjs";
 import type { NavItem } from "epubjs/types/navigation";
 import Seo from "@/components/Seo";
@@ -88,6 +88,11 @@ type EpubThemeKey = keyof typeof READER_THEMES;
 const EpubReader = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
+  const location = useLocation();
+  // Coming from the Downloads page should return there, not to the story
+  // page — the entry point passes this via navigation state (see
+  // ProfileDownloadedStory.tsx).
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${slug}`;
   const { data: story, isLoading, isError } = useStory(slug || "");
   const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -474,7 +479,7 @@ const EpubReader = () => {
     return (
       <div className="container mx-auto px-4 py-10">
         <p className="text-sm text-muted-foreground">This story does not have an EPUB file.</p>
-        <Link to={`/story/${story.slug}`}>
+        <Link to={backHref}>
           <Button className="mt-4" variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Story
@@ -592,7 +597,7 @@ const EpubReader = () => {
               )}
             </Button>
             {!isFullscreen && (
-              <Link to={`/story/${story.slug}`}>
+              <Link to={backHref}>
                 <Button variant="outline" size="sm" className="h-8 px-2 sm:h-9 sm:px-3">
                   <ArrowLeft className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Back</span>

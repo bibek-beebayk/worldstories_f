@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,11 @@ const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 const AudioPlayerPage = () => {
   const { story_slug, chapter_slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Coming from the Downloads page should return there, not to the story
+  // page — the entry point passes this via navigation state (see
+  // ProfileDownloadedStory.tsx).
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${story_slug}`;
   const { data: story, isLoading, isError } = useStory(story_slug);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   // Keyed by audio slug rather than a single shared timer — with one shared
@@ -191,7 +196,7 @@ const AudioPlayerPage = () => {
     if (!story || targetIndex < 0 || targetIndex >= story.audios.length) return;
     const target = story.audios[targetIndex];
     setCurrentIndex(targetIndex);
-    navigate(`/listen/${story_slug}/${target.slug}`);
+    navigate(`/listen/${story_slug}/${target.slug}`, { state: location.state });
   };
 
   const togglePlay = () => {
@@ -308,7 +313,13 @@ const AudioPlayerPage = () => {
       }
 
       return (
-        <Link to={`/listen/${story_slug}/${audio.slug}`} key={audio.slug} className="block" onClick={onSelect}>
+        <Link
+          to={`/listen/${story_slug}/${audio.slug}`}
+          state={location.state}
+          key={audio.slug}
+          className="block"
+          onClick={onSelect}
+        >
           <div className={`p-4 transition-colors hover:bg-muted/50 ${isActive ? "bg-primary/5" : ""}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -350,7 +361,7 @@ const AudioPlayerPage = () => {
         noIndex
       />
       <main className="container mx-auto px-3 py-4 sm:px-4 sm:py-8">
-        <Link to={`/story/${story.slug}`} className="mb-4 inline-block">
+        <Link to={backHref} className="mb-4 inline-block">
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to story
