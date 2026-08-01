@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Headphones,
   Pause,
@@ -13,7 +14,8 @@ import {
   ChevronRight,
   Clock3,
   ListMusic,
-  Waves,
+  RotateCcw,
+  RotateCw,
 } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import AdSpace from "@/components/AdSpace";
@@ -22,6 +24,8 @@ import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
+
+const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
 const AudioPlayerPage = () => {
   const { story_slug, chapter_slug } = useParams();
@@ -35,6 +39,8 @@ const AudioPlayerPage = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playlistOpen, setPlaylistOpen] = useState(false);
   const [liveAudioProgressMap, setLiveAudioProgressMap] = useState<
     Record<string, { progress: number; position_seconds: number; duration_seconds: number }>
   >({});
@@ -141,6 +147,22 @@ const AudioPlayerPage = () => {
     }
   };
 
+  const skip = (deltaSeconds: number) => {
+    if (!audioRef.current) return;
+    const duration = Number.isFinite(audioRef.current.duration)
+      ? audioRef.current.duration
+      : durationSeconds;
+    const next = Math.min(Math.max(0, audioRef.current.currentTime + deltaSeconds), duration || 0);
+    audioRef.current.currentTime = next;
+    setCurrentTimeSeconds(next);
+  };
+
+  const cyclePlaybackRate = () => {
+    const nextRate = SPEED_OPTIONS[(SPEED_OPTIONS.indexOf(playbackRate) + 1) % SPEED_OPTIONS.length];
+    setPlaybackRate(nextRate);
+    if (audioRef.current) audioRef.current.playbackRate = nextRate;
+  };
+
   const formatTime = (rawSeconds: number) => {
     const safe = Number.isFinite(rawSeconds) ? Math.max(0, Math.floor(rawSeconds)) : 0;
     const mins = Math.floor(safe / 60);
@@ -162,6 +184,90 @@ const AudioPlayerPage = () => {
       : 0;
   const overallAudioCompletion = Math.round(overallAudioProgress * 100);
 
+  const renderPlaylistItems = (onSelect?: () => void, compact = false) => {
+    if (story.audios.length === 0) {
+      return <p className="p-4 text-sm text-muted-foreground">No audio available.</p>;
+    }
+
+    return story.audios.map((audio, index) => {
+      const saved = liveAudioProgressMap[audio.slug];
+      const completed = Math.round((saved?.progress || 0) * 100);
+      const isActive = index === currentIndex;
+
+      if (compact) {
+        return (
+          <Link
+            to={`/listen/${story_slug}/${audio.slug}`}
+            key={audio.slug}
+            className="block"
+            onClick={onSelect}
+          >
+            <div
+              className={`flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-white/10 ${
+                isActive ? "bg-primary/10" : ""
+              }`}
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Headphones
+                  className={`h-3.5 w-3.5 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Ch {audio.order}
+                  </p>
+                  <h3 className="truncate text-sm font-medium">{audio.title}</h3>
+                </div>
+              </div>
+
+              {isAuthenticated && (
+                <span
+                  className={`shrink-0 text-xs font-medium ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {isActive ? "Now Playing" : `${completed}%`}
+                </span>
+              )}
+            </div>
+            {index < story.audios.length - 1 && <Separator className="bg-border/50" />}
+          </Link>
+        );
+      }
+
+      return (
+        <Link to={`/listen/${story_slug}/${audio.slug}`} key={audio.slug} className="block" onClick={onSelect}>
+          <div className={`p-4 transition-colors hover:bg-muted/50 ${isActive ? "bg-primary/5" : ""}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-muted-foreground">CHAPTER {audio.order}</p>
+                <h3 className="mt-1 line-clamp-2 break-words font-medium">{audio.title}</h3>
+              </div>
+              <Headphones
+                className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
+              />
+            </div>
+
+            {isAuthenticated && (
+              <>
+                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{completed}% complete</span>
+                  {isActive && <span className="text-primary">Now Playing</span>}
+                </div>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${completed}%` }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          {index < story.audios.length - 1 && <Separator />}
+        </Link>
+      );
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_55%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
       <Seo
@@ -170,275 +276,283 @@ const AudioPlayerPage = () => {
         path={`/listen/${story_slug}/${chapter_slug}`}
         noIndex
       />
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-r from-cyan-50 via-sky-50 to-blue-50 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
-                Immersive Listening
-              </p>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{story.title}</h1>
-              <div className="mt-2 flex items-center gap-2">
-                <Badge variant="outline" className="bg-white/80">
-                  {story.story_type}
-                </Badge>
-                <Badge variant="outline" className="bg-white/80">
-                  {story.audios.length} tracks
-                </Badge>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-cyan-300 bg-white/80 px-4 py-2 text-sm">
-              <Waves className="h-4 w-4 text-cyan-700" />
-              <span className="text-slate-700">Now Playing: {currentAudio?.title || "—"}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]">
-          <section className="space-y-6">
+      <main className="container mx-auto px-3 py-4 sm:px-4 sm:py-8">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.55fr_1fr]">
+        <section className="space-y-4 sm:space-y-6">
             <Card className="overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
-              <CardContent className="p-0">
-                <div className="grid grid-cols-1 md:grid-cols-[240px_1fr]">
-                  <div className="relative h-full min-h-[280px]">
-                    <img
-                      src={story.cover_image}
-                      alt={story.title}
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/20" />
+              <CardContent className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-start sm:gap-6 sm:p-6">
+                <div className="relative w-40 shrink-0 overflow-hidden rounded-xl shadow-lg sm:w-56">
+                  <img
+                    src={story.cover_image}
+                    alt={story.title}
+                    className="aspect-square w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                </div>
+
+                <div className="w-full min-w-0 space-y-4">
+                  <div className="text-center sm:text-left">
+                    <h1 className="truncate text-lg font-bold tracking-tight sm:text-xl">
+                      {story.title}
+                    </h1>
+                    <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                      <Badge variant="outline" className="border-white/20 bg-white/10 text-slate-200">
+                        {story.story_type}
+                      </Badge>
+                      <Badge variant="outline" className="border-white/20 bg-white/10 text-slate-200">
+                        {story.audios.length} tracks
+                      </Badge>
+                    </div>
                   </div>
 
-                  <div className="space-y-5 p-6">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-cyan-200">Chapter Audio</p>
-                      <h2 className="mt-1 text-2xl font-semibold leading-tight">
-                        {currentAudio?.title || "No chapter selected"}
-                      </h2>
-                    </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-xs uppercase tracking-wide text-cyan-200">
+                      Chapter {currentAudio?.order ?? ""}
+                    </p>
+                    <h2 className="mt-1 line-clamp-2 text-xl font-semibold leading-tight sm:text-2xl">
+                      {currentAudio?.title || "No chapter selected"}
+                    </h2>
+                  </div>
 
-                    {isAuthenticated ? (
-                      <div className="space-y-3 rounded-xl border border-white/20 bg-white/5 p-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <p className="flex items-center gap-2">
-                            <Clock3 className="h-4 w-4 text-cyan-200" />
-                            Chapter completion
-                          </p>
-                          <span className="font-medium">{currentAudioCompletion}%</span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
-                          <div
-                            className="h-full rounded-full bg-cyan-300 transition-all"
-                            style={{ width: `${currentAudioCompletion}%` }}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between text-sm">
-                          <p>Audiobook completion</p>
-                          <span className="font-medium">{overallAudioCompletion}%</span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
-                          <div
-                            className="h-full rounded-full bg-emerald-300 transition-all"
-                            style={{ width: `${overallAudioCompletion}%` }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-300">
-                        <button
-                          type="button"
-                          onClick={openLoginModal}
-                          className="text-cyan-300 underline-offset-2 hover:underline"
-                        >
-                          Login
-                        </button>{" "}
-                        to track audiobook progress
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between text-sm text-slate-300">
+                  {/* Scrubber */}
+                  <div className="space-y-1.5">
+                    <input
+                      type="range"
+                      min={0}
+                      max={durationSeconds || 0}
+                      step={0.1}
+                      value={Math.min(currentTimeSeconds, durationSeconds || 0)}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        if (audioRef.current) audioRef.current.currentTime = value;
+                        setCurrentTimeSeconds(value);
+                      }}
+                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-cyan-300"
+                    />
+                    <div className="flex items-center justify-between text-xs text-slate-300">
                       <span>{formatTime(currentTimeSeconds)}</span>
                       <span>{formatTime(durationSeconds)}</span>
                     </div>
+                  </div>
 
-                    {currentAudio && (
-                      <audio
-                        ref={audioRef}
-                        src={currentAudio.audio_file.toString()}
-                        autoPlay
-                        onLoadedMetadata={() => {
-                          if (audioRef.current) {
-                            setDurationSeconds(audioRef.current.duration || 0);
-                          }
-                          if (!isAuthenticated) return;
-                          if (!currentAudio?.slug) return;
-                          if (restoredAudioSlugRef.current === currentAudio.slug) return;
+                  {/* Transport controls */}
+                  <div className="flex items-center justify-center gap-2 sm:justify-start sm:gap-3">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={playPrev}
+                      disabled={currentIndex === 0}
+                      aria-label="Previous chapter"
+                      className="h-9 w-9 rounded-full bg-white/15 hover:bg-white/25"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
 
-                          const saved = liveAudioProgressMap[currentAudio.slug];
-                          if (saved && saved.position_seconds > 0 && audioRef.current) {
-                            const duration = Number.isFinite(audioRef.current.duration)
-                              ? audioRef.current.duration
-                              : 0;
-                            const maxSafe = duration > 1 ? duration - 0.5 : duration;
-                            audioRef.current.currentTime = Math.min(saved.position_seconds, maxSafe);
-                          }
-                          restoredAudioSlugRef.current = currentAudio.slug;
-                        }}
-                        onTimeUpdate={() => {
-                          if (audioRef.current) {
-                            setCurrentTimeSeconds(audioRef.current.currentTime || 0);
-                            setDurationSeconds(audioRef.current.duration || 0);
-                          }
-                          if (!isAuthenticated || !audioRef.current || !currentAudio?.slug) return;
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={() => skip(-15)}
+                      aria-label="Rewind 15 seconds"
+                      className="relative h-9 w-9 rounded-full bg-white/15 hover:bg-white/25"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold">
+                        15
+                      </span>
+                    </Button>
+
+                    <Button
+                      onClick={togglePlay}
+                      size="icon"
+                      aria-label={isPlaying ? "Pause" : "Play"}
+                      className="h-14 w-14 rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300"
+                    >
+                      {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={() => skip(15)}
+                      aria-label="Forward 15 seconds"
+                      className="relative h-9 w-9 rounded-full bg-white/15 hover:bg-white/25"
+                    >
+                      <RotateCw className="h-4 w-4" />
+                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold">
+                        15
+                      </span>
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={playNext}
+                      disabled={currentIndex === story.audios.length - 1}
+                      aria-label="Next chapter"
+                      className="h-9 w-9 rounded-full bg-white/15 hover:bg-white/25"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={cyclePlaybackRate}
+                      className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-white/20"
+                    >
+                      {playbackRate}×
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPlaylistOpen(true)}
+                      className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-white/20 xl:hidden"
+                    >
+                      <ListMusic className="h-3.5 w-3.5" />
+                      Playlist
+                      <span className="rounded-full bg-white/20 px-1.5 text-[10px]">
+                        {story.audios.length}
+                      </span>
+                    </button>
+                  </div>
+
+                  {isAuthenticated ? (
+                    <div className="flex items-center justify-between text-xs text-slate-300">
+                      <span className="flex items-center gap-1.5">
+                        <Clock3 className="h-3.5 w-3.5 text-cyan-200" />
+                        Chapter {currentAudioCompletion}%
+                      </span>
+                      <span>Audiobook {overallAudioCompletion}%</span>
+                    </div>
+                  ) : (
+                    <p className="text-center text-xs text-slate-300 sm:text-left">
+                      <button
+                        type="button"
+                        onClick={openLoginModal}
+                        className="text-cyan-300 underline-offset-2 hover:underline"
+                      >
+                        Login
+                      </button>{" "}
+                      to track audiobook progress
+                    </p>
+                  )}
+
+                  {currentAudio && (
+                    <audio
+                      ref={audioRef}
+                      src={currentAudio.audio_file.toString()}
+                      autoPlay
+                      className="hidden"
+                      onLoadedMetadata={() => {
+                        if (audioRef.current) {
+                          setDurationSeconds(audioRef.current.duration || 0);
+                          audioRef.current.playbackRate = playbackRate;
+                        }
+                        if (!isAuthenticated) return;
+                        if (!currentAudio?.slug) return;
+                        if (restoredAudioSlugRef.current === currentAudio.slug) return;
+
+                        const saved = liveAudioProgressMap[currentAudio.slug];
+                        if (saved && saved.position_seconds > 0 && audioRef.current) {
+                          const duration = Number.isFinite(audioRef.current.duration)
+                            ? audioRef.current.duration
+                            : 0;
+                          const maxSafe = duration > 1 ? duration - 0.5 : duration;
+                          audioRef.current.currentTime = Math.min(saved.position_seconds, maxSafe);
+                        }
+                        restoredAudioSlugRef.current = currentAudio.slug;
+                      }}
+                      onTimeUpdate={() => {
+                        if (audioRef.current) {
+                          setCurrentTimeSeconds(audioRef.current.currentTime || 0);
+                          setDurationSeconds(audioRef.current.duration || 0);
+                        }
+                        if (!isAuthenticated || !audioRef.current || !currentAudio?.slug) return;
+                        const duration = audioRef.current.duration || 0;
+                        const position = audioRef.current.currentTime || 0;
+                        const progress = duration > 0 ? position / duration : 0;
+                        setLiveAudioProgressMap((prev) => ({
+                          ...prev,
+                          [currentAudio.slug]: {
+                            progress,
+                            position_seconds: position,
+                            duration_seconds: duration,
+                          },
+                        }));
+                        queueSaveAudioProgress(currentAudio.slug, progress, position, duration);
+                      }}
+                      onEnded={() => {
+                        if (isAuthenticated && currentAudio?.slug && audioRef.current) {
                           const duration = audioRef.current.duration || 0;
-                          const position = audioRef.current.currentTime || 0;
-                          const progress = duration > 0 ? position / duration : 0;
                           setLiveAudioProgressMap((prev) => ({
                             ...prev,
                             [currentAudio.slug]: {
-                              progress,
-                              position_seconds: position,
+                              progress: 1,
+                              position_seconds: duration,
                               duration_seconds: duration,
                             },
                           }));
-                          queueSaveAudioProgress(currentAudio.slug, progress, position, duration);
-                        }}
-                        onEnded={() => {
-                          if (isAuthenticated && currentAudio?.slug && audioRef.current) {
-                            const duration = audioRef.current.duration || 0;
-                            setLiveAudioProgressMap((prev) => ({
-                              ...prev,
-                              [currentAudio.slug]: {
-                                progress: 1,
-                                position_seconds: duration,
-                                duration_seconds: duration,
-                              },
-                            }));
-                            queueSaveAudioProgress(currentAudio.slug, 1, duration, duration);
-                          }
-                          playNext();
-                        }}
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
-                        className="w-full rounded-md bg-white/90"
-                        controls
-                      />
-                    )}
-
-                    <div className="flex items-center gap-3">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={playPrev}
-                        disabled={currentIndex === 0}
-                        className="h-10 w-10 rounded-full bg-white/15 hover:bg-white/25"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </Button>
-
-                      <Button
-                        onClick={togglePlay}
-                        size="icon"
-                        className="h-12 w-12 rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300"
-                      >
-                        {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                      </Button>
-
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={playNext}
-                        disabled={currentIndex === story.audios.length - 1}
-                        className="h-10 w-10 rounded-full bg-white/15 hover:bg-white/25"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <AdSpace size="banner" />
-          </section>
-
-          <aside className="space-y-4">
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-0">
-                <div className="flex items-center justify-between border-b p-4">
-                  <div className="flex items-center gap-2">
-                    <ListMusic className="h-4 w-4 text-primary" />
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      Playlist
-                    </h2>
-                  </div>
-                  <Badge variant="secondary">{story.audios.length}</Badge>
-                </div>
-
-                <div className="max-h-[65vh] overflow-y-auto">
-                  {story.audios.length > 0 ? (
-                    story.audios.map((audio, index) => {
-                      const saved = liveAudioProgressMap[audio.slug];
-                      const completed = Math.round((saved?.progress || 0) * 100);
-                      const isActive = index === currentIndex;
-
-                      return (
-                        <Link
-                          to={`/listen/${story_slug}/${audio.slug}`}
-                          key={audio.slug}
-                          className="block"
-                        >
-                          <div
-                            className={`p-4 transition-colors hover:bg-muted/50 ${
-                              isActive ? "bg-primary/5" : ""
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold text-muted-foreground">
-                                  CHAPTER {audio.order}
-                                </p>
-                                <h3 className="mt-1 line-clamp-2 break-words font-medium">
-                                  {audio.title}
-                                </h3>
-                              </div>
-                              <Headphones
-                                className={`h-4 w-4 flex-shrink-0 ${
-                                  isActive ? "text-primary" : "text-muted-foreground"
-                                }`}
-                              />
-                            </div>
-
-                            {isAuthenticated && (
-                              <>
-                                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                                  <span>{completed}% complete</span>
-                                  {isActive && <span className="text-primary">Now Playing</span>}
-                                </div>
-                                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                                  <div
-                                    className="h-full rounded-full bg-primary transition-all"
-                                    style={{ width: `${completed}%` }}
-                                  />
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          {index < story.audios.length - 1 && <Separator />}
-                        </Link>
-                      );
-                    })
-                  ) : (
-                    <p className="p-4 text-sm text-muted-foreground">No audio available.</p>
+                          queueSaveAudioProgress(currentAudio.slug, 1, duration, duration);
+                        }
+                        playNext();
+                      }}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                    />
                   )}
                 </div>
               </CardContent>
             </Card>
 
+            <AdSpace size="banner" />
             <AdSpace size="rectangle" />
-          </aside>
+        </section>
+
+        {/* Desktop/large-screen only: the original persistent playlist sidebar.
+            Below xl, the same list is reached via the in-player "Playlist"
+            toggle, which opens it as a bottom sheet instead — there isn't
+            enough width for a side-by-side sidebar on those screens. */}
+        <aside className="hidden xl:block xl:space-y-4">
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between border-b p-4">
+                <div className="flex items-center gap-2">
+                  <ListMusic className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Playlist
+                  </h2>
+                </div>
+                <Badge variant="secondary">{story.audios.length}</Badge>
+              </div>
+
+              <div className="max-h-[65vh] overflow-y-auto">{renderPlaylistItems()}</div>
+            </CardContent>
+          </Card>
+        </aside>
         </div>
       </main>
+
+      <Sheet open={playlistOpen} onOpenChange={setPlaylistOpen}>
+        <SheetContent
+          side="bottom"
+          className="flex max-h-[80vh] flex-col rounded-t-2xl border-white/20 bg-background/90 p-0 backdrop-blur-xl duration-200 data-[state=closed]:duration-150 data-[state=open]:duration-200 supports-[backdrop-filter]:bg-background/75 xl:hidden"
+        >
+          <SheetHeader className="flex-row items-center justify-between space-y-0 border-b border-white/10 p-3 pr-12 text-left">
+            <div className="flex items-center gap-2">
+              <ListMusic className="h-4 w-4 text-primary" />
+              <SheetTitle className="text-sm font-semibold uppercase tracking-wide text-foreground">
+                Playlist
+              </SheetTitle>
+            </div>
+            <Badge variant="secondary">{story.audios.length}</Badge>
+          </SheetHeader>
+
+          <div className="overflow-y-auto">
+            {renderPlaylistItems(() => setPlaylistOpen(false), true)}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
