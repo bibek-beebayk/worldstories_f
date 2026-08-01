@@ -2,11 +2,12 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoginModal from "@/components/LoginModal";
 import PullToRefresh from "@/components/PullToRefresh";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Seo from "@/components/Seo";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { flushPendingSaves } from "@/lib/progressSync";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const routeSeo: Record<string, { title: string; description: string; noIndex?: boolean }> = {
   "/": {
@@ -45,7 +46,29 @@ const routeSeo: Record<string, { title: string; description: string; noIndex?: b
 
 export default function DefaultLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const isOnline = useOnlineStatus();
   const { isImmersiveReaderActive } = useImmersiveReader();
+
+  // Offline, only content that can actually work without a network — the
+  // readers/player (which fall back to a downloaded, decrypted copy) and the
+  // Downloads page itself (purely local IndexedDB) — stays reachable.
+  // Everything else depends on the API and would otherwise just dead-end.
+  const isReaderOrListenerRoute =
+    location.pathname.startsWith("/read/") ||
+    location.pathname.startsWith("/listen/") ||
+    location.pathname.endsWith("/pdf") ||
+    location.pathname.endsWith("/epub");
+  const isDownloadsPage =
+    location.pathname === "/profile" && new URLSearchParams(location.search).get("section") === "downloads";
+  const isAllowedOffline = isReaderOrListenerRoute || isDownloadsPage;
+
+  useEffect(() => {
+    if (!isOnline && !isAllowedOffline) {
+      navigate("/profile?section=downloads", { replace: true });
+    }
+  }, [isOnline, isAllowedOffline, navigate]);
+
   const isPrivateUtilityRoute =
     location.pathname.startsWith("/read/") ||
     location.pathname.startsWith("/listen/") ||

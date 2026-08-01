@@ -144,6 +144,11 @@ const Profile = () => {
     queryKey: ["profile-me"],
     queryFn: authApi.getMe,
     enabled: isAuthenticated,
+    // Fails fast instead of retrying for several seconds — important while
+    // offline, since Downloads (unlike the rest of this page) doesn't
+    // actually need this request to succeed and shouldn't be stuck behind
+    // it indefinitely.
+    retry: false,
   });
 
   const { data: readingData } = useQuery({
@@ -613,7 +618,64 @@ const Profile = () => {
     );
   }
 
-  if (isLoading || !profile) return <FullScreenLoader />;
+  if (isLoading) return <FullScreenLoader />;
+
+  // Profile data failed to load (almost always: offline, no cached
+  // response) — the rest of this page genuinely needs it, but Downloads
+  // doesn't (it's all local IndexedDB), so it still gets a working,
+  // stripped-down view instead of being stuck behind a fetch that can't
+  // succeed right now.
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-slate-100 px-3 py-6 sm:px-4">
+        <Seo title="Downloads | WorldStories" description="Content saved on this device for offline access." path="/profile" noIndex />
+        <div className="mx-auto max-w-2xl space-y-4">
+          <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
+            You're offline — showing content saved on this device.
+          </div>
+          {selectedDownloadStory ? (
+            <ProfileDownloadedStory
+              storySlug={selectedDownloadStory}
+              storyTitle={downloads.find((item) => item.story_slug === selectedDownloadStory)?.story_title || ""}
+              downloads={downloads.filter((item) => item.story_slug === selectedDownloadStory)}
+              onBack={() => {
+                setSelectedDownloadStory(null);
+                setSearchParams({ section: "downloads" });
+              }}
+              onChange={refreshDownloads}
+            />
+          ) : (
+            <Card className="shadow-sm">
+              <CardContent className="space-y-4 p-5">
+                <div className="flex items-center justify-between rounded-md border bg-muted/40 p-3 text-sm">
+                  <span className="text-muted-foreground">
+                    {downloads.length} item{downloads.length === 1 ? "" : "s"} downloaded ·{" "}
+                    {formatBytes(downloads.reduce((sum, item) => sum + item.size_bytes, 0))}
+                  </span>
+                </div>
+                {groupDownloadsByStory(downloads).map((summary) => (
+                  <DownloadStorySummaryRow
+                    key={summary.story_slug}
+                    summary={summary}
+                    onClick={() => {
+                      setSelectedDownloadStory(summary.story_slug);
+                      setSearchParams({ section: "downloads", story: summary.story_slug });
+                    }}
+                  />
+                ))}
+                {downloads.length === 0 && (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Download className="h-4 w-4" />
+                    Nothing downloaded yet.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100">
