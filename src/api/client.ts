@@ -99,8 +99,14 @@ export async function apiClient<T>(
 
 // Like apiClient, but for endpoints that return raw bytes (epub/pdf/audio
 // streams) rather than JSON — used by the offline-download flow to pull
-// plaintext content into memory for client-side encryption.
-export async function fetchAuthenticatedBinary(endpoint: string): Promise<ArrayBuffer> {
+// plaintext content into memory for client-side encryption. Accepts an
+// optional onProgress callback (0-1) for showing download percentage; when
+// given, the response body is read as a stream instead of via the simpler
+// res.arrayBuffer() so byte counts are observable as they arrive.
+export async function fetchAuthenticatedBinary(
+  endpoint: string,
+  onProgress?: (fraction: number) => void
+): Promise<ArrayBuffer> {
   const token = getAccessToken();
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -109,7 +115,7 @@ export async function fetchAuthenticatedBinary(endpoint: string): Promise<ArrayB
   if (res.status === 401) {
     const refreshed = await tryRefreshTokens();
     if (refreshed) {
-      return fetchAuthenticatedBinary(endpoint);
+      return fetchAuthenticatedBinary(endpoint, onProgress);
     }
     clearTokens();
     throw new Error("Session expired. Please log in again.");
@@ -119,7 +125,34 @@ export async function fetchAuthenticatedBinary(endpoint: string): Promise<ArrayB
     throw new Error(`Failed to fetch ${endpoint} (${res.status}).`);
   }
 
-  return res.arrayBuffer();
+  if (!onProgress || !res.body) {
+    return res.arrayBuffer();
+  }
+
+  // Content-Length may be absent (e.g. chunked responses) — in that case we
+  // can still read the stream, just without a meaningful percentage.
+  const totalBytes = Number(res.headers.get("content-length")) || 0;
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let receivedBytes = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      receivedBytes += value.byteLength;
+      if (totalBytes > 0) onProgress(Math.min(1, receivedBytes / totalBytes));
+    }
+  }
+
+  const combined = new Uint8Array(receivedBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return combined.buffer;
 }
 
 // ----------------------------

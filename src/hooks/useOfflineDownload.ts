@@ -80,6 +80,10 @@ export function useDownloadedIds(story_slug: string) {
 
 export function useOfflineDownload() {
   const [pendingIds, setPendingIds] = useState<Record<string, boolean>>({});
+  // Only set for downloads that stream (audio/epub/pdf) — chapters are tiny
+  // JSON payloads fetched via apiClient (not a raw stream), so there's no
+  // byte-level progress to report for them; they just show a spinner.
+  const [progressById, setProgressById] = useState<Record<string, number>>({});
 
   const withPending = useCallback(async (id: string, run: () => Promise<void>) => {
     setPendingIds((prev) => ({ ...prev, [id]: true }));
@@ -87,6 +91,11 @@ export function useOfflineDownload() {
       await run();
     } finally {
       setPendingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setProgressById((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
@@ -109,8 +118,18 @@ export function useOfflineDownload() {
   const downloadAudio = useCallback(
     (story_slug: string, story_title: string, audio_slug: string, title: string) => {
       const id = makeDownloadId(story_slug, "audio", audio_slug);
+      // Set before the fetch starts, not just on the first chunk — opening
+      // the connection to R2 alone can take over a second with nothing to
+      // show for it otherwise, and the file itself often arrives in only a
+      // couple of chunks milliseconds apart, so waiting for real data before
+      // showing anything means most downloads never visibly show a percentage
+      // at all.
+      setProgressById((prev) => ({ ...prev, [id]: 0 }));
       return withPending(id, async () => {
-        const plaintext = await fetchAuthenticatedBinary(`/stories/${story_slug}/audios/${audio_slug}/stream/`);
+        const plaintext = await fetchAuthenticatedBinary(
+          `/stories/${story_slug}/audios/${audio_slug}/stream/`,
+          (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
+        );
         await storePlaintext(id, story_slug, story_title, "audio", audio_slug, title, plaintext);
       });
     },
@@ -120,8 +139,12 @@ export function useOfflineDownload() {
   const downloadFile = useCallback(
     (story_slug: string, story_title: string, type: "epub" | "pdf", title: string) => {
       const id = makeDownloadId(story_slug, type);
+      setProgressById((prev) => ({ ...prev, [id]: 0 }));
       return withPending(id, async () => {
-        const plaintext = await fetchAuthenticatedBinary(`/stories/${story_slug}/${type}-stream/`);
+        const plaintext = await fetchAuthenticatedBinary(
+          `/stories/${story_slug}/${type}-stream/`,
+          (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
+        );
         await storePlaintext(id, story_slug, story_title, type, "", title, plaintext);
       });
     },
@@ -136,5 +159,6 @@ export function useOfflineDownload() {
     downloadFile,
     removeDownloadItem,
     isPending: (id: string) => Boolean(pendingIds[id]),
+    getProgress: (id: string): number | null => (id in progressById ? progressById[id] : null),
   };
 }

@@ -54,6 +54,7 @@ const StoryDetail = () => {
     downloadFile,
     removeDownloadItem,
     isPending: isDownloadPending,
+    getProgress: getDownloadProgress,
   } = useOfflineDownload();
   // const [pendingScroll, setPendingScroll] = useState<"chapters" | "audios" | null>(null);
 
@@ -511,7 +512,14 @@ const StoryDetail = () => {
                       }}
                     >
                       {isDownloadPending(primaryFileDownloadId) ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="flex items-center gap-1.5">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {getDownloadProgress(primaryFileDownloadId) != null && (
+                            <span className="text-xs tabular-nums">
+                              {Math.round((getDownloadProgress(primaryFileDownloadId) || 0) * 100)}%
+                            </span>
+                          )}
+                        </span>
                       ) : downloadedIds.has(primaryFileDownloadId) ? (
                         <Trash2 className="h-4 w-4 text-destructive" />
                       ) : (
@@ -680,6 +688,11 @@ const StoryDetail = () => {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Headphones className="h-3 w-3" />
+                            {isPending && getDownloadProgress(downloadId) != null && (
+                              <span className="text-xs tabular-nums">
+                                {Math.round((getDownloadProgress(downloadId) || 0) * 100)}%
+                              </span>
+                            )}
                             <button
                               type="button"
                               title={isDownloaded ? "Remove download" : "Download for offline listening"}
