@@ -27,6 +27,7 @@ import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
+import { queueAudioProgress } from "@/lib/progressSync";
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -157,15 +158,14 @@ const AudioPlayerPage = () => {
     durationSeconds: number
   ) => {
     if (!isAuthenticated || !story_slug) return;
+    const normalizedProgress = Math.min(1, Math.max(0, progress));
+    const normalizedPosition = Math.max(0, positionSeconds);
+    const normalizedDuration = Math.max(0, durationSeconds);
     storyApi
-      .saveAudioProgress(
-        story_slug,
-        audioSlug,
-        Math.min(1, Math.max(0, progress)),
-        Math.max(0, positionSeconds),
-        Math.max(0, durationSeconds)
-      )
-      .catch(() => {});
+      .saveAudioProgress(story_slug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)
+      .catch(() =>
+        queueAudioProgress(story_slug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)
+      );
   };
 
   const queueSaveAudioProgress = (

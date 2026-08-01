@@ -8,6 +8,7 @@ import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
+import { queueFileProgress } from "@/lib/progressSync";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -125,9 +126,10 @@ const EpubReader = () => {
       window.clearTimeout(saveProgressTimerRef.current);
     }
     saveProgressTimerRef.current = window.setTimeout(() => {
+      const normalized = Math.min(1, Math.max(0, progressFraction));
       storyApi
-        .saveFileReadingProgress(story.slug, "epub", Math.min(1, Math.max(0, progressFraction)), cfi)
-        .catch(() => {});
+        .saveFileReadingProgress(story.slug, "epub", normalized, cfi)
+        .catch(() => queueFileProgress(story.slug, "epub", normalized, cfi));
     }, 400);
   };
 

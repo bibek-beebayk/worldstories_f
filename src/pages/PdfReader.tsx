@@ -6,6 +6,7 @@ import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
+import { queueFileProgress } from "@/lib/progressSync";
 import { ArrowLeft, Loader2, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -148,7 +149,9 @@ const PdfReader = () => {
     }
     saveProgressTimerRef.current = window.setTimeout(() => {
       const fraction = Math.min(1, Math.max(0, pageNumber / numPages));
-      storyApi.saveFileReadingProgress(story.slug, "pdf", fraction, String(pageNumber)).catch(() => {});
+      storyApi
+        .saveFileReadingProgress(story.slug, "pdf", fraction, String(pageNumber))
+        .catch(() => queueFileProgress(story.slug, "pdf", fraction, String(pageNumber)));
     }, 400);
   }, [storageKey, pageNumber, isAuthenticated, story?.slug, numPages]);
 

@@ -6,6 +6,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Seo from "@/components/Seo";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
+import { flushPendingSaves } from "@/lib/progressSync";
 
 const routeSeo: Record<string, { title: string; description: string; noIndex?: boolean }> = {
   "/": {
@@ -70,6 +71,15 @@ export default function DefaultLayout() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [location.pathname]);
+
+  // Retries any progress saves that failed while offline. Runs once on
+  // mount (catches anything left queued from a previous offline session)
+  // and again every time the browser regains connectivity.
+  useEffect(() => {
+    flushPendingSaves();
+    window.addEventListener("online", flushPendingSaves);
+    return () => window.removeEventListener("online", flushPendingSaves);
+  }, []);
 
   return (
     <>

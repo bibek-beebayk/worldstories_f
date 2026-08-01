@@ -3,6 +3,7 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { storyApi } from "@/api/story";
+import { queueChapterProgress } from "@/lib/progressSync";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -496,7 +497,9 @@ const StoryReader = () => {
     }
 
     saveTimerRef.current = window.setTimeout(() => {
-      storyApi.saveReadingProgress(story_slug, chapter_slug, normalized).catch(() => {});
+      storyApi
+        .saveReadingProgress(story_slug, chapter_slug, normalized)
+        .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized));
     }, 400);
   };
 
