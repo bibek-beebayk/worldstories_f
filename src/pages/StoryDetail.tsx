@@ -513,20 +513,28 @@ const StoryDetail = () => {
                     >
                       {isDownloadPending(primaryFileDownloadId) ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {getDownloadProgress(primaryFileDownloadId) != null
-                            ? `Downloading… ${Math.round((getDownloadProgress(primaryFileDownloadId) || 0) * 100)}%`
-                            : "Downloading…"}
+                          <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" />
+                          <span className="min-w-0 truncate">
+                            {getDownloadProgress(primaryFileDownloadId) != null
+                              ? `${Math.round((getDownloadProgress(primaryFileDownloadId) || 0) * 100)}%`
+                              : "Downloading…"}
+                          </span>
                         </>
                       ) : downloadedIds.has(primaryFileDownloadId) ? (
                         <>
-                          <Trash2 className="h-4 w-4 mr-2 text-destructive" />
-                          Delete Download
+                          <Trash2 className="h-4 w-4 mr-2 shrink-0 text-destructive" />
+                          <span className="min-w-0 truncate">
+                            <span className="sm:hidden">Delete</span>
+                            <span className="hidden sm:inline">Delete Download</span>
+                          </span>
                         </>
                       ) : (
                         <>
-                          <Download className="h-4 w-4 mr-2" />
-                          Download for Offline Reading
+                          <Download className="h-4 w-4 mr-2 shrink-0" />
+                          <span className="min-w-0 truncate">
+                            <span className="sm:hidden">Download</span>
+                            <span className="hidden sm:inline">Download for Offline Reading</span>
+                          </span>
                         </>
                       )}
                     </Button>
