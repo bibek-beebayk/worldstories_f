@@ -32,7 +32,12 @@ const AudioPlayerPage = () => {
   const navigate = useNavigate();
   const { data: story, isLoading, isError } = useStory(story_slug);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
+  // Keyed by audio slug rather than a single shared timer — with one shared
+  // timer, finishing chapter N and moving to chapter N+1 would have the new
+  // chapter's very first timeupdate cancel chapter N's still-pending "100%
+  // complete" save before it ever fired, permanently losing that chapter's
+  // final progress and dragging down the book's overall completion.
+  const saveTimersRef = useRef<Record<string, number>>({});
   const restoredAudioSlugRef = useRef<string | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -67,9 +72,7 @@ const AudioPlayerPage = () => {
 
   useEffect(() => {
     return () => {
-      if (saveTimerRef.current) {
-        window.clearTimeout(saveTimerRef.current);
-      }
+      Object.values(saveTimersRef.current).forEach((timerId) => window.clearTimeout(timerId));
     };
   }, []);
 
@@ -89,6 +92,24 @@ const AudioPlayerPage = () => {
     setLiveAudioProgressMap(audioProgressMap);
   }, [audioProgressMap]);
 
+  const persistAudioProgress = (
+    audioSlug: string,
+    progress: number,
+    positionSeconds: number,
+    durationSeconds: number
+  ) => {
+    if (!isAuthenticated || !story_slug) return;
+    storyApi
+      .saveAudioProgress(
+        story_slug,
+        audioSlug,
+        Math.min(1, Math.max(0, progress)),
+        Math.max(0, positionSeconds),
+        Math.max(0, durationSeconds)
+      )
+      .catch(() => {});
+  };
+
   const queueSaveAudioProgress = (
     audioSlug: string,
     progress: number,
@@ -97,20 +118,14 @@ const AudioPlayerPage = () => {
   ) => {
     if (!isAuthenticated || !story_slug) return;
 
-    if (saveTimerRef.current) {
-      window.clearTimeout(saveTimerRef.current);
+    const existingTimer = saveTimersRef.current[audioSlug];
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
     }
 
-    saveTimerRef.current = window.setTimeout(() => {
-      storyApi
-        .saveAudioProgress(
-          story_slug,
-          audioSlug,
-          Math.min(1, Math.max(0, progress)),
-          Math.max(0, positionSeconds),
-          Math.max(0, durationSeconds)
-        )
-        .catch(() => {});
+    saveTimersRef.current[audioSlug] = window.setTimeout(() => {
+      delete saveTimersRef.current[audioSlug];
+      persistAudioProgress(audioSlug, progress, positionSeconds, durationSeconds);
     }, 700);
   };
 
@@ -493,7 +508,11 @@ const AudioPlayerPage = () => {
                               duration_seconds: duration,
                             },
                           }));
-                          queueSaveAudioProgress(currentAudio.slug, 1, duration, duration);
+                          // Fired immediately (not debounced) — this is a
+                          // one-shot "chapter complete" event, not a stream of
+                          // timeupdate ticks, and playNext() below moves to the
+                          // next chapter right away.
+                          persistAudioProgress(currentAudio.slug, 1, duration, duration);
                         }
                         playNext();
                       }}
