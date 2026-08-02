@@ -54,6 +54,7 @@ const AudioPlayerPage = () => {
   const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [liveAudioProgressMap, setLiveAudioProgressMap] = useState<
     Record<string, { progress: number; position_seconds: number; duration_seconds: number }>
@@ -136,32 +137,15 @@ const AudioPlayerPage = () => {
     };
   }, [currentAudio, story_slug]);
 
-  // Explicit load()+play() on every src change, instead of the declarative
-  // autoPlay HTML attribute — iOS Safari blocks unmuted autoplay via that
-  // attribute outright regardless of prior interaction, whereas a real
-  // programmatic play() call can succeed under Safari's "sticky user
-  // activation" model. Just as important: browsers don't reliably resume
-  // playback when an existing <audio> element's src is mutated in place
-  // (as happens when switching chapters, since the element itself never
-  // remounts) unless load() is called first — without it, the element can
-  // end up in an ambiguous state that (at least on iOS) was firing a
-  // spurious "ended" event and cascading through the rest of the playlist
-  // instead of actually playing anything.
+  // Loading is safe here, but playback must remain in a direct user event.
+  // In particular, iOS Safari rejects an unmuted play() made by an effect,
+  // even when navigation to this page originally came from a user tap.
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl || !audioSrc) return;
+    setIsPlaying(false);
+    setPlaybackError(null);
     audioEl.load();
-    const playAttempt = audioEl.play();
-    if (playAttempt && typeof playAttempt.then === "function") {
-      playAttempt
-        .then(() => setIsPlaying(true))
-        .catch(() => {
-          // Autoplay blocked (most commonly iOS without a direct tap) —
-          // leave it paused so the UI honestly shows Play rather than a
-          // Pause icon over silence, and the user can tap to start it.
-          setIsPlaying(false);
-        });
-    }
   }, [audioSrc]);
 
   useEffect(() => {
@@ -231,10 +215,18 @@ const AudioPlayerPage = () => {
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (audioRef.current.paused) {
+      setPlaybackError(null);
       audioRef.current
         .play()
         .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false));
+        .catch((error: unknown) => {
+          setIsPlaying(false);
+          setPlaybackError(
+            error instanceof DOMException && error.name === "NotAllowedError"
+              ? "Your browser blocked playback. Tap Play again to start listening."
+              : "This audio could not be played. Please check your connection and try again."
+          );
+        });
     } else {
       audioRef.current.pause();
       setIsPlaying(false);
@@ -519,6 +511,12 @@ const AudioPlayerPage = () => {
                     </Button>
                   </div>
 
+                  {playbackError && (
+                    <p role="alert" className="text-center text-sm text-rose-200 sm:text-left">
+                      {playbackError}
+                    </p>
+                  )}
+
                   <div className="flex items-center justify-center gap-2 sm:justify-start">
                     <button
                       type="button"
@@ -566,6 +564,8 @@ const AudioPlayerPage = () => {
                     <audio
                       ref={audioRef}
                       src={audioSrc}
+                      preload="metadata"
+                      playsInline
                       className="hidden"
                       onLoadedMetadata={() => {
                         if (audioRef.current) {
@@ -626,6 +626,12 @@ const AudioPlayerPage = () => {
                       }}
                       onPlay={() => setIsPlaying(true)}
                       onPause={() => setIsPlaying(false)}
+                      onError={() => {
+                        setIsPlaying(false);
+                        setPlaybackError(
+                          "This audio could not be loaded. Please check your connection and try again."
+                        );
+                      }}
                     />
                   )}
                 </div>
