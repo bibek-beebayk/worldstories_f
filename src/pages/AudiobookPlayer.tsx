@@ -138,13 +138,25 @@ const AudioPlayerPage = () => {
     };
   }, [currentAudio, story_slug]);
 
-  // Playback must remain in a direct user event. Reset only UI state here;
-  // the keyed audio element below remounts whenever the source changes, so
-  // calling load() programmatically (which iOS may ignore) is unnecessary.
+  // The <audio> element below is keyed on the chapter slug, so React mounts
+  // a brand-new DOM node per chapter rather than mutating the src of an
+  // existing one — browsers don't reliably resume/re-trigger playback on an
+  // in-place src change, which was the actual cause of a nasty earlier bug
+  // (a "stuck" element reporting a spurious `ended` and cascading through
+  // the entire playlist instead of playing anything). A fresh element still
+  // needs an explicit play() once it's mounted, though — there's no
+  // autoplay attribute — so this effect does that and reflects the *real*
+  // outcome: iOS in particular routinely blocks it outright, in which case
+  // this leaves the UI on Play rather than pretending playback started.
   useEffect(() => {
     if (!audioSrc) return;
-    setIsPlaying(false);
     setPlaybackError(null);
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+    audioEl
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => setIsPlaying(false));
   }, [audioSrc]);
 
   useEffect(() => {
@@ -517,15 +529,14 @@ const AudioPlayerPage = () => {
                   )}
 
                   {currentAudio && audioSrc && (
-                    <div className="space-y-1.5">
-                      <audio
-                        ref={audioRef}
-                        src={audioSrc}
-                        controls
-                        preload="metadata"
-                        playsInline
-                        className="h-10 w-full"
-                        onLoadedMetadata={() => {
+                    <audio
+                      key={currentAudio.slug}
+                      ref={audioRef}
+                      src={audioSrc}
+                      className="hidden"
+                      preload="metadata"
+                      playsInline
+                      onLoadedMetadata={() => {
                           if (audioRef.current) {
                             setDurationSeconds(audioRef.current.duration || 0);
                             audioRef.current.playbackRate = playbackRate;
@@ -590,17 +601,6 @@ const AudioPlayerPage = () => {
                           );
                         }}
                       />
-                      {!audioSrc.startsWith("blob:") && (
-                        <a
-                          href={audioSrc}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-block text-xs text-cyan-200 underline-offset-2 hover:underline"
-                        >
-                          Open audio directly
-                        </a>
-                      )}
-                    </div>
                   )}
 
                   <div className="flex items-center justify-center gap-2 sm:justify-start">
