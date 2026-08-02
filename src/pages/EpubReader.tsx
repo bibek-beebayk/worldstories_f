@@ -22,7 +22,7 @@ import {
   Sun,
   Type,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Epub, { type Book, type Rendition } from "epubjs";
 import type { NavItem } from "epubjs/types/navigation";
@@ -375,23 +375,23 @@ const EpubReader = () => {
   // than a near-guarantee on every single page turn.
   const RESYNC_EVERY_N_TURNS = 20;
 
-  const maybeResyncAfterTurn = () => {
+  const maybeResyncAfterTurn = useCallback(() => {
     pageTurnCountRef.current += 1;
     if (pageTurnCountRef.current % RESYNC_EVERY_N_TURNS === 0) {
       // Give the "relocated" event (scheduled via requestAnimationFrame inside
       // next()/prev()) a moment to fire and update lastCfiRef before resyncing.
       requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight()));
     }
-  };
+  }, []);
 
-  const goNext = async () => {
+  const goNext = useCallback(async () => {
     await renditionRef.current?.next();
     maybeResyncAfterTurn();
-  };
-  const goPrev = async () => {
+  }, [maybeResyncAfterTurn]);
+  const goPrev = useCallback(async () => {
     await renditionRef.current?.prev();
     maybeResyncAfterTurn();
-  };
+  }, [maybeResyncAfterTurn]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -401,7 +401,7 @@ const EpubReader = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [goNext, goPrev]);
 
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));

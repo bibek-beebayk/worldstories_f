@@ -10,7 +10,12 @@ import { queueFileProgress } from "@/lib/progressSync";
 import { ArrowLeft, Loader2, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+import {
+  GlobalWorkerOptions,
+  getDocument,
+  type PDFDocumentProxy,
+  type RenderTask,
+} from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import Seo from "@/components/Seo";
 
@@ -29,7 +34,7 @@ const PdfReader = () => {
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const saveProgressTimerRef = useRef<number | null>(null);
-  const [pdfDoc, setPdfDoc] = useState<any>(null);
+  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [zoom, setZoom] = useState(1.2);
@@ -101,12 +106,12 @@ const PdfReader = () => {
     return () => {
       isMounted = false;
     };
-  }, [story?.pdf_file, storageKey, isAuthenticated]);
+  }, [story?.pdf_file, story?.slug, storageKey, isAuthenticated]);
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
     let canceled = false;
-    let renderTask: any = null;
+    let renderTask: RenderTask | null = null;
 
     const renderPage = async () => {
       try {

@@ -15,6 +15,7 @@ import { authApi } from "@/api/auth";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bold,
@@ -486,12 +487,16 @@ const Profile = () => {
     if (showCreateSubmissionForm && createContentEditorRef.current) {
       createContentEditorRef.current.innerHTML = createContent || "";
     }
+    // Seed once on open; state changes while typing must not reset the caret.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCreateSubmissionForm]);
 
   useEffect(() => {
     if (showSubmissionEditModal && editContentEditorRef.current) {
       editContentEditorRef.current.innerHTML = submissionContent || "";
     }
+    // Seed once on open; state changes while typing must not reset the caret.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSubmissionEditModal]);
 
   const renderPagination = (
@@ -1601,7 +1606,7 @@ const Profile = () => {
                     {activeSubmissionData.content ? (
                       <div
                         className="prose prose-sm max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: activeSubmissionData.content }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(activeSubmissionData.content) }}
                       />
                     ) : (
                       "-"

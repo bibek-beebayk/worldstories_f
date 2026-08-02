@@ -1,7 +1,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { getAccessToken } from "@/api/client";
 import { authApi } from "@/api/auth";
@@ -10,6 +10,7 @@ import OpenLoginModalRedirect from "@/components/OpenLoginModalRedirect";
 import { AuthModalProvider } from "@/context/AuthModalContext";
 import { ImmersiveReaderProvider } from "@/context/ImmersiveReaderContext";
 import { lazy, Suspense } from "react";
+import { queryClient } from "@/lib/queryClient";
 
 import DefaultLayout from "@/layouts/DefaultLayout";
 import AdminLayout from "@/layouts/AdminLayout";
@@ -38,8 +39,6 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminHome = lazy(() => import("./pages/AdminHome"));
 const AdminSubmissions = lazy(() => import("./pages/AdminSubmissions"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
-
-const queryClient = new QueryClient();
 
 const RequireAdminAuth = () => {
   const accessToken = getAccessToken();

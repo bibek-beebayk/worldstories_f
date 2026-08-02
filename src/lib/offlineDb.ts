@@ -3,7 +3,9 @@
 // enough that pulling in a library like `idb` would be pure overhead.
 
 const DB_NAME = "worldstories-offline";
-const DB_VERSION = 2;
+import { getOfflineOwnerId } from "./offlineIdentity";
+
+const DB_VERSION = 3;
 const KEYS_STORE = "keys";
 const DOWNLOADS_STORE = "downloads";
 const PENDING_SAVES_STORE = "pending-saves";
@@ -17,6 +19,7 @@ const FILE_ITEM_SLUG = "_file";
 
 export interface DownloadRecord {
   id: string;
+  owner_id: string;
   story_slug: string;
   story_title: string;
   story_cover_image: string;
@@ -33,7 +36,7 @@ export interface DownloadRecord {
 }
 
 export function makeDownloadId(story_slug: string, type: DownloadType, item_slug?: string): string {
-  return `${story_slug}:${type}:${item_slug || FILE_ITEM_SLUG}`;
+  return `${getOfflineOwnerId()}:${story_slug}:${type}:${item_slug || FILE_ITEM_SLUG}`;
 }
 
 // A progress save that failed (almost always because the device was offline)
@@ -44,6 +47,7 @@ export function makeDownloadId(story_slug: string, type: DownloadType, item_slug
 export type PendingSave =
   | {
       key: string;
+      owner_id: string;
       kind: "chapter";
       story_slug: string;
       chapter_slug: string;
@@ -53,6 +57,7 @@ export type PendingSave =
     }
   | {
       key: string;
+      owner_id: string;
       kind: "audio";
       story_slug: string;
       audio_slug: string;
@@ -63,6 +68,7 @@ export type PendingSave =
     }
   | {
       key: string;
+      owner_id: string;
       kind: "file";
       story_slug: string;
       format: "epub" | "pdf";
@@ -74,7 +80,7 @@ export type PendingSave =
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
       if (!db.objectStoreNames.contains(KEYS_STORE)) {
         db.createObjectStore(KEYS_STORE);
@@ -84,6 +90,21 @@ function openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(PENDING_SAVES_STORE)) {
         db.createObjectStore(PENDING_SAVES_STORE, { keyPath: "key" });
+      }
+      // Records written before v3 were not associated with an account. They
+      // cannot be assigned safely, so remove them during the upgrade.
+      if ((event as IDBVersionChangeEvent).oldVersion < 3) {
+        for (const storeName of [DOWNLOADS_STORE, PENDING_SAVES_STORE]) {
+          const store = request.transaction?.objectStore(storeName);
+          if (!store) continue;
+          const cursorRequest = store.openCursor();
+          cursorRequest.onsuccess = (event) => {
+            const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+            if (!cursor) return;
+            if (!cursor.value?.owner_id) cursor.delete();
+            cursor.continue();
+          };
+        }
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -127,7 +148,9 @@ export async function deleteDownload(id: string): Promise<void> {
 }
 
 export async function listDownloads(): Promise<DownloadRecord[]> {
-  return withStore<DownloadRecord[]>(DOWNLOADS_STORE, "readonly", (store) => store.getAll());
+  const ownerId = getOfflineOwnerId();
+  const records = await withStore<DownloadRecord[]>(DOWNLOADS_STORE, "readonly", (store) => store.getAll());
+  return records.filter((record) => record.owner_id === ownerId);
 }
 
 export async function getTotalDownloadedBytes(): Promise<number> {
@@ -174,7 +197,9 @@ export async function queuePendingSave(save: PendingSave): Promise<void> {
 }
 
 export async function listPendingSaves(): Promise<PendingSave[]> {
-  return withStore<PendingSave[]>(PENDING_SAVES_STORE, "readonly", (store) => store.getAll());
+  const ownerId = getOfflineOwnerId();
+  const records = await withStore<PendingSave[]>(PENDING_SAVES_STORE, "readonly", (store) => store.getAll());
+  return records.filter((record) => record.owner_id === ownerId);
 }
 
 export async function deletePendingSave(key: string): Promise<void> {

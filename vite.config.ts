@@ -50,19 +50,40 @@ export default defineConfig(({ mode }) => ({
         // responses, story cover images) is handled by the runtime rules
         // below instead of being bundled into the precache.
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+        globIgnores: [
+          "**/pdf.worker*",
+          "**/PdfReader-*",
+          "**/EpubReader-*",
+          "**/AdminAnalytics-*",
+        ],
         navigateFallbackDenylist: [/^\/admin/],
         runtimeCaching: [
           {
             // Story/chapter/auth data etc — always prefer a fresh network
             // response so readers and admins never act on stale content;
             // the cached copy is only a fallback for brief offline blips.
-            urlPattern: ({ url }) => url.pathname.includes("/api/"),
+            urlPattern: ({ url, request }) =>
+              url.pathname.includes("/api/") && !request.headers.has("Authorization"),
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
               networkTimeoutSeconds: 8,
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            // Large lazy route chunks are cached after their first online use
+            // instead of being downloaded during every PWA installation.
+            urlPattern: ({ url, request }) =>
+              url.origin === self.location.origin &&
+              (request.destination === "script" || url.pathname.includes("pdf.worker")) &&
+              url.pathname.includes("/assets/"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "lazy-route-chunks",
+              cacheableResponse: { statuses: [200] },
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
           {

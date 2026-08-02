@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 const statusOptions = [
   { value: "all", label: "All" },
@@ -266,7 +267,7 @@ const AdminSubmissions = () => {
                     {selectedSubmission.content ? (
                       <div
                         className="prose prose-sm max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: selectedSubmission.content }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedSubmission.content) }}
                       />
                     ) : (
                       "-"

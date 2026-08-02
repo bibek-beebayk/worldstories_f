@@ -11,6 +11,8 @@ import {
   makeDownloadId,
   saveDownload,
 } from "@/lib/offlineDb";
+import { getOfflineOwnerId } from "@/lib/offlineIdentity";
+import { preloadOfflineReader } from "@/lib/preloadOfflineReader";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -33,6 +35,7 @@ async function storePlaintext(
   const encrypted = await encryptForStorage(plaintext);
   await saveDownload({
     id,
+    owner_id: getOfflineOwnerId(),
     story_slug: story.slug,
     story_title: story.title,
     story_cover_image: story.cover_image,
@@ -154,6 +157,10 @@ export function useOfflineDownload() {
           (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
         );
         await storePlaintext(id, story, type, "", title, 0, plaintext);
+        // Ensure the matching reader code is in the runtime cache before the
+        // device goes offline. Failure here does not discard the downloaded
+        // book; a later online reader visit can still populate the cache.
+        await preloadOfflineReader(type).catch(() => undefined);
       });
     },
     [withPending]

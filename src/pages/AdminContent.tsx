@@ -538,6 +538,9 @@ const AdminContent = () => {
   useEffect(() => {
     if (!showChapterModal || !chapterEditorRef.current) return;
     chapterEditorRef.current.innerHTML = newChapterContent || "";
+    // Only seed the contenteditable when the modal opens; depending on the
+    // mirrored state would reset the caret after every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showChapterModal]);
 
   const canSave = useMemo(() => title.trim().length > 2, [title]);

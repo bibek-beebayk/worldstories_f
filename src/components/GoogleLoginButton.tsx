@@ -3,7 +3,20 @@ import { apiClient, saveTokens } from "@/api/client";
 
 declare global {
   interface Window {
-    google: any;
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string;
+            callback: (response: { credential: string }) => void | Promise<void>;
+          }) => void;
+          renderButton: (
+            element: HTMLElement,
+            options: { theme: string; size: string; shape: string; width: string }
+          ) => void;
+        };
+      };
+    };
   }
 }
 
@@ -19,7 +32,7 @@ export default function GoogleLoginButton({ onSuccess }: Props) {
 
     window.google.accounts.id.initialize({
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      callback: async (response: any) => {
+      callback: async (response: { credential: string }) => {
         try {
           // Exchange Google credential → JWT tokens
           const res = await apiClient<{
@@ -48,7 +61,7 @@ export default function GoogleLoginButton({ onSuccess }: Props) {
       shape: "pill",
       width: "250",
     });
-  }, []);
+  }, [onSuccess]);
 
   return <div ref={divRef}></div>;
 }

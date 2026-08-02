@@ -1,5 +1,6 @@
 import { storyApi } from "@/api/story";
 import { PendingSave, deletePendingSave, listPendingSaves, queuePendingSave } from "@/lib/offlineDb";
+import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 
 // A progress save that fails (almost always because the device is offline)
 // gets queued here instead of silently discarded, and retried the next time
@@ -14,7 +15,8 @@ export function queueChapterProgress(
   last_element_id?: string
 ): Promise<void> {
   return queuePendingSave({
-    key: `chapter:${story_slug}:${chapter_slug}`,
+    key: `${getOfflineOwnerId()}:chapter:${story_slug}:${chapter_slug}`,
+    owner_id: getOfflineOwnerId(),
     kind: "chapter",
     story_slug,
     chapter_slug,
@@ -32,7 +34,8 @@ export function queueAudioProgress(
   duration_seconds: number
 ): Promise<void> {
   return queuePendingSave({
-    key: `audio:${story_slug}:${audio_slug}`,
+    key: `${getOfflineOwnerId()}:audio:${story_slug}:${audio_slug}`,
+    owner_id: getOfflineOwnerId(),
     kind: "audio",
     story_slug,
     audio_slug,
@@ -50,7 +53,8 @@ export function queueFileProgress(
   position: string
 ): Promise<void> {
   return queuePendingSave({
-    key: `file:${story_slug}:${format}`,
+    key: `${getOfflineOwnerId()}:file:${story_slug}:${format}`,
+    owner_id: getOfflineOwnerId(),
     kind: "file",
     story_slug,
     format,

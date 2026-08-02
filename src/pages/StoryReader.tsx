@@ -24,9 +24,10 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Seo from "@/components/Seo";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 type ReaderThemeKey = string;
 type ReaderFontKey = string;
@@ -492,7 +493,7 @@ const StoryReader = () => {
     await toggleReaderMode();
   };
 
-  const queueSaveProgress = (progress: number) => {
+  const queueSaveProgress = useCallback((progress: number) => {
     if (!isAuthenticated || !story_slug || !chapter_slug) return;
     const normalized = Math.min(1, Math.max(0, progress));
     setLiveProgress(normalized);
@@ -506,7 +507,7 @@ const StoryReader = () => {
         .saveReadingProgress(story_slug, chapter_slug, normalized)
         .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized));
     }, 400);
-  };
+  }, [chapter_slug, isAuthenticated, story_slug]);
 
   const scrollToProgress = (progress: number, useReaderContainer: boolean) => {
     const content = scrollContentRef.current;
@@ -605,7 +606,7 @@ const StoryReader = () => {
         window.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [chapter_slug, isAuthenticated, isReaderMode]);
+  }, [chapter_slug, isAuthenticated, isReaderMode, queueSaveProgress]);
 
   useEffect(() => {
     if (!chapter?.content) return;
@@ -810,7 +811,7 @@ const StoryReader = () => {
                   ...activeTheme.proseStyle,
                   ...proseNightVars,
                 }}
-                dangerouslySetInnerHTML={{ __html: chapter.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content) }}
               />
             </div>
           </div>
@@ -827,7 +828,7 @@ const StoryReader = () => {
                   ...activeTheme.proseStyle,
                   ...proseNightVars,
                 }}
-                dangerouslySetInnerHTML={{ __html: chapter.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content) }}
               />
             </CardContent>
           </Card>

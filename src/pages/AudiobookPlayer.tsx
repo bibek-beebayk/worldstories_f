@@ -80,8 +80,9 @@ const AudioPlayerPage = () => {
   }, [currentIndex]);
 
   useEffect(() => {
+    const timers = saveTimersRef.current;
     return () => {
-      Object.values(saveTimersRef.current).forEach((timerId) => window.clearTimeout(timerId));
+      Object.values(timers).forEach((timerId) => window.clearTimeout(timerId));
     };
   }, []);
 
