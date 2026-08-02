@@ -594,10 +594,30 @@ const AudioPlayerPage = () => {
                           setIsPlaying(true);
                         }}
                         onPause={() => setIsPlaying(false)}
-                        onError={() => {
+                        onError={(event) => {
                           setIsPlaying(false);
+                          const mediaError = event.currentTarget.error;
+                          // Surfacing the real MediaError code/message (rather
+                          // than a single generic string) so the actual cause
+                          // — network vs decode vs unsupported format vs
+                          // aborted — is visible without needing devtools.
+                          const codeNames: Record<number, string> = {
+                            1: "MEDIA_ERR_ABORTED",
+                            2: "MEDIA_ERR_NETWORK",
+                            3: "MEDIA_ERR_DECODE",
+                            4: "MEDIA_ERR_SRC_NOT_SUPPORTED",
+                          };
+                          const codeName = mediaError ? codeNames[mediaError.code] || String(mediaError.code) : "unknown";
+                          console.error("Audio playback error", {
+                            code: mediaError?.code,
+                            codeName,
+                            message: mediaError?.message,
+                            src: audioSrc,
+                          });
                           setPlaybackError(
-                            "This audio could not be loaded. Please check your connection and try again."
+                            `This audio could not be loaded (${codeName}${
+                              mediaError?.message ? `: ${mediaError.message}` : ""
+                            }). Please check your connection and try again.`
                           );
                         }}
                       />
