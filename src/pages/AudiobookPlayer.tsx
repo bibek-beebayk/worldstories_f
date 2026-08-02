@@ -50,7 +50,7 @@ const AudioPlayerPage = () => {
   const restoredAudioSlugRef = useRef<string | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -135,6 +135,34 @@ const AudioPlayerPage = () => {
     };
   }, [currentAudio, story_slug]);
 
+  // Explicit load()+play() on every src change, instead of the declarative
+  // autoPlay HTML attribute — iOS Safari blocks unmuted autoplay via that
+  // attribute outright regardless of prior interaction, whereas a real
+  // programmatic play() call can succeed under Safari's "sticky user
+  // activation" model. Just as important: browsers don't reliably resume
+  // playback when an existing <audio> element's src is mutated in place
+  // (as happens when switching chapters, since the element itself never
+  // remounts) unless load() is called first — without it, the element can
+  // end up in an ambiguous state that (at least on iOS) was firing a
+  // spurious "ended" event and cascading through the rest of the playlist
+  // instead of actually playing anything.
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl || !audioSrc) return;
+    audioEl.load();
+    const playAttempt = audioEl.play();
+    if (playAttempt && typeof playAttempt.then === "function") {
+      playAttempt
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          // Autoplay blocked (most commonly iOS without a direct tap) —
+          // leave it paused so the UI honestly shows Play rather than a
+          // Pause icon over silence, and the user can tap to start it.
+          setIsPlaying(false);
+        });
+    }
+  }, [audioSrc]);
+
   useEffect(() => {
     return () => {
       if (audioObjectUrlRef.current) URL.revokeObjectURL(audioObjectUrlRef.current);
@@ -202,26 +230,30 @@ const AudioPlayerPage = () => {
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (audioRef.current.paused) {
-      audioRef.current.play().catch(() => {});
-      setIsPlaying(true);
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
     } else {
       audioRef.current.pause();
       setIsPlaying(false);
     }
   };
 
+  // isPlaying itself isn't set here — the audioSrc-change effect above
+  // handles the actual play() attempt (and whether it succeeded) once the
+  // chapter switch lands, so this doesn't optimistically claim success
+  // before it's known.
   const playNext = () => {
     if (!story) return;
     if (currentIndex < story.audios.length - 1) {
       jumpToAudio(currentIndex + 1);
-      setIsPlaying(true);
     }
   };
 
   const playPrev = () => {
     if (currentIndex > 0) {
       jumpToAudio(currentIndex - 1);
-      setIsPlaying(true);
     }
   };
 
@@ -533,7 +565,6 @@ const AudioPlayerPage = () => {
                     <audio
                       ref={audioRef}
                       src={audioSrc}
-                      autoPlay
                       className="hidden"
                       onLoadedMetadata={() => {
                         if (audioRef.current) {
