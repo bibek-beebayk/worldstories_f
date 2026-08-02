@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import {
   ArrowLeft,
   Headphones,
+  Loader2,
   Pause,
   Play,
   ChevronLeft,
@@ -55,6 +56,7 @@ const AudioPlayerPage = () => {
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [liveAudioProgressMap, setLiveAudioProgressMap] = useState<
     Record<string, { progress: number; position_seconds: number; duration_seconds: number }>
@@ -151,6 +153,7 @@ const AudioPlayerPage = () => {
   useEffect(() => {
     if (!audioSrc) return;
     setPlaybackError(null);
+    setIsAudioLoading(true);
     const audioEl = audioRef.current;
     if (!audioEl) return;
     audioEl
@@ -491,10 +494,17 @@ const AudioPlayerPage = () => {
                     <Button
                       onClick={togglePlay}
                       size="icon"
-                      aria-label={isPlaying ? "Pause" : "Play"}
+                      disabled={isAudioLoading}
+                      aria-label={isAudioLoading ? "Loading" : isPlaying ? "Pause" : "Play"}
                       className="h-14 w-14 rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300"
                     >
-                      {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                      {isAudioLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : isPlaying ? (
+                        <Pause className="h-6 w-6" />
+                      ) : (
+                        <Play className="h-6 w-6" />
+                      )}
                     </Button>
 
                     <Button
@@ -594,8 +604,12 @@ const AudioPlayerPage = () => {
                           setIsPlaying(true);
                         }}
                         onPause={() => setIsPlaying(false)}
+                        onCanPlay={() => setIsAudioLoading(false)}
+                        onPlaying={() => setIsAudioLoading(false)}
+                        onWaiting={() => setIsAudioLoading(true)}
                         onError={(event) => {
                           setIsPlaying(false);
+                          setIsAudioLoading(false);
                           const mediaError = event.currentTarget.error;
                           // Surfacing the real MediaError code/message (rather
                           // than a single generic string) so the actual cause

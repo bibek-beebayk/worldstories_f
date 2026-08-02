@@ -105,8 +105,8 @@ export interface StoryDetail extends Story {
   epub_file: string | null;
   chapter_count: number;
   chapters: Chapter[];
-  tags: string[] | [];
-  audios: Audio[] | [];
+  tags: string[];
+  audios: Audio[];
   reviews_count: number;
   reading_time_minutes: number | null;
   listening_time_minutes: number | null;

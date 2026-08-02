@@ -89,11 +89,15 @@ export default defineConfig(({ mode }) => ({
           {
             // Story cover images and other uploaded media (R2) rarely change
             // once published, so serve from cache first and only hit the
-            // network for images not seen before.
+            // network for media not seen before. Bumped to v2 to invalidate
+            // stale cached audio files from before a since-fixed encoding
+            // issue — CacheFirst has no way to notice that content changed
+            // at an existing URL within the expiration window, so renaming
+            // the cache is what forces already-affected clients to refetch.
             urlPattern: ({ url }) => url.hostname.endsWith("r2.dev") || url.hostname.includes("r2.cloudflarestorage.com"),
             handler: "CacheFirst",
             options: {
-              cacheName: "media-cache",
+              cacheName: "media-cache-v2",
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
