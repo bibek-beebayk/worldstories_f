@@ -203,12 +203,15 @@ const EpubReader = () => {
   // reverts to current"). But without any resync at all, the residual drift
   // that gap:0/spread:none/integer-dimensions don't fully eliminate keeps
   // compounding for as long as the reader goes without a resize or font-size
-  // change (our other resync points) — small enough to take ~200+ pages to
-  // become visible, but still eventually clips text. Resyncing only every 20
-  // turns splits the difference: frequent enough to keep drift imperceptible,
-  // infrequent enough that hitting the floor-rounding edge case is rare rather
-  // than a near-guarantee on every single page turn.
-  const RESYNC_EVERY_N_TURNS = 20;
+  // change (our other resync points) — visible as the tail of one page
+  // clipping and the next page's content bleeding in at the edge, and
+  // compounding faster than originally assumed (users were hitting visible
+  // clipping well under 200 pages in). Resyncing every 5 turns instead of 20
+  // corrects it far more often, at the cost of hitting the rare
+  // floor-rounding edge case slightly more often too — worth it since a
+  // brief revert-then-reappear glitch every so often is far less disruptive
+  // than actual clipped, unreadable text.
+  const RESYNC_EVERY_N_TURNS = 5;
 
   const maybeResyncAfterTurn = useCallback(() => {
     pageTurnCountRef.current += 1;
