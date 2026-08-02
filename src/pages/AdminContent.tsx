@@ -35,6 +35,8 @@ const fromDatetimeLocalValue = (value: string) => {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 };
 
+const numToStr = (n: number | null | undefined) => (n != null ? String(n) : "");
+
 const toTitleCase = (value: string) =>
   value
     .trim()
@@ -71,7 +73,9 @@ const AdminContent = () => {
   const [authorId, setAuthorId] = useState<string>("none");
   const [storyType, setStoryType] = useState("Short Story");
   const [language, setLanguage] = useState("en");
-  const [originalPublishedDate, setOriginalPublishedDate] = useState("");
+  const [originalPublishedYear, setOriginalPublishedYear] = useState("");
+  const [originalPublishedMonth, setOriginalPublishedMonth] = useState("");
+  const [originalPublishedDay, setOriginalPublishedDay] = useState("");
   const [sitePublishedDate, setSitePublishedDate] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
@@ -176,7 +180,9 @@ const AdminContent = () => {
     setAuthorId("none");
     setStoryType("Short Story");
     setLanguage("en");
-    setOriginalPublishedDate("");
+    setOriginalPublishedYear("");
+    setOriginalPublishedMonth("");
+    setOriginalPublishedDay("");
     setSitePublishedDate("");
     setIsCompleted(false);
     setIsPublished(false);
@@ -204,7 +210,9 @@ const AdminContent = () => {
     // Carry over the details that describe the same underlying work — title/about
     // still need to be written in the new language, so those stay blank.
     setStoryType(selectedStory.story_type || "Short Story");
-    setOriginalPublishedDate(selectedStory.original_published_date || "");
+    setOriginalPublishedYear(numToStr(selectedStory.original_published_year));
+    setOriginalPublishedMonth(numToStr(selectedStory.original_published_month));
+    setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
     setIsCompleted(Boolean(selectedStory.is_completed));
     setCoverImage(selectedStory.cover_image || "");
     setSelectedGenreNames(
@@ -471,7 +479,9 @@ const AdminContent = () => {
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
     setStoryType(selectedStory.story_type || "Short Story");
     setLanguage(selectedStory.language || "en");
-    setOriginalPublishedDate(selectedStory.original_published_date || "");
+    setOriginalPublishedYear(numToStr(selectedStory.original_published_year));
+    setOriginalPublishedMonth(numToStr(selectedStory.original_published_month));
+    setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
     setSitePublishedDate(selectedStory.site_published_date || "");
     setIsCompleted(Boolean(selectedStory.is_completed));
     setIsPublished(Boolean(selectedStory.is_published));
@@ -577,10 +587,20 @@ const AdminContent = () => {
     formData.append("is_completed", String(isCompleted));
     const publishValue = forceDraft ? false : forcePublish ? true : isPublished;
     formData.append("is_published", String(publishValue));
-    if (originalPublishedDate) {
-      formData.append("original_published_date", originalPublishedDate);
+    if (originalPublishedYear) {
+      formData.append("original_published_year", originalPublishedYear);
     } else if (mode === "edit") {
-      formData.append("original_published_date", "");
+      formData.append("original_published_year", "");
+    }
+    if (originalPublishedMonth) {
+      formData.append("original_published_month", originalPublishedMonth);
+    } else if (mode === "edit") {
+      formData.append("original_published_month", "");
+    }
+    if (originalPublishedDay) {
+      formData.append("original_published_day", originalPublishedDay);
+    } else if (mode === "edit") {
+      formData.append("original_published_day", "");
     }
     if (publishValue && sitePublishedDate) {
       formData.append("site_published_date", sitePublishedDate);
@@ -987,15 +1007,50 @@ const AdminContent = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="admin-original-published-date">Original Published Date</Label>
-                    <Input
-                      id="admin-original-published-date"
-                      type="date"
-                      value={originalPublishedDate || ""}
-                      onChange={(e) => setOriginalPublishedDate(e.target.value)}
-                      className="mt-2"
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">When the work was originally published.</p>
+                    <Label htmlFor="admin-original-published-year">Original Published Date</Label>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      <Input
+                        id="admin-original-published-year"
+                        type="number"
+                        placeholder="Year"
+                        min={1}
+                        value={originalPublishedYear}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setOriginalPublishedYear(value);
+                          if (!value) {
+                            setOriginalPublishedMonth("");
+                            setOriginalPublishedDay("");
+                          }
+                        }}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Month"
+                        min={1}
+                        max={12}
+                        value={originalPublishedMonth}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setOriginalPublishedMonth(value);
+                          if (!value) setOriginalPublishedDay("");
+                        }}
+                        disabled={!originalPublishedYear}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Day"
+                        min={1}
+                        max={31}
+                        value={originalPublishedDay}
+                        onChange={(e) => setOriginalPublishedDay(e.target.value)}
+                        disabled={!originalPublishedMonth}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      When the work was originally published. Enter whatever is known — year alone, year + month,
+                      or the full date.
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="admin-site-published-date">Published on Site Date</Label>
@@ -1278,7 +1333,7 @@ const AdminContent = () => {
                           ? (selectedStory.submitted_by.display_name || selectedStory.submitted_by.username || selectedStory.submitted_by.email)
                           : "-"}
                       </p>
-                      <p><span className="text-muted-foreground">Original Published Date:</span> {selectedStory.original_published_date || "-"}</p>
+                      <p><span className="text-muted-foreground">Original Published Date:</span> {selectedStory.published_date_label || "-"}</p>
                       <p><span className="text-muted-foreground">Published on Site Date:</span> {selectedStory.site_published_date || "-"}</p>
                       <p><span className="text-muted-foreground">Completed:</span> {selectedStory.is_completed ? "Yes" : "No"}</p>
                       <p><span className="text-muted-foreground">Published:</span> {selectedStory.is_published ? "Yes" : "No"}</p>

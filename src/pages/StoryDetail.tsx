@@ -21,6 +21,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
 import {
   BookMarked,
+  CalendarDays,
   CheckCircle2,
   Clock,
   Download,
@@ -257,6 +258,20 @@ const StoryDetail = () => {
   const firstAudioSlug = story.audios[0]?.slug;
   const savedAudioSlug = audioProgress?.audio_slug;
   const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
+  // ISO-ish value for the structured-data datePublished field — as precise
+  // as the known original-publication parts allow, falling back to the
+  // site's own publish date when no original date is known at all (same
+  // fallback shown to readers via published_date_label).
+  const structuredDataDatePublished = story.original_published_year
+    ? [
+        String(story.original_published_year),
+        story.original_published_month ? String(story.original_published_month).padStart(2, "0") : null,
+        story.original_published_day ? String(story.original_published_day).padStart(2, "0") : null,
+      ]
+        .filter(Boolean)
+        .join("-")
+    : story.site_published_date || undefined;
+
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
   // Best available reading format, in priority order: HTML chapters (the
@@ -340,7 +355,7 @@ const StoryDetail = () => {
           url: `${SITE_URL}${storyPath}`,
           image: story.cover_image || undefined,
           genre: story.genres.map((genre) => genre.name),
-          datePublished: story.original_published_date || undefined,
+          datePublished: structuredDataDatePublished,
           author: story.author
             ? {
                 "@type": "Person",
@@ -444,6 +459,12 @@ const StoryDetail = () => {
                     <div className="flex items-center gap-1">
                       <Headphones className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
                       <span>{formatDurationMinutes(story.listening_time_minutes)} listen</span>
+                    </div>
+                  )}
+                  {story.published_date_label && (
+                    <div className="flex items-center gap-1">
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
+                      <span>{story.published_date_label}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1">

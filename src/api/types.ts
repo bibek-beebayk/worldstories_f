@@ -93,7 +93,10 @@ export interface StoryTranslation {
 export interface StoryDetail extends Story {
   story_type: string;
   about: string;
-  original_published_date: string | null;
+  original_published_year: number | null;
+  original_published_month: number | null;
+  original_published_day: number | null;
+  published_date_label: string | null;
   translations: StoryTranslation[];
   author: Author | null;
   submitted_by: StorySubmittedBy | null;
@@ -303,7 +306,10 @@ export interface AdminStory {
   translations: StoryTranslation[];
   author: number | null;
   submitted_by: StorySubmittedBy | null;
-  original_published_date: string | null;
+  original_published_year: number | null;
+  original_published_month: number | null;
+  original_published_day: number | null;
+  published_date_label: string | null;
   site_published_date: string | null;
   cover_image: string | null;
   cover_image_file: string | null;
