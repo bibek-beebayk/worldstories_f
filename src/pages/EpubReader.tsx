@@ -811,6 +811,27 @@ const EpubReader = () => {
           <div ref={viewerRef} className="h-full w-full" />
         </div>
 
+        {/* Mobile-only: a compact reading-progress readout shown only while
+            the header/footer chrome is hidden, so there's still some
+            orientation without bringing the full toolbar back. Slides in/out
+            inverse to the footer bar below, using the same translate-based
+            reveal (not a fade) to avoid the translucent-panel "double
+            exposure" a fade causes over visible reader text — same reasoning
+            as the header/footer comments above. */}
+        <div
+          className={`pointer-events-none fixed inset-x-0 bottom-0.5 z-40 flex justify-center transition-transform duration-300 ease-in-out sm:hidden ${
+            controlsVisible ? "translate-y-full" : "translate-y-0"
+          }`}
+        >
+          <span
+            className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground shadow-sm ${READER_GLASS_PANEL_CLASS} ${
+              theme === "dark" ? "dark" : ""
+            }`}
+          >
+            {progressPercent}%
+          </span>
+        </div>
+
         {/* Same floating-overlay treatment as the header above, and for the
             same reason: sliding rather than resizing keeps the reader
             panel's box permanently constant so toggling never re-paginates
