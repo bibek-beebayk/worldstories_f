@@ -22,7 +22,7 @@ import {
   Sun,
   Type,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Epub, { type Book, type Rendition } from "epubjs";
 import type { NavItem } from "epubjs/types/navigation";
@@ -57,33 +57,30 @@ const READER_FONTS_STYLESHEET_URL =
 // being justified, so no fixed safety margin fully covers it) — left-aligning
 // sidesteps that class of overflow entirely, at the cost of a ragged right
 // edge, the same tradeoff most e-readers default to.
+// Matches the site header's own "scrolled" glass treatment (Header.tsx) —
+// same gradient/blur/opacity values — so the reader's floating header/footer
+// bars read as the same material as the rest of the app rather than a plain
+// opaque card. The supports-[backdrop-filter] variants only kick in on
+// browsers that actually support the blur; elsewhere the plain gradient
+// stops still give a reasonable (just non-blurred) translucent look.
+const READER_GLASS_PANEL_CLASS =
+  "border-border bg-gradient-to-br from-primary/10 to-background/100 backdrop-blur supports-[backdrop-filter]:from-primary/10 supports-[backdrop-filter]:to-background/45";
+
 const READER_THEMES = {
-  light: {
-    label: "Light",
-    icon: Sun,
-    css: {
-      "body.light": { background: "#ffffff", color: "#1a1a1a" },
-      "body.light p, body.light div, body.light span, body.light li": { "text-align": "left !important" },
-    },
-  },
-  sepia: {
-    label: "Sepia",
-    icon: Sun,
-    css: {
-      "body.sepia": { background: "#f4ecd8", color: "#5b4636" },
-      "body.sepia p, body.sepia div, body.sepia span, body.sepia li": { "text-align": "left !important" },
-    },
-  },
-  dark: {
-    label: "Dark",
-    icon: Moon,
-    css: {
-      "body.dark": { background: "#1b2230", color: "#d1d5db" },
-      "body.dark p, body.dark div, body.dark span, body.dark li": { "text-align": "left !important" },
-    },
-  },
+  light: { label: "Light", icon: Sun, background: "#ffffff", color: "#1a1a1a" },
+  sepia: { label: "Sepia", icon: Sun, background: "#f4ecd8", color: "#5b4636" },
+  dark: { label: "Dark", icon: Moon, background: "#1b2230", color: "#d1d5db" },
 } as const;
 type EpubThemeKey = keyof typeof READER_THEMES;
+
+// Derived from READER_THEMES (rather than duplicating hex codes in a second
+// place) so the outer reader panel's background — set inline from the same
+// values, further down — can never drift out of sync with what epub.js
+// actually applies inside the iframe.
+const buildEpubThemeCss = (key: EpubThemeKey) => ({
+  [`body.${key}`]: { background: READER_THEMES[key].background, color: READER_THEMES[key].color },
+  [`body.${key} p, body.${key} div, body.${key} span, body.${key} li`]: { "text-align": "left !important" },
+});
 
 const EpubReader = () => {
   const navigate = useNavigate();
@@ -102,6 +99,13 @@ const EpubReader = () => {
   const lastCfiRef = useRef<string | null>(null);
   const pageTurnCountRef = useRef(0);
   const saveProgressTimerRef = useRef<number | null>(null);
+  // epub.js recreates the content iframe on every chapter/spine-item change
+  // (it only reuses the same iframe for page turns *within* one chapter), so
+  // touch listeners for swipe/tap-to-toggle are (re)attached via the
+  // rendition's "rendered" event rather than once — this set just prevents
+  // attaching duplicate listeners if "rendered" fires again for a document
+  // we've already wired up (e.g. a resize-triggered re-render).
+  const attachedIframeDocsRef = useRef<Set<Document>>(new Set());
 
   const [toc, setToc] = useState<NavItem[]>([]);
   const [isTocOpen, setIsTocOpen] = useState(false);
@@ -115,6 +119,11 @@ const EpubReader = () => {
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEpubLoading, setIsEpubLoading] = useState(false);
+  // Mobile immersive-reading toggle: tapping the reader hides the header/
+  // footer chrome so the page content can use the full screen. Forced true
+  // on larger screens via CSS (see the header/footer wrapper classes below),
+  // since this is a mobile-specific interaction.
+  const [controlsVisible, setControlsVisible] = useState(true);
 
   const storageKey = useMemo(() => {
     if (!story?.slug) return "";
@@ -184,6 +193,108 @@ const EpubReader = () => {
     rendition.display(targetCfi);
   };
 
+  // Re-displaying the CFI landed on after *every* next()/prev() call once
+  // caused an intermittent bug: epub.js's moveTo() (which display() uses to
+  // re-target a CFI) picks the page via Math.floor(offset.left / layout.delta)
+  // — right after a page turn, that offset sits essentially exactly at the new
+  // page's start, so a sub-pixel floating-point rounding artifact could floor
+  // down to the *previous* page instead, snapping the view backward right
+  // after it had correctly advanced ("brief glimpse of the next page, then
+  // reverts to current"). But without any resync at all, the residual drift
+  // that gap:0/spread:none/integer-dimensions don't fully eliminate keeps
+  // compounding for as long as the reader goes without a resize or font-size
+  // change (our other resync points) — small enough to take ~200+ pages to
+  // become visible, but still eventually clips text. Resyncing only every 20
+  // turns splits the difference: frequent enough to keep drift imperceptible,
+  // infrequent enough that hitting the floor-rounding edge case is rare rather
+  // than a near-guarantee on every single page turn.
+  const RESYNC_EVERY_N_TURNS = 20;
+
+  const maybeResyncAfterTurn = useCallback(() => {
+    pageTurnCountRef.current += 1;
+    if (pageTurnCountRef.current % RESYNC_EVERY_N_TURNS === 0) {
+      // Give the "relocated" event (scheduled via requestAnimationFrame inside
+      // next()/prev()) a moment to fire and update lastCfiRef before resyncing.
+      requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight()));
+    }
+  }, []);
+
+  // A lightweight "page turn" cue: epub.js swaps the iframe's content
+  // essentially instantly, which otherwise reads as an abrupt jump-cut with
+  // no sense of direction. This doesn't touch epub.js's own pagination at
+  // all (a true page-curl/flip would need a completely different rendering
+  // approach than epub.js's CSS-column layout supports) — it just slides
+  // and fades viewerRef in from the turn direction *after* the swap, purely
+  // as a cosmetic overlay on top of the instant content change underneath.
+  // Plain imperative style writes (not React state) since this is a
+  // transient, fire-and-forget effect with no rendered output of its own.
+  const animatePageTurn = useCallback((direction: "next" | "prev") => {
+    const el = viewerRef.current;
+    if (!el) return;
+    const offset = direction === "next" ? "18px" : "-18px";
+    el.style.transition = "none";
+    el.style.opacity = "0";
+    el.style.transform = `translateX(${offset})`;
+    // Forces the browser to register the "from" state above in its own
+    // paint before the transition below is applied — without this, both
+    // style writes get coalesced into a single frame and there's nothing
+    // to animate from.
+    void el.offsetWidth;
+    el.style.transition = "transform 220ms ease-out, opacity 220ms ease-out";
+    el.style.opacity = "1";
+    el.style.transform = "translateX(0)";
+  }, []);
+
+  const goNext = useCallback(async () => {
+    await renditionRef.current?.next();
+    animatePageTurn("next");
+    maybeResyncAfterTurn();
+  }, [maybeResyncAfterTurn, animatePageTurn]);
+  const goPrev = useCallback(async () => {
+    await renditionRef.current?.prev();
+    animatePageTurn("prev");
+    maybeResyncAfterTurn();
+  }, [maybeResyncAfterTurn, animatePageTurn]);
+
+  // Mobile-only: tapping the reader toggles the header/footer chrome so the
+  // page content can use the full screen; swiping left/right turns pages.
+  // Distinguished by how much the touch moved — a near-stationary touch is a
+  // tap, a mostly-horizontal one past the threshold is a swipe. Touch events
+  // never fire for mouse input, so this naturally only affects touchscreens
+  // without needing a separate viewport-width check.
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const SWIPE_THRESHOLD_PX = 50;
+  const TAP_MAX_MOVEMENT_PX = 10;
+  const TAP_MAX_DURATION_MS = 500;
+
+  const handleReaderTouchStart = useCallback((event: TouchEvent | ReactTouchEvent) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  }, []);
+
+  const handleReaderTouchEnd = useCallback(
+    (event: TouchEvent | ReactTouchEvent) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      const touch = event.changedTouches[0];
+      if (!start || !touch) return;
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      const elapsedMs = Date.now() - start.time;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      if (absDx > SWIPE_THRESHOLD_PX && absDx > absDy * 1.5) {
+        if (dx < 0) goNext();
+        else goPrev();
+      } else if (absDx < TAP_MAX_MOVEMENT_PX && absDy < TAP_MAX_MOVEMENT_PX && elapsedMs < TAP_MAX_DURATION_MS) {
+        setControlsVisible((prev) => !prev);
+      }
+    },
+    [goNext, goPrev]
+  );
+
   useEffect(() => {
     if (!story?.epub_file || !viewerRef.current) return;
     let isMounted = true;
@@ -193,6 +304,7 @@ const EpubReader = () => {
         setReaderError("");
         setIsEpubLoading(true);
         pageTurnCountRef.current = 0;
+        attachedIframeDocsRef.current = new Set();
         // Offline: read a previously-downloaded, decrypted copy straight into
         // memory instead of hitting the network at all — epub.js accepts an
         // ArrayBuffer directly and treats it as a packed archive, so no
@@ -231,8 +343,8 @@ const EpubReader = () => {
         const rendition = book.renderTo(viewerRef.current!, renditionOptions);
         renditionRef.current = rendition;
 
-        Object.entries(READER_THEMES).forEach(([name, config]) => {
-          rendition.themes.register(name, config.css);
+        (Object.keys(READER_THEMES) as EpubThemeKey[]).forEach((name) => {
+          rendition.themes.register(name, buildEpubThemeCss(name));
         });
         // EPUB content renders inside a sandboxed iframe with its own document, so
         // the Google Fonts <link> in index.html's <head> never reaches it. Loading
@@ -266,6 +378,19 @@ const EpubReader = () => {
             setCurrentLocation(book.locations.locationFromCfi(cfi));
             queueSaveFileProgress(cfi, percentage);
           }
+        });
+
+        // Content renders into a sandboxed iframe per chapter — a separate
+        // document that never sees touch events dispatched on the outer page,
+        // so swipe/tap-to-toggle only work if wired directly onto whichever
+        // iframe document is currently showing. epub.js fires "rendered"
+        // every time it (re)creates that iframe, e.g. on each chapter change.
+        rendition.on("rendered", (_section: unknown, view: { document?: Document }) => {
+          const doc = view?.document;
+          if (!doc || attachedIframeDocsRef.current.has(doc)) return;
+          attachedIframeDocsRef.current.add(doc);
+          doc.addEventListener("touchstart", handleReaderTouchStart as EventListener, { passive: true });
+          doc.addEventListener("touchend", handleReaderTouchEnd as EventListener, { passive: true });
         });
 
         // A logged-in reader's account progress takes priority over
@@ -358,41 +483,6 @@ const EpubReader = () => {
     requestAnimationFrame(() => requestAnimationFrame(snapPaginationHeight));
   }, [fontSizePercent]);
 
-  // Re-displaying the CFI landed on after *every* next()/prev() call once
-  // caused an intermittent bug: epub.js's moveTo() (which display() uses to
-  // re-target a CFI) picks the page via Math.floor(offset.left / layout.delta)
-  // — right after a page turn, that offset sits essentially exactly at the new
-  // page's start, so a sub-pixel floating-point rounding artifact could floor
-  // down to the *previous* page instead, snapping the view backward right
-  // after it had correctly advanced ("brief glimpse of the next page, then
-  // reverts to current"). But without any resync at all, the residual drift
-  // that gap:0/spread:none/integer-dimensions don't fully eliminate keeps
-  // compounding for as long as the reader goes without a resize or font-size
-  // change (our other resync points) — small enough to take ~200+ pages to
-  // become visible, but still eventually clips text. Resyncing only every 20
-  // turns splits the difference: frequent enough to keep drift imperceptible,
-  // infrequent enough that hitting the floor-rounding edge case is rare rather
-  // than a near-guarantee on every single page turn.
-  const RESYNC_EVERY_N_TURNS = 20;
-
-  const maybeResyncAfterTurn = useCallback(() => {
-    pageTurnCountRef.current += 1;
-    if (pageTurnCountRef.current % RESYNC_EVERY_N_TURNS === 0) {
-      // Give the "relocated" event (scheduled via requestAnimationFrame inside
-      // next()/prev()) a moment to fire and update lastCfiRef before resyncing.
-      requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight()));
-    }
-  }, []);
-
-  const goNext = useCallback(async () => {
-    await renditionRef.current?.next();
-    maybeResyncAfterTurn();
-  }, [maybeResyncAfterTurn]);
-  const goPrev = useCallback(async () => {
-    await renditionRef.current?.prev();
-    maybeResyncAfterTurn();
-  }, [maybeResyncAfterTurn]);
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!renditionRef.current) return;
@@ -407,6 +497,23 @@ const EpubReader = () => {
     const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  // On mobile the reader panel is always a fixed full-viewport box (see
+  // readerPanelClassName) regardless of controlsVisible — only the header/
+  // footer opacity changes, never the panel's size — so the underlying page
+  // (e.g. this component's own min-h-screen <main>) can still be tall enough
+  // to scroll behind it at any time on mobile, not just while chrome is
+  // hidden. Locking body scroll removes that scrollable space outright
+  // rather than relying on the fixed overlay to hide it. Scoped to mobile
+  // widths only, matching the sm: breakpoint the panel itself reverts at.
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 640px)").matches) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, []);
 
   useEffect(() => {
@@ -489,6 +596,31 @@ const EpubReader = () => {
     );
   }
 
+  // Sizing for the reader panel across three states:
+  // - normal: the existing viewport-relative height, header/footer visible.
+  // - fullscreen (desktop or mobile, via the explicit Fullscreen button):
+  //   already close to full-height; just reclaims the little the collapsed
+  //   header/footer rows free up.
+  // - mobile: ALWAYS a fixed full-viewport box, regardless of controlsVisible.
+  //   Toggling the header/footer only fades/floats them on top of this fixed
+  //   panel now (see the header/footer JSX below) instead of resizing it —
+  //   resizing the panel forces epub.js to re-paginate against the new
+  //   dimensions, which is what caused the reported bug where tapping to
+  //   toggle chrome would jump the visible page/content. Keeping the panel's
+  //   own box permanently constant on mobile means toggling never touches
+  //   pagination at all.
+  //   "relative" isn't included in the desktop classes directly — Tailwind
+  // emits .relative *after* .fixed in its base stylesheet, so at equal
+  // specificity .relative would otherwise silently win the `position`
+  // property regardless of which order the class *names* appear in the
+  // string; keeping them in disjoint (mobile vs sm:) buckets avoids that.
+  const readerPanelClassName = [
+    "fixed inset-0 z-0 !mt-0 h-[100dvh] w-screen overflow-hidden rounded-none border-0 px-3",
+    "transition-[height] duration-300 ease-in-out",
+    "sm:relative sm:z-auto sm:!mt-3 sm:w-auto sm:rounded-xl sm:border sm:px-6",
+    isFullscreen ? "sm:h-[calc(100vh-130px)]" : "sm:h-[calc(100vh-200px)]",
+  ].join(" ");
+
   return (
     <main className="min-h-screen bg-background px-2 py-2 sm:px-4 sm:py-4">
       <Seo
@@ -501,7 +633,44 @@ const EpubReader = () => {
         ref={readerContainerRef}
         className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 sm:p-3" : ""}`}
       >
-        <div className="flex items-center justify-between gap-2 rounded-xl border bg-card px-2 py-2 sm:px-3 sm:py-3">
+        {/* Floats over the (always full-viewport, mobile) reader panel below
+            rather than sharing space with it — sliding in/out instead of
+            resizing anything means toggling this never changes the reader's
+            own box size, so it never triggers epub.js to re-paginate and
+            shift the visible page. Slides (translate) rather than fades
+            (opacity): this panel's glass background is translucent, so
+            fading its opacity mid-transition let the reader text underneath
+            and this bar's own text show through each other at the same
+            time — a "double exposure" look. Sliding keeps it at full
+            opacity/blur throughout; only its position animates, so whatever
+            it moves over is cleanly covered the instant it arrives, never
+            partially. Reverts to a normal in-flow bar at sm: and up, always
+            visible there. */}
+        <div
+          className={`fixed inset-x-0 top-0 z-50 !mt-0 px-2 pt-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!translate-y-0 sm:px-0 sm:pt-0 ${
+            controlsVisible ? "translate-y-0" : "-translate-y-full pointer-events-none"
+          }`}
+        >
+        <div
+          // Adding the site's own "dark" class (rather than hand-picking
+          // text/icon colors) re-scopes every CSS-variable-driven color
+          // this bar's contents use — bg-card, text-muted-foreground,
+          // button variants, borders — to the dark palette in one go, so
+          // contrast stays correct without touching each child individually.
+          // Only needed for the epub reader's own "dark" theme: sepia/light
+          // both have light backgrounds close enough to the site's default
+          // light palette that the normal (light) colors already read fine.
+          // text-foreground is required alongside "dark", not implied by
+          // it: redefining the --foreground CSS variable doesn't
+          // retroactively change already-inherited `color` anywhere below
+          // — the title/buttons here never set their own color, so without
+          // an explicit text-foreground *at this scope* to re-read the
+          // (now-corrected) variable, they'd keep inheriting the site's
+          // outer light-mode black straight through.
+          className={`flex items-center justify-between gap-2 rounded-xl border px-2 py-2 text-foreground shadow-lg sm:px-3 sm:py-3 sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+            theme === "dark" ? "dark" : ""
+          }`}
+        >
           <div className="min-w-0">
             <h1 className="truncate text-base font-semibold sm:text-xl">{story.title}</h1>
           </div>
@@ -606,6 +775,7 @@ const EpubReader = () => {
             )}
           </div>
         </div>
+        </div>
 
         {readerError && (
           <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-600">
@@ -621,9 +791,14 @@ const EpubReader = () => {
         )}
 
         <div
-          className={`relative overflow-hidden rounded-xl border bg-card px-4 sm:px-6 ${
-            isFullscreen ? "h-[calc(100vh-130px)]" : "h-[76vh] sm:h-[calc(100vh-200px)]"
-          }`}
+          className={readerPanelClassName}
+          // Matches the currently-selected epub theme instead of the site's
+          // generic card background — otherwise the padding around the
+          // iframe (where the actual themed page background lives) shows as
+          // a mismatched white/card-colored border around the content.
+          style={{ backgroundColor: READER_THEMES[theme].background }}
+          onTouchStart={handleReaderTouchStart}
+          onTouchEnd={handleReaderTouchEnd}
         >
           {/* The padding lives on this outer wrapper, not on viewerRef itself —
               snapPaginationHeight() measures viewerRef.clientWidth and passes it
@@ -633,7 +808,22 @@ const EpubReader = () => {
           <div ref={viewerRef} className="h-full w-full" />
         </div>
 
-        <div className="grid grid-cols-3 items-center rounded-xl border bg-card px-3 py-2">
+        {/* Same floating-overlay treatment as the header above, and for the
+            same reason: sliding rather than resizing keeps the reader
+            panel's box permanently constant so toggling never re-paginates
+            it, and sliding rather than fading avoids the "double exposure"
+            look a translucent glass panel gets when its opacity animates
+            over visible reader text (see the header's comment above). */}
+        <div
+          className={`fixed inset-x-0 bottom-0 z-50 !mt-0 px-3 pb-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!mt-3 sm:!translate-y-0 sm:px-0 sm:pb-0 ${
+            controlsVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
+          }`}
+        >
+        <div
+          className={`grid grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+            theme === "dark" ? "dark" : ""
+          }`}
+        >
           <div className="flex justify-start">
             <Button variant="outline" size="sm" onClick={goPrev} className="h-8 px-3">
               <ChevronLeft className="h-4 w-4" />
@@ -649,6 +839,7 @@ const EpubReader = () => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
         </div>
       </div>
 
