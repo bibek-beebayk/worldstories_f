@@ -93,8 +93,9 @@ const AudioPlayerPage = () => {
   // whereas a blob: URL needs the whole file decrypted into memory before
   // playback can start at all. Offline, fall back to a downloaded/decrypted
   // copy if one exists for this exact chapter.
-  const [audioSrc, setAudioSrc] = useState<string | null>(null);
+  const [offlineAudioSrc, setOfflineAudioSrc] = useState<string | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
+  const audioSrc = offlineAudioSrc || currentAudio?.audio_file?.toString() || null;
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +109,7 @@ const AudioPlayerPage = () => {
 
     const resolveSrc = async () => {
       if (!currentAudio || !story_slug) {
-        if (!cancelled) setAudioSrc(null);
+        if (!cancelled) setOfflineAudioSrc(null);
         return;
       }
 
@@ -120,14 +121,14 @@ const AudioPlayerPage = () => {
           revokePrevious();
           const objectUrl = URL.createObjectURL(new Blob([buffer], { type: "audio/mpeg" }));
           audioObjectUrlRef.current = objectUrl;
-          setAudioSrc(objectUrl);
+          setOfflineAudioSrc(objectUrl);
           return;
         }
       }
 
       if (!cancelled) {
         revokePrevious();
-        setAudioSrc(currentAudio.audio_file.toString());
+        setOfflineAudioSrc(null);
       }
     };
 
@@ -518,8 +519,8 @@ const AudioPlayerPage = () => {
                   {currentAudio && audioSrc && (
                     <div className="space-y-1.5">
                       <audio
-                        key={audioSrc}
                         ref={audioRef}
+                        src={audioSrc}
                         controls
                         preload="metadata"
                         playsInline
@@ -588,9 +589,7 @@ const AudioPlayerPage = () => {
                             "This audio could not be loaded. Please check your connection and try again."
                           );
                         }}
-                      >
-                        <source src={audioSrc} type="audio/mpeg" />
-                      </audio>
+                      />
                       {!audioSrc.startsWith("blob:") && (
                         <a
                           href={audioSrc}
