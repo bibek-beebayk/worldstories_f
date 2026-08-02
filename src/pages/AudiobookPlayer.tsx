@@ -137,15 +137,13 @@ const AudioPlayerPage = () => {
     };
   }, [currentAudio, story_slug]);
 
-  // Loading is safe here, but playback must remain in a direct user event.
-  // In particular, iOS Safari rejects an unmuted play() made by an effect,
-  // even when navigation to this page originally came from a user tap.
+  // Playback must remain in a direct user event. Reset only UI state here;
+  // the keyed audio element below remounts whenever the source changes, so
+  // calling load() programmatically (which iOS may ignore) is unnecessary.
   useEffect(() => {
-    const audioEl = audioRef.current;
-    if (!audioEl || !audioSrc) return;
+    if (!audioSrc) return;
     setIsPlaying(false);
     setPlaybackError(null);
-    audioEl.load();
   }, [audioSrc]);
 
   useEffect(() => {
@@ -517,6 +515,95 @@ const AudioPlayerPage = () => {
                     </p>
                   )}
 
+                  {currentAudio && audioSrc && (
+                    <div className="space-y-1.5">
+                      <audio
+                        key={audioSrc}
+                        ref={audioRef}
+                        controls
+                        preload="metadata"
+                        playsInline
+                        className="h-10 w-full"
+                        onLoadedMetadata={() => {
+                          if (audioRef.current) {
+                            setDurationSeconds(audioRef.current.duration || 0);
+                            audioRef.current.playbackRate = playbackRate;
+                          }
+                          if (!isAuthenticated) return;
+                          if (!currentAudio?.slug) return;
+                          if (restoredAudioSlugRef.current === currentAudio.slug) return;
+
+                          const saved = liveAudioProgressMap[currentAudio.slug];
+                          if (saved && saved.position_seconds > 0 && audioRef.current) {
+                            const duration = Number.isFinite(audioRef.current.duration)
+                              ? audioRef.current.duration
+                              : 0;
+                            const maxSafe = duration > 1 ? duration - 0.5 : duration;
+                            audioRef.current.currentTime = Math.min(saved.position_seconds, maxSafe);
+                          }
+                          restoredAudioSlugRef.current = currentAudio.slug;
+                        }}
+                        onTimeUpdate={() => {
+                          if (audioRef.current) {
+                            setCurrentTimeSeconds(audioRef.current.currentTime || 0);
+                            setDurationSeconds(audioRef.current.duration || 0);
+                          }
+                          if (!isAuthenticated || !audioRef.current || !currentAudio?.slug) return;
+                          const duration = audioRef.current.duration || 0;
+                          const position = audioRef.current.currentTime || 0;
+                          const progress = duration > 0 ? position / duration : 0;
+                          setLiveAudioProgressMap((prev) => ({
+                            ...prev,
+                            [currentAudio.slug]: {
+                              progress,
+                              position_seconds: position,
+                              duration_seconds: duration,
+                            },
+                          }));
+                          queueSaveAudioProgress(currentAudio.slug, progress, position, duration);
+                        }}
+                        onEnded={() => {
+                          if (isAuthenticated && currentAudio?.slug && audioRef.current) {
+                            const duration = audioRef.current.duration || 0;
+                            setLiveAudioProgressMap((prev) => ({
+                              ...prev,
+                              [currentAudio.slug]: {
+                                progress: 1,
+                                position_seconds: duration,
+                                duration_seconds: duration,
+                              },
+                            }));
+                            persistAudioProgress(currentAudio.slug, 1, duration, duration);
+                          }
+                          playNext();
+                        }}
+                        onPlay={() => {
+                          setPlaybackError(null);
+                          setIsPlaying(true);
+                        }}
+                        onPause={() => setIsPlaying(false)}
+                        onError={() => {
+                          setIsPlaying(false);
+                          setPlaybackError(
+                            "This audio could not be loaded. Please check your connection and try again."
+                          );
+                        }}
+                      >
+                        <source src={audioSrc} type="audio/mpeg" />
+                      </audio>
+                      {!audioSrc.startsWith("blob:") && (
+                        <a
+                          href={audioSrc}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block text-xs text-cyan-200 underline-offset-2 hover:underline"
+                        >
+                          Open audio directly
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-center gap-2 sm:justify-start">
                     <button
                       type="button"
@@ -560,80 +647,6 @@ const AudioPlayerPage = () => {
                     </p>
                   )}
 
-                  {currentAudio && audioSrc && (
-                    <audio
-                      ref={audioRef}
-                      src={audioSrc}
-                      preload="metadata"
-                      playsInline
-                      className="hidden"
-                      onLoadedMetadata={() => {
-                        if (audioRef.current) {
-                          setDurationSeconds(audioRef.current.duration || 0);
-                          audioRef.current.playbackRate = playbackRate;
-                        }
-                        if (!isAuthenticated) return;
-                        if (!currentAudio?.slug) return;
-                        if (restoredAudioSlugRef.current === currentAudio.slug) return;
-
-                        const saved = liveAudioProgressMap[currentAudio.slug];
-                        if (saved && saved.position_seconds > 0 && audioRef.current) {
-                          const duration = Number.isFinite(audioRef.current.duration)
-                            ? audioRef.current.duration
-                            : 0;
-                          const maxSafe = duration > 1 ? duration - 0.5 : duration;
-                          audioRef.current.currentTime = Math.min(saved.position_seconds, maxSafe);
-                        }
-                        restoredAudioSlugRef.current = currentAudio.slug;
-                      }}
-                      onTimeUpdate={() => {
-                        if (audioRef.current) {
-                          setCurrentTimeSeconds(audioRef.current.currentTime || 0);
-                          setDurationSeconds(audioRef.current.duration || 0);
-                        }
-                        if (!isAuthenticated || !audioRef.current || !currentAudio?.slug) return;
-                        const duration = audioRef.current.duration || 0;
-                        const position = audioRef.current.currentTime || 0;
-                        const progress = duration > 0 ? position / duration : 0;
-                        setLiveAudioProgressMap((prev) => ({
-                          ...prev,
-                          [currentAudio.slug]: {
-                            progress,
-                            position_seconds: position,
-                            duration_seconds: duration,
-                          },
-                        }));
-                        queueSaveAudioProgress(currentAudio.slug, progress, position, duration);
-                      }}
-                      onEnded={() => {
-                        if (isAuthenticated && currentAudio?.slug && audioRef.current) {
-                          const duration = audioRef.current.duration || 0;
-                          setLiveAudioProgressMap((prev) => ({
-                            ...prev,
-                            [currentAudio.slug]: {
-                              progress: 1,
-                              position_seconds: duration,
-                              duration_seconds: duration,
-                            },
-                          }));
-                          // Fired immediately (not debounced) — this is a
-                          // one-shot "chapter complete" event, not a stream of
-                          // timeupdate ticks, and playNext() below moves to the
-                          // next chapter right away.
-                          persistAudioProgress(currentAudio.slug, 1, duration, duration);
-                        }
-                        playNext();
-                      }}
-                      onPlay={() => setIsPlaying(true)}
-                      onPause={() => setIsPlaying(false)}
-                      onError={() => {
-                        setIsPlaying(false);
-                        setPlaybackError(
-                          "This audio could not be loaded. Please check your connection and try again."
-                        );
-                      }}
-                    />
-                  )}
                 </div>
               </CardContent>
             </Card>
