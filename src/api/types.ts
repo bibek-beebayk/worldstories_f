@@ -314,6 +314,7 @@ export interface AdminStory {
   epub_file_url: string | null;
   is_completed: boolean;
   is_published: boolean;
+  publish_at: string | null;
   genres: number[];
   tags: number[];
   rating: number;

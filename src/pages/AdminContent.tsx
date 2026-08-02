@@ -17,6 +17,24 @@ import { ArrowLeft, Bold, Heading2, Italic, Link2, List, ListOrdered, Loader2, P
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 
 const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Summary"];
+
+// <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
+// timezone suffix) — the backend gives back a UTC ISO string, so this
+// converts between the two in both directions.
+const toDatetimeLocalValue = (isoString: string | null | undefined) => {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const fromDatetimeLocalValue = (value: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+};
+
 const toTitleCase = (value: string) =>
   value
     .trim()
@@ -36,7 +54,14 @@ const AdminContent = () => {
   const [selectedStoryId, setSelectedStoryId] = useState<number | null>(null);
   const [showStoryForm, setShowStoryForm] = useState(false);
   const [storiesList, setStoriesList] = useState<
-    Array<{ id: number; title: string; slug: string; is_published: boolean; source: "admin" | "submission" }>
+    Array<{
+      id: number;
+      title: string;
+      slug: string;
+      is_published: boolean;
+      publish_at: string | null;
+      source: "admin" | "submission";
+    }>
   >([]);
   const [hasMoreStories, setHasMoreStories] = useState(false);
 
@@ -50,6 +75,7 @@ const AdminContent = () => {
   const [sitePublishedDate, setSitePublishedDate] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [publishAt, setPublishAt] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -154,6 +180,7 @@ const AdminContent = () => {
     setSitePublishedDate("");
     setIsCompleted(false);
     setIsPublished(false);
+    setPublishAt("");
     setCoverImage("");
     setCoverImageFile(null);
     setPdfFile(null);
@@ -448,6 +475,7 @@ const AdminContent = () => {
     setSitePublishedDate(selectedStory.site_published_date || "");
     setIsCompleted(Boolean(selectedStory.is_completed));
     setIsPublished(Boolean(selectedStory.is_published));
+    setPublishAt(toDatetimeLocalValue(selectedStory.publish_at));
     setCoverImage(selectedStory.cover_image || "");
     setSelectedGenreNames(
       (selectedStory.genres || [])
@@ -558,6 +586,11 @@ const AdminContent = () => {
       formData.append("site_published_date", sitePublishedDate);
     } else if (mode === "edit") {
       formData.append("site_published_date", "");
+    }
+    if (publishAt) {
+      formData.append("publish_at", fromDatetimeLocalValue(publishAt));
+    } else if (mode === "edit") {
+      formData.append("publish_at", "");
     }
     if (coverImage.trim()) formData.append("cover_image", coverImage.trim());
     if (coverImageFile) formData.append("cover_image_file", coverImageFile);
@@ -825,15 +858,23 @@ const AdminContent = () => {
                     >
                       {item.source === "submission" ? "Submission" : "Admin"}
                     </span>
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                        item.is_published
-                          ? "border-emerald-200 bg-emerald-100 text-emerald-700"
-                          : "border-amber-200 bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {item.is_published ? "Published" : "Draft"}
-                    </span>
+                    {(() => {
+                      const isScheduled =
+                        item.is_published && !!item.publish_at && new Date(item.publish_at) > new Date();
+                      const label = isScheduled ? "Scheduled" : item.is_published ? "Published" : "Draft";
+                      const colorClass = isScheduled
+                        ? "border-violet-200 bg-violet-100 text-violet-700"
+                        : item.is_published
+                        ? "border-emerald-200 bg-emerald-100 text-emerald-700"
+                        : "border-amber-200 bg-amber-100 text-amber-700";
+                      return (
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${colorClass}`}
+                        >
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </button>
               ))}
@@ -966,6 +1007,20 @@ const AdminContent = () => {
                       className="mt-2"
                     />
                     <p className="mt-1 text-xs text-muted-foreground">When this story went live on WorldStories.</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="admin-publish-at">Schedule Publication</Label>
+                    <Input
+                      id="admin-publish-at"
+                      type="datetime-local"
+                      value={publishAt}
+                      onChange={(e) => setPublishAt(e.target.value)}
+                      className="mt-2"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Optional — keeps this story hidden from readers until this moment, even while Published is
+                      checked. Leave blank to publish immediately.
+                    </p>
                   </div>
                   <div className="flex items-end">
                     <label className="flex items-center gap-2 text-sm">
@@ -1227,6 +1282,14 @@ const AdminContent = () => {
                       <p><span className="text-muted-foreground">Published on Site Date:</span> {selectedStory.site_published_date || "-"}</p>
                       <p><span className="text-muted-foreground">Completed:</span> {selectedStory.is_completed ? "Yes" : "No"}</p>
                       <p><span className="text-muted-foreground">Published:</span> {selectedStory.is_published ? "Yes" : "No"}</p>
+                      {selectedStory.is_published && selectedStory.publish_at && (
+                        <p>
+                          <span className="text-muted-foreground">
+                            {new Date(selectedStory.publish_at) > new Date() ? "Scheduled for:" : "Went live at:"}
+                          </span>{" "}
+                          {new Date(selectedStory.publish_at).toLocaleString()}
+                        </p>
+                      )}
                       <p><span className="text-muted-foreground">Rating:</span> {selectedStory.rating.toFixed(1)}</p>
                       <p><span className="text-muted-foreground">Views:</span> {selectedStory.views}</p>
                     </div>
