@@ -99,13 +99,6 @@ const EpubReader = () => {
   const lastCfiRef = useRef<string | null>(null);
   const pageTurnCountRef = useRef(0);
   const saveProgressTimerRef = useRef<number | null>(null);
-  // epub.js recreates the content iframe on every chapter/spine-item change
-  // (it only reuses the same iframe for page turns *within* one chapter), so
-  // touch listeners for swipe/tap-to-toggle are (re)attached via the
-  // rendition's "rendered" event rather than once — this set just prevents
-  // attaching duplicate listeners if "rendered" fires again for a document
-  // we've already wired up (e.g. a resize-triggered re-render).
-  const attachedIframeDocsRef = useRef<Set<Document>>(new Set());
 
   const [toc, setToc] = useState<NavItem[]>([]);
   const [isTocOpen, setIsTocOpen] = useState(false);
@@ -310,7 +303,6 @@ const EpubReader = () => {
         setReaderError("");
         setIsEpubLoading(true);
         pageTurnCountRef.current = 0;
-        attachedIframeDocsRef.current = new Set();
         // Offline: read a previously-downloaded, decrypted copy straight into
         // memory instead of hitting the network at all — epub.js accepts an
         // ArrayBuffer directly and treats it as a packed archive, so no
@@ -386,17 +378,22 @@ const EpubReader = () => {
           }
         });
 
-        // Content renders into a sandboxed iframe per chapter — a separate
-        // document that never sees touch events dispatched on the outer page,
-        // so swipe/tap-to-toggle only work if wired directly onto whichever
-        // iframe document is currently showing. epub.js fires "rendered"
-        // every time it (re)creates that iframe, e.g. on each chapter change.
-        rendition.on("rendered", (_section: unknown, view: { document?: Document }) => {
-          const doc = view?.document;
-          if (!doc || attachedIframeDocsRef.current.has(doc)) return;
-          attachedIframeDocsRef.current.add(doc);
-          doc.addEventListener("touchstart", handleReaderTouchStart as EventListener, { passive: true });
-          doc.addEventListener("touchend", handleReaderTouchEnd as EventListener, { passive: true });
+        // EPUB.js forwards DOM events from every current and future content
+        // iframe through the rendition. Listening here avoids relying on
+        // Safari exposing an iframe Document at the exact moment "rendered"
+        // fires, which is unreliable on iOS and previously left the reader
+        // with no working tap/swipe controls.
+        rendition.on("touchstart", handleReaderTouchStart);
+        rendition.on("touchend", handleReaderTouchEnd);
+
+        // Tell mobile browsers that vertical gestures remain native while
+        // horizontal gestures belong to the reader. This prevents iOS Safari
+        // from claiming ordinary page-turn swipes as iframe panning.
+        rendition.on("rendered", (_section: unknown, view: { document?: Document; contents?: { document?: Document } }) => {
+          const doc = view?.document || view?.contents?.document;
+          if (!doc) return;
+          doc.documentElement.style.touchAction = "pan-y";
+          if (doc.body) doc.body.style.touchAction = "pan-y";
         });
 
         // A logged-in reader's account progress takes priority over
