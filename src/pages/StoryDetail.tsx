@@ -43,6 +43,7 @@ import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload
 import { makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
 import { formatDurationMinutes } from "@/lib/utils";
+import CoverImage from "@/components/CoverImage";
 
 
 const StoryDetail = () => {
@@ -383,7 +384,7 @@ const StoryDetail = () => {
             {/* Story Header */}
             <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 mb-8">
               <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-lg">
-                <img
+                <CoverImage
                   src={story.cover_image}
                   alt={story.title}
                   loading="eager"

@@ -5,6 +5,7 @@ import { useDiscoverData } from "@/hooks/useDiscoverData";
 import { formatRelativeDate, formatViews } from "@/lib/utils";
 import { Compass, Eye, Gem, Sparkles, Star, Tag } from "lucide-react";
 import Seo, { SITE_URL } from "@/components/Seo";
+import CoverImage from "@/components/CoverImage";
 
 const Discover = () => {
   const { data, isLoading, isError } = useDiscoverData();
@@ -86,15 +87,13 @@ const Discover = () => {
                 className="group w-36 shrink-0 sm:w-40"
               >
                 <div className="relative mb-2 aspect-[3/4] overflow-hidden rounded-lg bg-muted shadow-sm">
-                  {story.cover_image && (
-                    <img
-                      src={story.cover_image}
-                      alt={story.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  )}
+                  <CoverImage
+                    src={story.cover_image}
+                    alt={story.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
                   {story.site_published_date && (
                     <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
                       {formatRelativeDate(story.site_published_date)}
@@ -127,15 +126,13 @@ const Discover = () => {
                 className="group flex items-center gap-3 rounded-xl border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/50 sm:gap-4"
               >
                 <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-20 sm:w-14">
-                  {story.cover_image && (
-                    <img
-                      src={story.cover_image}
-                      alt={story.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  )}
+                  <CoverImage
+                    src={story.cover_image}
+                    alt={story.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">

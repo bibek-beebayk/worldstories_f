@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Story } from "@/api/types";
 import { formatViews } from "@/lib/utils";
+import CoverImage from "@/components/CoverImage";
 
 interface TrendingListProps {
   stories: Story[];
@@ -23,7 +24,7 @@ const TrendingList = ({ stories }: TrendingListProps) => {
           
           <div className="flex-shrink-0">
             <div className="relative w-16 h-16 rounded-lg overflow-hidden shadow-md">
-              <img
+              <CoverImage
                 src={story.cover_image}
                 alt={story.title}
                 loading="lazy"

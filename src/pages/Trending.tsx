@@ -7,6 +7,7 @@ import { formatViews } from "@/lib/utils";
 import { Eye, Flame, Heart, MessageSquare, Star } from "lucide-react";
 import Seo, { SITE_URL } from "@/components/Seo";
 import { Story, TrendingDataResponse } from "@/api/types";
+import CoverImage from "@/components/CoverImage";
 
 const RANK_STYLES = [
   "border-amber-400/50 bg-amber-400/15 text-amber-600",
@@ -74,15 +75,13 @@ const Trending = () => {
               {index + 1}
             </div>
             <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-20 sm:w-14">
-              {story.cover_image && (
-                <img
-                  src={story.cover_image}
-                  alt={story.title}
-                  loading={index < 3 ? "eager" : "lazy"}
-                  decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              )}
+              <CoverImage
+                src={story.cover_image}
+                alt={story.title}
+                loading={index < 3 ? "eager" : "lazy"}
+                decoding="async"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-semibold transition-colors group-hover:text-primary sm:text-base">

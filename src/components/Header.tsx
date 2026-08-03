@@ -19,6 +19,7 @@ import {
 import { Menu, Search, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatViews } from "@/lib/utils";
+import CoverImage from "@/components/CoverImage";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -167,7 +168,7 @@ const Header = () => {
                           }}
                           className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
                         >
-                          <img
+                          <CoverImage
                             src={story.cover_image}
                             alt={story.title}
                             className="h-12 w-10 rounded object-cover"

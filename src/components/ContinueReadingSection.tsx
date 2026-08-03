@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpenText, Clock3, Headphones } from "lucide-react";
 import { Link } from "react-router-dom";
+import CoverImage from "@/components/CoverImage";
 
 interface ContinueReadingSectionProps {
   items: ContinueReadingItem[];
@@ -91,7 +92,7 @@ const ContinueReadingSection = ({
               >
                 <Link to={continueHref} className="group block">
                   <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-muted shadow-sm">
-                    <img
+                    <CoverImage
                       src={item.story.cover_image}
                       alt={item.story.title}
                       loading="lazy"

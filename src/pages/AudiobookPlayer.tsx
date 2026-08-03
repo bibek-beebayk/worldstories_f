@@ -29,6 +29,7 @@ import { storyApi } from "@/api/story";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { queueAudioProgress } from "@/lib/progressSync";
+import CoverImage from "@/components/CoverImage";
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -412,7 +413,7 @@ const AudioPlayerPage = () => {
             <Card className="overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
               <CardContent className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-start sm:gap-6 sm:p-6">
                 <div className="relative w-40 shrink-0 overflow-hidden rounded-xl shadow-lg sm:w-56">
-                  <img
+                  <CoverImage
                     src={story.cover_image}
                     alt={story.title}
                     className="aspect-square w-full object-cover"

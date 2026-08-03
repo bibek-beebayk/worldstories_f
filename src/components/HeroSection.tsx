@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { FeaturedStory } from "@/api/types";
 import { formatViews } from "@/lib/utils";
+import CoverImage from "@/components/CoverImage";
 
 interface HeroSectionProps {
   featuredStories?: FeaturedStory[];
@@ -72,7 +73,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
       {/* Always-visible, load-state-independent statement of what WorldStories
           is, kept in its own minimal strip so the site's purpose is never
           fully dependent on which story happens to be featured below. */}
-      <div className="bg-hero-dark px-4 py-1.5 text-center">
+      <div className="bg-hero-dark px-4 py-1.5 text-center lg:hidden">
         <p className="text-[10px] font-medium uppercase tracking-wide text-white/60 sm:text-xs">
           WorldStories — read and publish free stories, novels, poetry, and audiobooks from writers around the world.
         </p>
@@ -86,9 +87,9 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
         onTouchEnd={hasStories && featuredStories.length > 1 ? handleTouchEnd : undefined}
       >
         {/* Background: the featured story's cover image, full-bleed */}
-        <div className="absolute inset-0">
-          {story?.cover_image ? (
-            <img
+        <div className="absolute inset-0 lg:hidden">
+          {story ? (
+            <CoverImage
               key={story.id}
               src={story.cover_image}
               alt=""
@@ -107,7 +108,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent" />
         </div>
 
-        <div className="relative z-10 container flex min-h-[440px] items-end px-4 py-10 sm:min-h-[480px] md:min-h-[560px] md:py-14">
+        <div className="relative z-10 container flex min-h-[440px] items-end px-4 py-10 sm:min-h-[480px] md:min-h-[560px] md:py-14 lg:grid lg:min-h-0 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-6 lg:py-12">
           <div key={`text-${story?.id ?? "empty"}`} className="max-w-2xl animate-in fade-in-0 space-y-4 duration-500">
             <div className="flex items-center gap-3">
               <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/90">
@@ -119,6 +120,10 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                 </span>
               )}
             </div>
+
+            <p className="hidden text-sm font-medium uppercase tracking-wide text-white/60 lg:block">
+              WorldStories — read and publish free stories, novels, poetry, and audiobooks from writers around the world.
+            </p>
 
             <h1 className="max-w-3xl text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
               {story?.title || "Welcome to WorldStories!"}
@@ -163,10 +168,71 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               </Link>
             </Button>
           </div>
+
+          <div className="relative mx-auto hidden w-full max-w-md lg:block">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/20 shadow-2xl">
+              <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+              {story ? (
+                <CoverImage
+                  key={`desktop-cover-${story.id}`}
+                  src={story.cover_image}
+                  alt={story.title}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                  className="h-full w-full animate-in fade-in-0 object-cover duration-500"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-white/10 to-transparent">
+                  <BookOpen className="h-16 w-16 text-white/30" />
+                </div>
+              )}
+              <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">
+                <p className="line-clamp-1 text-sm font-medium text-white">
+                  {story?.title || "Welcome to WorldStories!"}
+                </p>
+              </div>
+            </div>
+
+            {hasStories && featuredStories.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="Previous featured story"
+                  className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="Next featured story"
+                  className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  {featuredStories.map((featuredStory, index) => (
+                    <button
+                      key={featuredStory.id}
+                      type="button"
+                      onClick={() => goTo(index)}
+                      aria-label={`Go to featured story ${index + 1}`}
+                      aria-current={index === activeIndex}
+                      className={`h-1.5 rounded-full transition-all ${
+                        index === activeIndex ? "w-6 bg-white" : "w-1.5 bg-white/40 hover:bg-white/60"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {!story?.cover_image && !hasStories && (
-          <div className="pointer-events-none absolute right-10 top-10 z-[5] hidden md:block">
+          <div className="pointer-events-none absolute right-10 top-10 z-[5] hidden md:block lg:hidden">
             <BookOpen className="h-24 w-24 text-white/10" />
           </div>
         )}
@@ -177,7 +243,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               type="button"
               onClick={goPrev}
               aria-label="Previous featured story"
-              className="absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70 sm:left-5"
+              className="absolute left-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70 sm:left-5 lg:hidden"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
@@ -186,12 +252,12 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               type="button"
               onClick={goNext}
               aria-label="Next featured story"
-              className="absolute right-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70 sm:right-5"
+              className="absolute right-3 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70 sm:right-5 lg:hidden"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
 
-            <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2">
+            <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 lg:hidden">
               {featuredStories.map((s, index) => (
                 <button
                   key={s.id}

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { storyApi } from "@/api/story";
 import { DownloadStorySummary } from "@/lib/offlineDb";
 import { formatBytes } from "@/lib/utils";
+import CoverImage from "@/components/CoverImage";
 
 interface DownloadStorySummaryRowProps {
   summary: DownloadStorySummary;
@@ -47,7 +48,7 @@ export default function DownloadStorySummaryRow({ summary, onClick }: DownloadSt
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-md border p-3 text-left transition hover:bg-muted/50"
     >
-      <img src={summary.story_cover_image} alt="" className="h-16 w-12 shrink-0 rounded object-cover" />
+      <CoverImage src={summary.story_cover_image} alt="" className="h-16 w-12 shrink-0 rounded object-cover" />
       <div className="min-w-0 flex-1">
         <p className="line-clamp-1 font-medium">{summary.story_title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
