@@ -22,7 +22,15 @@ import {
   Sun,
   Type,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type TouchEvent as ReactTouchEvent,
+} from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Epub, { type Book, type Rendition } from "epubjs";
 import type { NavItem } from "epubjs/types/navigation";
@@ -262,9 +270,38 @@ const EpubReader = () => {
   // never fire for mouse input, so this naturally only affects touchscreens
   // without needing a separate viewport-width check.
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const SWIPE_THRESHOLD_PX = 50;
-  const TAP_MAX_MOVEMENT_PX = 10;
-  const TAP_MAX_DURATION_MS = 500;
+  const SWIPE_THRESHOLD_PX = 28;
+  const TAP_MAX_MOVEMENT_PX = 16;
+  const TAP_MAX_DURATION_MS = 700;
+
+  const resetGesturePreview = useCallback(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    viewer.style.transition = "transform 140ms ease-out";
+    viewer.style.transform = "translateX(0)";
+  }, []);
+
+  const completeReaderGesture = useCallback(
+    (clientX: number, clientY: number) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      resetGesturePreview();
+      if (!start) return;
+      const dx = clientX - start.x;
+      const dy = clientY - start.y;
+      const elapsedMs = Date.now() - start.time;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      if (absDx > SWIPE_THRESHOLD_PX && absDx > absDy * 1.15) {
+        if (dx < 0) goNext();
+        else goPrev();
+      } else if (absDx < TAP_MAX_MOVEMENT_PX && absDy < TAP_MAX_MOVEMENT_PX && elapsedMs < TAP_MAX_DURATION_MS) {
+        setControlsVisible((prev) => !prev);
+      }
+    },
+    [goNext, goPrev, resetGesturePreview]
+  );
 
   const handleReaderTouchStart = useCallback((event: TouchEvent | ReactTouchEvent) => {
     const touch = event.touches[0];
@@ -274,25 +311,47 @@ const EpubReader = () => {
 
   const handleReaderTouchEnd = useCallback(
     (event: TouchEvent | ReactTouchEvent) => {
-      const start = touchStartRef.current;
-      touchStartRef.current = null;
       const touch = event.changedTouches[0];
-      if (!start || !touch) return;
-      const dx = touch.clientX - start.x;
-      const dy = touch.clientY - start.y;
-      const elapsedMs = Date.now() - start.time;
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-
-      if (absDx > SWIPE_THRESHOLD_PX && absDx > absDy * 1.5) {
-        if (dx < 0) goNext();
-        else goPrev();
-      } else if (absDx < TAP_MAX_MOVEMENT_PX && absDy < TAP_MAX_MOVEMENT_PX && elapsedMs < TAP_MAX_DURATION_MS) {
-        setControlsVisible((prev) => !prev);
-      }
+      if (!touch) return;
+      completeReaderGesture(touch.clientX, touch.clientY);
     },
-    [goNext, goPrev]
+    [completeReaderGesture]
   );
+
+  const handleMobilePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    touchStartRef.current = { x: event.clientX, y: event.clientY, time: Date.now() };
+  }, []);
+
+  const handleMobilePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = touchStartRef.current;
+    if (!start || !event.isPrimary) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) < 5 || Math.abs(dx) <= Math.abs(dy)) return;
+    event.preventDefault();
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    viewer.style.transition = "none";
+    viewer.style.transform = `translateX(${Math.max(-30, Math.min(30, dx * 0.2))}px)`;
+  }, []);
+
+  const handleMobilePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!event.isPrimary) return;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      completeReaderGesture(event.clientX, event.clientY);
+    },
+    [completeReaderGesture]
+  );
+
+  const handleMobilePointerCancel = useCallback(() => {
+    touchStartRef.current = null;
+    resetGesturePreview();
+  }, [resetGesturePreview]);
 
   useEffect(() => {
     if (!story?.epub_file || !viewerRef.current) return;
@@ -793,8 +852,6 @@ const EpubReader = () => {
           // iframe (where the actual themed page background lives) shows as
           // a mismatched white/card-colored border around the content.
           style={{ backgroundColor: READER_THEMES[theme].background }}
-          onTouchStart={handleReaderTouchStart}
-          onTouchEnd={handleReaderTouchEnd}
         >
           {isEpubLoading && (
             <div
@@ -825,6 +882,17 @@ const EpubReader = () => {
               padding. Padding here instead just shrinks viewerRef's available
               box, so that measurement stays accurate with no subtraction needed. */}
           <div ref={viewerRef} className="h-full w-full" />
+          {!isEpubLoading && (
+            <div
+              className="absolute inset-0 z-10 sm:hidden"
+              style={{ touchAction: "none" }}
+              onPointerDown={handleMobilePointerDown}
+              onPointerMove={handleMobilePointerMove}
+              onPointerUp={handleMobilePointerUp}
+              onPointerCancel={handleMobilePointerCancel}
+              aria-hidden="true"
+            />
+          )}
         </div>
 
         {/* Mobile-only: a compact reading-progress readout shown only while
