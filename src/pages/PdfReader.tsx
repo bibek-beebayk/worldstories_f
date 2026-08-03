@@ -6,7 +6,7 @@ import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
-import { queueFileProgress } from "@/lib/progressSync";
+import { queueFileProgress, saveFileProgressLocally } from "@/lib/progressSync";
 import { ArrowLeft, Loader2, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -149,6 +149,9 @@ const PdfReader = () => {
   useEffect(() => {
     if (!storageKey || !pageNumber) return;
     localStorage.setItem(storageKey, String(pageNumber));
+    if (story?.slug && numPages) {
+      saveFileProgressLocally(story.slug, "pdf", Math.min(1, pageNumber / numPages), String(pageNumber));
+    }
 
     // localStorage above covers anonymous readers instantly; logged-in
     // readers additionally get their position synced to their account,

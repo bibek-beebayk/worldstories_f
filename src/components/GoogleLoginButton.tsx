@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiClient, saveTokens } from "@/api/client";
+import { adoptGuestProgress } from "@/lib/progressSync";
 
 declare global {
   interface Window {
@@ -47,6 +48,7 @@ export default function GoogleLoginButton({ onSuccess }: Props) {
 
           // Save tokens
           saveTokens(res.access, res.refresh);
+          await adoptGuestProgress();
 
           if (onSuccess) onSuccess();
         } catch (err) {

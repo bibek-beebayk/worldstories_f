@@ -42,6 +42,11 @@ const routeSeo: Record<string, { title: string; description: string; noIndex?: b
     description: "Manage your WorldStories profile and personal library.",
     noIndex: true,
   },
+  "/downloads": {
+    title: "Downloads | WorldStories",
+    description: "Read and listen to stories saved on this device.",
+    noIndex: true,
+  },
 };
 
 export default function DefaultLayout() {
@@ -59,13 +64,12 @@ export default function DefaultLayout() {
     location.pathname.startsWith("/listen/") ||
     location.pathname.endsWith("/pdf") ||
     location.pathname.endsWith("/epub");
-  const isDownloadsPage =
-    location.pathname === "/profile" && new URLSearchParams(location.search).get("section") === "downloads";
+  const isDownloadsPage = location.pathname === "/downloads";
   const isAllowedOffline = isReaderOrListenerRoute || isDownloadsPage;
 
   useEffect(() => {
     if (!isOnline && !isAllowedOffline) {
-      navigate("/profile?section=downloads", { replace: true });
+      navigate("/downloads", { replace: true });
     }
   }, [isOnline, isAllowedOffline, navigate]);
 

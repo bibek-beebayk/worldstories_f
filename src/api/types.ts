@@ -18,6 +18,7 @@ export interface Chapter {
   content: string;
   order: number;
   slug: string;
+  download_size_bytes?: number;
 }
 
 export interface Audio {
@@ -26,6 +27,7 @@ export interface Audio {
   audio_file: File;
   order: number;
   slug: string;
+  download_size_bytes?: number;
 }
 
 export interface Genre{
@@ -103,6 +105,8 @@ export interface StoryDetail extends Story {
   genres: Genre[];
   pdf_file: string | null;
   epub_file: string | null;
+  pdf_size_bytes?: number;
+  epub_size_bytes?: number;
   chapter_count: number;
   chapters: Chapter[];
   tags: string[];

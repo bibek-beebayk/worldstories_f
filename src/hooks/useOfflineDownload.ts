@@ -13,14 +13,38 @@ import {
 } from "@/lib/offlineDb";
 import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 import { preloadOfflineReader } from "@/lib/preloadOfflineReader";
+import { toast } from "@/components/ui/sonner";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+export const MAX_DOWNLOADED_TITLES = 3;
+const titleReservations = new Map<string, number>();
+
+async function reserveDownloadTitle(storySlug: string): Promise<boolean> {
+  const downloads = await listDownloads();
+  const titleSlugs = new Set(downloads.map((record) => record.story_slug));
+  titleReservations.forEach((_count, slug) => titleSlugs.add(slug));
+  if (!titleSlugs.has(storySlug) && titleSlugs.size >= MAX_DOWNLOADED_TITLES) {
+    toast.error(`You can save up to ${MAX_DOWNLOADED_TITLES} titles at a time. Remove a downloaded title to add another.`);
+    return false;
+  }
+  titleReservations.set(storySlug, (titleReservations.get(storySlug) || 0) + 1);
+  return true;
+}
+
+function releaseDownloadTitle(storySlug: string) {
+  const remaining = (titleReservations.get(storySlug) || 1) - 1;
+  if (remaining <= 0) titleReservations.delete(storySlug);
+  else titleReservations.set(storySlug, remaining);
+}
 
 export interface DownloadableStory {
   slug: string;
   title: string;
   cover_image: string;
+  author?: string;
+  genres?: string[];
+  story_type?: string;
 }
 
 async function storePlaintext(
@@ -39,6 +63,9 @@ async function storePlaintext(
     story_slug: story.slug,
     story_title: story.title,
     story_cover_image: story.cover_image,
+    story_author: story.author,
+    story_genres: story.genres,
+    story_type: story.story_type,
     type,
     item_slug,
     title,
@@ -115,19 +142,26 @@ export function useOfflineDownload() {
   }, []);
 
   const downloadChapter = useCallback(
-    (story: DownloadableStory, chapter_slug: string, title: string, order: number) => {
+    async (story: DownloadableStory, chapter_slug: string, title: string, order: number) => {
+      if (!(await reserveDownloadTitle(story.slug))) return false;
       const id = makeDownloadId(story.slug, "chapter", chapter_slug);
-      return withPending(id, async () => {
-        const chapter = await storyApi.getChapter(story.slug, chapter_slug, "text");
-        const plaintext = textEncoder.encode(JSON.stringify(chapter)).buffer;
-        await storePlaintext(id, story, "chapter", chapter_slug, title, order, plaintext);
-      });
+      try {
+        await withPending(id, async () => {
+          const chapter = await storyApi.getChapter(story.slug, chapter_slug, "text");
+          const plaintext = textEncoder.encode(JSON.stringify(chapter)).buffer;
+          await storePlaintext(id, story, "chapter", chapter_slug, title, order, plaintext);
+        });
+        return true;
+      } finally {
+        releaseDownloadTitle(story.slug);
+      }
     },
     [withPending]
   );
 
   const downloadAudio = useCallback(
-    (story: DownloadableStory, audio_slug: string, title: string, order: number) => {
+    async (story: DownloadableStory, audio_slug: string, title: string, order: number) => {
+      if (!(await reserveDownloadTitle(story.slug))) return false;
       const id = makeDownloadId(story.slug, "audio", audio_slug);
       // Set before the fetch starts, not just on the first chunk — opening
       // the connection to R2 alone can take over a second with nothing to
@@ -136,32 +170,40 @@ export function useOfflineDownload() {
       // showing anything means most downloads never visibly show a percentage
       // at all.
       setProgressById((prev) => ({ ...prev, [id]: 0 }));
-      return withPending(id, async () => {
-        const plaintext = await fetchAuthenticatedBinary(
-          `/stories/${story.slug}/audios/${audio_slug}/stream/`,
-          (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
-        );
-        await storePlaintext(id, story, "audio", audio_slug, title, order, plaintext);
-      });
+      try {
+        await withPending(id, async () => {
+          const plaintext = await fetchAuthenticatedBinary(
+            `/stories/${story.slug}/audios/${audio_slug}/stream/`,
+            (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
+          );
+          await storePlaintext(id, story, "audio", audio_slug, title, order, plaintext);
+        });
+        return true;
+      } finally {
+        releaseDownloadTitle(story.slug);
+      }
     },
     [withPending]
   );
 
   const downloadFile = useCallback(
-    (story: DownloadableStory, type: "epub" | "pdf", title: string) => {
+    async (story: DownloadableStory, type: "epub" | "pdf", title: string) => {
+      if (!(await reserveDownloadTitle(story.slug))) return false;
       const id = makeDownloadId(story.slug, type);
       setProgressById((prev) => ({ ...prev, [id]: 0 }));
-      return withPending(id, async () => {
-        const plaintext = await fetchAuthenticatedBinary(
-          `/stories/${story.slug}/${type}-stream/`,
-          (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
-        );
-        await storePlaintext(id, story, type, "", title, 0, plaintext);
-        // Ensure the matching reader code is in the runtime cache before the
-        // device goes offline. Failure here does not discard the downloaded
-        // book; a later online reader visit can still populate the cache.
-        await preloadOfflineReader(type).catch(() => undefined);
-      });
+      try {
+        await withPending(id, async () => {
+          const plaintext = await fetchAuthenticatedBinary(
+            `/stories/${story.slug}/${type}-stream/`,
+            (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
+          );
+          await storePlaintext(id, story, type, "", title, 0, plaintext);
+          await preloadOfflineReader(type).catch(() => undefined);
+        });
+        return true;
+      } finally {
+        releaseDownloadTitle(story.slug);
+      }
     },
     [withPending]
   );

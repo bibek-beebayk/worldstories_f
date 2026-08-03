@@ -8,7 +8,7 @@ import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
-import { queueFileProgress } from "@/lib/progressSync";
+import { queueFileProgress, saveFileProgressLocally } from "@/lib/progressSync";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -118,7 +118,7 @@ const EpubReader = () => {
   const [theme, setTheme] = useState<EpubThemeKey>("light");
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isEpubLoading, setIsEpubLoading] = useState(false);
+  const [isEpubLoading, setIsEpubLoading] = useState(true);
   // Mobile immersive-reading toggle: tapping the reader hides the header/
   // footer chrome so the page content can use the full screen. Forced true
   // on larger screens via CSS (see the header/footer wrapper classes below),
@@ -135,15 +135,18 @@ const EpubReader = () => {
   // their position synced to their account via the API — mirrors the same
   // debounced-save pattern StoryReader.tsx uses for chapter progress.
   const queueSaveFileProgress = (cfi: string, progressFraction: number) => {
-    if (!isAuthenticated || !story?.slug) return;
+    if (!story?.slug) return;
     if (saveProgressTimerRef.current) {
       window.clearTimeout(saveProgressTimerRef.current);
     }
     saveProgressTimerRef.current = window.setTimeout(() => {
       const normalized = Math.min(1, Math.max(0, progressFraction));
-      storyApi
-        .saveFileReadingProgress(story.slug, "epub", normalized, cfi)
-        .catch(() => queueFileProgress(story.slug, "epub", normalized, cfi));
+      saveFileProgressLocally(story.slug, "epub", normalized, cfi);
+      if (isAuthenticated) {
+        storyApi
+          .saveFileReadingProgress(story.slug, "epub", normalized, cfi)
+          .catch(() => queueFileProgress(story.slug, "epub", normalized, cfi));
+      }
     }, 400);
   };
 
@@ -786,13 +789,6 @@ const EpubReader = () => {
           </div>
         )}
 
-        {isEpubLoading && (
-          <div className="flex items-center justify-center gap-2 rounded-md border bg-card p-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="animate-pulse">Loading EPUB...</span>
-          </div>
-        )}
-
         <div
           className={readerPanelClassName}
           // Matches the currently-selected epub theme instead of the site's
@@ -803,6 +799,29 @@ const EpubReader = () => {
           onTouchStart={handleReaderTouchStart}
           onTouchEnd={handleReaderTouchEnd}
         >
+          {isEpubLoading && (
+            <div
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4"
+              style={{ backgroundColor: READER_THEMES[theme].background }}
+              role="status"
+              aria-live="polite"
+            >
+              <div className="relative flex h-14 w-20 items-center justify-center [perspective:500px]">
+                <div className="absolute inset-y-0 left-0 w-1/2 rounded-l border border-primary/30 bg-card shadow-sm" />
+                <div className="absolute inset-y-0 right-0 w-1/2 rounded-r border border-primary/30 bg-card shadow-sm" />
+                <div className="absolute inset-y-0 left-1/2 w-1/2 origin-left animate-page-turn rounded-r border border-primary/40 bg-primary/40 [backface-visibility:hidden]" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold" style={{ color: READER_THEMES[theme].color }}>
+                  Loading {story.title}
+                </p>
+                <p className="mt-1 text-xs opacity-60" style={{ color: READER_THEMES[theme].color }}>
+                  Preparing your book…
+                </p>
+              </div>
+              <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+            </div>
+          )}
           {/* The padding lives on this outer wrapper, not on viewerRef itself —
               snapPaginationHeight() measures viewerRef.clientWidth and passes it
               straight to epub.js, and clientWidth includes an element's own

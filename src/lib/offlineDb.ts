@@ -5,10 +5,11 @@
 const DB_NAME = "worldstories-offline";
 import { getOfflineOwnerId } from "./offlineIdentity";
 
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const KEYS_STORE = "keys";
 const DOWNLOADS_STORE = "downloads";
 const PENDING_SAVES_STORE = "pending-saves";
+const PROGRESS_STORE = "progress";
 const MASTER_KEY_ID = "master";
 
 export type DownloadType = "chapter" | "audio" | "epub" | "pdf";
@@ -23,6 +24,9 @@ export interface DownloadRecord {
   story_slug: string;
   story_title: string;
   story_cover_image: string;
+  story_author?: string;
+  story_genres?: string[];
+  story_type?: string;
   type: DownloadType;
   item_slug: string;
   title: string;
@@ -91,6 +95,9 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(PENDING_SAVES_STORE)) {
         db.createObjectStore(PENDING_SAVES_STORE, { keyPath: "key" });
       }
+      if (!db.objectStoreNames.contains(PROGRESS_STORE)) {
+        db.createObjectStore(PROGRESS_STORE, { keyPath: "key" });
+      }
       // Records written before v3 were not associated with an account. They
       // cannot be assigned safely, so remove them during the upgrade.
       if ((event as IDBVersionChangeEvent).oldVersion < 3) {
@@ -145,6 +152,30 @@ export async function getDownload(id: string): Promise<DownloadRecord | undefine
 
 export async function deleteDownload(id: string): Promise<void> {
   await withStore<undefined>(DOWNLOADS_STORE, "readwrite", (store) => store.delete(id));
+}
+
+export async function deleteDownloadsForStory(storySlug: string): Promise<void> {
+  const db = await openDb();
+  const ownerId = getOfflineOwnerId();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DOWNLOADS_STORE, "readwrite");
+    const store = tx.objectStore(DOWNLOADS_STORE);
+    const request = store.openCursor();
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      const record = cursor.value as DownloadRecord;
+      if (record.owner_id === ownerId && record.story_slug === storySlug) {
+        cursor.delete();
+      }
+      cursor.continue();
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("Could not delete the downloaded title."));
+    tx.onabort = () => reject(tx.error || new Error("Could not delete the downloaded title."));
+  });
 }
 
 export async function listDownloads(): Promise<DownloadRecord[]> {
@@ -204,4 +235,103 @@ export async function listPendingSaves(): Promise<PendingSave[]> {
 
 export async function deletePendingSave(key: string): Promise<void> {
   await withStore<undefined>(PENDING_SAVES_STORE, "readwrite", (store) => store.delete(key));
+}
+
+export interface LocalProgressRecord {
+  key: string;
+  owner_id: string;
+  kind: "chapter" | "audio" | "file";
+  story_slug: string;
+  item_slug: string;
+  progress: number;
+  position?: string;
+  position_seconds?: number;
+  duration_seconds?: number;
+  updated_at: string;
+}
+
+export async function saveLocalProgress(
+  record: Omit<LocalProgressRecord, "key" | "owner_id" | "updated_at">
+): Promise<void> {
+  const ownerId = getOfflineOwnerId();
+  const savedRecord: LocalProgressRecord = {
+    ...record,
+    key: `${ownerId}:${record.kind}:${record.story_slug}:${record.item_slug}`,
+    owner_id: ownerId,
+    updated_at: new Date().toISOString(),
+  };
+  // Keep a synchronous snapshot as well as the durable IndexedDB record.
+  // Route navigation can mount the Downloads page before an asynchronous IDB
+  // transaction completes; this snapshot prevents a brief/stuck 0% display.
+  try {
+    localStorage.setItem(`worldstories-progress:${savedRecord.key}`, JSON.stringify(savedRecord));
+  } catch {
+    // IndexedDB below remains the durable fallback when localStorage is unavailable.
+  }
+  await withStore<IDBValidKey>(PROGRESS_STORE, "readwrite", (store) =>
+    store.put(savedRecord)
+  );
+}
+
+export async function listLocalProgress(storySlug?: string): Promise<LocalProgressRecord[]> {
+  const ownerId = getOfflineOwnerId();
+  const records = await withStore<LocalProgressRecord[]>(PROGRESS_STORE, "readonly", (store) => store.getAll());
+  const matching = records.filter(
+    (record) => record.owner_id === ownerId && (!storySlug || record.story_slug === storySlug)
+  );
+  const byKey = new Map(matching.map((record) => [record.key, record]));
+  const prefix = `worldstories-progress:${ownerId}:`;
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const storageKey = localStorage.key(index);
+      if (!storageKey?.startsWith(prefix)) continue;
+      const snapshot = JSON.parse(localStorage.getItem(storageKey) || "null") as LocalProgressRecord | null;
+      if (!snapshot || (storySlug && snapshot.story_slug !== storySlug)) continue;
+      const existing = byKey.get(snapshot.key);
+      if (!existing || snapshot.updated_at >= existing.updated_at) byKey.set(snapshot.key, snapshot);
+    }
+  } catch {
+    // Return IndexedDB records if a malformed/unavailable local snapshot cannot be read.
+  }
+  return Array.from(byKey.values());
+}
+
+export async function claimAnonymousLocalProgress(): Promise<LocalProgressRecord[]> {
+  const currentOwner = getOfflineOwnerId();
+  if (currentOwner === "anonymous") return [];
+  const records = await withStore<LocalProgressRecord[]>(PROGRESS_STORE, "readonly", (store) => store.getAll());
+  const accountRecords = new Map(
+    records.filter((record) => record.owner_id === currentOwner).map((record) => [
+      `${record.kind}:${record.story_slug}:${record.item_slug}`,
+      record,
+    ])
+  );
+  const claimed: LocalProgressRecord[] = [];
+  for (const guest of records.filter((record) => record.owner_id === "anonymous")) {
+    const identity = `${guest.kind}:${guest.story_slug}:${guest.item_slug}`;
+    const existing = accountRecords.get(identity);
+    if (existing && existing.updated_at >= guest.updated_at) continue;
+    await saveLocalProgress({
+      kind: guest.kind,
+      story_slug: guest.story_slug,
+      item_slug: guest.item_slug,
+      progress: guest.progress,
+      position: guest.position,
+      position_seconds: guest.position_seconds,
+      duration_seconds: guest.duration_seconds,
+    });
+    claimed.push(guest);
+  }
+  return claimed;
+}
+
+export async function claimAnonymousDownloads(): Promise<void> {
+  const currentOwner = getOfflineOwnerId();
+  if (currentOwner === "anonymous") return;
+  const records = await withStore<DownloadRecord[]>(DOWNLOADS_STORE, "readonly", (store) => store.getAll());
+  for (const record of records.filter((item) => item.owner_id === "anonymous")) {
+    const id = makeDownloadId(record.story_slug, record.type, record.item_slug);
+    const existing = records.find((item) => item.id === id);
+    if (!existing) await saveDownload({ ...record, id, owner_id: currentOwner });
+  }
 }

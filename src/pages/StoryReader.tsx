@@ -3,7 +3,8 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { storyApi } from "@/api/story";
-import { queueChapterProgress } from "@/lib/progressSync";
+import { queueChapterProgress, saveChapterProgressLocally } from "@/lib/progressSync";
+import { usePendingProgress } from "@/hooks/usePendingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -270,6 +271,7 @@ const StoryReader = () => {
   const settingsModalRef = useRef<HTMLDivElement>(null);
   const hasRestoredRef = useRef(false);
   const saveTimerRef = useRef<number | null>(null);
+  const latestProgressRef = useRef<number | null>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const dragDistanceRef = useRef(0);
   const suppressToggleRef = useRef(false);
@@ -285,6 +287,11 @@ const StoryReader = () => {
     enabled: !!story_slug && isAuthenticated,
     retry: false,
   });
+  const localProgress = usePendingProgress(story_slug || "");
+  const savedChapterProgress = chapter_slug
+    ? localProgress.chapterProgress[chapter_slug] ??
+      (readingProgress?.chapter_slug === chapter_slug ? readingProgress.progress : 0)
+    : 0;
 
   const currentChapterIndex = useMemo(() => {
     if (!story?.chapters?.length || !chapter_slug) return -1;
@@ -494,18 +501,23 @@ const StoryReader = () => {
   };
 
   const queueSaveProgress = useCallback((progress: number) => {
-    if (!isAuthenticated || !story_slug || !chapter_slug) return;
+    if (!story_slug || !chapter_slug) return;
     const normalized = Math.min(1, Math.max(0, progress));
     setLiveProgress(normalized);
+    latestProgressRef.current = normalized;
 
     if (saveTimerRef.current) {
       window.clearTimeout(saveTimerRef.current);
     }
 
     saveTimerRef.current = window.setTimeout(() => {
-      storyApi
-        .saveReadingProgress(story_slug, chapter_slug, normalized)
-        .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized));
+      saveChapterProgressLocally(story_slug, chapter_slug, normalized);
+      latestProgressRef.current = null;
+      if (isAuthenticated) {
+        storyApi
+          .saveReadingProgress(story_slug, chapter_slug, normalized)
+          .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized));
+      }
     }, 400);
   }, [chapter_slug, isAuthenticated, story_slug]);
 
@@ -538,13 +550,16 @@ const StoryReader = () => {
       if (saveTimerRef.current) {
         window.clearTimeout(saveTimerRef.current);
       }
+      if (latestProgressRef.current !== null && story_slug && chapter_slug) {
+        saveChapterProgressLocally(story_slug, chapter_slug, latestProgressRef.current);
+        latestProgressRef.current = null;
+      }
     };
-  }, []);
+  }, [story_slug, chapter_slug]);
 
   useEffect(() => {
     if (
-      !readingProgress ||
-      readingProgress.chapter_slug !== chapter_slug ||
+      savedChapterProgress <= 0 ||
       !chapter?.content ||
       hasRestoredRef.current
     ) {
@@ -552,17 +567,15 @@ const StoryReader = () => {
     }
 
     const timer = window.setTimeout(() => {
-      scrollToProgress(readingProgress.progress, isReaderMode);
-      setLiveProgress(readingProgress.progress);
+      scrollToProgress(savedChapterProgress, isReaderMode);
+      setLiveProgress(savedChapterProgress);
       hasRestoredRef.current = true;
     }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [readingProgress, chapter_slug, chapter?.content, isReaderMode]);
+  }, [savedChapterProgress, chapter_slug, chapter?.content, isReaderMode]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-
     const handleScroll = () => {
       if (modeSwitchSyncRef.current) return;
       const content = scrollContentRef.current;
@@ -606,7 +619,7 @@ const StoryReader = () => {
         window.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [chapter_slug, isAuthenticated, isReaderMode, queueSaveProgress]);
+  }, [chapter_slug, isReaderMode, queueSaveProgress]);
 
   useEffect(() => {
     if (!chapter?.content) return;
@@ -617,7 +630,7 @@ const StoryReader = () => {
     const sourceProgress = Math.max(
       pendingModeSwitchProgressRef.current ?? 0,
       liveProgress,
-      readingProgress?.progress ?? 0
+      savedChapterProgress
     );
     pendingModeSwitchProgressRef.current = null;
     setLiveProgress(sourceProgress);
@@ -637,7 +650,7 @@ const StoryReader = () => {
       }
       modeSwitchSyncRef.current = false;
     };
-  }, [isReaderMode, chapter?.content, liveProgress, readingProgress?.progress]);
+  }, [isReaderMode, chapter?.content, liveProgress, savedChapterProgress]);
 
   if (isLoading) return <FullScreenLoader />;
 
@@ -768,22 +781,21 @@ const StoryReader = () => {
             </Button>
           </div>
 
-          {isAuthenticated ? (
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span>
+              Chapter {chapter.order}
+              {story?.chapter_count ? ` of ${story.chapter_count}` : ""} — {Math.round(liveProgress * 100)}%
+            </span>
+            {story?.chapter_count ? <span>Overall: {Math.round(overallProgress * 100)}%</span> : null}
+            {!isAuthenticated && (
               <span>
-                Chapter {chapter.order}
-                {story?.chapter_count ? ` of ${story.chapter_count}` : ""} — {Math.round(liveProgress * 100)}%
+                Saved on this device ·{" "}
+                <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
+                  Login to sync
+                </button>
               </span>
-              {story?.chapter_count ? <span>Overall: {Math.round(overallProgress * 100)}%</span> : null}
-            </div>
-          ) : (
-            <div className="mt-3 text-xs text-muted-foreground">
-              <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
-                Login
-              </button>{" "}
-              to Track progress
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

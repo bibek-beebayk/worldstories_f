@@ -1,6 +1,7 @@
 import { storyApi } from "@/api/story";
-import { PendingSave, deletePendingSave, listPendingSaves, queuePendingSave } from "@/lib/offlineDb";
+import { PendingSave, claimAnonymousDownloads, claimAnonymousLocalProgress, deletePendingSave, listPendingSaves, queuePendingSave, saveLocalProgress } from "@/lib/offlineDb";
 import { getOfflineOwnerId } from "@/lib/offlineIdentity";
+import { PENDING_PROGRESS_EVENT } from "@/lib/progressEvents";
 
 // A progress save that fails (almost always because the device is offline)
 // gets queued here instead of silently discarded, and retried the next time
@@ -23,7 +24,44 @@ export function queueChapterProgress(
     progress,
     last_element_id,
     queued_at: new Date().toISOString(),
+  }).then(() => window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT)));
+}
+
+export async function saveChapterProgressLocally(
+  story_slug: string,
+  chapter_slug: string,
+  progress: number,
+  last_element_id?: string
+): Promise<void> {
+  await saveLocalProgress({
+    kind: "chapter",
+    story_slug,
+    item_slug: chapter_slug,
+    progress,
+    position: last_element_id,
   });
+  window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
+}
+
+export async function saveAudioProgressLocally(
+  story_slug: string,
+  audio_slug: string,
+  progress: number,
+  position_seconds: number,
+  duration_seconds: number
+): Promise<void> {
+  await saveLocalProgress({ kind: "audio", story_slug, item_slug: audio_slug, progress, position_seconds, duration_seconds });
+  window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
+}
+
+export async function saveFileProgressLocally(
+  story_slug: string,
+  format: "epub" | "pdf",
+  progress: number,
+  position: string
+): Promise<void> {
+  await saveLocalProgress({ kind: "file", story_slug, item_slug: format, progress, position });
+  window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
 }
 
 export function queueAudioProgress(
@@ -43,7 +81,7 @@ export function queueAudioProgress(
     position_seconds,
     duration_seconds,
     queued_at: new Date().toISOString(),
-  });
+  }).then(() => window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT)));
 }
 
 export function queueFileProgress(
@@ -61,7 +99,7 @@ export function queueFileProgress(
     progress,
     position,
     queued_at: new Date().toISOString(),
-  });
+  }).then(() => window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT)));
 }
 
 async function replay(save: PendingSave): Promise<void> {
@@ -106,4 +144,47 @@ export async function flushPendingSaves(): Promise<void> {
   } finally {
     isFlushing = false;
   }
+}
+
+export async function adoptGuestProgress(): Promise<void> {
+  await claimAnonymousDownloads();
+  const records = await claimAnonymousLocalProgress();
+  for (const record of records) {
+    try {
+      if (record.kind === "chapter") {
+        const remote = await storyApi.getReadingProgress(record.story_slug).catch(() => null);
+        const remoteProgress = remote?.chapter_progresses.find((item) => item.chapter_slug === record.item_slug)?.progress || 0;
+        if (record.progress >= remoteProgress) {
+          await storyApi.saveReadingProgress(record.story_slug, record.item_slug, record.progress, record.position);
+        }
+      } else if (record.kind === "audio") {
+        const remote = await storyApi.getAudioProgress(record.story_slug).catch(() => null);
+        const remoteProgress = remote?.audio_progresses.find((item) => item.audio_slug === record.item_slug)?.progress || 0;
+        if (record.progress >= remoteProgress) {
+          await storyApi.saveAudioProgress(
+            record.story_slug,
+            record.item_slug,
+            record.progress,
+            record.position_seconds || 0,
+            record.duration_seconds || 0
+          );
+        }
+      } else {
+        const format = record.item_slug as "epub" | "pdf";
+        const remote = await storyApi.getFileReadingProgress(record.story_slug, format).catch(() => null);
+        if (record.progress >= (remote?.progress || 0)) {
+          await storyApi.saveFileReadingProgress(record.story_slug, format, record.progress, record.position || "");
+        }
+      }
+    } catch {
+      if (record.kind === "chapter") {
+        await queueChapterProgress(record.story_slug, record.item_slug, record.progress, record.position);
+      } else if (record.kind === "audio") {
+        await queueAudioProgress(record.story_slug, record.item_slug, record.progress, record.position_seconds || 0, record.duration_seconds || 0);
+      } else {
+        await queueFileProgress(record.story_slug, record.item_slug as "epub" | "pdf", record.progress, record.position || "");
+      }
+    }
+  }
+  window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
 }

@@ -21,7 +21,6 @@ import {
   Bold,
   BookMarked,
   Bell,
-  Download,
   FileText,
   Heading2,
   Headphones,
@@ -41,21 +40,17 @@ import {
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Seo from "@/components/Seo";
-import ProfileDownloadedStory from "@/components/ProfileDownloadedStory";
-import DownloadStorySummaryRow from "@/components/DownloadStorySummaryRow";
-import { DownloadRecord, groupDownloadsByStory, listDownloads } from "@/lib/offlineDb";
-import { formatBytes } from "@/lib/utils";
 
-type ProfileSection = "overview" | "reader" | "creator" | "settings" | "downloads";
+type ProfileSection = "overview" | "reader" | "creator" | "settings";
 type ReaderView = "reading" | "completed" | "listening" | "favorites" | "reviews";
 
 const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
-const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings", "downloads"];
+const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings"];
 const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews"];
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
@@ -70,10 +65,6 @@ const Profile = () => {
   const [favoritesPage, setFavoritesPage] = useState(1);
   const [reviewsPage, setReviewsPage] = useState(1);
   const [submissionsPage, setSubmissionsPage] = useState(1);
-
-  const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
-  const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
-  const [selectedDownloadStory, setSelectedDownloadStory] = useState<string | null>(null);
 
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -122,33 +113,10 @@ const Profile = () => {
   const shouldLoadListening = isOverviewSection || (isReaderSection && activeReaderView === "listening");
   const shouldLoadFavorites = isOverviewSection || (isReaderSection && activeReaderView === "favorites");
   const shouldLoadReviews = isOverviewSection || (isReaderSection && activeReaderView === "reviews");
-  const shouldLoadDownloads = activeSection === "downloads";
-
-  const refreshDownloads = () => {
-    listDownloads().then(setDownloads);
-    if (navigator.storage?.estimate) {
-      navigator.storage.estimate().then((estimate) =>
-        setStorageEstimate({ usage: estimate.usage || 0, quota: estimate.quota || 0 })
-      );
-    }
-  };
-
-  useEffect(() => {
-    if (shouldLoadDownloads) refreshDownloads();
-  }, [shouldLoadDownloads]);
-
-  useEffect(() => {
-    if (!shouldLoadDownloads) setSelectedDownloadStory(null);
-  }, [shouldLoadDownloads]);
-
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile-me"],
     queryFn: authApi.getMe,
     enabled: isAuthenticated,
-    // Fails fast instead of retrying for several seconds — important while
-    // offline, since Downloads (unlike the rest of this page) doesn't
-    // actually need this request to succeed and shouldn't be stuck behind
-    // it indefinitely.
     retry: false,
   });
 
@@ -205,7 +173,12 @@ const Profile = () => {
   useEffect(() => {
     const section = searchParams.get("section");
     const view = searchParams.get("view");
-    const story = searchParams.get("story");
+
+    if (section === "downloads") {
+      const story = searchParams.get("story");
+      navigate(story ? `/downloads?story=${encodeURIComponent(story)}` : "/downloads", { replace: true });
+      return;
+    }
 
     if (section && profileSections.includes(section as ProfileSection)) {
       setActiveSection(section as ProfileSection);
@@ -215,10 +188,7 @@ const Profile = () => {
       setActiveReaderView(view as ReaderView);
     }
 
-    if (section === "downloads" && story) {
-      setSelectedDownloadStory(story);
-    }
-  }, [searchParams]);
+  }, [navigate, searchParams]);
 
   useEffect(() => {
     if (!profile) return;
@@ -555,7 +525,6 @@ const Profile = () => {
     { key: "overview", label: "Overview", icon: LayoutGrid, helper: "General account summary." },
     { key: "reader", label: "Reader", icon: BookMarked, helper: "Reading, listening, favorites and reviews." },
     { key: "creator", label: "Creator", icon: FileText, helper: "Story submissions and moderation status." },
-    { key: "downloads", label: "Downloads", icon: Download, helper: "Content saved on this device for offline access." },
     { key: "settings", label: "Settings", icon: Settings, helper: "Manage profile details and preferences." },
   ];
 
@@ -625,59 +594,14 @@ const Profile = () => {
 
   if (isLoading) return <FullScreenLoader />;
 
-  // Profile data failed to load (almost always: offline, no cached
-  // response) — the rest of this page genuinely needs it, but Downloads
-  // doesn't (it's all local IndexedDB), so it still gets a working,
-  // stripped-down view instead of being stuck behind a fetch that can't
-  // succeed right now.
   if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-100 px-3 py-6 sm:px-4">
-        <Seo title="Downloads | WorldStories" description="Content saved on this device for offline access." path="/profile" noIndex />
-        <div className="mx-auto max-w-2xl space-y-4">
-          <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground shadow-sm">
-            You're offline — showing content saved on this device.
-          </div>
-          {selectedDownloadStory ? (
-            <ProfileDownloadedStory
-              storySlug={selectedDownloadStory}
-              storyTitle={downloads.find((item) => item.story_slug === selectedDownloadStory)?.story_title || ""}
-              downloads={downloads.filter((item) => item.story_slug === selectedDownloadStory)}
-              onBack={() => {
-                setSelectedDownloadStory(null);
-                setSearchParams({ section: "downloads" });
-              }}
-              onChange={refreshDownloads}
-            />
-          ) : (
-            <Card className="shadow-sm">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center justify-between rounded-md border bg-muted/40 p-3 text-sm">
-                  <span className="text-muted-foreground">
-                    {downloads.length} item{downloads.length === 1 ? "" : "s"} downloaded ·{" "}
-                    {formatBytes(downloads.reduce((sum, item) => sum + item.size_bytes, 0))}
-                  </span>
-                </div>
-                {groupDownloadsByStory(downloads).map((summary) => (
-                  <DownloadStorySummaryRow
-                    key={summary.story_slug}
-                    summary={summary}
-                    onClick={() => {
-                      setSelectedDownloadStory(summary.story_slug);
-                      setSearchParams({ section: "downloads", story: summary.story_slug });
-                    }}
-                  />
-                ))}
-                {downloads.length === 0 && (
-                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Download className="h-4 w-4" />
-                    Nothing downloaded yet.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
+      <div className="container mx-auto px-4 py-10">
+        <Card className="mx-auto max-w-xl">
+          <CardContent className="p-6 text-center text-muted-foreground">
+            Unable to load your profile. Check your connection and try again.
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -1088,60 +1012,6 @@ const Profile = () => {
                   </Card>
                 )}
 
-              </>
-            )}
-
-            {activeSection === "downloads" && (
-              <>
-                {selectedDownloadStory ? (
-                  <ProfileDownloadedStory
-                    storySlug={selectedDownloadStory}
-                    storyTitle={
-                      downloads.find((item) => item.story_slug === selectedDownloadStory)?.story_title || ""
-                    }
-                    downloads={downloads.filter((item) => item.story_slug === selectedDownloadStory)}
-                    onBack={() => {
-                      setSelectedDownloadStory(null);
-                      setSearchParams({ section: "downloads" });
-                    }}
-                    onChange={refreshDownloads}
-                  />
-                ) : (
-                  <Card className="shadow-sm">
-                    <CardContent className="space-y-4 p-5">
-                      <div className="flex items-center justify-between rounded-md border bg-muted/40 p-3 text-sm">
-                        <span className="text-muted-foreground">
-                          {downloads.length} item{downloads.length === 1 ? "" : "s"} downloaded ·{" "}
-                          {formatBytes(downloads.reduce((sum, item) => sum + item.size_bytes, 0))}
-                        </span>
-                        {storageEstimate && storageEstimate.quota > 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {formatBytes(storageEstimate.usage)} / {formatBytes(storageEstimate.quota)} used on
-                            this device
-                          </span>
-                        )}
-                      </div>
-
-                      {groupDownloadsByStory(downloads).map((summary) => (
-                        <DownloadStorySummaryRow
-                          key={summary.story_slug}
-                          summary={summary}
-                          onClick={() => {
-                            setSelectedDownloadStory(summary.story_slug);
-                            setSearchParams({ section: "downloads", story: summary.story_slug });
-                          }}
-                        />
-                      ))}
-                      {downloads.length === 0 && (
-                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Download className="h-4 w-4" />
-                          Nothing downloaded yet — look for the download icon on a story's chapters or audio
-                          tracks.
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
               </>
             )}
 

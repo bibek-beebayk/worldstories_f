@@ -124,6 +124,9 @@ const Header = () => {
             <Link to="/discover" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Discover
             </Link>
+            <Link to="/downloads" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Downloads
+            </Link>
             <Link to="/contest" className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 hover:bg-amber-500 transition-colors">
               <span className="text-xs font-semibold text-amber-900">⭐</span>
               <span className="text-xs font-semibold text-amber-900">Contest</span>
@@ -287,6 +290,15 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Discover
+                  </Link>
+                </SheetClose>
+
+                <SheetClose asChild>
+                  <Link
+                    to="/downloads"
+                    className="text-lg font-medium hover:text-primary"
+                  >
+                    Downloads
                   </Link>
                 </SheetClose>
 

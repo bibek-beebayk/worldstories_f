@@ -27,6 +27,7 @@ const StoryReader = lazy(() => import("./pages/StoryReader"));
 const AudiobookPlayer = lazy(() => import("./pages/AudiobookPlayer"));
 const Search = lazy(() => import("./pages/Search"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Downloads = lazy(() => import("./pages/Downloads"));
 const Contest = lazy(() => import("./pages/Contest"));
 const PdfReader = lazy(() => import("./pages/PdfReader"));
 const EpubReader = lazy(() => import("./pages/EpubReader"));
@@ -97,6 +98,7 @@ const App = () => (
             <Route path="search" element={<Search />} />
             <Route path="publish" element={<Publish />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="downloads" element={<Downloads />} />
             <Route path="about" element={<About />} />
             <Route path="contact" element={<Contact />} />
             <Route path="privacy" element={<Privacy />} />
