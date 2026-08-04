@@ -1,5 +1,6 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { API_BASE_URL } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
@@ -7,8 +8,28 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { queueFileProgress, saveFileProgressLocally } from "@/lib/progressSync";
-import { ArrowLeft, Loader2, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  Moon,
+  Settings,
+  Sun,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type TouchEvent as ReactTouchEvent,
+} from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   GlobalWorkerOptions,
@@ -21,6 +42,111 @@ import Seo from "@/components/Seo";
 
 GlobalWorkerOptions.workerSrc = workerSrc;
 
+const READER_GLASS_PANEL_CLASS =
+  "border-border bg-gradient-to-br from-primary/10 to-background/100 backdrop-blur supports-[backdrop-filter]:from-primary/10 supports-[backdrop-filter]:to-background/45";
+
+const PDF_READER_THEMES = {
+  light: { label: "Light", icon: Sun, background: "#f8fafc", color: "#1a1a1a", pageFilter: "none" },
+  sepia: {
+    label: "Sepia",
+    icon: Sun,
+    background: "#eee5ce",
+    color: "#5b4636",
+    pageFilter: "sepia(0.38) saturate(0.82) brightness(0.96) contrast(0.94)",
+  },
+  dark: {
+    label: "Dark",
+    icon: Moon,
+    background: "#111827",
+    color: "#d1d5db",
+    pageFilter: "invert(0.9) hue-rotate(180deg) brightness(0.86) contrast(0.92)",
+  },
+} as const;
+type PdfThemeKey = keyof typeof PDF_READER_THEMES;
+type PdfViewMode = "page" | "scroll";
+
+interface ScrollPdfPageProps {
+  pdfDoc: PDFDocumentProxy;
+  pageNumber: number;
+  zoom: number;
+  pageFilter: string;
+}
+
+const ScrollPdfPage = ({ pdfDoc, pageNumber, zoom, pageFilter }: ScrollPdfPageProps) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [shouldRender, setShouldRender] = useState(false);
+  const [isRendering, setIsRendering] = useState(false);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || shouldRender) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setShouldRender(true);
+        observer.disconnect();
+      },
+      { rootMargin: "800px 0px" }
+    );
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, [shouldRender]);
+
+  useEffect(() => {
+    if (!shouldRender || !canvasRef.current) return;
+    let canceled = false;
+    let renderTask: RenderTask | null = null;
+
+    const render = async () => {
+      setIsRendering(true);
+      try {
+        const page = await pdfDoc.getPage(pageNumber);
+        if (canceled || !canvasRef.current) return;
+        const viewport = page.getViewport({ scale: zoom });
+        const canvas = canvasRef.current;
+        const context = canvas.getContext("2d");
+        if (!context) return;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        renderTask = page.render({ canvasContext: context, viewport });
+        await renderTask.promise;
+      } catch {
+        // Keep the placeholder in place; another nearby-page/zoom render can
+        // still proceed even if one PDF page is malformed.
+      } finally {
+        if (!canceled) setIsRendering(false);
+      }
+    };
+
+    render();
+    return () => {
+      canceled = true;
+      renderTask?.cancel();
+    };
+  }, [pdfDoc, pageNumber, shouldRender, zoom]);
+
+  return (
+    <div
+      ref={wrapperRef}
+      data-pdf-page={pageNumber}
+      className="relative flex min-h-[60vh] scroll-mt-4 items-start justify-center"
+    >
+      {isRendering && (
+        <div className="absolute top-4 z-10 flex items-center gap-2 rounded-full border bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Page {pageNumber}
+        </div>
+      )}
+      <canvas
+        ref={canvasRef}
+        className="block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 sm:w-auto sm:max-w-full"
+        style={{ "--pdf-mobile-width": `${zoom * 100}%`, filter: pageFilter } as CSSProperties}
+        aria-label={`PDF page ${pageNumber}`}
+      />
+    </div>
+  );
+};
+
 const PdfReader = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -32,16 +158,28 @@ const PdfReader = () => {
   const { data: story, isLoading, isError } = useStory(slug || "");
   const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
+  const pageViewportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const saveProgressTimerRef = useRef<number | null>(null);
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(0);
-  const [zoom, setZoom] = useState(1.2);
+  const [zoom, setZoom] = useState(() =>
+    window.matchMedia("(max-width: 639px)").matches ? 1.35 : 1.2
+  );
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isPageRendering, setIsPageRendering] = useState(false);
+  const [theme, setTheme] = useState<PdfThemeKey>("light");
+  const [viewMode, setViewMode] = useState<PdfViewMode>(() =>
+    localStorage.getItem("pdf-reader-view-mode") === "scroll" ? "scroll" : "page"
+  );
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const touchStartRef = useRef<{ x: number; y: number; time: number; scrollLeft: number } | null>(null);
+  const lastTapAtRef = useRef(0);
+  const singleTapTimerRef = useRef<number | null>(null);
+  const lastNonFitZoomRef = useRef(zoom === 1 ? 1.35 : zoom);
 
   const storageKey = useMemo(() => {
     if (!story?.slug) return "";
@@ -109,7 +247,7 @@ const PdfReader = () => {
   }, [story?.pdf_file, story?.slug, storageKey, isAuthenticated]);
 
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return;
+    if (viewMode !== "page" || !pdfDoc || !canvasRef.current) return;
     let canceled = false;
     let renderTask: RenderTask | null = null;
 
@@ -144,7 +282,7 @@ const PdfReader = () => {
         renderTask.cancel();
       }
     };
-  }, [pdfDoc, pageNumber, zoom]);
+  }, [pdfDoc, pageNumber, zoom, viewMode]);
 
   useEffect(() => {
     if (!storageKey || !pageNumber) return;
@@ -168,13 +306,111 @@ const PdfReader = () => {
     }, 400);
   }, [storageKey, pageNumber, isAuthenticated, story?.slug, numPages]);
 
+  const goPrev = useCallback(() => {
+    const target = Math.max(1, pageNumber - 1);
+    setPageNumber(target);
+    if (viewMode === "scroll") {
+      pageViewportRef.current
+        ?.querySelector<HTMLElement>(`[data-pdf-page="${target}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [pageNumber, viewMode]);
+
+  const goNext = useCallback(() => {
+    const target = Math.min(numPages, pageNumber + 1);
+    setPageNumber(target);
+    if (viewMode === "scroll") {
+      pageViewportRef.current
+        ?.querySelector<HTMLElement>(`[data-pdf-page="${target}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [numPages, pageNumber, viewMode]);
+
+  const togglePageFit = useCallback(() => {
+    setZoom((currentZoom) => {
+      if (Math.abs(currentZoom - 1) < 0.01) {
+        return Math.max(1.1, lastNonFitZoomRef.current);
+      }
+      lastNonFitZoomRef.current = currentZoom;
+      return 1;
+    });
+  }, []);
+
+  const handleReaderTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("button, a, input, select, textarea")) {
+      touchStartRef.current = null;
+      return;
+    }
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+      scrollLeft: event.currentTarget.scrollLeft,
+    };
+  }, []);
+
+  const handleReaderTouchEnd = useCallback(
+    (event: ReactTouchEvent<HTMLDivElement>) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      const touch = event.changedTouches[0];
+      if (!start || !touch) return;
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      const elapsed = Date.now() - start.time;
+
+      if (absDx > 32 && absDx > absDy * 1.2) {
+        const viewport = pageViewportRef.current;
+        const maxScrollLeft = viewport ? Math.max(0, viewport.scrollWidth - viewport.clientWidth) : 0;
+        const pageFitsViewport = maxScrollLeft <= 2;
+        const startedAtLeftEdge = start.scrollLeft <= 2;
+        const startedAtRightEdge = start.scrollLeft >= maxScrollLeft - 2;
+
+        // A zoomed page gets the horizontal gesture first so readers can pan
+        // across it. Page turning remains available once they swipe outward
+        // from the corresponding edge, and works normally when the page fits.
+        if (dx < 0 && (pageFitsViewport || startedAtRightEdge)) goNext();
+        else if (dx > 0 && (pageFitsViewport || startedAtLeftEdge)) goPrev();
+      } else if (absDx < 16 && absDy < 16 && elapsed < 700) {
+        const now = Date.now();
+        if (now - lastTapAtRef.current < 320) {
+          event.preventDefault();
+          lastTapAtRef.current = 0;
+          if (singleTapTimerRef.current) {
+            window.clearTimeout(singleTapTimerRef.current);
+            singleTapTimerRef.current = null;
+          }
+          togglePageFit();
+        } else {
+          lastTapAtRef.current = now;
+          singleTapTimerRef.current = window.setTimeout(() => {
+            setControlsVisible((visible) => !visible);
+            singleTapTimerRef.current = null;
+          }, 320);
+        }
+      }
+    },
+    [goNext, goPrev, togglePageFit]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (singleTapTimerRef.current) window.clearTimeout(singleTapTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!pdfDoc) return;
       if (event.key === "ArrowRight") {
-        setPageNumber((prev) => Math.min(numPages, prev + 1));
+        goNext();
       } else if (event.key === "ArrowLeft") {
-        setPageNumber((prev) => Math.max(1, prev - 1));
+        goPrev();
       } else if (event.key === "+" || event.key === "=") {
         setZoom((prev) => Math.min(2.5, Number((prev + 0.1).toFixed(2))));
       } else if (event.key === "-") {
@@ -183,7 +419,7 @@ const PdfReader = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pdfDoc, numPages]);
+  }, [pdfDoc, goNext, goPrev]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -192,6 +428,70 @@ const PdfReader = () => {
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 640px)").matches) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("pdf-reader-view-mode", viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "scroll") return;
+    const viewport = pageViewportRef.current;
+    if (!viewport) return;
+    let frame = 0;
+
+    const updateVisiblePage = () => {
+      frame = 0;
+      const viewportTop = viewport.getBoundingClientRect().top;
+      let closestPage = pageNumber;
+      let closestDistance = Number.POSITIVE_INFINITY;
+      viewport.querySelectorAll<HTMLElement>("[data-pdf-page]").forEach((element) => {
+        const distance = Math.abs(element.getBoundingClientRect().top - viewportTop - 12);
+        if (distance >= closestDistance) return;
+        closestDistance = distance;
+        closestPage = Number(element.dataset.pdfPage || closestPage);
+      });
+      setPageNumber((current) => (current === closestPage ? current : closestPage));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(updateVisiblePage);
+    };
+
+    viewport.addEventListener("scroll", onScroll, { passive: true });
+    requestAnimationFrame(updateVisiblePage);
+    return () => {
+      viewport.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+    // pageNumber is intentionally read only to seed the closest-page search;
+    // scrolling updates it without rebuilding this listener on every page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, numPages]);
+
+  const changeViewMode = (nextMode: PdfViewMode) => {
+    if (nextMode === viewMode) return;
+    const currentPage = pageNumber;
+    setViewMode(nextMode);
+    if (nextMode === "scroll") {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          pageViewportRef.current
+            ?.querySelector<HTMLElement>(`[data-pdf-page="${currentPage}"]`)
+            ?.scrollIntoView({ block: "start" });
+        })
+      );
+    } else {
+      requestAnimationFrame(() => pageViewportRef.current?.scrollTo({ top: 0, left: 0 }));
+    }
+  };
 
   // iOS Safari (specifically iPhone — iPad is different) doesn't support the
   // Fullscreen API for arbitrary elements at all, only for <video>, so
@@ -245,6 +545,11 @@ const PdfReader = () => {
   }
 
   const progressPercent = numPages > 0 ? Math.round((pageNumber / numPages) * 100) : 0;
+  const readerPanelClassName = [
+    "fixed inset-0 z-0 !mt-0 h-[100dvh] w-screen overflow-hidden rounded-none border-0",
+    "sm:relative sm:z-auto sm:!mt-3 sm:w-auto sm:rounded-xl sm:border",
+    isFullscreen ? "sm:h-[calc(100vh-130px)]" : "sm:h-[calc(100vh-200px)]",
+  ].join(" ");
 
   return (
     <main className="min-h-screen bg-background px-2 py-2 sm:px-4 sm:py-4">
@@ -254,122 +559,236 @@ const PdfReader = () => {
         path={`/story/${slug}/pdf`}
         noIndex
       />
-      <div ref={readerContainerRef} className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 sm:p-3" : ""}`}>
-        <div className="flex items-center justify-between gap-2 rounded-xl border bg-card px-2 py-2 sm:px-3 sm:py-3">
-          <div className="min-w-0">
-            <h1 className="hidden truncate text-lg font-semibold sm:block sm:text-xl">{story.title}</h1>
-            <p className="truncate text-sm font-medium sm:hidden">PDF Reader</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFullscreen}
-              className="h-8 px-2 sm:h-9 sm:px-3"
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Exit Fullscreen</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Fullscreen</span>
-                </>
+      <div
+        ref={readerContainerRef}
+        className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 sm:p-3" : ""}`}
+      >
+        <div
+          className={`fixed inset-x-0 top-0 z-50 !mt-0 px-2 pt-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!translate-y-0 sm:px-0 sm:pt-0 ${
+            controlsVisible ? "translate-y-0" : "-translate-y-full pointer-events-none"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between gap-2 rounded-xl border px-2 py-2 text-foreground shadow-lg sm:px-3 sm:py-3 sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+              theme === "dark" ? "dark" : ""
+            }`}
+          >
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-semibold sm:text-xl">{story.title}</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 px-2 sm:h-9 sm:px-3">
+                    <Settings className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Settings</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  container={isFullscreen ? readerContainerRef.current ?? undefined : undefined}
+                  className="w-72 space-y-4"
+                >
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">View</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant={viewMode === "page" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => changeViewMode("page")}
+                      >
+                        Page
+                      </Button>
+                      <Button
+                        variant={viewMode === "scroll" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => changeViewMode("scroll")}
+                      >
+                        Scroll
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">Reader theme</p>
+                    <div className="flex items-center gap-1">
+                      {(Object.keys(PDF_READER_THEMES) as PdfThemeKey[]).map((key) => {
+                        const Icon = PDF_READER_THEMES[key].icon;
+                        return (
+                          <Button
+                            key={key}
+                            variant={theme === key ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setTheme(key)}
+                            className="h-8 px-2"
+                            aria-label={PDF_READER_THEMES[key].label}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">Zoom</p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setZoom((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))}
+                        aria-label="Zoom out"
+                      >
+                        <ZoomOut className="h-4 w-4" />
+                      </Button>
+                      <span className="min-w-12 text-center text-xs text-muted-foreground">{Math.round(zoom * 100)}%</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setZoom((prev) => Math.min(2.5, Number((prev + 0.1).toFixed(2))))}
+                        aria-label="Zoom in"
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="px-2 text-xs" onClick={togglePageFit}>
+                        {Math.abs(zoom - 1) < 0.01 ? "Restore" : "Fit"}
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button variant="outline" size="sm" onClick={toggleFullscreen} className="h-8 px-2 sm:h-9 sm:px-3">
+                {isFullscreen ? (
+                  <>
+                    <Minimize2 className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Exit Fullscreen</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Fullscreen</span>
+                  </>
+                )}
+              </Button>
+              {!isFullscreen && (
+                <Link to={backHref}>
+                  <Button variant="outline" size="sm" className="h-8 px-2 sm:h-9 sm:px-3">
+                    <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Back</span>
+                  </Button>
+                </Link>
               )}
-            </Button>
-            {!isFullscreen && (
-              <Link to={backHref}>
-                <Button variant="outline" size="sm" className="h-8 px-2 sm:h-9 sm:px-3">
-                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Back</span>
-                </Button>
-              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={readerPanelClassName}
+          style={{ backgroundColor: PDF_READER_THEMES[theme].background }}
+        >
+          {readerError && (
+            <div className="absolute inset-x-4 top-20 z-30 rounded-md border border-red-500/30 bg-background/95 p-3 text-sm text-red-600 shadow-lg">
+              {readerError}
+            </div>
+          )}
+          {isPdfLoading && (
+            <div
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4"
+              style={{ color: PDF_READER_THEMES[theme].color, backgroundColor: PDF_READER_THEMES[theme].background }}
+              role="status"
+              aria-live="polite"
+            >
+              <div className="relative h-16 w-12 rounded-sm border border-primary/40 bg-white shadow-lg">
+                <div className="absolute inset-x-2 top-3 h-1 rounded bg-primary/25" />
+                <div className="absolute inset-x-2 top-6 h-1 rounded bg-primary/20" />
+                <div className="absolute inset-x-2 top-9 h-1 rounded bg-primary/15" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold">Loading {story.title}</p>
+                <p className="mt-1 text-xs opacity-60">Preparing your document…</p>
+              </div>
+              <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+            </div>
+          )}
+          {viewMode === "page" && isPageRendering && !isPdfLoading && (
+            <div className="pointer-events-none absolute left-1/2 top-16 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur sm:top-3">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Rendering page…
+            </div>
+          )}
+          <div
+            ref={pageViewportRef}
+            className="h-full w-full overflow-auto px-3 py-16 sm:p-4"
+            style={{ touchAction: "manipulation" }}
+            onTouchStart={handleReaderTouchStart}
+            onTouchEnd={handleReaderTouchEnd}
+          >
+            {viewMode === "page" ? (
+              <canvas
+                ref={canvasRef}
+                className="mx-auto block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 sm:w-auto sm:max-w-full"
+                style={{
+                  "--pdf-mobile-width": `${zoom * 100}%`,
+                  filter: PDF_READER_THEMES[theme].pageFilter,
+                } as CSSProperties}
+              />
+            ) : (
+              <div className="space-y-5 pb-6">
+                {pdfDoc && Array.from({ length: numPages }, (_, index) => (
+                  <ScrollPdfPage
+                    key={index + 1}
+                    pdfDoc={pdfDoc}
+                    pageNumber={index + 1}
+                    zoom={zoom}
+                    pageFilter={PDF_READER_THEMES[theme].pageFilter}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>
 
-        <div className={`rounded-xl border bg-card px-3 py-2 ${isFullscreen ? "sticky top-2 z-20" : ""}`}>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full bg-primary transition-all" style={{ width: `${progressPercent}%` }} />
-          </div>
-          <p className="mt-1 text-right text-xs text-muted-foreground">{progressPercent}%</p>
+        <div
+          className={`pointer-events-none fixed inset-x-0 bottom-0.5 z-40 flex justify-center transition-transform duration-300 ease-in-out sm:hidden ${
+            controlsVisible ? "translate-y-full" : "translate-y-0"
+          }`}
+        >
+          <span
+            className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground shadow-sm ${READER_GLASS_PANEL_CLASS} ${
+              theme === "dark" ? "dark" : ""
+            }`}
+          >
+            {progressPercent}%
+          </span>
         </div>
 
-        {readerError && (
-          <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-600">
-            {readerError}
-          </div>
-        )}
-
-        {isPdfLoading && (
-          <div className="flex items-center justify-center gap-2 rounded-md border bg-card p-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="animate-pulse">Loading PDF...</span>
-          </div>
-        )}
-
-        <div className={`overflow-auto rounded-xl border bg-muted/20 p-2 sm:p-4 ${isFullscreen ? "h-[calc(100vh-250px)]" : "max-h-[calc(100vh-245px)]"}`}>
-          {isPageRendering && !isPdfLoading && (
-            <div className="mb-2 flex items-center justify-center gap-2 rounded-md border bg-card p-2 text-center text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span className="animate-pulse">Rendering page...</span>
+        <div
+          className={`fixed inset-x-0 bottom-0 z-50 !mt-0 px-3 pb-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!mt-3 sm:!translate-y-0 sm:px-0 sm:pb-0 ${
+            controlsVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
+          }`}
+        >
+          <div
+            className={`grid grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+              theme === "dark" ? "dark" : ""
+            }`}
+          >
+            <div className="flex justify-start">
+              <Button variant="outline" size="sm" disabled={pageNumber <= 1} onClick={goPrev} className="h-8 px-3">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-          <canvas
-            ref={canvasRef}
-            className="mx-auto block max-w-full rounded-md bg-white shadow-sm"
-          />
-        </div>
-
-        <div className="fixed right-3 top-1/2 z-30 -translate-y-1/2 rounded-xl border bg-card/95 p-2 shadow-md backdrop-blur">
-          <div className="flex flex-col items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setZoom((prev) => Math.min(2.5, Number((prev + 0.1).toFixed(2))))}
-              aria-label="Zoom in"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <p className="min-w-[52px] text-center text-xs text-muted-foreground">
-              {Math.round(zoom * 100)}%
+            <p className="whitespace-nowrap text-center text-xs text-muted-foreground">
+              Page {numPages > 0 ? `${pageNumber} / ${numPages}` : "- / -"} · {progressPercent}%
             </p>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setZoom((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))}
-              aria-label="Zoom out"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="fixed bottom-2 left-2 right-2 z-30 mx-auto max-w-xs rounded-xl border bg-card/95 p-2 shadow-md backdrop-blur sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
-          <div className="flex items-center justify-between gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pageNumber <= 1}
-              onClick={() => setPageNumber((prev) => Math.max(1, prev - 1))}
-              className="h-8 px-3"
-            >
-              Prev
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Page {pageNumber} / {numPages || "-"}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={numPages === 0 || pageNumber >= numPages}
-              onClick={() => setPageNumber((prev) => Math.min(numPages, prev + 1))}
-              className="h-8 px-3"
-            >
-              Next
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={numPages === 0 || pageNumber >= numPages}
+                onClick={goNext}
+                className="h-8 px-3"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

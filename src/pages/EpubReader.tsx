@@ -80,6 +80,7 @@ const READER_THEMES = {
   dark: { label: "Dark", icon: Moon, background: "#1b2230", color: "#d1d5db" },
 } as const;
 type EpubThemeKey = keyof typeof READER_THEMES;
+type EpubViewMode = "page" | "scroll";
 
 // Derived from READER_THEMES (rather than duplicating hex codes in a second
 // place) so the outer reader panel's background — set inline from the same
@@ -117,6 +118,10 @@ const EpubReader = () => {
   const [fontSizePercent, setFontSizePercent] = useState(100);
   const [fontFamily, setFontFamily] = useState<EpubFontKey>("literata");
   const [theme, setTheme] = useState<EpubThemeKey>("light");
+  const [viewMode, setViewMode] = useState<EpubViewMode>(() =>
+    localStorage.getItem("epub-reader-view-mode") === "scroll" ? "scroll" : "page"
+  );
+  const viewModeRef = useRef<EpubViewMode>(viewMode);
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEpubLoading, setIsEpubLoading] = useState(true);
@@ -170,6 +175,7 @@ const EpubReader = () => {
   // becomes visible as clipped/overlapping columns deep into a long book rather
   // than on the first few pages.
   const snapPaginationHeight = (fallbackCfi?: string) => {
+    if (viewModeRef.current === "scroll") return;
     const rendition = renditionRef.current;
     const viewerEl = viewerRef.current;
     if (!rendition || !viewerEl) return;
@@ -313,6 +319,10 @@ const EpubReader = () => {
     (event: TouchEvent | ReactTouchEvent) => {
       const touch = event.changedTouches[0];
       if (!touch) return;
+      if (viewModeRef.current === "scroll") {
+        touchStartRef.current = null;
+        return;
+      }
       completeReaderGesture(touch.clientX, touch.clientY);
     },
     [completeReaderGesture]
@@ -388,7 +398,7 @@ const EpubReader = () => {
         const renditionOptions = {
           width: "100%",
           height: "100%",
-          flow: "paginated",
+          flow: viewMode === "scroll" ? "scrolled-doc" : "paginated",
           gap: 0,
           // Without this, epub.js shows two columns side by side on wide
           // viewports (a "spread", like a physical book opened flat). Combined
@@ -535,6 +545,23 @@ const EpubReader = () => {
   useEffect(() => {
     renditionRef.current?.themes.select(theme);
   }, [theme]);
+
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+    localStorage.setItem("epub-reader-view-mode", viewMode);
+    const rendition = renditionRef.current;
+    if (!rendition) return;
+    const currentCfi = lastCfiRef.current || undefined;
+    if (viewMode === "scroll") setControlsVisible(true);
+    rendition.flow(viewMode === "scroll" ? "scrolled-doc" : "paginated");
+    requestAnimationFrame(() => {
+      rendition.display(currentCfi).then(() => {
+        if (viewMode === "page") {
+          requestAnimationFrame(() => snapPaginationHeight(currentCfi));
+        }
+      }).catch(() => setReaderError("Could not switch the EPUB view mode."));
+    });
+  }, [viewMode]);
 
   useEffect(() => {
     renditionRef.current?.themes.font(FONTS[fontFamily]?.value || "serif");
@@ -754,6 +781,25 @@ const EpubReader = () => {
                 className="w-72 space-y-4"
               >
                 <div>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">View</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant={viewMode === "page" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewMode("page")}
+                    >
+                      Page
+                    </Button>
+                    <Button
+                      variant={viewMode === "scroll" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewMode("scroll")}
+                    >
+                      Scroll
+                    </Button>
+                  </div>
+                </div>
+                <div>
                   <p className="mb-2 text-xs font-medium text-muted-foreground">Theme</p>
                   <div className="flex items-center gap-1">
                     {(Object.keys(READER_THEMES) as EpubThemeKey[]).map((key) => {
@@ -882,7 +928,7 @@ const EpubReader = () => {
               padding. Padding here instead just shrinks viewerRef's available
               box, so that measurement stays accurate with no subtraction needed. */}
           <div ref={viewerRef} className="h-full w-full" />
-          {!isEpubLoading && (
+          {!isEpubLoading && viewMode === "page" && (
             <div
               className="absolute inset-0 z-10 sm:hidden"
               style={{ touchAction: "none" }}
