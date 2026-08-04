@@ -256,6 +256,28 @@ export interface UserProfile {
   listening_in_progress_count: number;
 }
 
+export interface ProfileInsightsResponse {
+  summary: {
+    titles_started: number;
+    titles_completed: number;
+    active_days_30: number;
+    favorite_genre: string | null;
+  };
+  activity: Array<{
+    date: string;
+    reading: number;
+    listening: number;
+  }>;
+  formats: Array<{
+    name: string;
+    value: number;
+  }>;
+  genres: Array<{
+    name: string;
+    value: number;
+  }>;
+}
+
 export interface ContinueReadingItem {
   story: Story;
   chapter_slug: string | null;

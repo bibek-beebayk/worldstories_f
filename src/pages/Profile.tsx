@@ -40,6 +40,7 @@ import {
 import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Seo from "@/components/Seo";
+import ProfileInsights from "@/components/ProfileInsights";
 
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
 type ReaderView = "reading" | "completed" | "listening" | "favorites" | "reviews";
@@ -118,6 +119,16 @@ const Profile = () => {
     queryFn: authApi.getMe,
     enabled: isAuthenticated,
     retry: false,
+  });
+
+  const {
+    data: profileInsights,
+    isLoading: profileInsightsLoading,
+    isError: profileInsightsError,
+  } = useQuery({
+    queryKey: ["profile-insights"],
+    queryFn: authApi.getProfileInsights,
+    enabled: isAuthenticated && isOverviewSection,
   });
 
   const { data: readingData } = useQuery({
@@ -735,6 +746,12 @@ const Profile = () => {
                     );
                   })}
                 </div>
+
+                <ProfileInsights
+                  data={profileInsights}
+                  isLoading={profileInsightsLoading}
+                  isError={profileInsightsError}
+                />
 
                 <div className="grid gap-6 lg:grid-cols-3">
                   <Card className="shadow-sm">

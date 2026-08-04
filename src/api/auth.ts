@@ -5,6 +5,7 @@ import {
   FavoriteItem,
   MyReviewItem,
   PaginatedResponse,
+  ProfileInsightsResponse,
   UserProfile,
 } from "./types";
 
@@ -57,6 +58,8 @@ export const authApi = {
       body: JSON.stringify({ email }),
     }),
   getMe: () => apiClient<UserProfile>("/auth/me/"),
+  getProfileInsights: () =>
+    apiClient<ProfileInsightsResponse>("/auth/profile-insights/"),
   updateMe: (payload: ProfileUpdatePayload) =>
     apiClient<UserProfile>("/auth/me/", {
       method: "PATCH",

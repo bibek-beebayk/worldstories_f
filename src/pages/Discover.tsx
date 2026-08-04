@@ -6,6 +6,13 @@ import { formatRelativeDate, formatViews } from "@/lib/utils";
 import { Compass, Eye, Gem, Sparkles, Star, Tag } from "lucide-react";
 import Seo, { SITE_URL } from "@/components/Seo";
 import CoverImage from "@/components/CoverImage";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const Discover = () => {
   const { data, isLoading, isError } = useDiscoverData();
@@ -54,23 +61,28 @@ const Discover = () => {
             <Tag className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-semibold sm:text-xl">Browse by Genre</h2>
           </div>
-          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
-            {data.genres.map((genre) => (
-              <Link
-                key={genre.id}
-                to={`/library?genre=${genre.id}`}
-                className="group flex w-36 shrink-0 flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-primary/5 sm:w-40"
-              >
-                <Sparkles className="h-4 w-4 text-primary/70 transition-colors group-hover:text-primary" />
-                <div className="mt-3">
-                  <p className="text-sm font-semibold leading-tight">{genre.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatViews(genre.stories_count)} {genre.stories_count === 1 ? "story" : "stories"}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <Carousel opts={{ align: "start" }} className="px-1">
+            <CarouselContent>
+              {data.genres.map((genre) => (
+                <CarouselItem key={genre.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
+                  <Link
+                    to={`/library?genre=${genre.id}`}
+                    className="group flex min-h-28 h-full flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-primary/5"
+                  >
+                    <Sparkles className="h-4 w-4 text-primary/70 transition-colors group-hover:text-primary" />
+                    <div className="mt-3">
+                      <p className="text-sm font-semibold leading-tight">{genre.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatViews(genre.stories_count)} {genre.stories_count === 1 ? "story" : "stories"}
+                      </p>
+                    </div>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
         </section>
 
         {/* New Releases — a horizontal shelf emphasizing recency, not another grid-in-a-box. */}
@@ -79,33 +91,35 @@ const Discover = () => {
             <Sparkles className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-semibold sm:text-xl">New Releases</h2>
           </div>
-          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 sm:gap-4">
-            {data.new_releases.map((story) => (
-              <Link
-                key={story.id}
-                to={`/story/${story.slug}`}
-                className="group w-36 shrink-0 sm:w-40"
-              >
-                <div className="relative mb-2 aspect-[3/4] overflow-hidden rounded-lg bg-muted shadow-sm">
-                  <CoverImage
-                    src={story.cover_image}
-                    alt={story.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  {story.site_published_date && (
-                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {formatRelativeDate(story.site_published_date)}
-                    </span>
-                  )}
-                </div>
-                <h3 className="line-clamp-2 text-xs font-semibold transition-colors group-hover:text-primary sm:text-sm">
-                  {story.title}
-                </h3>
-              </Link>
-            ))}
-          </div>
+          <Carousel opts={{ align: "start" }} className="px-1">
+            <CarouselContent>
+              {data.new_releases.map((story) => (
+                <CarouselItem key={story.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
+                  <Link to={`/story/${story.slug}`} className="group block">
+                    <div className="relative mb-2 aspect-[3/4] overflow-hidden rounded-lg bg-muted shadow-sm">
+                      <CoverImage
+                        src={story.cover_image}
+                        alt={story.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {story.site_published_date && (
+                        <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                          {formatRelativeDate(story.site_published_date)}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="line-clamp-2 text-xs font-semibold transition-colors group-hover:text-primary sm:text-sm">
+                      {story.title}
+                    </h3>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
         </section>
 
         <AdSpace size="banner" className="mb-8" />
