@@ -53,6 +53,7 @@ import {
   type PageAnimationEffect,
   type PageTurnDirection,
 } from "@/lib/readerAnimations";
+import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 
 GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -202,6 +203,10 @@ const PdfReader = () => {
   const pageAnimationRef = useRef<PageAnimationEffect>(pageAnimation);
   const pendingAnimationDirectionRef = useRef<PageTurnDirection | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  useContentSessionAnalytics("reading_session", slug, true, {
+    format: "pdf",
+    view_mode: viewMode,
+  });
   const touchStartRef = useRef<{ x: number; y: number; time: number; scrollLeft: number } | null>(null);
   const lastTapAtRef = useRef(0);
   const singleTapTimerRef = useRef<number | null>(null);

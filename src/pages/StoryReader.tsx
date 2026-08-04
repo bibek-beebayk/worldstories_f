@@ -29,6 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Seo from "@/components/Seo";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 
 type ReaderThemeKey = string;
 type ReaderFontKey = string;
@@ -171,6 +172,10 @@ export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
 
 const StoryReader = () => {
   const { story_slug, chapter_slug } = useParams();
+  useContentSessionAnalytics("reading_session", story_slug, true, {
+    format: "chapter",
+    item_slug: chapter_slug || "",
+  });
   const navigate = useNavigate();
   const location = useLocation();
   // Coming from the Downloads page should return there, not to the story

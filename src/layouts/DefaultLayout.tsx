@@ -8,6 +8,7 @@ import Seo from "@/components/Seo";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { flushPendingSaves } from "@/lib/progressSync";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 
 const routeSeo: Record<string, { title: string; description: string; noIndex?: boolean }> = {
   "/": {
@@ -101,6 +102,10 @@ export default function DefaultLayout() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    trackAnalyticsEvent({
+      event_type: "visit",
+      metadata: { path: location.pathname },
+    });
   }, [location.pathname]);
 
   // Retries any progress saves that failed while offline. Runs once on

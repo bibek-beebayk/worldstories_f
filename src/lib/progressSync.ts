@@ -2,6 +2,7 @@ import { storyApi } from "@/api/story";
 import { PendingSave, claimAnonymousDownloads, claimAnonymousLocalProgress, deletePendingSave, listPendingSaves, queuePendingSave, saveLocalProgress } from "@/lib/offlineDb";
 import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 import { PENDING_PROGRESS_EVENT } from "@/lib/progressEvents";
+import { trackCompletionOnce } from "@/lib/analytics";
 
 // A progress save that fails (almost always because the device is offline)
 // gets queued here instead of silently discarded, and retried the next time
@@ -40,6 +41,7 @@ export async function saveChapterProgressLocally(
     progress,
     position: last_element_id,
   });
+  if (progress >= 0.995) trackCompletionOnce(story_slug, "chapter", chapter_slug);
   window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
 }
 
@@ -51,6 +53,7 @@ export async function saveAudioProgressLocally(
   duration_seconds: number
 ): Promise<void> {
   await saveLocalProgress({ kind: "audio", story_slug, item_slug: audio_slug, progress, position_seconds, duration_seconds });
+  if (progress >= 0.995) trackCompletionOnce(story_slug, "audio", audio_slug);
   window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
 }
 
@@ -61,6 +64,7 @@ export async function saveFileProgressLocally(
   position: string
 ): Promise<void> {
   await saveLocalProgress({ kind: "file", story_slug, item_slug: format, progress, position });
+  if (progress >= 0.995) trackCompletionOnce(story_slug, format, format);
   window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
 }
 

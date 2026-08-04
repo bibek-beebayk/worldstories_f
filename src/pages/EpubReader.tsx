@@ -49,6 +49,7 @@ import {
   runReaderPageAnimation,
   type PageAnimationEffect,
 } from "@/lib/readerAnimations";
+import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 
 const READER_FONT_KEYS = ["literata", "georgia", "times", "garamond", "helvetica"] as const;
 type EpubFontKey = (typeof READER_FONT_KEYS)[number];
@@ -152,6 +153,10 @@ const EpubReader = () => {
   // Immersive-reading toggle shared by every viewport: tapping/clicking the
   // page hides the header/footer chrome without resizing the rendition.
   const [controlsVisible, setControlsVisible] = useState(true);
+  useContentSessionAnalytics("reading_session", slug, true, {
+    format: "epub",
+    view_mode: viewMode,
+  });
 
   const storageKey = useMemo(() => {
     if (!story?.slug) return "";

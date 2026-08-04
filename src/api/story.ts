@@ -30,6 +30,7 @@ import {
   AdminAnalyticsEngagementResponse,
   AdminAnalyticsUsersResponse,
   AdminAnalyticsSubmissionsResponse,
+  AdminAnalyticsAudienceResponse,
   Author,
   AuthorDetail,
   SearchResponse,
@@ -210,6 +211,8 @@ export const storyApi = {
     apiClient<AdminAnalyticsUsersResponse>(`/admin/analytics/users/?days=${days}`),
   getAdminAnalyticsSubmissions: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsSubmissionsResponse>(`/admin/analytics/submissions/?days=${days}`),
+  getAdminAnalyticsAudience: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminAnalyticsAudienceResponse>(`/admin/analytics/audience/?days=${days}`),
   getAdminAuthors: () =>
     apiClient<AdminAuthor[]>("/admin/authors/"),
   createAdminAuthor: (payload: { name: string; bio?: string; image?: string }) =>

@@ -1,9 +1,45 @@
+import { useEffect, useRef } from "react";
+import { trackAnalyticsEvent } from "@/lib/analytics";
+
 interface AdSpaceProps {
   size: "banner" | "square" | "rectangle";
   className?: string;
 }
 
 const AdSpace = ({ size, className = "" }: AdSpaceProps) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    let timer: number | null = null;
+    let recorded = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (recorded) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          timer = window.setTimeout(() => {
+            recorded = true;
+            trackAnalyticsEvent({
+              event_type: "ad_impression",
+              metadata: { size, path: window.location.pathname },
+            });
+            observer.disconnect();
+          }, 1000);
+        } else if (timer !== null) {
+          window.clearTimeout(timer);
+          timer = null;
+        }
+      },
+      { threshold: [0, 0.5, 1] }
+    );
+    observer.observe(element);
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [size]);
+
   const sizeClasses = {
     banner: "h-24 md:h-32",
     square: "aspect-square",
@@ -11,7 +47,7 @@ const AdSpace = ({ size, className = "" }: AdSpaceProps) => {
   };
 
   return (
-    <div className={`bg-ad-bg border border-ad-border rounded-lg flex items-center justify-center ${sizeClasses[size]} ${className}`}>
+    <div ref={containerRef} className={`bg-ad-bg border border-ad-border rounded-lg flex items-center justify-center ${sizeClasses[size]} ${className}`}>
       <div className="text-center space-y-2 p-4">
         <div className="text-xs font-medium text-muted-foreground">Advertisement</div>
         <div className="text-xs text-muted-foreground/60">

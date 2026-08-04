@@ -596,3 +596,53 @@ export interface AdminAnalyticsSubmissionsResponse {
   by_story_type: AdminAnalyticsStoryTypeCount[];
   by_genre: AdminAnalyticsGenreCount[];
 }
+
+export interface AdminAnalyticsAudienceResponse {
+  range_days: AdminAnalyticsRangeDays;
+  summary: {
+    visitors: number;
+    returning_visitors: number;
+    returning_rate: number;
+    readers: number;
+    returning_readers: number;
+    reader_retention_rate: number;
+    ad_impressions: number;
+    downloads: number;
+    unique_downloaders: number;
+    completions: number;
+    completion_rate: number;
+    reading_minutes: number;
+    listening_minutes: number;
+    avg_session_minutes: number;
+  };
+  daily_activity: Array<{
+    day: string;
+    ad_impressions: number;
+    downloads: number;
+    completions: number;
+    reading_minutes: number;
+    listening_minutes: number;
+  }>;
+  visitor_retention: Array<{
+    day: string;
+    new_visitors: number;
+    returning_visitors: number;
+  }>;
+  ad_placements: Array<{ path: string; size: string; count: number }>;
+  download_types: Array<{ content_type: string; count: number; bytes: number }>;
+  completion_types: Array<{ content_type: string; count: number }>;
+  top_downloads: Array<{
+    story_id: number;
+    title: string;
+    slug: string;
+    count: number;
+    bytes: number;
+  }>;
+  top_listened: Array<{
+    story_id: number;
+    title: string;
+    slug: string;
+    sessions: number;
+    minutes: number;
+  }>;
+}

@@ -30,6 +30,7 @@ import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { queueAudioProgress, saveAudioProgressLocally } from "@/lib/progressSync";
 import CoverImage from "@/components/CoverImage";
+import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -62,7 +63,6 @@ const AudioPlayerPage = () => {
   const [liveAudioProgressMap, setLiveAudioProgressMap] = useState<
     Record<string, { progress: number; position_seconds: number; duration_seconds: number }>
   >({});
-
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
   const { data: audioProgress } = useQuery({
@@ -91,6 +91,11 @@ const AudioPlayerPage = () => {
   }, []);
 
   const currentAudio = story?.audios[currentIndex];
+  useContentSessionAnalytics("listening_session", story_slug, isPlaying, {
+    format: "audio",
+    item_slug: currentAudio?.slug || chapter_slug || "",
+    playback_rate: playbackRate,
+  });
 
   // While online, keep using the direct R2 URL — it streams progressively,
   // whereas a blob: URL needs the whole file decrypted into memory before

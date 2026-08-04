@@ -16,6 +16,7 @@ import {
 import { TrendLineChart } from "@/components/admin/charts/TrendLineChart";
 import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
 import type { AdminAnalyticsRangeDays } from "@/api/types";
+import { formatBytes } from "@/lib/utils";
 
 const formatNumber = (value: number) => value.toLocaleString();
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
@@ -28,7 +29,7 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 365, label: "Last year" },
 ];
 
-type TabKey = "content" | "engagement" | "users" | "submissions";
+type TabKey = "content" | "engagement" | "audience" | "users" | "submissions";
 
 const StatTile = ({ label, value }: { label: string; value: string }) => (
   <div className="rounded-md border bg-card px-3 py-2 shadow-sm">
@@ -82,6 +83,11 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "users", days],
     queryFn: () => storyApi.getAdminAnalyticsUsers(days),
     enabled: canFetch && activeTab === "users",
+  });
+  const audienceQuery = useQuery({
+    queryKey: ["admin-analytics", "audience", days],
+    queryFn: () => storyApi.getAdminAnalyticsAudience(days),
+    enabled: canFetch && activeTab === "audience",
   });
   const submissionsQuery = useQuery({
     queryKey: ["admin-analytics", "submissions", days],
@@ -160,6 +166,7 @@ const AdminAnalytics = () => {
         <TabsList>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="engagement">Engagement</TabsTrigger>
+          <TabsTrigger value="audience">Audience</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="submissions">Submissions</TabsTrigger>
         </TabsList>
@@ -322,6 +329,129 @@ const AdminAnalytics = () => {
                   series={[{ key: "count", label: "Reviews" }]}
                 />
               </ChartCard>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="audience" className="space-y-4">
+          {audienceQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {audienceQuery.isError && (
+            <p className="text-sm text-red-600">Failed to load audience analytics.</p>
+          )}
+          {audienceQuery.data && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <StatTile label="Visitors" value={formatNumber(audienceQuery.data.summary.visitors)} />
+                <StatTile label="Returning visitors" value={formatNumber(audienceQuery.data.summary.returning_visitors)} />
+                <StatTile label="Return rate" value={formatPercent(audienceQuery.data.summary.returning_rate)} />
+                <StatTile label="Readers" value={formatNumber(audienceQuery.data.summary.readers)} />
+                <StatTile label="Returning readers" value={formatNumber(audienceQuery.data.summary.returning_readers)} />
+                <StatTile label="Reader retention" value={formatPercent(audienceQuery.data.summary.reader_retention_rate)} />
+                <StatTile label="Ad impressions" value={formatNumber(audienceQuery.data.summary.ad_impressions)} />
+                <StatTile label="Downloads" value={formatNumber(audienceQuery.data.summary.downloads)} />
+                <StatTile label="Unique downloaders" value={formatNumber(audienceQuery.data.summary.unique_downloaders)} />
+                <StatTile label="Completions" value={formatNumber(audienceQuery.data.summary.completions)} />
+                <StatTile label="Completion rate" value={formatPercent(audienceQuery.data.summary.completion_rate)} />
+                <StatTile label="Reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.reading_minutes))}m`} />
+                <StatTile label="Listening time" value={`${formatNumber(Math.round(audienceQuery.data.summary.listening_minutes))}m`} />
+                <StatTile label="Avg session" value={`${audienceQuery.data.summary.avg_session_minutes}m`} />
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartCard title="New vs. returning visitors" subtitle="Anonymous browsers and signed-in users, de-duplicated by day">
+                  <TrendLineChart
+                    data={audienceQuery.data.visitor_retention}
+                    xKey="day"
+                    series={[
+                      { key: "new_visitors", label: "New" },
+                      { key: "returning_visitors", label: "Returning" },
+                    ]}
+                  />
+                </ChartCard>
+                <ChartCard title="Reading and listening time" subtitle="Measured active session minutes">
+                  <TrendLineChart
+                    data={audienceQuery.data.daily_activity}
+                    xKey="day"
+                    series={[
+                      { key: "reading_minutes", label: "Reading minutes" },
+                      { key: "listening_minutes", label: "Listening minutes" },
+                    ]}
+                  />
+                </ChartCard>
+              </div>
+
+              <ChartCard title="Monetization and engagement signals" subtitle="Viewable ads, successful offline saves, and completion milestones">
+                <TrendLineChart
+                  data={audienceQuery.data.daily_activity}
+                  xKey="day"
+                  series={[
+                    { key: "ad_impressions", label: "Ad impressions" },
+                    { key: "downloads", label: "Downloads" },
+                    { key: "completions", label: "Completions" },
+                  ]}
+                />
+              </ChartCard>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartCard title="Downloads by format">
+                  <BreakdownBarChart
+                    data={audienceQuery.data.download_types}
+                    xKey="content_type"
+                    series={[{ key: "count", label: "Downloads" }]}
+                  />
+                </ChartCard>
+                <ChartCard title="Completions by format">
+                  <BreakdownBarChart
+                    data={audienceQuery.data.completion_types}
+                    xKey="content_type"
+                    series={[{ key: "count", label: "Completions" }]}
+                  />
+                </ChartCard>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-3">
+                <ChartCard title="Ad placements" subtitle="Impressions require 50% visibility for one second">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Path</th><th className="py-2 pr-3">Size</th><th className="py-2 text-right">Views</th></tr></thead>
+                      <tbody>
+                        {audienceQuery.data.ad_placements.map((row) => (
+                          <tr key={`${row.path}-${row.size}`} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.path}</td><td className="py-2 pr-3 capitalize">{row.size}</td><td className="py-2 text-right">{formatNumber(row.count)}</td></tr>
+                        ))}
+                        {audienceQuery.data.ad_placements.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No ad impressions yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </ChartCard>
+
+                <ChartCard title="Top downloaded titles">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Items</th><th className="py-2 text-right">Data</th></tr></thead>
+                      <tbody>
+                        {audienceQuery.data.top_downloads.map((row) => (
+                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.count)}</td><td className="py-2 text-right">{formatBytes(row.bytes)}</td></tr>
+                        ))}
+                        {audienceQuery.data.top_downloads.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No downloads yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </ChartCard>
+
+                <ChartCard title="Top listening titles">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
+                      <tbody>
+                        {audienceQuery.data.top_listened.map((row) => (
+                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
+                        ))}
+                        {audienceQuery.data.top_listened.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No listening sessions yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </ChartCard>
+              </div>
             </>
           )}
         </TabsContent>

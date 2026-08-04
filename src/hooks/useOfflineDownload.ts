@@ -14,6 +14,7 @@ import {
 import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 import { preloadOfflineReader } from "@/lib/preloadOfflineReader";
 import { toast } from "@/components/ui/sonner";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -73,6 +74,12 @@ async function storePlaintext(
     size_bytes: plaintext.byteLength,
     downloaded_at: new Date().toISOString(),
     ...encrypted,
+  });
+  trackAnalyticsEvent({
+    event_type: "download",
+    story_slug: story.slug,
+    value: plaintext.byteLength,
+    metadata: { content_type: type, item_slug },
   });
 }
 
