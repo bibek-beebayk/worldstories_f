@@ -32,6 +32,7 @@ import {
   Link2,
   Loader2,
   Share2,
+  Sparkles,
   Star,
   Trash2,
   Twitter,
@@ -44,6 +45,7 @@ import { makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
 import { formatBytes, formatDurationMinutes } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
+import StoryCard from "@/components/StoryCard";
 
 type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
 
@@ -971,6 +973,23 @@ const StoryDetail = () => {
             {/* <AdSpace size="rectangle" /> */}
           </div>
         </div>
+
+        {story.similar_stories.length > 0 && (
+          <section className="mt-12 border-t pt-8" aria-labelledby="similar-titles-heading">
+            <div className="mb-5 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <div>
+                <h2 id="similar-titles-heading" className="text-xl font-bold sm:text-2xl">Similar Titles</h2>
+                <p className="mt-1 text-sm text-muted-foreground">More stories selected from shared genres and related story traits.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {story.similar_stories.map((similarStory) => (
+                <StoryCard key={similarStory.id} {...similarStory} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {bulkDownloadStage && (

@@ -118,6 +118,7 @@ export interface StoryDetail extends Story {
   reviews_count: number;
   reading_time_minutes: number | null;
   listening_time_minutes: number | null;
+  similar_stories: Story[];
 }
 
 export interface ReviewUser {
