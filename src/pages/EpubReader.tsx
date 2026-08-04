@@ -299,7 +299,7 @@ const EpubReader = () => {
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
 
-      if (absDx > SWIPE_THRESHOLD_PX && absDx > absDy * 1.15) {
+      if (viewModeRef.current === "page" && absDx > SWIPE_THRESHOLD_PX && absDx > absDy * 1.15) {
         if (dx < 0) goNext();
         else goPrev();
       } else if (absDx < TAP_MAX_MOVEMENT_PX && absDy < TAP_MAX_MOVEMENT_PX && elapsedMs < TAP_MAX_DURATION_MS) {
@@ -319,10 +319,6 @@ const EpubReader = () => {
     (event: TouchEvent | ReactTouchEvent) => {
       const touch = event.changedTouches[0];
       if (!touch) return;
-      if (viewModeRef.current === "scroll") {
-        touchStartRef.current = null;
-        return;
-      }
       completeReaderGesture(touch.clientX, touch.clientY);
     },
     [completeReaderGesture]

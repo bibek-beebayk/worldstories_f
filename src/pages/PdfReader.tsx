@@ -28,6 +28,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -139,7 +140,7 @@ const ScrollPdfPage = ({ pdfDoc, pageNumber, zoom, pageFilter }: ScrollPdfPagePr
       )}
       <canvas
         ref={canvasRef}
-        className="block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 sm:w-auto sm:max-w-full"
+        className="block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:w-auto md:max-w-full"
         style={{ "--pdf-mobile-width": `${zoom * 100}%`, filter: pageFilter } as CSSProperties}
         aria-label={`PDF page ${pageNumber}`}
       />
@@ -165,7 +166,7 @@ const PdfReader = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [zoom, setZoom] = useState(() =>
-    window.matchMedia("(max-width: 639px)").matches ? 1.35 : 1.2
+    window.matchMedia("(max-width: 767px)").matches ? 1.35 : 1.2
   );
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -364,7 +365,7 @@ const PdfReader = () => {
       const absDy = Math.abs(dy);
       const elapsed = Date.now() - start.time;
 
-      if (absDx > 32 && absDx > absDy * 1.2) {
+      if (viewMode === "page" && absDx > 32 && absDx > absDy * 1.2) {
         const viewport = pageViewportRef.current;
         const maxScrollLeft = viewport ? Math.max(0, viewport.scrollWidth - viewport.clientWidth) : 0;
         const pageFitsViewport = maxScrollLeft <= 2;
@@ -395,8 +396,15 @@ const PdfReader = () => {
         }
       }
     },
-    [goNext, goPrev, togglePageFit]
+    [goNext, goPrev, togglePageFit, viewMode]
   );
+
+  const handleReaderPointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse") return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button, a, input, select, textarea")) return;
+    setControlsVisible((visible) => !visible);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -430,7 +438,6 @@ const PdfReader = () => {
   }, []);
 
   useEffect(() => {
-    if (window.matchMedia("(min-width: 640px)").matches) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -547,12 +554,10 @@ const PdfReader = () => {
   const progressPercent = numPages > 0 ? Math.round((pageNumber / numPages) * 100) : 0;
   const readerPanelClassName = [
     "fixed inset-0 z-0 !mt-0 h-[100dvh] w-screen overflow-hidden rounded-none border-0",
-    "sm:relative sm:z-auto sm:!mt-3 sm:w-auto sm:rounded-xl sm:border",
-    isFullscreen ? "sm:h-[calc(100vh-130px)]" : "sm:h-[calc(100vh-200px)]",
   ].join(" ");
 
   return (
-    <main className="min-h-screen bg-background px-2 py-2 sm:px-4 sm:py-4">
+    <main className="min-h-screen bg-background px-2 py-2 md:px-4 md:py-4">
       <Seo
         title={`${story.title} — PDF | WorldStories`}
         description={`Read the PDF edition of ${story.title} on WorldStories.`}
@@ -561,27 +566,27 @@ const PdfReader = () => {
       />
       <div
         ref={readerContainerRef}
-        className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 sm:p-3" : ""}`}
+        className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 md:p-3" : ""}`}
       >
         <div
-          className={`fixed inset-x-0 top-0 z-50 !mt-0 px-2 pt-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!translate-y-0 sm:px-0 sm:pt-0 ${
+          className={`fixed inset-x-0 top-0 z-50 !mt-0 px-2 pt-2 transition-transform duration-300 ease-in-out ${
             controlsVisible ? "translate-y-0" : "-translate-y-full pointer-events-none"
           }`}
         >
           <div
-            className={`flex items-center justify-between gap-2 rounded-xl border px-2 py-2 text-foreground shadow-lg sm:px-3 sm:py-3 sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+            className={`mx-auto flex max-w-6xl items-center justify-between gap-2 rounded-xl border px-2 py-2 text-foreground shadow-lg md:px-3 md:py-3 ${READER_GLASS_PANEL_CLASS} ${
               theme === "dark" ? "dark" : ""
             }`}
           >
             <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold sm:text-xl">{story.title}</h1>
+              <h1 className="truncate text-base font-semibold md:text-xl">{story.title}</h1>
             </div>
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 px-2 sm:h-9 sm:px-3">
-                    <Settings className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Settings</span>
+                  <Button variant="outline" size="sm" className="h-8 px-2 md:h-9 md:px-3">
+                    <Settings className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Settings</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -655,24 +660,24 @@ const PdfReader = () => {
                   </div>
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="sm" onClick={toggleFullscreen} className="h-8 px-2 sm:h-9 sm:px-3">
+              <Button variant="outline" size="sm" onClick={toggleFullscreen} className="h-8 px-2 md:h-9 md:px-3">
                 {isFullscreen ? (
                   <>
-                    <Minimize2 className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Exit Fullscreen</span>
+                    <Minimize2 className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Exit Fullscreen</span>
                   </>
                 ) : (
                   <>
-                    <Maximize2 className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Fullscreen</span>
+                    <Maximize2 className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Fullscreen</span>
                   </>
                 )}
               </Button>
               {!isFullscreen && (
                 <Link to={backHref}>
-                  <Button variant="outline" size="sm" className="h-8 px-2 sm:h-9 sm:px-3">
-                    <ArrowLeft className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Back</span>
+                  <Button variant="outline" size="sm" className="h-8 px-2 md:h-9 md:px-3">
+                    <ArrowLeft className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">Back</span>
                   </Button>
                 </Link>
               )}
@@ -709,22 +714,23 @@ const PdfReader = () => {
             </div>
           )}
           {viewMode === "page" && isPageRendering && !isPdfLoading && (
-            <div className="pointer-events-none absolute left-1/2 top-16 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur sm:top-3">
+            <div className="pointer-events-none absolute left-1/2 top-16 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm backdrop-blur">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Rendering page…
             </div>
           )}
           <div
             ref={pageViewportRef}
-            className="h-full w-full overflow-auto px-3 py-16 sm:p-4"
+            className="h-full w-full overflow-auto px-3 py-16 md:px-6 md:py-20"
             style={{ touchAction: "manipulation" }}
             onTouchStart={handleReaderTouchStart}
             onTouchEnd={handleReaderTouchEnd}
+            onPointerUp={handleReaderPointerUp}
           >
             {viewMode === "page" ? (
               <canvas
                 ref={canvasRef}
-                className="mx-auto block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 sm:w-auto sm:max-w-full"
+                className="mx-auto block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:w-auto md:max-w-full"
                 style={{
                   "--pdf-mobile-width": `${zoom * 100}%`,
                   filter: PDF_READER_THEMES[theme].pageFilter,
@@ -747,7 +753,7 @@ const PdfReader = () => {
         </div>
 
         <div
-          className={`pointer-events-none fixed inset-x-0 bottom-0.5 z-40 flex justify-center transition-transform duration-300 ease-in-out sm:hidden ${
+          className={`pointer-events-none fixed inset-x-0 bottom-0.5 z-40 flex justify-center transition-transform duration-300 ease-in-out ${
             controlsVisible ? "translate-y-full" : "translate-y-0"
           }`}
         >
@@ -761,12 +767,12 @@ const PdfReader = () => {
         </div>
 
         <div
-          className={`fixed inset-x-0 bottom-0 z-50 !mt-0 px-3 pb-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!mt-3 sm:!translate-y-0 sm:px-0 sm:pb-0 ${
+          className={`fixed inset-x-0 bottom-0 z-50 !mt-0 px-3 pb-2 transition-transform duration-300 ease-in-out ${
             controlsVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
           }`}
         >
           <div
-            className={`grid grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+            className={`mx-auto grid max-w-6xl grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg ${READER_GLASS_PANEL_CLASS} ${
               theme === "dark" ? "dark" : ""
             }`}
           >
