@@ -1,6 +1,5 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
-import { useAuthModal } from "@/context/AuthModalContext";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { storyApi } from "@/api/story";
 import { queueChapterProgress, saveChapterProgressLocally } from "@/lib/progressSync";
@@ -8,7 +7,7 @@ import { usePendingProgress } from "@/hooks/usePendingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useChapter } from "@/hooks/useChapter";
 import { useStory } from "@/hooks/useStory";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +18,7 @@ import {
   ChevronRight,
   Expand,
   Heart,
+  List,
   Minimize,
   Moon,
   SlidersHorizontal,
@@ -72,8 +72,12 @@ const THEMES: Record<string, ReaderThemeConfig> = {
     label: "Night",
     cardClass: "bg-[#1b2230] border-[#303a4d] text-slate-300",
     proseClass: "prose-invert",
+    isDark: true,
   },
 };
+
+const READER_GLASS_PANEL_CLASS =
+  "border-border bg-gradient-to-br from-primary/10 to-background/100 backdrop-blur supports-[backdrop-filter]:from-primary/10 supports-[backdrop-filter]:to-background/45";
 
 export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
   literata: {
@@ -186,7 +190,6 @@ const StoryReader = () => {
   const { data: chapter, isLoading, isError } = useChapter(story_slug, chapter_slug, "text");
   const { data: story } = useStory(story_slug);
   const isAuthenticated = useIsLoggedIn();
-  const { openLoginModal } = useAuthModal();
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
@@ -213,48 +216,28 @@ const StoryReader = () => {
   const [newThemeLinkColor, setNewThemeLinkColor] = useState("#93c5fd");
   const [newThemeIsDark, setNewThemeIsDark] = useState(true);
   const [showControls, setShowControls] = useState(false);
-  const [isReaderMode, setIsReaderMode] = useState(false);
+  const [isContentsOpen, setIsContentsOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isReaderChromeVisible, setIsReaderChromeVisible] = useState(true);
   const { setIsImmersiveReaderActive } = useImmersiveReader();
 
-  // Tells DefaultLayout (an ancestor, outside this component) to hide the
-  // site header/footer while reader mode is active — needed because our
-  // pseudo-fullscreen fallback (for platforms like iOS Safari that don't
-  // support the Fullscreen API on arbitrary elements) can't rely on the
-  // browser hiding sibling elements the way real fullscreen does. The
-  // cleanup resets this on every change and on unmount, so navigating away
-  // mid-reader-mode never leaves the header/footer stuck hidden.
+  // HTML chapters use the same dedicated reader surface as EPUB/PDF even
+  // before native fullscreen is requested, so the regular site chrome stays
+  // out of the way for the lifetime of this page.
   useEffect(() => {
-    setIsImmersiveReaderActive(isReaderMode);
+    setIsImmersiveReaderActive(true);
     return () => setIsImmersiveReaderActive(false);
-  }, [isReaderMode, setIsImmersiveReaderActive]);
+  }, [setIsImmersiveReaderActive]);
 
-  // Reader mode always starts with the floating settings button and progress
-  // indicator visible; a single tap on the reading area then toggles them.
+  // Entering fullscreen reveals the reader chrome; a tap on the reading area
+  // can still hide it again just like in the EPUB/PDF readers.
   useEffect(() => {
-    if (isReaderMode) setIsReaderChromeVisible(true);
-  }, [isReaderMode]);
+    if (isFullscreen) setIsReaderChromeVisible(true);
+  }, [isFullscreen]);
 
   const toggleReaderChrome = () => {
-    if (!isReaderMode) return;
     setIsReaderChromeVisible((value) => !value);
   };
-  const [settingsButtonPos, setSettingsButtonPos] = useState<{ x: number; y: number }>(() => {
-    if (typeof window === "undefined") return { x: 8, y: 80 };
-    try {
-      const raw = localStorage.getItem("reader_settings_button_pos");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
-          return parsed;
-        }
-      }
-    } catch {
-      // ignore invalid saved value
-    }
-    return { x: Math.max(8, window.innerWidth - 48), y: 80 };
-  });
-  const [isDraggingSettingsButton, setIsDraggingSettingsButton] = useState(false);
   const [liveProgress, setLiveProgress] = useState(0);
   const [pinchScale, setPinchScale] = useState(1);
 
@@ -274,17 +257,12 @@ const StoryReader = () => {
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const readerContainerRef = useRef<HTMLDivElement>(null);
   const settingsModalRef = useRef<HTMLDivElement>(null);
+  const currentChapterButtonRef = useRef<HTMLButtonElement>(null);
   const hasRestoredRef = useRef(false);
   const saveTimerRef = useRef<number | null>(null);
   const latestProgressRef = useRef<number | null>(null);
-  const dragOffsetRef = useRef({ x: 0, y: 0 });
-  const dragDistanceRef = useRef(0);
-  const suppressToggleRef = useRef(false);
   const pinchStartDistanceRef = useRef<number | null>(null);
   const pinchStartFontSizeRef = useRef<number | null>(null);
-  const previousReaderModeRef = useRef(false);
-  const modeSwitchSyncRef = useRef(false);
-  const pendingModeSwitchProgressRef = useRef<number | null>(null);
 
   const { data: readingProgress } = useQuery({
     queryKey: ["reading-progress", story_slug],
@@ -309,6 +287,19 @@ const StoryReader = () => {
     currentChapterIndex >= 0 && currentChapterIndex < (story?.chapters.length || 0) - 1
       ? story?.chapters[currentChapterIndex + 1]?.slug
       : undefined;
+
+  const orderedChapters = useMemo(
+    () => [...(story?.chapters || [])].sort((a, b) => a.order - b.order),
+    [story?.chapters]
+  );
+
+  useEffect(() => {
+    if (!isContentsOpen) return;
+    const timer = window.setTimeout(() => {
+      currentChapterButtonRef.current?.scrollIntoView({ block: "center" });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [chapter_slug, isContentsOpen]);
 
   useEffect(() => {
     localStorage.setItem("reader_theme", theme);
@@ -365,53 +356,6 @@ const StoryReader = () => {
     hasRestoredRef.current = false;
   }, [chapter_slug]);
 
-  const clampSettingsButtonPos = (x: number, y: number) => {
-    const margin = 8;
-    const buttonSize = 40;
-    const maxX = Math.max(margin, window.innerWidth - buttonSize - margin);
-    const maxY = Math.max(margin, window.innerHeight - buttonSize - margin);
-    return {
-      x: Math.min(Math.max(margin, x), maxX),
-      y: Math.min(Math.max(margin, y), maxY),
-    };
-  };
-
-  useEffect(() => {
-    const handleResize = () => {
-      setSettingsButtonPos((prev) => clampSettingsButtonPos(prev.x, prev.y));
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (!isDraggingSettingsButton) return;
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const nextX = event.clientX - dragOffsetRef.current.x;
-      const nextY = event.clientY - dragOffsetRef.current.y;
-      const clamped = clampSettingsButtonPos(nextX, nextY);
-      dragDistanceRef.current += Math.abs(event.movementX) + Math.abs(event.movementY);
-      if (dragDistanceRef.current > 4) {
-        suppressToggleRef.current = true;
-      }
-      setSettingsButtonPos(clamped);
-    };
-
-    const handlePointerUp = () => {
-      setIsDraggingSettingsButton(false);
-      localStorage.setItem("reader_settings_button_pos", JSON.stringify(settingsButtonPos));
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp, { once: true });
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-  }, [isDraggingSettingsButton, settingsButtonPos]);
-
   useEffect(() => {
     if (!showControls) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -435,58 +379,23 @@ const StoryReader = () => {
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsReaderMode(document.fullscreenElement === readerContainerRef.current);
+      setIsFullscreen(document.fullscreenElement === readerContainerRef.current);
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  const toggleReaderMode = async () => {
+  const toggleFullscreen = async () => {
     const target = readerContainerRef.current;
     if (!target) return;
 
-    const currentProgress = (() => {
-      const content = scrollContentRef.current;
-      if (!content) return null;
-
-      const container = readerContainerRef.current;
-      let contentTop = 0;
-      let viewportHeight = window.innerHeight;
-      let scrollY = window.scrollY;
-
-      if (isReaderMode && container) {
-        const containerRect = container.getBoundingClientRect();
-        const contentRect = content.getBoundingClientRect();
-        contentTop = contentRect.top - containerRect.top + container.scrollTop;
-        viewportHeight = container.clientHeight;
-        scrollY = container.scrollTop;
-      } else {
-        const rect = content.getBoundingClientRect();
-        contentTop = window.scrollY + rect.top;
-      }
-
-      const maxScrollable = Math.max(1, content.scrollHeight - viewportHeight);
-      const scrolled = Math.min(Math.max(scrollY - contentTop, 0), maxScrollable);
-      return maxScrollable === 0 ? 0 : scrolled / maxScrollable;
-    })();
-
-    if (currentProgress !== null) {
-      const normalized = Math.min(1, Math.max(0, currentProgress));
-      pendingModeSwitchProgressRef.current = normalized;
-      setLiveProgress(normalized);
-    }
-
     // iOS Safari (specifically iPhone — iPad is different) doesn't support
-    // the Fullscreen API for arbitrary elements at all, only for <video>, so
-    // requestFullscreen() always fails there and the previous version of
-    // this function (which only updated isReaderMode via the fullscreenchange
-    // listener) silently did nothing visible on iPhone. Toggling isReaderMode
-    // optimistically up front drives the same reader-mode layout either way,
-    // so iOS still gets an immersive fallback even though real OS-level
-    // fullscreen (hiding Safari's own chrome) isn't possible there.
-    const next = !isReaderMode;
-    setIsReaderMode(next);
+    // arbitrary elements. Updating the state first gives it the same
+    // full-viewport fallback used by the other readers, while supported
+    // browsers also enter true native fullscreen.
+    const next = !isFullscreen;
+    setIsFullscreen(next);
 
     try {
       if (next && document.fullscreenEnabled) {
@@ -495,14 +404,9 @@ const StoryReader = () => {
         await document.exitFullscreen();
       }
     } catch {
-      // No-op: the reader-mode layout above already applied, which is the
-      // best available experience on platforms without real fullscreen.
+      // The reader already owns the full viewport, which is the best
+      // available fallback on platforms without arbitrary-element fullscreen.
     }
-  };
-
-  const toggleReaderModeFromModal = async () => {
-    setShowControls(false);
-    await toggleReaderMode();
   };
 
   const queueSaveProgress = useCallback((progress: number) => {
@@ -526,28 +430,19 @@ const StoryReader = () => {
     }, 400);
   }, [chapter_slug, isAuthenticated, story_slug]);
 
-  const scrollToProgress = (progress: number, useReaderContainer: boolean) => {
+  const scrollToProgress = (progress: number) => {
     const content = scrollContentRef.current;
     if (!content) return;
 
     const normalized = Math.min(1, Math.max(0, progress));
     const container = readerContainerRef.current;
-
-    if (useReaderContainer && container) {
-      const containerRect = container.getBoundingClientRect();
-      const contentRect = content.getBoundingClientRect();
-      const contentTop = contentRect.top - containerRect.top + container.scrollTop;
-      const maxScrollable = Math.max(1, content.scrollHeight - container.clientHeight);
-      const targetY = contentTop + normalized * maxScrollable;
-      container.scrollTo({ top: targetY, behavior: "auto" });
-      return;
-    }
-
-    const rect = content.getBoundingClientRect();
-    const contentTop = window.scrollY + rect.top;
-    const maxScrollable = Math.max(1, content.scrollHeight - window.innerHeight);
+    if (!container) return;
+    const containerRect = container.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+    const contentTop = contentRect.top - containerRect.top + container.scrollTop;
+    const maxScrollable = Math.max(1, content.scrollHeight - container.clientHeight);
     const targetY = contentTop + normalized * maxScrollable;
-    window.scrollTo({ top: targetY, behavior: "auto" });
+    container.scrollTo({ top: targetY, behavior: "auto" });
   };
 
   useEffect(() => {
@@ -572,35 +467,26 @@ const StoryReader = () => {
     }
 
     const timer = window.setTimeout(() => {
-      scrollToProgress(savedChapterProgress, isReaderMode);
+      scrollToProgress(savedChapterProgress);
       setLiveProgress(savedChapterProgress);
       hasRestoredRef.current = true;
     }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [savedChapterProgress, chapter_slug, chapter?.content, isReaderMode]);
+  }, [savedChapterProgress, chapter_slug, chapter?.content]);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (modeSwitchSyncRef.current) return;
       const content = scrollContentRef.current;
       if (!content) return;
 
       const container = readerContainerRef.current;
-      let contentTop = 0;
-      let viewportHeight = window.innerHeight;
-      let scrollY = window.scrollY;
-
-      if (isReaderMode && container) {
-        const containerRect = container.getBoundingClientRect();
-        const contentRect = content.getBoundingClientRect();
-        contentTop = contentRect.top - containerRect.top + container.scrollTop;
-        viewportHeight = container.clientHeight;
-        scrollY = container.scrollTop;
-      } else {
-        const rect = content.getBoundingClientRect();
-        contentTop = window.scrollY + rect.top;
-      }
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      const contentTop = contentRect.top - containerRect.top + container.scrollTop;
+      const viewportHeight = container.clientHeight;
+      const scrollY = container.scrollTop;
 
       const maxScrollable = Math.max(1, content.scrollHeight - viewportHeight);
       const scrolled = Math.min(Math.max(scrollY - contentTop, 0), maxScrollable);
@@ -609,53 +495,14 @@ const StoryReader = () => {
     };
 
     const container = readerContainerRef.current;
-    if (isReaderMode && container) {
-      container.addEventListener("scroll", handleScroll, { passive: true });
-    } else {
-      window.addEventListener("scroll", handleScroll, { passive: true });
-    }
+    container?.addEventListener("scroll", handleScroll, { passive: true });
     const initialTimer = window.setTimeout(handleScroll, 100);
 
     return () => {
       window.clearTimeout(initialTimer);
-      if (isReaderMode && container) {
-        container.removeEventListener("scroll", handleScroll);
-      } else {
-        window.removeEventListener("scroll", handleScroll);
-      }
+      container?.removeEventListener("scroll", handleScroll);
     };
-  }, [chapter_slug, isReaderMode, queueSaveProgress]);
-
-  useEffect(() => {
-    if (!chapter?.content) return;
-    if (previousReaderModeRef.current === isReaderMode) return;
-    previousReaderModeRef.current = isReaderMode;
-
-    modeSwitchSyncRef.current = true;
-    const sourceProgress = Math.max(
-      pendingModeSwitchProgressRef.current ?? 0,
-      liveProgress,
-      savedChapterProgress
-    );
-    pendingModeSwitchProgressRef.current = null;
-    setLiveProgress(sourceProgress);
-
-    let releaseTimer: number | null = null;
-    const syncTimer = window.setTimeout(() => {
-      scrollToProgress(sourceProgress, isReaderMode);
-      releaseTimer = window.setTimeout(() => {
-        modeSwitchSyncRef.current = false;
-      }, 180);
-    }, 80);
-
-    return () => {
-      window.clearTimeout(syncTimer);
-      if (releaseTimer) {
-        window.clearTimeout(releaseTimer);
-      }
-      modeSwitchSyncRef.current = false;
-    };
-  }, [isReaderMode, chapter?.content, liveProgress, savedChapterProgress]);
+  }, [chapter_slug, queueSaveProgress]);
 
   if (isLoading) return <FullScreenLoader />;
 
@@ -668,6 +515,7 @@ const StoryReader = () => {
   }
 
   const activeTheme = themeOptions[theme] || THEMES.parchment;
+  const isDarkReaderTheme = theme === "night" || Boolean(activeTheme.isDark);
   const nightTextClass = theme === "night" ? "[&_*]:!text-slate-300 [&_a]:!text-sky-300" : "";
   const proseNightVars =
     theme === "night"
@@ -711,14 +559,14 @@ const StoryReader = () => {
   };
 
   const handleReaderTouchStart = (event: TouchEvent<HTMLDivElement>) => {
-    if (!isReaderMode || event.touches.length !== 2) return;
+    if (event.touches.length !== 2) return;
     pinchStartDistanceRef.current = getTouchDistance(event.touches[0], event.touches[1]);
     pinchStartFontSizeRef.current = fontSize;
     setPinchScale(1);
   };
 
   const handleReaderTouchMove = (event: TouchEvent<HTMLDivElement>) => {
-    if (!isReaderMode || event.touches.length !== 2) return;
+    if (event.touches.length !== 2) return;
     if (!pinchStartDistanceRef.current || !pinchStartFontSizeRef.current) return;
 
     if (event.cancelable) {
@@ -732,7 +580,7 @@ const StoryReader = () => {
   };
 
   const finishPinchZoom = () => {
-    if (!isReaderMode || !pinchStartFontSizeRef.current) {
+    if (!pinchStartFontSizeRef.current) {
       setPinchScale(1);
       pinchStartDistanceRef.current = null;
       pinchStartFontSizeRef.current = null;
@@ -749,9 +597,7 @@ const StoryReader = () => {
   return (
     <div
       ref={readerContainerRef}
-      className={`min-h-screen bg-background flex flex-col ${
-        isReaderMode ? "h-screen overflow-y-auto" : ""
-      }`}
+      className="flex h-[100dvh] min-h-screen flex-col overflow-y-auto bg-background"
     >
       <Seo
         title={`${chapter.title}${story?.title ? ` — ${story.title}` : ""} | WorldStories`}
@@ -759,60 +605,14 @@ const StoryReader = () => {
         path={`/read/${story_slug}/${chapter_slug}`}
         noIndex
       />
-      {!isReaderMode && (
-        <div className="sticky top-0 z-40 border-b bg-background/90 p-4 backdrop-blur">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Link to={backHref}>
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div>
-                <h2 className="font-semibold line-clamp-1">{chapter.title}</h2>
-                <p className="text-xs text-muted-foreground">{story_slug}</p>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleReaderMode}
-              className="gap-2"
-              aria-label="Enter reader mode"
-            >
-              <Expand className="h-4 w-4" />
-              Reader Mode
-            </Button>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              Chapter {chapter.order}
-              {story?.chapter_count ? ` of ${story.chapter_count}` : ""} — {Math.round(liveProgress * 100)}%
-            </span>
-            {story?.chapter_count ? <span>Overall: {Math.round(overallProgress * 100)}%</span> : null}
-            {!isAuthenticated && (
-              <span>
-                Saved on this device ·{" "}
-                <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
-                  Login to sync
-                </button>
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      <main className={`${isReaderMode ? "max-w-none px-0 py-0" : "max-w-3xl py-6"} mx-auto w-full`}>
-        {isReaderMode ? (
+      <main className="mx-auto w-full max-w-none px-0 py-0">
           <div
             className={`${activeTheme.cardClass} min-h-screen rounded-none border-0 p-0`}
             style={activeTheme.cardStyle}
             onClick={toggleReaderChrome}
           >
             <div
-              className="mx-auto w-full px-4 py-3 md:px-8 md:py-5 lg:max-w-4xl lg:px-10 lg:py-6"
+              className="mx-auto w-full px-4 pb-20 pt-20 md:px-8 lg:max-w-4xl lg:px-10"
               onTouchStart={handleReaderTouchStart}
               onTouchMove={handleReaderTouchMove}
               onTouchEnd={finishPinchZoom}
@@ -832,61 +632,140 @@ const StoryReader = () => {
               />
             </div>
           </div>
-        ) : (
-          <Card className={`${activeTheme.cardClass}`} style={activeTheme.cardStyle}>
-            <CardContent className="p-6">
-              <div
-                ref={scrollContentRef}
-                className={`prose max-w-none leading-relaxed ${activeTheme.proseClass} ${nightTextClass}`}
-                style={{
-                  fontSize: `${fontSize}px`,
-                  lineHeight,
-                  fontFamily: FONTS[fontFamily].value,
-                  ...activeTheme.proseStyle,
-                  ...proseNightVars,
-                }}
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content) }}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {(prevChapterSlug || nextChapterSlug) && (
-          <div className="mt-8 flex items-center justify-center gap-3">
-            {prevChapterSlug && (
-              <Button
-                variant="outline"
-                className="h-11 rounded-full px-5"
-                onClick={() => navigate(`/read/${story_slug}/${prevChapterSlug}`, { state: location.state })}
-              >
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                Previous Chapter
-              </Button>
-            )}
-            {nextChapterSlug && (
-              <Button
-                className="h-11 rounded-full px-5"
-                onClick={() => navigate(`/read/${story_slug}/${nextChapterSlug}`, { state: location.state })}
-              >
-                Next Chapter
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        )}
-
-        <Separator className="my-8" />
       </main>
 
-      {isReaderMode && isAuthenticated && isReaderChromeVisible && (
-        // Top-left, opposite the draggable settings button (which defaults to
-        // top-right) — small text only, no bar, so it sits in the margin
-        // beside the reading column instead of covering any of it.
-        <div className="pointer-events-none fixed left-3 top-3 z-40 rounded-full border bg-background/70 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
-          Ch {chapter.order}
-          {story?.chapter_count ? `/${story.chapter_count}` : ""} · {Math.round(liveProgress * 100)}%
-          {story?.chapter_count ? ` · Overall ${Math.round(overallProgress * 100)}%` : ""}
-        </div>
+      {(
+        <>
+          <div
+            className={`fixed inset-x-0 top-0 z-50 px-2 pt-2 transition-transform duration-300 ease-in-out ${
+              isReaderChromeVisible ? "translate-y-0" : "-translate-y-full pointer-events-none"
+            }`}
+          >
+            <div
+              className={`mx-auto flex max-w-6xl items-center justify-between gap-2 rounded-xl border px-2 py-2 text-foreground shadow-lg sm:px-3 sm:py-3 ${READER_GLASS_PANEL_CLASS} ${
+                isDarkReaderTheme ? "dark" : ""
+              }`}
+            >
+              <div className="min-w-0">
+                <h1 className="truncate text-sm font-semibold sm:text-lg">
+                  {story?.title || chapter.title}
+                </h1>
+                <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
+                  {chapter.title}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 sm:h-9 sm:px-3"
+                  onClick={() => setIsContentsOpen(true)}
+                  aria-label="Contents"
+                >
+                  <List className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Contents</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 sm:h-9 sm:px-3"
+                  onClick={() => setShowControls(true)}
+                  aria-label="Reader settings"
+                >
+                  <SlidersHorizontal className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Settings</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 sm:h-9 sm:px-3"
+                  onClick={toggleFullscreen}
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <Minimize className="h-4 w-4 sm:mr-2" />
+                  ) : (
+                    <Expand className="h-4 w-4 sm:mr-2" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  </span>
+                </Button>
+                {!isFullscreen && (
+                  <Link to={backHref}>
+                    <Button variant="outline" size="sm" className="h-8 px-2 sm:h-9 sm:px-3">
+                      <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Back</span>
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={`pointer-events-none fixed bottom-2 right-2 z-40 transition-transform duration-300 ease-in-out ${
+              isReaderChromeVisible ? "translate-y-10" : "translate-y-0"
+            }`}
+          >
+            <span
+              className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground shadow-sm ${READER_GLASS_PANEL_CLASS} ${
+                isDarkReaderTheme ? "dark" : ""
+              }`}
+            >
+              {Math.round(overallProgress * 100)}%
+            </span>
+          </div>
+
+          <div
+            className={`fixed inset-x-0 bottom-0 z-50 px-3 pb-2 transition-transform duration-300 ease-in-out ${
+              isReaderChromeVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
+            }`}
+          >
+            <div
+              className={`mx-auto grid max-w-6xl grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg ${READER_GLASS_PANEL_CLASS} ${
+                isDarkReaderTheme ? "dark" : ""
+              }`}
+            >
+              <div className="flex justify-start">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3"
+                  disabled={!prevChapterSlug}
+                  onClick={() =>
+                    prevChapterSlug &&
+                    navigate(`/read/${story_slug}/${prevChapterSlug}`, { state: location.state })
+                  }
+                  aria-label="Previous chapter"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="whitespace-nowrap text-center text-xs text-muted-foreground">
+                Chapter {chapter.order}
+                {story?.chapter_count ? ` / ${story.chapter_count}` : ""}
+                {" · "}
+                {Math.round(overallProgress * 100)}%
+              </p>
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3"
+                  disabled={!nextChapterSlug}
+                  onClick={() =>
+                    nextChapterSlug &&
+                    navigate(`/read/${story_slug}/${nextChapterSlug}`, { state: location.state })
+                  }
+                  aria-label="Next chapter"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {showControls && (
@@ -916,17 +795,6 @@ const StoryReader = () => {
                   aria-label="Close settings panel"
                 >
                   <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="rounded-md border p-2">
-                <Button
-                  variant={isReaderMode ? "destructive" : "default"}
-                  onClick={toggleReaderModeFromModal}
-                  className="h-11 w-full justify-center gap-2 text-sm font-semibold"
-                >
-                  {isReaderMode ? <Minimize className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
-                  {isReaderMode ? "Exit Reader Mode" : "Enter Reader Mode"}
                 </Button>
               </div>
 
@@ -1078,41 +946,55 @@ const StoryReader = () => {
         </div>
       )}
 
-      {/* In reader mode this follows the same tap-to-hide toggle as the
-          progress indicator — but stays visible whenever the settings modal
-          itself is open, since it doubles as that modal's close button. */}
-      {(!isReaderMode || isReaderChromeVisible || showControls) && (
-        <div
-          className="fixed z-50 flex flex-col items-end gap-2"
-          style={{ left: `${settingsButtonPos.x}px`, top: `${settingsButtonPos.y}px` }}
+      <Sheet open={isContentsOpen} onOpenChange={setIsContentsOpen}>
+        <SheetContent
+          side="left"
+          className="flex w-80 flex-col"
+          container={isFullscreen ? readerContainerRef.current ?? undefined : undefined}
         >
-          <Button
-            size="icon"
-            className="h-10 w-10 rounded-full shadow-md opacity-30 hover:opacity-100"
-            onPointerDown={(event) => {
-              if (event.pointerType === "mouse" && event.button !== 0) return;
-              dragDistanceRef.current = 0;
-              suppressToggleRef.current = false;
-              dragOffsetRef.current = {
-                x: event.clientX - settingsButtonPos.x,
-                y: event.clientY - settingsButtonPos.y,
-              };
-              setIsDraggingSettingsButton(true);
-            }}
-            onClick={() => {
-              if (suppressToggleRef.current) {
-                suppressToggleRef.current = false;
-                return;
-              }
-              setShowControls((value) => !value);
-            }}
-            aria-label={showControls ? "Collapse reader controls" : "Expand reader controls"}
-            style={{ touchAction: "none", cursor: isDraggingSettingsButton ? "grabbing" : "grab" }}
-          >
-            {showControls ? <X className="h-5 w-5" /> : <SlidersHorizontal className="h-5 w-5" />}
-          </Button>
-        </div>
-      )}
+          <SheetHeader>
+            <SheetTitle>Contents</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto">
+            {orderedChapters.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No chapters available.</p>
+            ) : (
+              orderedChapters.map((item) => {
+                const isCurrent = item.slug === chapter_slug;
+                return (
+                  <button
+                    key={item.id || item.slug}
+                    ref={isCurrent ? currentChapterButtonRef : undefined}
+                    type="button"
+                    aria-current={isCurrent ? "page" : undefined}
+                    onClick={() => {
+                      setIsContentsOpen(false);
+                      if (!isCurrent) {
+                        navigate(`/read/${story_slug}/${item.slug}`, { state: location.state });
+                      }
+                    }}
+                    className={`block w-full rounded-lg px-3 py-2.5 text-left transition-colors ${
+                      isCurrent
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <span
+                      className={`block text-[11px] font-medium uppercase tracking-wide ${
+                        isCurrent ? "text-primary-foreground/75" : "text-muted-foreground"
+                      }`}
+                    >
+                      Chapter {item.order}
+                    </span>
+                    <span className="mt-0.5 block text-sm font-medium">{item.title}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
     </div>
   );
 };
