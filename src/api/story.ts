@@ -32,6 +32,7 @@ import {
   AdminAnalyticsSubmissionsResponse,
   Author,
   AuthorDetail,
+  SearchResponse,
 } from "./types";
 
 export const storyApi = {
@@ -66,9 +67,15 @@ export const storyApi = {
   getTrendingData: () => apiClient<TrendingDataResponse>("/trending/"),
   getOriginalsData: () => apiClient<OriginalsDataResponse>("/originals/"),
   getDiscoverData: () => apiClient<DiscoverDataResponse>("/discover/"),
-  searchStories: (q: string, page: number = 1, sort: string = "popular", language: string = "all") =>
-    apiClient<StoryListResponse>(
-      `/search/?q=${encodeURIComponent(q)}&page=${page}&sort=${sort}&language=${encodeURIComponent(language)}`
+  searchStories: (
+    q: string,
+    page: number = 1,
+    sort: string = "popular",
+    language: string = "all",
+    authorPage: number = 1
+  ) =>
+    apiClient<SearchResponse>(
+      `/search/?q=${encodeURIComponent(q)}&page=${page}&author_page=${authorPage}&sort=${sort}&language=${encodeURIComponent(language)}`
     ),
   getStoryReviews: (slug: string, page: number = 1) =>
     apiClient<ReviewListResponse>(`/stories/${slug}/reviews/?page=${page}`),

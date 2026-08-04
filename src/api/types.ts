@@ -89,6 +89,11 @@ export interface AuthorDetail extends Author {
   stories: Story[];
 }
 
+export interface SearchResponse {
+  titles: PaginatedResponse<Story>;
+  authors: PaginatedResponse<Author>;
+}
+
 export interface StoryTranslation {
   id: number;
   slug: string;
