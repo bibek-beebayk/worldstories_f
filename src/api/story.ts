@@ -30,6 +30,8 @@ import {
   AdminAnalyticsEngagementResponse,
   AdminAnalyticsUsersResponse,
   AdminAnalyticsSubmissionsResponse,
+  Author,
+  AuthorDetail,
 } from "./types";
 
 export const storyApi = {
@@ -55,6 +57,9 @@ export const storyApi = {
   //   apiClient<Audio>(`/stories/${story_slug}/audios/${audio_slug}/`),
 
   getGenres: () => apiClient<Genre[]>("/genres/"),
+  getAuthors: (page: number = 1) =>
+    apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
+  getAuthor: (id: number) => apiClient<AuthorDetail>(`/authors/${id}/`),
   getLibraryShelves: (page: number) =>
     apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
   getHomeData: () => apiClient<HomeDataResponse>("/home/"),

@@ -80,9 +80,13 @@ export interface LibraryShelvesResponse {
 export interface Author{
   id: number;
   name: string;
-  bio: string;
-  image: string;
+  bio: string | null;
+  image: string | null;
   stories_count: number;
+}
+
+export interface AuthorDetail extends Author {
+  stories: Story[];
 }
 
 export interface StoryTranslation {

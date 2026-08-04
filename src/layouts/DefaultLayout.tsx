@@ -28,6 +28,10 @@ const routeSeo: Record<string, { title: string; description: string; noIndex?: b
     title: "Discover New Stories | WorldStories",
     description: "Find recommended, original, and newly published stories on WorldStories.",
   },
+  "/authors": {
+    title: "Authors | WorldStories",
+    description: "Meet the authors behind WorldStories and explore all of their available books.",
+  },
   "/contest": {
     title: "Story Contests | WorldStories",
     description: "Discover upcoming writing contests and opportunities from WorldStories.",

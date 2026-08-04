@@ -20,6 +20,8 @@ const Index = lazy(() => import("./pages/Index"));
 const Library = lazy(() => import("./pages/Library"));
 const Trending = lazy(() => import("./pages/Trending"));
 const Discover = lazy(() => import("./pages/Discover"));
+const Authors = lazy(() => import("./pages/Authors"));
+const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
 const Publish = lazy(() => import("./pages/Publish"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const StoryDetail = lazy(() => import("./pages/StoryDetail"));
@@ -94,6 +96,8 @@ const App = () => (
             <Route path="library" element={<Library />} />
             <Route path="trending" element={<Trending />} />
             <Route path="discover" element={<Discover />} />
+            <Route path="authors" element={<Authors />} />
+            <Route path="authors/:id" element={<AuthorDetail />} />
             <Route path="contest" element={<Contest />} />
             <Route path="search" element={<Search />} />
             <Route path="publish" element={<Publish />} />

@@ -520,7 +520,13 @@ const StoryDetail = () => {
                       <AvatarFallback>SC</AvatarFallback>
                     </Avatar>
                     <span className="text-sm text-muted-foreground">
-                      by <span className="text-foreground font-medium">{story.author?.name || "Unknown"}</span>
+                      by {story.author ? (
+                        <Link to={`/authors/${story.author.id}`} className="font-medium text-foreground transition-colors hover:text-primary hover:underline">
+                          {story.author.name}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-foreground">Unknown</span>
+                      )}
                     </span>
                   </div>
                   {story.submitted_by && (
@@ -845,18 +851,18 @@ const StoryDetail = () => {
                       <h3 className="font-semibold mb-2">About the Author</h3>
                       {story.author ? (
                         <>
-                          <div className="mb-3 flex items-center gap-3">
+                          <Link to={`/authors/${story.author.id}`} className="group mb-3 flex w-fit items-center gap-3">
                             <Avatar className="h-12 w-12">
                               <AvatarImage src={story.author.image || ""} />
                               <AvatarFallback>SC</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{story.author.name}</p>
+                              <p className="font-medium transition-colors group-hover:text-primary group-hover:underline">{story.author.name}</p>
                               <p className="text-sm text-muted-foreground">
                                 {story.author.stories_count} stories
                               </p>
                             </div>
-                          </div>
+                          </Link>
                           <p className="text-sm text-muted-foreground">
                             {story.author.bio || "No author bio available."}
                           </p>

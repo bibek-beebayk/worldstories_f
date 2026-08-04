@@ -118,6 +118,9 @@ const Header = () => {
             <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Library
             </Link>
+            <Link to="/authors" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Authors
+            </Link>
             <Link to="/trending" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Trending
             </Link>
@@ -272,6 +275,15 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Library
+                  </Link>
+                </SheetClose>
+
+                <SheetClose asChild>
+                  <Link
+                    to="/authors"
+                    className="text-lg font-medium hover:text-primary"
+                  >
+                    Authors
                   </Link>
                 </SheetClose>
 
