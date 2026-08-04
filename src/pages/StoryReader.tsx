@@ -13,11 +13,9 @@ import { useStory } from "@/hooks/useStory";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  BookMarked,
   ChevronLeft,
   ChevronRight,
   Expand,
-  Heart,
   List,
   Minimize,
   Moon,
@@ -259,6 +257,7 @@ const StoryReader = () => {
   const settingsModalRef = useRef<HTMLDivElement>(null);
   const currentChapterButtonRef = useRef<HTMLButtonElement>(null);
   const hasRestoredRef = useRef(false);
+  const liveProgressRef = useRef(0);
   const saveTimerRef = useRef<number | null>(null);
   const latestProgressRef = useRef<number | null>(null);
   const pinchStartDistanceRef = useRef<number | null>(null);
@@ -313,6 +312,7 @@ const StoryReader = () => {
     localStorage.setItem("reader_font", fontFamily);
   }, [fontFamily]);
 
+
   const themeOptions = useMemo<Record<string, ReaderThemeConfig>>(() => {
     const customThemeMap: Record<string, ReaderThemeConfig> = {};
 
@@ -350,6 +350,7 @@ const StoryReader = () => {
 
   useEffect(() => {
     setLiveProgress(0);
+    liveProgressRef.current = 0;
   }, [chapter_slug]);
 
   useEffect(() => {
@@ -412,6 +413,8 @@ const StoryReader = () => {
   const queueSaveProgress = useCallback((progress: number) => {
     if (!story_slug || !chapter_slug) return;
     const normalized = Math.min(1, Math.max(0, progress));
+    hasRestoredRef.current = true;
+    liveProgressRef.current = normalized;
     setLiveProgress(normalized);
     latestProgressRef.current = normalized;
 
@@ -458,18 +461,14 @@ const StoryReader = () => {
   }, [story_slug, chapter_slug]);
 
   useEffect(() => {
-    if (
-      savedChapterProgress <= 0 ||
-      !chapter?.content ||
-      hasRestoredRef.current
-    ) {
-      return;
-    }
+    if (!chapter?.content || hasRestoredRef.current) return;
 
     const timer = window.setTimeout(() => {
-      scrollToProgress(savedChapterProgress);
-      setLiveProgress(savedChapterProgress);
-      hasRestoredRef.current = true;
+      const progress = Math.max(savedChapterProgress, liveProgressRef.current);
+      scrollToProgress(progress);
+      liveProgressRef.current = progress;
+      setLiveProgress(progress);
+      if (progress > 0) hasRestoredRef.current = true;
     }, 120);
 
     return () => window.clearTimeout(timer);
@@ -529,7 +528,13 @@ const StoryReader = () => {
           "--tw-prose-bullets": "#64748b",
         } as CSSProperties)
       : {};
-
+  const typographyStyle: CSSProperties = {
+    fontSize: `${Math.round(fontSize * pinchScale)}px`,
+    lineHeight,
+    fontFamily: FONTS[fontFamily].value,
+    ...activeTheme.proseStyle,
+    ...proseNightVars,
+  };
   const handleCreateTheme = () => {
     const trimmed = newThemeName.trim();
     if (!trimmed) return;
@@ -621,13 +626,7 @@ const StoryReader = () => {
               <div
                 ref={scrollContentRef}
                 className={`prose max-w-none leading-relaxed ${activeTheme.proseClass} ${nightTextClass} m-0 p-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0`}
-                style={{
-                  fontSize: `${Math.round(fontSize * pinchScale)}px`,
-                  lineHeight,
-                  fontFamily: FONTS[fontFamily].value,
-                  ...activeTheme.proseStyle,
-                  ...proseNightVars,
-                }}
+                style={typographyStyle}
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content) }}
               />
             </div>
@@ -723,7 +722,7 @@ const StoryReader = () => {
             }`}
           >
             <div
-              className={`mx-auto grid max-w-6xl grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg ${READER_GLASS_PANEL_CLASS} ${
+              className={`mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-xl border px-3 py-2 text-foreground shadow-lg ${READER_GLASS_PANEL_CLASS} ${
                 isDarkReaderTheme ? "dark" : ""
               }`}
             >
@@ -742,12 +741,15 @@ const StoryReader = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="whitespace-nowrap text-center text-xs text-muted-foreground">
-                Chapter {chapter.order}
-                {story?.chapter_count ? ` / ${story.chapter_count}` : ""}
-                {" · "}
-                {Math.round(overallProgress * 100)}%
-              </p>
+              <div className="min-w-0 px-2 text-center">
+                <p className="truncate text-xs font-medium text-foreground">
+                  Chapter {chapter.order}
+                  {story?.chapter_count ? ` / ${story.chapter_count}` : ""}: {chapter.title}
+                </p>
+                <p className="mt-0.5 whitespace-nowrap text-[10px] text-muted-foreground sm:text-xs">
+                  Chapter {Math.round(liveProgress * 100)}% · Overall {Math.round(overallProgress * 100)}%
+                </p>
+              </div>
               <div className="flex justify-end">
                 <Button
                   variant="outline"
@@ -933,14 +935,6 @@ const StoryReader = () => {
                 </Button>
               </div>
 
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" size="icon">
-                  <Heart className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                  <BookMarked className="h-4 w-4" />
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>
