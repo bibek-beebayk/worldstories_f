@@ -10,13 +10,19 @@ import { makeDownloadId } from "@/lib/offlineDb";
 import { queueFileProgress, saveFileProgressLocally } from "@/lib/progressSync";
 import {
   ArrowLeft,
+  Ban,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
+  GalleryHorizontalEnd,
+  Layers,
   Loader2,
   Maximize2,
   Minimize2,
+  MoveHorizontal,
   Moon,
   Settings,
+  ScrollText,
   Sun,
   ZoomIn,
   ZoomOut,
@@ -40,6 +46,13 @@ import {
 } from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import Seo from "@/components/Seo";
+import {
+  getSavedPageAnimation,
+  PAGE_ANIMATION_OPTIONS,
+  runReaderPageAnimation,
+  type PageAnimationEffect,
+  type PageTurnDirection,
+} from "@/lib/readerAnimations";
 
 GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -65,6 +78,13 @@ const PDF_READER_THEMES = {
 } as const;
 type PdfThemeKey = keyof typeof PDF_READER_THEMES;
 type PdfViewMode = "page" | "scroll";
+const PAGE_ANIMATION_ICONS = {
+  none: Ban,
+  fade: Layers,
+  slide: MoveHorizontal,
+  zoom: ZoomIn,
+  flip: GalleryHorizontalEnd,
+} satisfies Record<PageAnimationEffect, typeof Ban>;
 
 interface ScrollPdfPageProps {
   pdfDoc: PDFDocumentProxy;
@@ -176,6 +196,11 @@ const PdfReader = () => {
   const [viewMode, setViewMode] = useState<PdfViewMode>(() =>
     localStorage.getItem("pdf-reader-view-mode") === "scroll" ? "scroll" : "page"
   );
+  const [pageAnimation, setPageAnimation] = useState<PageAnimationEffect>(() =>
+    getSavedPageAnimation("pdf-reader-page-animation")
+  );
+  const pageAnimationRef = useRef<PageAnimationEffect>(pageAnimation);
+  const pendingAnimationDirectionRef = useRef<PageTurnDirection | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const touchStartRef = useRef<{ x: number; y: number; time: number; scrollLeft: number } | null>(null);
   const lastTapAtRef = useRef(0);
@@ -265,6 +290,11 @@ const PdfReader = () => {
         canvas.height = viewport.height;
         renderTask = page.render({ canvasContext: context, viewport });
         await renderTask.promise;
+        const direction = pendingAnimationDirectionRef.current;
+        pendingAnimationDirectionRef.current = null;
+        if (!canceled && direction) {
+          runReaderPageAnimation(canvas, pageAnimationRef.current, direction);
+        }
       } catch {
         if (!canceled) {
           setReaderError("Could not render this page.");
@@ -309,6 +339,8 @@ const PdfReader = () => {
 
   const goPrev = useCallback(() => {
     const target = Math.max(1, pageNumber - 1);
+    if (target === pageNumber) return;
+    if (viewMode === "page") pendingAnimationDirectionRef.current = "prev";
     setPageNumber(target);
     if (viewMode === "scroll") {
       pageViewportRef.current
@@ -319,6 +351,8 @@ const PdfReader = () => {
 
   const goNext = useCallback(() => {
     const target = Math.min(numPages, pageNumber + 1);
+    if (target === pageNumber) return;
+    if (viewMode === "page") pendingAnimationDirectionRef.current = "next";
     setPageNumber(target);
     if (viewMode === "scroll") {
       pageViewportRef.current
@@ -448,6 +482,11 @@ const PdfReader = () => {
   useEffect(() => {
     localStorage.setItem("pdf-reader-view-mode", viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    pageAnimationRef.current = pageAnimation;
+    localStorage.setItem("pdf-reader-page-animation", pageAnimation);
+  }, [pageAnimation]);
 
   useEffect(() => {
     if (viewMode !== "scroll") return;
@@ -596,21 +635,46 @@ const PdfReader = () => {
                 >
                   <div>
                     <p className="mb-2 text-xs font-medium text-muted-foreground">View</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex gap-2">
                       <Button
                         variant={viewMode === "page" ? "default" : "outline"}
-                        size="sm"
+                        size="icon"
                         onClick={() => changeViewMode("page")}
+                        aria-label="Page view"
+                        title="Page view"
                       >
-                        Page
+                        <BookOpen className="h-4 w-4" />
                       </Button>
                       <Button
                         variant={viewMode === "scroll" ? "default" : "outline"}
-                        size="sm"
+                        size="icon"
                         onClick={() => changeViewMode("scroll")}
+                        aria-label="Scroll view"
+                        title="Scroll view"
                       >
-                        Scroll
+                        <ScrollText className="h-4 w-4" />
                       </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">Page animation</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {PAGE_ANIMATION_OPTIONS.map((option) => {
+                        const Icon = PAGE_ANIMATION_ICONS[option.value];
+                        return (
+                          <Button
+                            key={option.value}
+                            variant={pageAnimation === option.value ? "default" : "outline"}
+                            size="icon"
+                            disabled={viewMode !== "page"}
+                            onClick={() => setPageAnimation(option.value)}
+                            aria-label={`${option.label} page animation`}
+                            title={option.label}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </Button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div>

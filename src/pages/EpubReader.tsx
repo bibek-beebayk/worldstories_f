@@ -11,16 +11,23 @@ import { makeDownloadId } from "@/lib/offlineDb";
 import { queueFileProgress, saveFileProgressLocally } from "@/lib/progressSync";
 import {
   ArrowLeft,
+  Ban,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
+  GalleryHorizontalEnd,
+  Layers,
   List,
   Loader2,
   Maximize2,
   Minimize2,
+  MoveHorizontal,
   Moon,
   Settings,
+  ScrollText,
   Sun,
   Type,
+  ZoomIn,
 } from "lucide-react";
 import {
   useCallback,
@@ -36,6 +43,12 @@ import Epub, { type Book, type Rendition } from "epubjs";
 import type { NavItem } from "epubjs/types/navigation";
 import Seo from "@/components/Seo";
 import { FONTS } from "@/pages/StoryReader";
+import {
+  getSavedPageAnimation,
+  PAGE_ANIMATION_OPTIONS,
+  runReaderPageAnimation,
+  type PageAnimationEffect,
+} from "@/lib/readerAnimations";
 
 const READER_FONT_KEYS = ["literata", "georgia", "times", "garamond", "helvetica"] as const;
 type EpubFontKey = (typeof READER_FONT_KEYS)[number];
@@ -81,6 +94,13 @@ const READER_THEMES = {
 } as const;
 type EpubThemeKey = keyof typeof READER_THEMES;
 type EpubViewMode = "page" | "scroll";
+const PAGE_ANIMATION_ICONS = {
+  none: Ban,
+  fade: Layers,
+  slide: MoveHorizontal,
+  zoom: ZoomIn,
+  flip: GalleryHorizontalEnd,
+} satisfies Record<PageAnimationEffect, typeof Ban>;
 
 // Derived from READER_THEMES (rather than duplicating hex codes in a second
 // place) so the outer reader panel's background — set inline from the same
@@ -122,6 +142,10 @@ const EpubReader = () => {
     localStorage.getItem("epub-reader-view-mode") === "scroll" ? "scroll" : "page"
   );
   const viewModeRef = useRef<EpubViewMode>(viewMode);
+  const [pageAnimation, setPageAnimation] = useState<PageAnimationEffect>(() =>
+    getSavedPageAnimation("epub-reader-page-animation")
+  );
+  const pageAnimationRef = useRef<PageAnimationEffect>(pageAnimation);
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEpubLoading, setIsEpubLoading] = useState(true);
@@ -240,20 +264,10 @@ const EpubReader = () => {
   // Plain imperative style writes (not React state) since this is a
   // transient, fire-and-forget effect with no rendered output of its own.
   const animatePageTurn = useCallback((direction: "next" | "prev") => {
+    if (viewModeRef.current !== "page") return;
     const el = viewerRef.current;
     if (!el) return;
-    const offset = direction === "next" ? "18px" : "-18px";
-    el.style.transition = "none";
-    el.style.opacity = "0";
-    el.style.transform = `translateX(${offset})`;
-    // Forces the browser to register the "from" state above in its own
-    // paint before the transition below is applied — without this, both
-    // style writes get coalesced into a single frame and there's nothing
-    // to animate from.
-    void el.offsetWidth;
-    el.style.transition = "transform 220ms ease-out, opacity 220ms ease-out";
-    el.style.opacity = "1";
-    el.style.transform = "translateX(0)";
+    runReaderPageAnimation(el, pageAnimationRef.current, direction);
   }, []);
 
   const goNext = useCallback(async () => {
@@ -544,6 +558,11 @@ const EpubReader = () => {
   }, [theme]);
 
   useEffect(() => {
+    pageAnimationRef.current = pageAnimation;
+    localStorage.setItem("epub-reader-page-animation", pageAnimation);
+  }, [pageAnimation]);
+
+  useEffect(() => {
     viewModeRef.current = viewMode;
     localStorage.setItem("epub-reader-view-mode", viewMode);
     const rendition = renditionRef.current;
@@ -759,21 +778,46 @@ const EpubReader = () => {
               >
                 <div>
                   <p className="mb-2 text-xs font-medium text-muted-foreground">View</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="flex gap-2">
                     <Button
                       variant={viewMode === "page" ? "default" : "outline"}
-                      size="sm"
+                      size="icon"
                       onClick={() => setViewMode("page")}
+                      aria-label="Page view"
+                      title="Page view"
                     >
-                      Page
+                      <BookOpen className="h-4 w-4" />
                     </Button>
                     <Button
                       variant={viewMode === "scroll" ? "default" : "outline"}
-                      size="sm"
+                      size="icon"
                       onClick={() => setViewMode("scroll")}
+                      aria-label="Scroll view"
+                      title="Scroll view"
                     >
-                      Scroll
+                      <ScrollText className="h-4 w-4" />
                     </Button>
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">Page animation</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {PAGE_ANIMATION_OPTIONS.map((option) => {
+                      const Icon = PAGE_ANIMATION_ICONS[option.value];
+                      return (
+                        <Button
+                          key={option.value}
+                          variant={pageAnimation === option.value ? "default" : "outline"}
+                          size="icon"
+                          disabled={viewMode !== "page"}
+                          onClick={() => setPageAnimation(option.value)}
+                          aria-label={`${option.label} page animation`}
+                          title={option.label}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div>
