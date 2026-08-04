@@ -125,10 +125,8 @@ const EpubReader = () => {
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEpubLoading, setIsEpubLoading] = useState(true);
-  // Mobile immersive-reading toggle: tapping the reader hides the header/
-  // footer chrome so the page content can use the full screen. Forced true
-  // on larger screens via CSS (see the header/footer wrapper classes below),
-  // since this is a mobile-specific interaction.
+  // Immersive-reading toggle shared by every viewport: tapping/clicking the
+  // page hides the header/footer chrome without resizing the rendition.
   const [controlsVisible, setControlsVisible] = useState(true);
 
   const storageKey = useMemo(() => {
@@ -269,8 +267,8 @@ const EpubReader = () => {
     maybeResyncAfterTurn();
   }, [maybeResyncAfterTurn, animatePageTurn]);
 
-  // Mobile-only: tapping the reader toggles the header/footer chrome so the
-  // page content can use the full screen; swiping left/right turns pages.
+  // Tapping the reader toggles the header/footer chrome; swiping left/right
+  // turns pages in Page mode.
   // Distinguished by how much the touch moved — a near-stationary touch is a
   // tap, a mostly-horizontal one past the threshold is a swipe. Touch events
   // never fire for mouse input, so this naturally only affects touchscreens
@@ -419,6 +417,9 @@ const EpubReader = () => {
         rendition.themes.font(FONTS[fontFamily]?.value || "serif");
         rendition.themes.fontSize(`${fontSizePercent}%`);
         rendition.themes.override("line-height", "1.5", true);
+        // if (viewMode === "scroll") {
+        //   rendition.themes.override("margin-bottom", "20rem", true);
+        // }
         // Many EPUBs set their own text-align: justify. Justified text has a
         // well-known browser rendering quirk in CSS multi-column layouts: the
         // last word of a fully-stretched line can render a few pixels past the
@@ -548,7 +549,13 @@ const EpubReader = () => {
     const rendition = renditionRef.current;
     if (!rendition) return;
     const currentCfi = lastCfiRef.current || undefined;
-    if (viewMode === "scroll") setControlsVisible(true);
+    const themes = rendition.themes as typeof rendition.themes & { removeOverride: (name: string) => void };
+    if (viewMode === "scroll") {
+      setControlsVisible(true);
+      themes.override("padding-bottom", "3rem", true);
+    } else {
+      themes.removeOverride("padding-bottom");
+    }
     rendition.flow(viewMode === "scroll" ? "scrolled-doc" : "paginated");
     requestAnimationFrame(() => {
       rendition.display(currentCfi).then(() => {
@@ -584,16 +591,9 @@ const EpubReader = () => {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  // On mobile the reader panel is always a fixed full-viewport box (see
-  // readerPanelClassName) regardless of controlsVisible — only the header/
-  // footer opacity changes, never the panel's size — so the underlying page
-  // (e.g. this component's own min-h-screen <main>) can still be tall enough
-  // to scroll behind it at any time on mobile, not just while chrome is
-  // hidden. Locking body scroll removes that scrollable space outright
-  // rather than relying on the fixed overlay to hide it. Scoped to mobile
-  // widths only, matching the sm: breakpoint the panel itself reverts at.
+  // The reader panel is fixed at every resolution, so lock the document body
+  // and let EPUB.js own the scrolling surface in Scroll mode.
   useEffect(() => {
-    if (window.matchMedia("(min-width: 640px)").matches) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -681,29 +681,11 @@ const EpubReader = () => {
     );
   }
 
-  // Sizing for the reader panel across three states:
-  // - normal: the existing viewport-relative height, header/footer visible.
-  // - fullscreen (desktop or mobile, via the explicit Fullscreen button):
-  //   already close to full-height; just reclaims the little the collapsed
-  //   header/footer rows free up.
-  // - mobile: ALWAYS a fixed full-viewport box, regardless of controlsVisible.
-  //   Toggling the header/footer only fades/floats them on top of this fixed
-  //   panel now (see the header/footer JSX below) instead of resizing it —
-  //   resizing the panel forces epub.js to re-paginate against the new
-  //   dimensions, which is what caused the reported bug where tapping to
-  //   toggle chrome would jump the visible page/content. Keeping the panel's
-  //   own box permanently constant on mobile means toggling never touches
-  //   pagination at all.
-  //   "relative" isn't included in the desktop classes directly — Tailwind
-  // emits .relative *after* .fixed in its base stylesheet, so at equal
-  // specificity .relative would otherwise silently win the `position`
-  // property regardless of which order the class *names* appear in the
-  // string; keeping them in disjoint (mobile vs sm:) buckets avoids that.
+  // Keeping one fixed-size panel at every resolution means toggling chrome
+  // never forces EPUB.js to repaginate or shifts the reader's current CFI.
   const readerPanelClassName = [
-    "fixed inset-0 z-0 !mt-0 h-[100dvh] w-screen overflow-hidden rounded-none border-0 px-3",
-    "transition-[height] duration-300 ease-in-out",
-    "sm:relative sm:z-auto sm:!mt-3 sm:w-auto sm:rounded-xl sm:border sm:px-6",
-    isFullscreen ? "sm:h-[calc(100vh-130px)]" : "sm:h-[calc(100vh-200px)]",
+    "fixed inset-y-0 left-1/2 z-0 !mt-0 h-[100dvh] w-full -translate-x-1/2 overflow-hidden border-0 px-3",
+    isFullscreen ? "max-w-none" : "max-w-6xl",
   ].join(" ");
 
   return (
@@ -718,7 +700,7 @@ const EpubReader = () => {
         ref={readerContainerRef}
         className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 sm:p-3" : ""}`}
       >
-        {/* Floats over the (always full-viewport, mobile) reader panel below
+        {/* Floats over the always-full-viewport reader panel below
             rather than sharing space with it — sliding in/out instead of
             resizing anything means toggling this never changes the reader's
             own box size, so it never triggers epub.js to re-paginate and
@@ -729,10 +711,9 @@ const EpubReader = () => {
             time — a "double exposure" look. Sliding keeps it at full
             opacity/blur throughout; only its position animates, so whatever
             it moves over is cleanly covered the instant it arrives, never
-            partially. Reverts to a normal in-flow bar at sm: and up, always
-            visible there. */}
+            partially. */}
         <div
-          className={`fixed inset-x-0 top-0 z-50 !mt-0 px-2 pt-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!translate-y-0 sm:px-0 sm:pt-0 ${
+          className={`fixed inset-x-0 top-0 z-50 !mt-0 px-2 pt-2 transition-transform duration-300 ease-in-out ${
             controlsVisible ? "translate-y-0" : "-translate-y-full pointer-events-none"
           }`}
         >
@@ -752,7 +733,7 @@ const EpubReader = () => {
           // an explicit text-foreground *at this scope* to re-read the
           // (now-corrected) variable, they'd keep inheriting the site's
           // outer light-mode black straight through.
-          className={`flex items-center justify-between gap-2 rounded-xl border px-2 py-2 text-foreground shadow-lg sm:px-3 sm:py-3 sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+          className={`mx-auto flex max-w-6xl items-center justify-between gap-2 rounded-xl border px-2 py-2 text-foreground shadow-lg sm:px-3 sm:py-3 ${READER_GLASS_PANEL_CLASS} ${
             theme === "dark" ? "dark" : ""
           }`}
         >
@@ -926,7 +907,7 @@ const EpubReader = () => {
           <div ref={viewerRef} className="h-full w-full" />
           {!isEpubLoading && viewMode === "page" && (
             <div
-              className="absolute inset-0 z-10 sm:hidden"
+              className="absolute inset-0 z-10"
               style={{ touchAction: "none" }}
               onPointerDown={handleMobilePointerDown}
               onPointerMove={handleMobilePointerMove}
@@ -937,7 +918,7 @@ const EpubReader = () => {
           )}
         </div>
 
-        {/* Mobile-only: a compact reading-progress readout shown only while
+        {/* Compact reading-progress readout shown only while
             the header/footer chrome is hidden, so there's still some
             orientation without bringing the full toolbar back. Slides in/out
             inverse to the footer bar below, using the same translate-based
@@ -945,8 +926,8 @@ const EpubReader = () => {
             exposure" a fade causes over visible reader text — same reasoning
             as the header/footer comments above. */}
         <div
-          className={`pointer-events-none fixed inset-x-0 bottom-0.5 z-40 flex justify-center transition-transform duration-300 ease-in-out sm:hidden ${
-            controlsVisible ? "translate-y-full" : "translate-y-0"
+          className={`pointer-events-none fixed bottom-2 right-2 z-40 transition-transform duration-300 ease-in-out ${
+            controlsVisible ? "translate-y-10" : "translate-y-0"
           }`}
         >
           <span
@@ -965,12 +946,12 @@ const EpubReader = () => {
             look a translucent glass panel gets when its opacity animates
             over visible reader text (see the header's comment above). */}
         <div
-          className={`fixed inset-x-0 bottom-0 z-50 !mt-0 px-3 pb-2 transition-transform duration-300 ease-in-out sm:static sm:z-auto sm:!mt-3 sm:!translate-y-0 sm:px-0 sm:pb-0 ${
+          className={`fixed inset-x-0 bottom-0 z-50 !mt-0 px-3 pb-2 transition-transform duration-300 ease-in-out ${
             controlsVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
           }`}
         >
         <div
-          className={`grid grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg sm:shadow-none ${READER_GLASS_PANEL_CLASS} ${
+          className={`mx-auto grid max-w-6xl grid-cols-3 items-center rounded-xl border px-3 py-2 text-foreground shadow-lg ${READER_GLASS_PANEL_CLASS} ${
             theme === "dark" ? "dark" : ""
           }`}
         >

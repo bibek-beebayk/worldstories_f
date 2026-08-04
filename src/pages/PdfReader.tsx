@@ -753,8 +753,8 @@ const PdfReader = () => {
         </div>
 
         <div
-          className={`pointer-events-none fixed inset-x-0 bottom-0.5 z-40 flex justify-center transition-transform duration-300 ease-in-out ${
-            controlsVisible ? "translate-y-full" : "translate-y-0"
+          className={`pointer-events-none fixed bottom-2 right-2 z-40 transition-transform duration-300 ease-in-out ${
+            controlsVisible ? "translate-y-10" : "translate-y-0"
           }`}
         >
           <span
