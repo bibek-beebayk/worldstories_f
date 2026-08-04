@@ -785,7 +785,9 @@ const PdfReader = () => {
           )}
           <div
             ref={pageViewportRef}
-            className="h-full w-full overflow-auto px-3 py-16 md:px-6 md:py-20"
+            className={`h-full w-full overflow-auto px-3 py-16 md:px-6 md:py-20 ${
+              viewMode === "page" ? "flex flex-col" : ""
+            }`}
             style={{ touchAction: "manipulation" }}
             onTouchStart={handleReaderTouchStart}
             onTouchEnd={handleReaderTouchEnd}
@@ -794,7 +796,7 @@ const PdfReader = () => {
             {viewMode === "page" ? (
               <canvas
                 ref={canvasRef}
-                className="mx-auto block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:w-auto md:max-w-full"
+                className="m-auto block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:w-auto md:max-w-full"
                 style={{
                   "--pdf-mobile-width": `${zoom * 100}%`,
                   filter: PDF_READER_THEMES[theme].pageFilter,

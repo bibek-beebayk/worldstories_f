@@ -288,6 +288,7 @@ const EpubReader = () => {
   // never fire for mouse input, so this naturally only affects touchscreens
   // without needing a separate viewport-width check.
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastHandledTouchTapAtRef = useRef(0);
   const SWIPE_THRESHOLD_PX = 28;
   const TAP_MAX_MOVEMENT_PX = 16;
   const TAP_MAX_DURATION_MS = 700;
@@ -315,6 +316,7 @@ const EpubReader = () => {
         if (dx < 0) goNext();
         else goPrev();
       } else if (absDx < TAP_MAX_MOVEMENT_PX && absDy < TAP_MAX_MOVEMENT_PX && elapsedMs < TAP_MAX_DURATION_MS) {
+        lastHandledTouchTapAtRef.current = Date.now();
         setControlsVisible((prev) => !prev);
       }
     },
@@ -335,6 +337,14 @@ const EpubReader = () => {
     },
     [completeReaderGesture]
   );
+
+  const handleReaderContentClick = useCallback((event: MouseEvent) => {
+    if (viewModeRef.current !== "scroll") return;
+    if (Date.now() - lastHandledTouchTapAtRef.current < 600) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("a, button, input, select, textarea")) return;
+    setControlsVisible((visible) => !visible);
+  }, []);
 
   const handleMobilePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary) return;
@@ -465,6 +475,10 @@ const EpubReader = () => {
         // with no working tap/swipe controls.
         rendition.on("touchstart", handleReaderTouchStart);
         rendition.on("touchend", handleReaderTouchEnd);
+        // A normal click is the reliable fallback for taps inside a scrolling
+        // iframe on iOS. Successful touch taps are timestamped above so the
+        // synthetic click that follows cannot toggle the chrome a second time.
+        rendition.on("click", handleReaderContentClick);
 
         // Tell mobile browsers that vertical gestures remain native while
         // horizontal gestures belong to the reader. This prevents iOS Safari
