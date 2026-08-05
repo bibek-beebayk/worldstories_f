@@ -17,7 +17,11 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      // Keep a newly-installed worker waiting until the user accepts the
+      // in-app update prompt. Taking control of an already-open app would mix
+      // old React code with new hashed route chunks and can leave a blank UI.
+      registerType: "prompt",
+      injectRegister: false,
       includeAssets: [
         "worldstories-logo-min.png",
         "worldstories-mark.svg",
@@ -45,6 +49,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        skipWaiting: false,
+        clientsClaim: false,
         // Precache the app shell (JS/CSS/HTML built by Vite + the icons
         // above) so the app can launch offline; everything dynamic (API
         // responses, story cover images) is handled by the runtime rules

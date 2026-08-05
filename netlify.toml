@@ -55,6 +55,16 @@
   status = 200
 
 [[redirects]]
+  from = "/authors"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/authors/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/contest"
   to = "/index.html"
   status = 200
@@ -71,6 +81,31 @@
 
 [[redirects]]
   from = "/profile"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/downloads"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/about"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/contact"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/terms"
   to = "/index.html"
   status = 200
 

@@ -15,6 +15,7 @@ import { queryClient } from "@/lib/queryClient";
 import DefaultLayout from "@/layouts/DefaultLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import AdminShellLayout from "@/layouts/AdminShellLayout";
+import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 
 const Index = lazy(() => import("./pages/Index"));
 const Library = lazy(() => import("./pages/Library"));
@@ -86,6 +87,7 @@ const App = () => (
         <ImmersiveReaderProvider>
         <Toaster />
         <Sonner />
+        <PwaUpdatePrompt />
         <Suspense fallback={<FullScreenLoader />}>
           <Routes>
           {/* Parent route that applies DefaultLayout to its children */}
