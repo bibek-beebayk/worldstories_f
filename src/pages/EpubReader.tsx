@@ -291,6 +291,20 @@ const EpubReader = () => {
         // frames here gives that internal update time to land before
         // another turn is allowed to start.
         await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        // next()/prev() already trigger epub.js's own internal
+        // reportLocation() call, but that call's actual work (reading
+        // manager.currentLocation() and emitting "relocated") runs inside
+        // its own later, separately-queued requestAnimationFrame — and
+        // that read reflects whatever page is *currently* displayed at
+        // the moment it finally runs, not the page this particular turn
+        // landed on. Turn pages faster than that queue drains and several
+        // of those backlogged reports end up reading the same later page,
+        // so the tracker looks frozen through the intermediate pages and
+        // then jumps straight to the current one. Calling it again
+        // ourselves here — after our own settle delay above, with the
+        // next turn still locked out — asserts one definitive, correctly-
+        // ordered report per turn instead of trusting that queue's timing.
+        rendition.reportLocation();
       } finally {
         isPageTurningRef.current = false;
       }
