@@ -491,6 +491,16 @@ const EpubReader = () => {
           if (!doc) return;
           doc.documentElement.style.touchAction = "pan-y";
           if (doc.body) doc.body.style.touchAction = "pan-y";
+          // iOS Safari has a long-standing quirk: it won't generate a
+          // synthetic "click" event at all on a generic element (a <div>,
+          // <body>, plain text) unless that element looks "clickable" —
+          // specifically, has a cursor:pointer style (or a native onclick=
+          // attribute). Without this, the click listener attached below
+          // simply never fires on iOS, even though the exact same setup
+          // works fine on Android/desktop — which is why Scroll mode's
+          // tap-to-toggle was iOS-specific.
+          doc.documentElement.style.cursor = "pointer";
+          if (doc.body) doc.body.style.cursor = "pointer";
           if (directTouchDocumentsRef.current.has(doc)) return;
 
           directTouchDocumentsRef.current.add(doc);
