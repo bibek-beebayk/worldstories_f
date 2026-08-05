@@ -32,6 +32,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
+import { STORY_TYPE_OPTIONS } from "@/lib/storyTypes";
 
 function getInitialGenreFromUrl(searchParams: URLSearchParams): number[] {
   const genreId = parseInt(searchParams.get("genre") || "", 10);
@@ -49,7 +50,8 @@ const Library = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedGenres, setSelectedGenres] = useState<number[]>(() => getInitialGenreFromUrl(searchParams));
   const [status, setStatus] = useState("all");
-  const [language, setLanguage] = useState("all");
+  const [language, setLanguage] = useState(() => searchParams.get("language") || "all");
+  const [storyType, setStoryType] = useState(() => searchParams.get("story_type") || "all");
   const [sort, setSort] = useState("popular");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,6 +71,7 @@ const Library = () => {
     selectedGenreNames.length > 0 ||
     status !== "all" ||
     language !== "all" ||
+    storyType !== "all" ||
     sort !== "popular" ||
     searchQuery.length > 0;
   const isBrowsing = !hasActiveFilters;
@@ -84,13 +87,20 @@ const Library = () => {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const languageParam = searchParams.get("language");
+    const storyTypeParam = searchParams.get("story_type");
+    if (languageParam) setLanguage(languageParam);
+    if (storyTypeParam) setStoryType(storyTypeParam);
+  }, [searchParams]);
+
   const {
     data: storiesData,
     isLoading: isStoriesLoading,
     fetchNextPage: fetchNextStoriesPage,
     hasNextPage: hasNextStoriesPage,
     isFetchingNextPage: isFetchingNextStoriesPage,
-  } = useInfiniteStories(selectedGenres, sort, status, searchQuery, language, !isBrowsing);
+  } = useInfiniteStories(selectedGenres, sort, status, searchQuery, language, storyType, !isBrowsing);
 
   const {
     data: shelvesData,
@@ -138,7 +148,7 @@ const Library = () => {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [selectedGenres, sort, status, language, searchQuery]);
+  }, [selectedGenres, sort, status, language, storyType, searchQuery]);
 
   useEffect(() => {
     setTempGenres(selectedGenres);
@@ -147,6 +157,7 @@ const Library = () => {
   const clearAllFilters = () => {
     setStatus("all");
     setLanguage("all");
+    setStoryType("all");
     setSort("popular");
     setSelectedGenres([]);
     setTempGenres([]);
@@ -320,6 +331,27 @@ const Library = () => {
               </Select>
             </div>
 
+            <div className="hidden min-w-[140px] flex-1 sm:block sm:flex-none">
+              <Select value={storyType} onValueChange={setStoryType}>
+                <SelectTrigger
+                  type="button"
+                  className={`text-xs transition-[height] duration-300 ease-in-out sm:text-sm ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
+                >
+                  <SelectValue placeholder="Story Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {STORY_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Sheet open={openGenres} onOpenChange={setOpenGenres}>
               <SheetTrigger asChild>
                 <Button
@@ -460,6 +492,23 @@ const Library = () => {
                     </div>
 
                     <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Story Type</label>
+                      <Select value={storyType} onValueChange={setStoryType}>
+                        <SelectTrigger type="button" className="h-9 text-sm">
+                          <SelectValue placeholder="Story Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          {STORY_TYPE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
                       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Genres</label>
                       <div className="space-y-3 rounded-lg border p-3">
                         {genres?.map((genre) => (
@@ -548,6 +597,14 @@ const Library = () => {
                 <Badge variant="outline" className="gap-1">
                   Language: {getLanguageLabel(language)}
                   <button type="button" onClick={() => setLanguage("all")}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {storyType !== "all" && (
+                <Badge variant="outline" className="gap-1">
+                  Type: {storyType}
+                  <button type="button" onClick={() => setStoryType("all")}>
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>

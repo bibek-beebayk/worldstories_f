@@ -219,7 +219,7 @@ const Index = () => {
                 icon={Flame}
                 title="New & Trending"
                 subtitle="Stories readers are actively sharing."
-                seeAllHref="/trending"
+                seeAllHref="/discover#trending"
               />
               <TrendingList stories={data.new_trending.slice(0, 8)} />
             </div>

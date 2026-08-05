@@ -19,7 +19,6 @@ import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 
 const Index = lazy(() => import("./pages/Index"));
 const Library = lazy(() => import("./pages/Library"));
-const Trending = lazy(() => import("./pages/Trending"));
 const Discover = lazy(() => import("./pages/Discover"));
 const Authors = lazy(() => import("./pages/Authors"));
 const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
@@ -96,7 +95,7 @@ const App = () => (
             <Route path="login" element={<OpenLoginModalRedirect />} />
             <Route path="register" element={<OpenLoginModalRedirect />} />
             <Route path="library" element={<Library />} />
-            <Route path="trending" element={<Trending />} />
+            <Route path="trending" element={<Navigate to="/discover" replace />} />
             <Route path="discover" element={<Discover />} />
             <Route path="authors" element={<Authors />} />
             <Route path="authors/:id" element={<AuthorDetail />} />

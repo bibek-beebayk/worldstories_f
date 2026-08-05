@@ -46,8 +46,9 @@
 
 [[redirects]]
   from = "/trending"
-  to = "/index.html"
-  status = 200
+  to = "/discover"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/discover"

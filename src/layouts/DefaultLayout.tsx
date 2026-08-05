@@ -21,13 +21,9 @@ const routeSeo: Record<string, { title: string; description: string; noIndex?: b
     description:
       "Browse the WorldStories library by genre, popularity, rating, and publication status.",
   },
-  "/trending": {
-    title: "Trending Stories | WorldStories",
-    description: "Read the stories currently trending with WorldStories readers.",
-  },
   "/discover": {
-    title: "Discover New Stories | WorldStories",
-    description: "Find recommended, original, and newly published stories on WorldStories.",
+    title: "Discover & Trending Stories | WorldStories",
+    description: "Explore trending, recommended, and newly published stories on WorldStories.",
   },
   "/authors": {
     title: "Authors | WorldStories",

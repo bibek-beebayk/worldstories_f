@@ -235,8 +235,16 @@ export interface OriginalsDataResponse {
   stories: Story[];
 }
 
-export interface DiscoverDataResponse {
+export interface DiscoverFacet {
+  value: string;
+  label: string;
+  stories_count: number;
+}
+
+export interface DiscoverDataResponse extends TrendingDataResponse {
   genres: Genre[];
+  story_types: DiscoverFacet[];
+  languages: DiscoverFacet[];
   new_releases: Story[];
   hidden_gems: Story[];
 }

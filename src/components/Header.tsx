@@ -126,9 +126,6 @@ const Header = () => {
             <Link to="/authors" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Authors
             </Link>
-            <Link to="/trending" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Trending
-            </Link>
             <Link to="/discover" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Discover
             </Link>
@@ -321,15 +318,6 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Authors
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/trending"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Trending
                   </Link>
                 </SheetClose>
 

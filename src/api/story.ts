@@ -5,7 +5,6 @@ import {
   StoryDetail,
   Genre,
   HomeDataResponse,
-  TrendingDataResponse,
   OriginalsDataResponse,
   DiscoverDataResponse,
   ReviewListResponse,
@@ -43,10 +42,11 @@ export const storyApi = {
     sort: string,
     status: string,
     q: string = "",
-    language: string = "all"
+    language: string = "all",
+    storyType: string = "all"
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}`
     ),
 
   getStory: (slug: string) => 
@@ -65,7 +65,6 @@ export const storyApi = {
   getLibraryShelves: (page: number) =>
     apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
   getHomeData: () => apiClient<HomeDataResponse>("/home/"),
-  getTrendingData: () => apiClient<TrendingDataResponse>("/trending/"),
   getOriginalsData: () => apiClient<OriginalsDataResponse>("/originals/"),
   getDiscoverData: () => apiClient<DiscoverDataResponse>("/discover/"),
   searchStories: (
