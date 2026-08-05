@@ -130,6 +130,7 @@ const EpubReader = () => {
   const isPageTurningRef = useRef(false);
   const saveProgressTimerRef = useRef<number | null>(null);
   const directTouchDocumentsRef = useRef(new WeakSet<Document>());
+  const scrollReportTimerRef = useRef<number | null>(null);
 
   const [toc, setToc] = useState<NavItem[]>([]);
   const [isTocOpen, setIsTocOpen] = useState(false);
@@ -202,6 +203,24 @@ const EpubReader = () => {
   // single page turn, but compounds with every one after it, which is why it only
   // becomes visible as clipped/overlapping columns deep into a long book rather
   // than on the first few pages.
+  // epub.js only re-reports the current location (progress %, page number)
+  // when its own internal view-manager scroll listener fires, which is
+  // attached to whichever element *it* considers the scroll surface. That
+  // didn't reliably match the actual scroll surface in our layout —
+  // progress only updated on discrete events like chapter navigation, not
+  // while scrolling through a long chapter, which is what "reads a lot,
+  // percentage never moves" was. Calling the (public) reportLocation()
+  // ourselves on our own scroll listeners, attached directly to the places
+  // that could plausibly be the real scroll surface (see the two call
+  // sites below), doesn't depend on epub.js's internal wiring lining up
+  // with our CSS.
+  const reportScrollLocation = useCallback(() => {
+    if (scrollReportTimerRef.current) window.clearTimeout(scrollReportTimerRef.current);
+    scrollReportTimerRef.current = window.setTimeout(() => {
+      renditionRef.current?.reportLocation();
+    }, 120);
+  }, []);
+
   const snapPaginationHeight = (fallbackCfi?: string) => {
     if (viewModeRef.current === "scroll") return;
     const rendition = renditionRef.current;
@@ -470,6 +489,20 @@ const EpubReader = () => {
             },
             { passive: true, capture: true }
           );
+          // Covers the case where the content document's own body/html is
+          // what actually scrolls in Scroll mode (rather than an epub.js-
+          // managed ancestor in the parent document) — see
+          // reportScrollLocation's comment above.
+          doc.addEventListener("scroll", reportScrollLocation, { passive: true, capture: true });
+          // Attached directly (like the touch listeners above) rather than
+          // relying solely on epub.js's own click-forwarding chain
+          // (Contents -> passEvents -> Rendition.emit("click", ...)) — that
+          // chain is what Scroll mode's tap-to-toggle depended on
+          // exclusively, and it wasn't firing reliably, leaving Scroll mode
+          // taps completely dead while Page mode (which uses its own
+          // dedicated pointer-event overlay, not this chain at all) kept
+          // working fine.
+          doc.addEventListener("click", handleReaderContentClick, { capture: true });
         };
 
         // The content hook runs as each iframe's Contents object is created,
@@ -506,10 +539,13 @@ const EpubReader = () => {
         // with no working tap/swipe controls.
         rendition.on("touchstart", handleReaderTouchStart);
         rendition.on("touchend", handleReaderTouchEnd);
-        // A normal click is the reliable fallback for taps inside a scrolling
-        // iframe on iOS. Successful touch taps are timestamped above so the
-        // synthetic click that follows cannot toggle the chrome a second time.
-        rendition.on("click", handleReaderContentClick);
+        // Click is deliberately *not* also registered here via
+        // rendition.on("click", ...) — it's now attached directly in
+        // prepareReaderDocument above instead. Registering it both ways
+        // would double-fire (once from the direct listener, once forwarded
+        // through epub.js) with no guard against it the way touch has via
+        // touchStartRef, which would toggle the chrome on then immediately
+        // back off — looking exactly like tapping did nothing at all.
 
         // Tell mobile browsers that vertical gestures remain native while
         // horizontal gestures belong to the reader. This prevents iOS Safari
@@ -599,6 +635,20 @@ const EpubReader = () => {
       observer.disconnect();
     };
   }, []);
+
+  // Covers the case where the real scroll surface in Scroll mode is an
+  // epub.js-managed element *within* viewerRef (in this, the parent,
+  // document) rather than the content iframe's own document — the other
+  // call site, inside prepareReaderDocument, covers that second
+  // possibility. "scroll" doesn't bubble, but a capture-phase listener on
+  // an ancestor still receives it from any scrollable descendant, so this
+  // doesn't need to know exactly which nested element epub.js is using.
+  useEffect(() => {
+    const viewerEl = viewerRef.current;
+    if (!viewerEl) return;
+    viewerEl.addEventListener("scroll", reportScrollLocation, { passive: true, capture: true });
+    return () => viewerEl.removeEventListener("scroll", reportScrollLocation, { capture: true });
+  }, [reportScrollLocation]);
 
   useEffect(() => {
     renditionRef.current?.themes.select(theme);

@@ -99,6 +99,15 @@ const ScrollPdfPage = ({ pdfDoc, pageNumber, zoom, pageFilter }: ScrollPdfPagePr
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [shouldRender, setShouldRender] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
+  // The canvas's width/height attributes now drive a higher-resolution
+  // backing store (see the DPR comment below), so its default/intrinsic CSS
+  // size would inflate along with it — harmless where the mobile CSS below
+  // sizes it by percentage (which ignores intrinsic size entirely), but
+  // wrong at the md: breakpoint, which sizes it by that same intrinsic
+  // width. Tracking the *unscaled* viewport size here lets the md: rule
+  // pin the display size explicitly instead of trusting the (now inflated)
+  // attribute.
+  const [nativeSize, setNativeSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -129,9 +138,25 @@ const ScrollPdfPage = ({ pdfDoc, pageNumber, zoom, pageFilter }: ScrollPdfPagePr
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
         if (!context) return;
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        renderTask = page.render({ canvasContext: context, viewport });
+        setNativeSize({ width: viewport.width, height: viewport.height });
+        // Sizing the backing store to viewport.width/height 1:1 renders at
+        // only 1 device pixel per CSS pixel — fine on old 1x displays, but
+        // every modern phone/laptop screen is 2x-3x, so the browser then
+        // stretches that single-resolution bitmap to fill the (CSS-sized,
+        // unchanged) canvas element, which is what reads as dim/blurred
+        // text despite the source PDF being high quality. Rendering at
+        // devicePixelRatio and scaling the draw calls down via `transform`
+        // keeps the on-screen size identical (nativeSize/the CSS below pin
+        // display size independently of this) while giving native displays
+        // a full-resolution bitmap to show instead of an upscaled one.
+        const outputScale = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        renderTask = page.render({
+          canvasContext: context,
+          viewport,
+          transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
+        });
         await renderTask.promise;
       } catch {
         // Keep the placeholder in place; another nearby-page/zoom render can
@@ -161,8 +186,15 @@ const ScrollPdfPage = ({ pdfDoc, pageNumber, zoom, pageFilter }: ScrollPdfPagePr
       )}
       <canvas
         ref={canvasRef}
-        className="block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:w-auto md:max-w-full"
-        style={{ "--pdf-mobile-width": `${zoom * 100}%`, filter: pageFilter } as CSSProperties}
+        className="block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:h-[var(--pdf-native-height)] md:w-[var(--pdf-native-width)] md:max-w-full"
+        style={
+          {
+            "--pdf-mobile-width": `${zoom * 100}%`,
+            "--pdf-native-width": nativeSize ? `${nativeSize.width}px` : "auto",
+            "--pdf-native-height": nativeSize ? `${nativeSize.height}px` : "auto",
+            filter: pageFilter,
+          } as CSSProperties
+        }
         aria-label={`PDF page ${pageNumber}`}
       />
     </div>
@@ -183,6 +215,11 @@ const PdfReader = () => {
   const pageViewportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const saveProgressTimerRef = useRef<number | null>(null);
+  // See the matching comment in ScrollPdfPage: the canvas's width/height
+  // attributes drive a devicePixelRatio-scaled backing store now, so the
+  // md: breakpoint's display size is pinned from this (unscaled) size
+  // instead of trusting the (now inflated) attribute's intrinsic size.
+  const [nativeSize, setNativeSize] = useState<{ width: number; height: number } | null>(null);
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(0);
@@ -291,9 +328,25 @@ const PdfReader = () => {
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
         if (!context) return;
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        renderTask = page.render({ canvasContext: context, viewport });
+        setNativeSize({ width: viewport.width, height: viewport.height });
+        // Sizing the backing store to viewport.width/height 1:1 renders at
+        // only 1 device pixel per CSS pixel — fine on old 1x displays, but
+        // every modern phone/laptop screen is 2x-3x, so the browser then
+        // stretches that single-resolution bitmap to fill the (CSS-sized,
+        // unchanged) canvas element, which is what reads as dim/blurred
+        // text despite the source PDF being high quality. Rendering at
+        // devicePixelRatio and scaling the draw calls down via `transform`
+        // keeps the on-screen size identical (nativeSize/the CSS below pin
+        // display size independently of this) while giving native displays
+        // a full-resolution bitmap to show instead of an upscaled one.
+        const outputScale = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        renderTask = page.render({
+          canvasContext: context,
+          viewport,
+          transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
+        });
         await renderTask.promise;
         const direction = pendingAnimationDirectionRef.current;
         pendingAnimationDirectionRef.current = null;
@@ -801,9 +854,11 @@ const PdfReader = () => {
             {viewMode === "page" ? (
               <canvas
                 ref={canvasRef}
-                className="m-auto block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:w-auto md:max-w-full"
+                className="m-auto block h-auto w-[var(--pdf-mobile-width)] max-w-none rounded-md bg-white shadow-xl transition-[filter] duration-200 md:h-[var(--pdf-native-height)] md:w-[var(--pdf-native-width)] md:max-w-full"
                 style={{
                   "--pdf-mobile-width": `${zoom * 100}%`,
+                  "--pdf-native-width": nativeSize ? `${nativeSize.width}px` : "auto",
+                  "--pdf-native-height": nativeSize ? `${nativeSize.height}px` : "auto",
                   filter: PDF_READER_THEMES[theme].pageFilter,
                 } as CSSProperties}
               />
