@@ -39,7 +39,7 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import Epub, { type Book, type Rendition } from "epubjs";
+import Epub, { type Book, type Contents, type Location as EpubLocation, type Rendition } from "epubjs";
 import type { NavItem } from "epubjs/types/navigation";
 import Seo from "@/components/Seo";
 import { FONTS } from "@/pages/StoryReader";
@@ -129,13 +129,14 @@ const EpubReader = () => {
   const lastCfiRef = useRef<string | null>(null);
   const isPageTurningRef = useRef(false);
   const saveProgressTimerRef = useRef<number | null>(null);
+  const directTouchDocumentsRef = useRef(new WeakSet<Document>());
 
   const [toc, setToc] = useState<NavItem[]>([]);
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
-  const [currentLocation, setCurrentLocation] = useState(0);
-  const [totalLocations, setTotalLocations] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sectionPageCount, setSectionPageCount] = useState(1);
   const [fontSizePercent, setFontSizePercent] = useState(100);
   const [fontFamily, setFontFamily] = useState<EpubFontKey>("literata");
   const [theme, setTheme] = useState<EpubThemeKey>("light");
@@ -443,17 +444,47 @@ const EpubReader = () => {
         // ragged right edge — the same tradeoff most e-readers default to.
         rendition.themes.override("text-align", "left", true);
 
+        const prepareReaderDocument = (doc?: Document) => {
+          if (!doc) return;
+          doc.documentElement.style.touchAction = "pan-y";
+          if (doc.body) doc.body.style.touchAction = "pan-y";
+          if (directTouchDocumentsRef.current.has(doc)) return;
+
+          directTouchDocumentsRef.current.add(doc);
+          doc.addEventListener("touchstart", handleReaderTouchStart, { passive: true, capture: true });
+          doc.addEventListener("touchend", handleReaderTouchEnd, { passive: true, capture: true });
+          doc.addEventListener(
+            "touchcancel",
+            () => {
+              touchStartRef.current = null;
+            },
+            { passive: true, capture: true }
+          );
+        };
+
+        // The content hook runs as each iframe's Contents object is created,
+        // which is earlier and more dependable on iOS than querying the iframe
+        // document after the view reports that it has rendered.
+        rendition.hooks.content.register((contents: Contents) => {
+          prepareReaderDocument(contents.document);
+        });
+
         // Attached before display() so the initial relocation (e.g. restoring a
         // saved position on reload) is captured — locations aren't generated yet
         // at that point, so percentage is computed once more after generate().
-        rendition.on("relocated", (location: { start: { cfi: string } }) => {
+        rendition.on("relocated", (location: EpubLocation) => {
           const cfi = location.start.cfi;
           lastCfiRef.current = cfi;
           localStorage.setItem(storageKey, cfi);
-          if (book.locations.length()) {
-            const percentage = book.locations.percentageFromCfi(cfi);
+          setCurrentPage(location.start.displayed?.page || 1);
+          setSectionPageCount(location.start.displayed?.total || 1);
+
+          const reportedPercentage = location.start.percentage;
+          if (Number.isFinite(reportedPercentage) || book.locations.length()) {
+            const percentage = Number.isFinite(reportedPercentage)
+              ? reportedPercentage
+              : book.locations.percentageFromCfi(cfi);
             setProgressPercent(Math.round(percentage * 100));
-            setCurrentLocation(book.locations.locationFromCfi(cfi));
             queueSaveFileProgress(cfi, percentage);
           }
         });
@@ -475,9 +506,9 @@ const EpubReader = () => {
         // from claiming ordinary page-turn swipes as iframe panning.
         rendition.on("rendered", (_section: unknown, view: { document?: Document; contents?: { document?: Document } }) => {
           const doc = view?.document || view?.contents?.document;
-          if (!doc) return;
-          doc.documentElement.style.touchAction = "pan-y";
-          if (doc.body) doc.body.style.touchAction = "pan-y";
+          // Keep the rendered fallback for EPUBs/managers that bypass the
+          // content hook. The WeakSet prevents duplicate native listeners.
+          prepareReaderDocument(doc);
         });
 
         // A logged-in reader's account progress takes priority over
@@ -502,14 +533,16 @@ const EpubReader = () => {
         requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight(savedCfi)));
 
         await book.ready;
-        await book.locations.generate(1024);
+        // Fine-grained locations keep whole-book progress responsive on every
+        // reflowed page. The previous 1,024-character interval made multiple
+        // visual pages share one location, so the percentage appeared stuck.
+        await book.locations.generate(150);
         if (!isMounted) return;
 
-        setTotalLocations(book.locations.length());
         if (lastCfiRef.current) {
           const percentage = book.locations.percentageFromCfi(lastCfiRef.current);
           setProgressPercent(Math.round(percentage * 100));
-          setCurrentLocation(book.locations.locationFromCfi(lastCfiRef.current));
+          queueSaveFileProgress(lastCfiRef.current, percentage);
         }
 
         const nav = await book.loaded.navigation;
@@ -1009,8 +1042,7 @@ const EpubReader = () => {
             </Button>
           </div>
           <p className="whitespace-nowrap text-center text-xs text-muted-foreground">
-            {totalLocations > 0 ? `Page ${currentLocation + 1} / ${totalLocations}` : "Page - / -"}
-            {" · "}
+            {viewMode === "page" && `Page ${currentPage} / ${sectionPageCount} · `}
             {progressPercent}%
           </p>
           <div className="flex justify-end">
