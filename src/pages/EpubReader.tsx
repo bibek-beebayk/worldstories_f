@@ -262,6 +262,16 @@ const EpubReader = () => {
         if (direction === "next") await rendition.next();
         else await rendition.prev();
         animatePageTurn(direction);
+        // rendition.next()/prev() can resolve slightly before epub.js's own
+        // internal position bookkeeping — which it updates via its own
+        // requestAnimationFrame-scheduled "relocated" event — has actually
+        // caught up. Releasing the lock immediately let a fast second swipe
+        // start from that still-stale internal state, which is what let
+        // rapid page turns occasionally jump backward to already-read
+        // content rather than just being ignored. Waiting a couple of
+        // frames here gives that internal update time to land before
+        // another turn is allowed to start.
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       } finally {
         isPageTurningRef.current = false;
       }
