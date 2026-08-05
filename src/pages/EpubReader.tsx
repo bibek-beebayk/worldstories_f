@@ -127,7 +127,7 @@ const EpubReader = () => {
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const lastCfiRef = useRef<string | null>(null);
-  const pageTurnCountRef = useRef(0);
+  const isPageTurningRef = useRef(false);
   const saveProgressTimerRef = useRef<number | null>(null);
 
   const [toc, setToc] = useState<NavItem[]>([]);
@@ -230,35 +230,6 @@ const EpubReader = () => {
     rendition.display(targetCfi);
   };
 
-  // Re-displaying the CFI landed on after *every* next()/prev() call once
-  // caused an intermittent bug: epub.js's moveTo() (which display() uses to
-  // re-target a CFI) picks the page via Math.floor(offset.left / layout.delta)
-  // — right after a page turn, that offset sits essentially exactly at the new
-  // page's start, so a sub-pixel floating-point rounding artifact could floor
-  // down to the *previous* page instead, snapping the view backward right
-  // after it had correctly advanced ("brief glimpse of the next page, then
-  // reverts to current"). But without any resync at all, the residual drift
-  // that gap:0/spread:none/integer-dimensions don't fully eliminate keeps
-  // compounding for as long as the reader goes without a resize or font-size
-  // change (our other resync points) — visible as the tail of one page
-  // clipping and the next page's content bleeding in at the edge, and
-  // compounding faster than originally assumed (users were hitting visible
-  // clipping well under 200 pages in). Resyncing every 5 turns instead of 20
-  // corrects it far more often, at the cost of hitting the rare
-  // floor-rounding edge case slightly more often too — worth it since a
-  // brief revert-then-reappear glitch every so often is far less disruptive
-  // than actual clipped, unreadable text.
-  const RESYNC_EVERY_N_TURNS = 5;
-
-  const maybeResyncAfterTurn = useCallback(() => {
-    pageTurnCountRef.current += 1;
-    if (pageTurnCountRef.current % RESYNC_EVERY_N_TURNS === 0) {
-      // Give the "relocated" event (scheduled via requestAnimationFrame inside
-      // next()/prev()) a moment to fire and update lastCfiRef before resyncing.
-      requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight()));
-    }
-  }, []);
-
   // A lightweight "page turn" cue: epub.js swaps the iframe's content
   // essentially instantly, which otherwise reads as an abrupt jump-cut with
   // no sense of direction. This doesn't touch epub.js's own pagination at
@@ -275,16 +246,30 @@ const EpubReader = () => {
     runReaderPageAnimation(el, pageAnimationRef.current, direction);
   }, []);
 
-  const goNext = useCallback(async () => {
-    await renditionRef.current?.next();
-    animatePageTurn("next");
-    maybeResyncAfterTurn();
-  }, [maybeResyncAfterTurn, animatePageTurn]);
-  const goPrev = useCallback(async () => {
-    await renditionRef.current?.prev();
-    animatePageTurn("prev");
-    maybeResyncAfterTurn();
-  }, [maybeResyncAfterTurn, animatePageTurn]);
+  // Keep page turns strictly sequential. Calling next()/prev() again while
+  // epub.js is still moving its CSS-column stage can make both operations use
+  // the same starting location, which presents as a short sequence of pages
+  // repeating. We also intentionally do not call display(lastCfi) after a turn:
+  // display() rounds a CFI at a column boundary and can select the preceding
+  // page, undoing the successful native turn.
+  const turnPage = useCallback(
+    async (direction: "next" | "prev") => {
+      const rendition = renditionRef.current;
+      if (!rendition || isPageTurningRef.current) return;
+      isPageTurningRef.current = true;
+      try {
+        if (direction === "next") await rendition.next();
+        else await rendition.prev();
+        animatePageTurn(direction);
+      } finally {
+        isPageTurningRef.current = false;
+      }
+    },
+    [animatePageTurn]
+  );
+
+  const goNext = useCallback(() => turnPage("next"), [turnPage]);
+  const goPrev = useCallback(() => turnPage("prev"), [turnPage]);
 
   // Tapping the reader toggles the header/footer chrome; swiping left/right
   // turns pages in Page mode.
@@ -394,7 +379,7 @@ const EpubReader = () => {
       try {
         setReaderError("");
         setIsEpubLoading(true);
-        pageTurnCountRef.current = 0;
+        isPageTurningRef.current = false;
         // Offline: read a previously-downloaded, decrypted copy straight into
         // memory instead of hitting the network at all — epub.js accepts an
         // ArrayBuffer directly and treats it as a packed archive, so no
