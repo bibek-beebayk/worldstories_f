@@ -501,7 +501,19 @@ const StoryReader = () => {
       window.clearTimeout(initialTimer);
       container?.removeEventListener("scroll", handleScroll);
     };
-  }, [chapter_slug, queueSaveProgress]);
+    // isLoading/chapter?.content are listed even though the body doesn't read
+    // them directly — readerContainerRef's actual DOM node only exists once
+    // the loading/error early-returns above are past, and hooks run
+    // unconditionally on every render (including the loading one, before
+    // that node exists). Without these in the deps, whenever the chapter
+    // was still loading on this effect's first run, container was null,
+    // addEventListener was skipped, and — since chapter_slug/queueSaveProgress
+    // hadn't changed — the effect never re-ran once the container actually
+    // mounted, silently leaving that whole chapter session with no scroll
+    // listener at all. That race (network/cache timing decides whether
+    // isLoading is already false on first paint) is what made tracking work
+    // "sometimes" and not others.
+  }, [chapter_slug, queueSaveProgress, isLoading, chapter?.content]);
 
   if (isLoading) return <FullScreenLoader />;
 
