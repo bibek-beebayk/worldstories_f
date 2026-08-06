@@ -117,6 +117,9 @@ const buildEpubThemeCss = (key: EpubThemeKey) => ({
   [`body.${key} p, body.${key} div, body.${key} span, body.${key} li`]: { "text-align": "left !important" },
 });
 
+const formatProgressPercent = (value: number) =>
+  value.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+
 const EpubReader = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -135,6 +138,8 @@ const EpubReader = () => {
   const isPageTurningRef = useRef(false);
   const saveProgressTimerRef = useRef<number | null>(null);
   const directTouchDocumentsRef = useRef(new WeakSet<Document>());
+  const directTouchBodiesRef = useRef(new WeakSet<HTMLElement>());
+  const directTouchWindowsRef = useRef(new WeakSet<Window>());
   const scrollReportTimerRef = useRef<number | null>(null);
   const scrollTapFallbackTimerRef = useRef<number | null>(null);
 
@@ -142,8 +147,6 @@ const EpubReader = () => {
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
-  const [currentBookPage, setCurrentBookPage] = useState(0);
-  const [totalBookPages, setTotalBookPages] = useState(0);
   const [fontSizePercent, setFontSizePercent] = useState(100);
   const [fontFamily, setFontFamily] = useState<EpubFontKey>("literata");
   const [theme, setTheme] = useState<EpubThemeKey>("light");
@@ -341,7 +344,7 @@ const EpubReader = () => {
         // ourselves here — after our own settle delay above, with the
         // next turn still locked out — asserts one definitive, correctly-
         // ordered report per turn instead of trusting that queue's timing.
-        rendition.reportLocation();
+        await rendition.reportLocation();
       } finally {
         isPageTurningRef.current = false;
       }
@@ -483,8 +486,8 @@ const EpubReader = () => {
     (event: MouseEvent) => {
       if (viewModeRef.current !== "scroll") return;
       if (Date.now() - lastHandledTouchTapAtRef.current < 600) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("a, button, input, select, textarea")) return;
+      const target = event.target as Element | null;
+      if (target?.closest?.("a, button, input, select, textarea")) return;
       toggleReaderChromeFromGesture();
     },
     [toggleReaderChromeFromGesture]
@@ -496,13 +499,13 @@ const EpubReader = () => {
   // them directly in the EPUB document as the primary iOS tap path.
   const handleReaderPointerDown = useCallback((event: PointerEvent) => {
     if (viewModeRef.current !== "scroll" || !event.isPrimary || event.pointerType === "mouse") return;
-    const target = event.target as HTMLElement | null;
+    const target = event.target as Element | null;
     scrollPointerStartRef.current = {
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
       time: Date.now(),
-      interactive: Boolean(target?.closest("a, button, input, select, textarea")),
+      interactive: Boolean(target?.closest?.("a, button, input, select, textarea")),
     };
   }, []);
 
@@ -643,7 +646,8 @@ const EpubReader = () => {
         const prepareReaderDocument = (doc?: Document) => {
           if (!doc) return;
           doc.documentElement.style.touchAction = "pan-y";
-          if (doc.body) doc.body.style.touchAction = "pan-y";
+          const body = doc.body;
+          if (body) body.style.touchAction = "pan-y";
           // iOS Safari has a long-standing quirk: it won't generate a
           // synthetic "click" event at all on a generic element (a <div>,
           // <body>, plain text) unless that element looks "clickable" —
@@ -653,7 +657,37 @@ const EpubReader = () => {
           // works fine on Android/desktop — which is why Scroll mode's
           // tap-to-toggle was iOS-specific.
           doc.documentElement.style.cursor = "pointer";
-          if (doc.body) doc.body.style.cursor = "pointer";
+          if (body) body.style.cursor = "pointer";
+
+          if (body && !directTouchBodiesRef.current.has(body)) {
+            directTouchBodiesRef.current.add(body);
+            // cursor:pointer alone is insufficient in WKWebView/PWA builds.
+            // A real onclick property on an ancestor makes WebKit keep the
+            // click path alive for taps on otherwise non-interactive text.
+            const existingBodyClick = body.onclick;
+            body.onclick = function (event) {
+              existingBodyClick?.call(this, event);
+              handleReaderContentClick(event);
+            };
+            // Listen on the concrete event target as well as Document. Some
+            // iOS versions stop touch propagation at body while an iframe's
+            // outer continuous manager owns the vertical scroll.
+            body.addEventListener("touchstart", handleReaderTouchStart, { passive: true, capture: true });
+            body.addEventListener("touchmove", handleReaderTouchMove, { passive: true, capture: true });
+            body.addEventListener("touchend", handleReaderTouchEnd, { passive: true, capture: true });
+          }
+
+          const contentWindow = doc.defaultView;
+          if (contentWindow && !directTouchWindowsRef.current.has(contentWindow)) {
+            directTouchWindowsRef.current.add(contentWindow);
+            // Window is the final event target inside the nested browsing
+            // context and remains observable on WebKit builds that bypass the
+            // document capture listener during native scroll arbitration.
+            contentWindow.addEventListener("touchstart", handleReaderTouchStart, { passive: true, capture: true });
+            contentWindow.addEventListener("touchmove", handleReaderTouchMove, { passive: true, capture: true });
+            contentWindow.addEventListener("touchend", handleReaderTouchEnd, { passive: true, capture: true });
+            contentWindow.addEventListener("click", handleReaderContentClick, { capture: true });
+          }
           if (directTouchDocumentsRef.current.has(doc)) return;
 
           directTouchDocumentsRef.current.add(doc);
@@ -706,19 +740,14 @@ const EpubReader = () => {
 
           const reportedPercentage = location.start.percentage;
           if (Number.isFinite(reportedPercentage) || book.locations.length()) {
-            const percentage = Number.isFinite(reportedPercentage)
-              ? reportedPercentage
-              : book.locations.percentageFromCfi(cfi);
-            setProgressPercent(Math.round(percentage * 100));
+            // Once generated locations are available, derive progress from the
+            // current CFI instead of trusting a percentage that epub.js may
+            // have computed before its location queue caught up.
+            const percentage = book.locations.length()
+              ? book.locations.percentageFromCfi(cfi)
+              : reportedPercentage;
+            setProgressPercent(Math.min(100, Math.max(0, percentage * 100)));
             queueSaveFileProgress(cfi, percentage);
-          }
-          if (book.locations.length()) {
-            const total = book.locations.length();
-            const locationIndex = Number(book.locations.locationFromCfi(cfi));
-            if (Number.isFinite(locationIndex) && locationIndex >= 0) {
-              setCurrentBookPage(Math.min(total, locationIndex + 1));
-              setTotalBookPages(total);
-            }
           }
         });
 
@@ -729,13 +758,10 @@ const EpubReader = () => {
         // with no working tap/swipe controls.
         rendition.on("touchstart", handleReaderTouchStart);
         rendition.on("touchend", handleReaderTouchEnd);
-        // Click is deliberately *not* also registered here via
-        // rendition.on("click", ...) — it's now attached directly in
-        // prepareReaderDocument above instead. Registering it both ways
-        // would double-fire (once from the direct listener, once forwarded
-        // through epub.js) with no guard against it the way touch has via
-        // touchStartRef, which would toggle the chrome on then immediately
-        // back off — looking exactly like tapping did nothing at all.
+        // Keep epub.js's forwarding route as another WebKit fallback. Direct
+        // and forwarded clicks can both arrive, but the central gesture
+        // cooldown makes the duplicate harmless.
+        rendition.on("click", handleReaderContentClick);
 
         // Tell mobile browsers that vertical gestures remain native while
         // horizontal gestures belong to the reader. This prevents iOS Safari
@@ -772,20 +798,15 @@ const EpubReader = () => {
         requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight(savedCfi)));
 
         await book.ready;
-        // Fine-grained locations keep whole-book progress responsive on every
-        // reflowed page. The previous 1,024-character interval made multiple
-        // visual pages share one location, so the percentage appeared stuck.
-        await book.locations.generate(150);
+        // Keep location markers substantially finer than a rendered page. A
+        // coarse interval makes several pages share one marker and then jump
+        // together, especially with large text or poetry-heavy EPUBs.
+        await book.locations.generate(50);
         if (!isMounted) return;
 
-        setTotalBookPages(book.locations.length());
         if (lastCfiRef.current) {
           const percentage = book.locations.percentageFromCfi(lastCfiRef.current);
-          const locationIndex = Number(book.locations.locationFromCfi(lastCfiRef.current));
-          setProgressPercent(Math.round(percentage * 100));
-          if (Number.isFinite(locationIndex) && locationIndex >= 0) {
-            setCurrentBookPage(Math.min(book.locations.length(), locationIndex + 1));
-          }
+          setProgressPercent(Math.min(100, Math.max(0, percentage * 100)));
           queueSaveFileProgress(lastCfiRef.current, percentage);
         }
 
@@ -1270,9 +1291,7 @@ const EpubReader = () => {
               theme === "dark" ? "dark" : ""
             }`}
           >
-            {viewMode === "page" && totalBookPages > 0
-              ? `${currentBookPage} / ${totalBookPages}`
-              : `${progressPercent}%`}
+            {formatProgressPercent(progressPercent)}%
           </span>
         </div>
 
@@ -1298,11 +1317,7 @@ const EpubReader = () => {
             </Button>
           </div>
           <p className="whitespace-nowrap text-center text-xs text-muted-foreground">
-            {viewMode === "page"
-              ? totalBookPages > 0
-                ? `${currentBookPage} / ${totalBookPages}`
-                : "- / -"
-              : `${progressPercent}%`}
+            {formatProgressPercent(progressPercent)}%
           </p>
           <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={goNext} className="h-8 px-3">
