@@ -573,6 +573,17 @@ const AudioPlayerPage = () => {
                 )}
               </Button>
 
+              {isAudioLoading && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="pointer-events-none absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 whitespace-nowrap rounded-full border border-white/20 bg-slate-950/85 px-4 py-3 text-sm font-medium text-white shadow-2xl backdrop-blur-md"
+                >
+                  <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
+                  <span>Preparing audio…</span>
+                </div>
+              )}
+
               <CardContent
                 className={
                   isFullscreen
@@ -718,8 +729,8 @@ const AudioPlayerPage = () => {
                       className="hidden"
                       preload="metadata"
                       playsInline
+                      onLoadStart={() => setIsAudioLoading(true)}
                       onLoadedMetadata={() => {
-                          setIsAudioLoading(false);
                           if (audioRef.current) {
                             setDurationSeconds(audioRef.current.duration || 0);
                             audioRef.current.playbackRate = playbackRate;
