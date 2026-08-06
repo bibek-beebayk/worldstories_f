@@ -108,16 +108,24 @@ const AudioPlayerPage = () => {
     playback_rate: playbackRate,
   });
 
-  // Online playback goes through the API's range-aware stream endpoint. iOS
-  // WebKit depends on correct 206/Content-Range responses even for ordinary
-  // playback; using the raw storage URL left those headers outside our control.
-  // Offline, fall back to a downloaded/decrypted copy for this chapter.
+  // Online playback uses the public R2 object URL. iOS WebKit depends on
+  // correct 206/Content-Range responses even for ordinary playback, and R2
+  // supplies those headers directly without routing every
+  // audio byte through the application server. The API stream remains an
+  // automatic fallback if the public storage URL cannot be played.
   const [offlineAudioSrc, setOfflineAudioSrc] = useState<string | null>(null);
+  const [useProxiedAudio, setUseProxiedAudio] = useState(false);
   const audioObjectUrlRef = useRef<string | null>(null);
-  const onlineAudioSrc = currentAudio
+  const directAudioSrc = currentAudio?.audio_file?.toString() || null;
+  const proxiedAudioSrc = currentAudio
     ? `${API_BASE_URL}/stories/${encodeURIComponent(story_slug || "")}/audios/${encodeURIComponent(currentAudio.slug)}/stream/`
     : null;
+  const onlineAudioSrc = !useProxiedAudio && directAudioSrc ? directAudioSrc : proxiedAudioSrc;
   const audioSrc = offlineAudioSrc || onlineAudioSrc;
+
+  useEffect(() => {
+    setUseProxiedAudio(false);
+  }, [currentAudio?.slug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -704,7 +712,7 @@ const AudioPlayerPage = () => {
 
                   {currentAudio && audioSrc && (
                     <audio
-                      key={currentAudio.slug}
+                      key={`${currentAudio.slug}:${useProxiedAudio ? "proxy" : "direct"}`}
                       ref={audioRef}
                       src={audioSrc}
                       className="hidden"
@@ -779,6 +787,11 @@ const AudioPlayerPage = () => {
                         onError={(event) => {
                           setIsPlaying(false);
                           setIsAudioLoading(false);
+                          if (!offlineAudioSrc && !useProxiedAudio && directAudioSrc) {
+                            setPlaybackError(null);
+                            setUseProxiedAudio(true);
+                            return;
+                          }
                           const mediaError = event.currentTarget.error;
                           // Surfacing the real MediaError code/message (rather
                           // than a single generic string) so the actual cause
