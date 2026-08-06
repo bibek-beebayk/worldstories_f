@@ -39,6 +39,10 @@ const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 const PLAYLIST_CLOSE_DRAG_DISTANCE = 56;
 const AUDIOBOOK_AUTOPLAY_STORAGE_KEY = "audiobook-autoplay";
 
+const isIOSDevice = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
 const AudioPlayerPage = () => {
   const { story_slug, chapter_slug } = useParams();
   const navigate = useNavigate();
@@ -57,6 +61,7 @@ const AudioPlayerPage = () => {
   // final progress and dragging down the book's overall completion.
   const saveTimersRef = useRef<Record<string, number>>({});
   const restoredAudioSlugRef = useRef<string | null>(null);
+  const initiallyPreparedStoryRef = useRef<string | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -108,13 +113,11 @@ const AudioPlayerPage = () => {
     playback_rate: playbackRate,
   });
 
-  // Online playback uses the public R2 object URL. iOS WebKit depends on
-  // correct 206/Content-Range responses even for ordinary playback, and R2
-  // supplies those headers directly without routing every
-  // audio byte through the application server. The API stream remains an
-  // automatic fallback if the public storage URL cannot be played.
+  // Online playback normally uses the public R2 object URL. iOS WebKit uses
+  // the controlled, range-aware API stream because a direct media load
+  // can stall without producing an error event, preventing automatic fallback.
   const [offlineAudioSrc, setOfflineAudioSrc] = useState<string | null>(null);
-  const [useProxiedAudio, setUseProxiedAudio] = useState(false);
+  const [useProxiedAudio, setUseProxiedAudio] = useState(isIOSDevice);
   const audioObjectUrlRef = useRef<string | null>(null);
   const directAudioSrc = currentAudio?.audio_file?.toString() || null;
   const proxiedAudioSrc = currentAudio
@@ -124,7 +127,7 @@ const AudioPlayerPage = () => {
   const audioSrc = offlineAudioSrc || onlineAudioSrc;
 
   useEffect(() => {
-    setUseProxiedAudio(false);
+    setUseProxiedAudio(isIOSDevice());
   }, [currentAudio?.slug]);
 
   useEffect(() => {
@@ -184,6 +187,16 @@ const AudioPlayerPage = () => {
     setIsAudioLoading(true);
     const audioEl = audioRef.current;
     if (!audioEl) return;
+
+    // The initial unmuted play() is not permitted on iOS once navigation and
+    // data loading have consumed the original tap activation. Let metadata
+    // prepare, then expose the Play button for a fresh, valid user gesture.
+    if (isIOSDevice() && initiallyPreparedStoryRef.current !== story_slug) {
+      initiallyPreparedStoryRef.current = story_slug || null;
+      setIsPlaying(false);
+      return;
+    }
+
     audioEl
       .play()
       .then(() => setIsPlaying(true))
@@ -194,7 +207,17 @@ const AudioPlayerPage = () => {
         setIsPlaying(false);
         setIsAudioLoading(false);
       });
-  }, [audioSrc]);
+  }, [audioSrc, story_slug]);
+
+  useEffect(() => {
+    if (!isAudioLoading) return;
+    const timeout = window.setTimeout(() => {
+      // Some WebKit media states produce neither canplay nor error. Never
+      // leave the manual Play action hidden behind an endless spinner.
+      setIsAudioLoading(false);
+    }, 12_000);
+    return () => window.clearTimeout(timeout);
+  }, [audioSrc, isAudioLoading]);
 
   useEffect(() => {
     return () => {
@@ -298,11 +321,13 @@ const AudioPlayerPage = () => {
     if (!audioRef.current) return;
     if (audioRef.current.paused) {
       setPlaybackError(null);
+      setIsAudioLoading(true);
       audioRef.current
         .play()
         .then(() => setIsPlaying(true))
         .catch((error: unknown) => {
           setIsPlaying(false);
+          setIsAudioLoading(false);
           setPlaybackError(
             error instanceof DOMException && error.name === "NotAllowedError"
               ? "Your browser blocked playback. Tap Play again to start listening."
@@ -731,6 +756,7 @@ const AudioPlayerPage = () => {
                       playsInline
                       onLoadStart={() => setIsAudioLoading(true)}
                       onLoadedMetadata={() => {
+                          setIsAudioLoading(false);
                           if (audioRef.current) {
                             setDurationSeconds(audioRef.current.duration || 0);
                             audioRef.current.playbackRate = playbackRate;
