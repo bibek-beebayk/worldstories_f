@@ -31,6 +31,7 @@ import { makeDownloadId } from "@/lib/offlineDb";
 import { queueAudioProgress, saveAudioProgressLocally } from "@/lib/progressSync";
 import CoverImage from "@/components/CoverImage";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
+import { API_BASE_URL } from "@/api/client";
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -97,13 +98,16 @@ const AudioPlayerPage = () => {
     playback_rate: playbackRate,
   });
 
-  // While online, keep using the direct R2 URL — it streams progressively,
-  // whereas a blob: URL needs the whole file decrypted into memory before
-  // playback can start at all. Offline, fall back to a downloaded/decrypted
-  // copy if one exists for this exact chapter.
+  // Online playback goes through the API's range-aware stream endpoint. iOS
+  // WebKit depends on correct 206/Content-Range responses even for ordinary
+  // playback; using the raw storage URL left those headers outside our control.
+  // Offline, fall back to a downloaded/decrypted copy for this chapter.
   const [offlineAudioSrc, setOfflineAudioSrc] = useState<string | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
-  const audioSrc = offlineAudioSrc || currentAudio?.audio_file?.toString() || null;
+  const onlineAudioSrc = currentAudio
+    ? `${API_BASE_URL}/stories/${encodeURIComponent(story_slug || "")}/audios/${encodeURIComponent(currentAudio.slug)}/stream/`
+    : null;
+  const audioSrc = offlineAudioSrc || onlineAudioSrc;
 
   useEffect(() => {
     let cancelled = false;
@@ -165,7 +169,13 @@ const AudioPlayerPage = () => {
     audioEl
       .play()
       .then(() => setIsPlaying(true))
-      .catch(() => setIsPlaying(false));
+      .catch(() => {
+        // Expected on iOS: unmuted playback must begin directly from a tap.
+        // Return to a usable Play button instead of leaving the UI locked on
+        // a disabled loading spinner forever.
+        setIsPlaying(false);
+        setIsAudioLoading(false);
+      });
   }, [audioSrc]);
 
   useEffect(() => {
@@ -503,8 +513,7 @@ const AudioPlayerPage = () => {
                     <Button
                       onClick={togglePlay}
                       size="icon"
-                      disabled={isAudioLoading}
-                      aria-label={isAudioLoading ? "Loading" : isPlaying ? "Pause" : "Play"}
+                      aria-label={isAudioLoading ? "Loading audio — tap to play" : isPlaying ? "Pause" : "Play"}
                       className="h-14 w-14 rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300"
                     >
                       {isAudioLoading ? (
@@ -556,6 +565,7 @@ const AudioPlayerPage = () => {
                       preload="metadata"
                       playsInline
                       onLoadedMetadata={() => {
+                          setIsAudioLoading(false);
                           if (audioRef.current) {
                             setDurationSeconds(audioRef.current.duration || 0);
                             audioRef.current.playbackRate = playbackRate;
@@ -610,6 +620,7 @@ const AudioPlayerPage = () => {
                         }}
                         onPlay={() => {
                           setPlaybackError(null);
+                          setIsAudioLoading(false);
                           setIsPlaying(true);
                         }}
                         onPause={() => setIsPlaying(false)}
