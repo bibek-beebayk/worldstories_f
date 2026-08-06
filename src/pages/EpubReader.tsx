@@ -136,8 +136,8 @@ const EpubReader = () => {
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sectionPageCount, setSectionPageCount] = useState(1);
+  const [currentBookPage, setCurrentBookPage] = useState(0);
+  const [totalBookPages, setTotalBookPages] = useState(0);
   const [fontSizePercent, setFontSizePercent] = useState(100);
   const [fontFamily, setFontFamily] = useState<EpubFontKey>("literata");
   const [theme, setTheme] = useState<EpubThemeKey>("light");
@@ -322,7 +322,15 @@ const EpubReader = () => {
   // never fire for mouse input, so this naturally only affects touchscreens
   // without needing a separate viewport-width check.
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const scrollPointerStartRef = useRef<{
+    id: number;
+    x: number;
+    y: number;
+    time: number;
+    interactive: boolean;
+  } | null>(null);
   const lastHandledTouchTapAtRef = useRef(0);
+  const lastChromeToggleAtRef = useRef(0);
   const SWIPE_THRESHOLD_PX = 28;
   const TAP_MAX_MOVEMENT_PX = 16;
   const TAP_MAX_DURATION_MS = 700;
@@ -332,6 +340,16 @@ const EpubReader = () => {
     if (!viewer) return;
     viewer.style.transition = "transform 140ms ease-out";
     viewer.style.transform = "translateX(0)";
+  }, []);
+
+  // WebKit can emit pointer, touch, and the delayed synthetic click for one
+  // physical tap inside the EPUB iframe. Keep all three paths as fallbacks,
+  // but allow only the first one to toggle the chrome.
+  const toggleReaderChromeFromGesture = useCallback(() => {
+    const now = Date.now();
+    if (now - lastChromeToggleAtRef.current < 350) return;
+    lastChromeToggleAtRef.current = now;
+    setControlsVisible((visible) => !visible);
   }, []);
 
   const completeReaderGesture = useCallback(
@@ -351,10 +369,10 @@ const EpubReader = () => {
         else goPrev();
       } else if (absDx < TAP_MAX_MOVEMENT_PX && absDy < TAP_MAX_MOVEMENT_PX && elapsedMs < TAP_MAX_DURATION_MS) {
         lastHandledTouchTapAtRef.current = Date.now();
-        setControlsVisible((prev) => !prev);
+        toggleReaderChromeFromGesture();
       }
     },
-    [goNext, goPrev, resetGesturePreview]
+    [goNext, goPrev, resetGesturePreview, toggleReaderChromeFromGesture]
   );
 
   const handleReaderTouchStart = useCallback((event: TouchEvent | ReactTouchEvent) => {
@@ -372,12 +390,49 @@ const EpubReader = () => {
     [completeReaderGesture]
   );
 
-  const handleReaderContentClick = useCallback((event: MouseEvent) => {
-    if (viewModeRef.current !== "scroll") return;
-    if (Date.now() - lastHandledTouchTapAtRef.current < 600) return;
+  const handleReaderContentClick = useCallback(
+    (event: MouseEvent) => {
+      if (viewModeRef.current !== "scroll") return;
+      if (Date.now() - lastHandledTouchTapAtRef.current < 600) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("a, button, input, select, textarea")) return;
+      toggleReaderChromeFromGesture();
+    },
+    [toggleReaderChromeFromGesture]
+  );
+
+  // iOS WebKit does not reliably synthesize click (and can occasionally lose
+  // touchend) while an iframe is using native vertical scrolling. Pointer
+  // events are delivered earlier in that gesture pipeline, so listen for
+  // them directly in the EPUB document as the primary iOS tap path.
+  const handleReaderPointerDown = useCallback((event: PointerEvent) => {
+    if (viewModeRef.current !== "scroll" || !event.isPrimary || event.pointerType === "mouse") return;
     const target = event.target as HTMLElement | null;
-    if (target?.closest("a, button, input, select, textarea")) return;
-    setControlsVisible((visible) => !visible);
+    scrollPointerStartRef.current = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      time: Date.now(),
+      interactive: Boolean(target?.closest("a, button, input, select, textarea")),
+    };
+  }, []);
+
+  const handleReaderPointerUp = useCallback(
+    (event: PointerEvent) => {
+      const start = scrollPointerStartRef.current;
+      scrollPointerStartRef.current = null;
+      if (!start || start.id !== event.pointerId || start.interactive) return;
+      const dx = Math.abs(event.clientX - start.x);
+      const dy = Math.abs(event.clientY - start.y);
+      if (dx >= TAP_MAX_MOVEMENT_PX || dy >= TAP_MAX_MOVEMENT_PX || Date.now() - start.time >= TAP_MAX_DURATION_MS) return;
+      lastHandledTouchTapAtRef.current = Date.now();
+      toggleReaderChromeFromGesture();
+    },
+    [toggleReaderChromeFromGesture]
+  );
+
+  const handleReaderPointerCancel = useCallback(() => {
+    scrollPointerStartRef.current = null;
   }, []);
 
   const handleMobilePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -450,7 +505,15 @@ const EpubReader = () => {
         const renditionOptions = {
           width: "100%",
           height: "100%",
-          flow: viewMode === "scroll" ? "scrolled-doc" : "paginated",
+          // Scroll mode needs the continuous manager, not merely a scrolled
+          // layout. The default manager renders one spine item at a time, so
+          // reaching a chapter's bottom leaves the reader there until next()
+          // is called. The continuous manager appends the adjacent spine item
+          // as it approaches the viewport, allowing one uninterrupted vertical
+          // scroll through chapter boundaries. Page mode keeps epub.js's
+          // default manager and existing pagination behaviour unchanged.
+          manager: viewMode === "scroll" ? "continuous" : "default",
+          flow: viewMode === "scroll" ? "scrolled" : "paginated",
           gap: 0,
           // Without this, epub.js shows two columns side by side on wide
           // viewports (a "spread", like a physical book opened flat). Combined
@@ -504,6 +567,9 @@ const EpubReader = () => {
           if (directTouchDocumentsRef.current.has(doc)) return;
 
           directTouchDocumentsRef.current.add(doc);
+          doc.addEventListener("pointerdown", handleReaderPointerDown, { passive: true, capture: true });
+          doc.addEventListener("pointerup", handleReaderPointerUp, { passive: true, capture: true });
+          doc.addEventListener("pointercancel", handleReaderPointerCancel, { passive: true, capture: true });
           doc.addEventListener("touchstart", handleReaderTouchStart, { passive: true, capture: true });
           doc.addEventListener("touchend", handleReaderTouchEnd, { passive: true, capture: true });
           doc.addEventListener(
@@ -543,8 +609,6 @@ const EpubReader = () => {
           const cfi = location.start.cfi;
           lastCfiRef.current = cfi;
           localStorage.setItem(storageKey, cfi);
-          setCurrentPage(location.start.displayed?.page || 1);
-          setSectionPageCount(location.start.displayed?.total || 1);
 
           const reportedPercentage = location.start.percentage;
           if (Number.isFinite(reportedPercentage) || book.locations.length()) {
@@ -553,6 +617,14 @@ const EpubReader = () => {
               : book.locations.percentageFromCfi(cfi);
             setProgressPercent(Math.round(percentage * 100));
             queueSaveFileProgress(cfi, percentage);
+          }
+          if (book.locations.length()) {
+            const total = book.locations.length();
+            const locationIndex = Number(book.locations.locationFromCfi(cfi));
+            if (Number.isFinite(locationIndex) && locationIndex >= 0) {
+              setCurrentBookPage(Math.min(total, locationIndex + 1));
+              setTotalBookPages(total);
+            }
           }
         });
 
@@ -585,8 +657,11 @@ const EpubReader = () => {
         // localStorage (which only reflects this one browser/device) — but
         // localStorage is still the fallback for anonymous readers, or if the
         // account fetch fails (offline, no saved progress yet, etc).
-        let savedCfi = localStorage.getItem(storageKey) || undefined;
-        if (isAuthenticated) {
+        // A view-mode switch rebuilds the rendition because its manager cannot
+        // be changed after construction. Preserve the exact live position in
+        // that case; only consult account progress on the initial book load.
+        let savedCfi = lastCfiRef.current || localStorage.getItem(storageKey) || undefined;
+        if (isAuthenticated && !lastCfiRef.current) {
           try {
             const remoteProgress = await storyApi.getFileReadingProgress(story.slug, "epub");
             if (remoteProgress.position) {
@@ -609,9 +684,14 @@ const EpubReader = () => {
         await book.locations.generate(150);
         if (!isMounted) return;
 
+        setTotalBookPages(book.locations.length());
         if (lastCfiRef.current) {
           const percentage = book.locations.percentageFromCfi(lastCfiRef.current);
+          const locationIndex = Number(book.locations.locationFromCfi(lastCfiRef.current));
           setProgressPercent(Math.round(percentage * 100));
+          if (Number.isFinite(locationIndex) && locationIndex >= 0) {
+            setCurrentBookPage(Math.min(book.locations.length(), locationIndex + 1));
+          }
           queueSaveFileProgress(lastCfiRef.current, percentage);
         }
 
@@ -634,7 +714,7 @@ const EpubReader = () => {
       bookRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [story?.epub_file, story?.slug, storageKey]);
+  }, [story?.epub_file, story?.slug, storageKey, viewMode]);
 
   useEffect(() => {
     const viewerEl = viewerRef.current;
@@ -688,7 +768,6 @@ const EpubReader = () => {
     localStorage.setItem("epub-reader-view-mode", viewMode);
     const rendition = renditionRef.current;
     if (!rendition) return;
-    const currentCfi = lastCfiRef.current || undefined;
     const themes = rendition.themes as typeof rendition.themes & { removeOverride: (name: string) => void };
     if (viewMode === "scroll") {
       setControlsVisible(true);
@@ -696,14 +775,10 @@ const EpubReader = () => {
     } else {
       themes.removeOverride("padding-bottom");
     }
-    rendition.flow(viewMode === "scroll" ? "scrolled-doc" : "paginated");
-    requestAnimationFrame(() => {
-      rendition.display(currentCfi).then(() => {
-        if (viewMode === "page") {
-          requestAnimationFrame(() => snapPaginationHeight(currentCfi));
-        }
-      }).catch(() => setReaderError("Could not switch the EPUB view mode."));
-    });
+    // Changing between the default and continuous managers requires the main
+    // rendition effect above to rebuild the reader. It restores currentCfi,
+    // so no in-place flow/display call is needed here (and avoiding one also
+    // prevents two competing display operations during that rebuild).
   }, [viewMode]);
 
   useEffect(() => {
@@ -1100,7 +1175,9 @@ const EpubReader = () => {
               theme === "dark" ? "dark" : ""
             }`}
           >
-            {progressPercent}%
+            {viewMode === "page" && totalBookPages > 0
+              ? `${currentBookPage} / ${totalBookPages}`
+              : `${progressPercent}%`}
           </span>
         </div>
 
@@ -1126,8 +1203,11 @@ const EpubReader = () => {
             </Button>
           </div>
           <p className="whitespace-nowrap text-center text-xs text-muted-foreground">
-            {viewMode === "page" && `Page ${currentPage} / ${sectionPageCount} · `}
-            {progressPercent}%
+            {viewMode === "page"
+              ? totalBookPages > 0
+                ? `${currentBookPage} / ${totalBookPages}`
+                : "- / -"
+              : `${progressPercent}%`}
           </p>
           <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={goNext} className="h-8 px-3">
