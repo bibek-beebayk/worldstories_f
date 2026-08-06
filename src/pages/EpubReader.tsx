@@ -120,6 +120,10 @@ const buildEpubThemeCss = (key: EpubThemeKey) => ({
 const formatProgressPercent = (value: number) =>
   value.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
 
+const isIOSWebKit = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
 const EpubReader = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -566,6 +570,8 @@ const EpubReader = () => {
   useEffect(() => {
     if (!story?.epub_file || !viewerRef.current) return;
     let isMounted = true;
+    let scrollTapLayerHost: HTMLDivElement | null = null;
+    let scrollTapLayerObserver: ResizeObserver | null = null;
 
     const load = async () => {
       try {
@@ -795,6 +801,76 @@ const EpubReader = () => {
         if (!isMounted) return;
         await rendition.display(savedCfi);
         if (!isMounted) return;
+
+        if (viewMode === "scroll" && isIOSWebKit()) {
+          const manager = (rendition as Rendition & { manager?: EpubPaginatedManager }).manager;
+          const scrollContainer = manager?.container;
+          if (scrollContainer) {
+            // Touches inside EPUB iframes do not reliably escape to either the
+            // iframe document or epub.js on iOS. Put a zero-layout-cost sticky
+            // hit layer inside the actual scroll container instead. Because it
+            // is a child of that container, pan-y still performs native,
+            // momentum scrolling; taps stay in the parent document where
+            // WebKit delivers click consistently.
+            const host = document.createElement("div");
+            const tapLayer = document.createElement("div");
+            host.dataset.epubScrollTapLayer = "true";
+            host.setAttribute("aria-hidden", "true");
+            Object.assign(host.style, {
+              position: "sticky",
+              top: "0",
+              left: "0",
+              height: "0",
+              width: "100%",
+              zIndex: "20",
+            });
+            Object.assign(tapLayer.style, {
+              position: "absolute",
+              top: "0",
+              left: "0",
+              width: "100%",
+              background: "transparent",
+              cursor: "pointer",
+              touchAction: "pan-y pinch-zoom",
+              WebkitTapHighlightColor: "transparent",
+            });
+
+            const sizeTapLayer = () => {
+              tapLayer.style.height = `${scrollContainer.clientHeight}px`;
+            };
+            sizeTapLayer();
+            scrollTapLayerObserver = new ResizeObserver(sizeTapLayer);
+            scrollTapLayerObserver.observe(scrollContainer);
+
+            tapLayer.addEventListener("click", (event) => {
+              // Preserve links and other EPUB controls covered by the layer:
+              // briefly remove it from hit-testing, find the real iframe
+              // target at the tap coordinates, and activate it when needed.
+              tapLayer.style.pointerEvents = "none";
+              const underlying = document.elementFromPoint(event.clientX, event.clientY);
+              tapLayer.style.pointerEvents = "auto";
+              if (underlying instanceof HTMLIFrameElement) {
+                const rect = underlying.getBoundingClientRect();
+                const innerTarget = underlying.contentDocument?.elementFromPoint(
+                  event.clientX - rect.left,
+                  event.clientY - rect.top
+                );
+                const interactive = innerTarget?.closest("a, button, input, select, textarea") as HTMLElement | null;
+                if (interactive) {
+                  interactive.click();
+                  return;
+                }
+              }
+              lastHandledTouchTapAtRef.current = Date.now();
+              toggleReaderChromeFromGesture();
+            });
+
+            host.appendChild(tapLayer);
+            scrollContainer.prepend(host);
+            scrollTapLayerHost = host;
+          }
+        }
+
         requestAnimationFrame(() => requestAnimationFrame(() => snapPaginationHeight(savedCfi)));
 
         await book.ready;
@@ -824,6 +900,8 @@ const EpubReader = () => {
     return () => {
       isMounted = false;
       clearScrollTapFallback();
+      scrollTapLayerObserver?.disconnect();
+      scrollTapLayerHost?.remove();
       renditionRef.current?.destroy();
       bookRef.current?.destroy();
       renditionRef.current = null;
