@@ -95,6 +95,11 @@ const READER_THEMES = {
 } as const;
 type EpubThemeKey = keyof typeof READER_THEMES;
 type EpubViewMode = "page" | "scroll";
+type EpubPaginatedManager = {
+  container?: HTMLElement;
+  layout?: { delta?: number };
+  scrollTo?: (x: number, y: number, silent?: boolean) => void;
+};
 const PAGE_ANIMATION_ICONS = {
   none: Ban,
   fade: Layers,
@@ -131,6 +136,7 @@ const EpubReader = () => {
   const saveProgressTimerRef = useRef<number | null>(null);
   const directTouchDocumentsRef = useRef(new WeakSet<Document>());
   const scrollReportTimerRef = useRef<number | null>(null);
+  const scrollTapFallbackTimerRef = useRef<number | null>(null);
 
   const [toc, setToc] = useState<NavItem[]>([]);
   const [isTocOpen, setIsTocOpen] = useState(false);
@@ -221,7 +227,29 @@ const EpubReader = () => {
     }, 120);
   }, []);
 
-  const snapPaginationHeight = (fallbackCfi?: string) => {
+  // epub.js advances paginated content with relative scrollLeft additions.
+  // WebKit may round each addition by a fraction of a pixel, and that residual
+  // error accumulates until the previous/next CSS column bleeds into view. Snap
+  // the manager itself to the nearest exact column boundary instead of
+  // redisplaying a CFI; redisplay can floor a boundary CFI to the preceding
+  // page and was the cause of the old repeating-page workaround.
+  const snapPaginatedColumnOffset = useCallback(() => {
+    if (viewModeRef.current !== "page") return;
+    const rendition = renditionRef.current as (Rendition & { manager?: EpubPaginatedManager }) | null;
+    const manager = rendition?.manager;
+    const container = manager?.container;
+    const delta = manager?.layout?.delta;
+    if (!manager || !container || !Number.isFinite(delta) || !delta || delta <= 0) return;
+
+    const currentLeft = container.scrollLeft;
+    const snappedLeft = Math.round(currentLeft / delta) * delta;
+    if (Math.abs(snappedLeft - currentLeft) < 0.01) return;
+
+    if (manager.scrollTo) manager.scrollTo(snappedLeft, container.scrollTop, true);
+    else container.scrollLeft = snappedLeft;
+  }, []);
+
+  const snapPaginationHeight = useCallback((fallbackCfi?: string) => {
     if (viewModeRef.current === "scroll") return;
     const rendition = renditionRef.current;
     const viewerEl = viewerRef.current;
@@ -247,8 +275,10 @@ const EpubReader = () => {
     // internal state and guards against ending up on a blank, un-rendered page.
     const targetCfi = lastCfiRef.current || fallbackCfi;
     rendition.resize(snappedWidth, snappedHeight);
-    rendition.display(targetCfi);
-  };
+    rendition.display(targetCfi).then(() => {
+      requestAnimationFrame(snapPaginatedColumnOffset);
+    });
+  }, [snapPaginatedColumnOffset]);
 
   // A lightweight "page turn" cue: epub.js swaps the iframe's content
   // essentially instantly, which otherwise reads as an abrupt jump-cut with
@@ -280,6 +310,10 @@ const EpubReader = () => {
       try {
         if (direction === "next") await rendition.next();
         else await rendition.prev();
+        // Correct WebKit's fractional horizontal-scroll drift after every
+        // navigation operation. This changes only the scroll offset within
+        // the already-rendered page; it never reloads or retargets content.
+        snapPaginatedColumnOffset();
         animatePageTurn(direction);
         // rendition.next()/prev() can resolve slightly before epub.js's own
         // internal position bookkeeping — which it updates via its own
@@ -291,6 +325,9 @@ const EpubReader = () => {
         // frames here gives that internal update time to land before
         // another turn is allowed to start.
         await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        // A chapter transition can finish laying out its new iframe during the
+        // frames above, so assert the boundary once more after it has settled.
+        snapPaginatedColumnOffset();
         // next()/prev() already trigger epub.js's own internal
         // reportLocation() call, but that call's actual work (reading
         // manager.currentLocation() and emitting "relocated") runs inside
@@ -309,7 +346,7 @@ const EpubReader = () => {
         isPageTurningRef.current = false;
       }
     },
-    [animatePageTurn]
+    [animatePageTurn, snapPaginatedColumnOffset]
   );
 
   const goNext = useCallback(() => turnPage("next"), [turnPage]);
@@ -321,7 +358,7 @@ const EpubReader = () => {
   // tap, a mostly-horizontal one past the threshold is a swipe. Touch events
   // never fire for mouse input, so this naturally only affects touchscreens
   // without needing a separate viewport-width check.
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number; interactive?: boolean } | null>(null);
   const scrollPointerStartRef = useRef<{
     id: number;
     x: number;
@@ -352,6 +389,12 @@ const EpubReader = () => {
     setControlsVisible((visible) => !visible);
   }, []);
 
+  const clearScrollTapFallback = useCallback(() => {
+    if (!scrollTapFallbackTimerRef.current) return;
+    window.clearTimeout(scrollTapFallbackTimerRef.current);
+    scrollTapFallbackTimerRef.current = null;
+  }, []);
+
   const completeReaderGesture = useCallback(
     (clientX: number, clientY: number) => {
       const start = touchStartRef.current;
@@ -367,7 +410,12 @@ const EpubReader = () => {
       if (viewModeRef.current === "page" && absDx > SWIPE_THRESHOLD_PX && absDx > absDy * 1.15) {
         if (dx < 0) goNext();
         else goPrev();
-      } else if (absDx < TAP_MAX_MOVEMENT_PX && absDy < TAP_MAX_MOVEMENT_PX && elapsedMs < TAP_MAX_DURATION_MS) {
+      } else if (
+        !start.interactive &&
+        absDx < TAP_MAX_MOVEMENT_PX &&
+        absDy < TAP_MAX_MOVEMENT_PX &&
+        elapsedMs < TAP_MAX_DURATION_MS
+      ) {
         lastHandledTouchTapAtRef.current = Date.now();
         toggleReaderChromeFromGesture();
       }
@@ -375,19 +423,60 @@ const EpubReader = () => {
     [goNext, goPrev, resetGesturePreview, toggleReaderChromeFromGesture]
   );
 
-  const handleReaderTouchStart = useCallback((event: TouchEvent | ReactTouchEvent) => {
-    const touch = event.touches[0];
-    if (!touch) return;
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
-  }, []);
+  const handleReaderTouchStart = useCallback(
+    (event: TouchEvent | ReactTouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      clearScrollTapFallback();
+      const target = event.target as HTMLElement | null;
+      const start = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now(),
+        interactive: Boolean(target?.closest("a, button, input, select, textarea")),
+      };
+      touchStartRef.current = start;
+
+      if (viewModeRef.current === "scroll" && !start.interactive) {
+        // In a continuously-scrolled iframe iOS can hand the gesture to its
+        // native scroller and never return touchend/pointerup/click. A short
+        // stationary-touch fallback covers that case. Any real scrolling
+        // produces touchmove and cancels this timer below.
+        scrollTapFallbackTimerRef.current = window.setTimeout(() => {
+          scrollTapFallbackTimerRef.current = null;
+          if (touchStartRef.current !== start) return;
+          touchStartRef.current = null;
+          lastHandledTouchTapAtRef.current = Date.now();
+          toggleReaderChromeFromGesture();
+        }, 260);
+      }
+    },
+    [clearScrollTapFallback, toggleReaderChromeFromGesture]
+  );
+
+  const handleReaderTouchMove = useCallback(
+    (event: TouchEvent) => {
+      const start = touchStartRef.current;
+      const touch = event.touches[0];
+      if (!start || !touch) return;
+      if (
+        Math.abs(touch.clientX - start.x) >= TAP_MAX_MOVEMENT_PX ||
+        Math.abs(touch.clientY - start.y) >= TAP_MAX_MOVEMENT_PX
+      ) {
+        clearScrollTapFallback();
+      }
+    },
+    [clearScrollTapFallback]
+  );
 
   const handleReaderTouchEnd = useCallback(
     (event: TouchEvent | ReactTouchEvent) => {
       const touch = event.changedTouches[0];
       if (!touch) return;
+      clearScrollTapFallback();
       completeReaderGesture(touch.clientX, touch.clientY);
     },
-    [completeReaderGesture]
+    [clearScrollTapFallback, completeReaderGesture]
   );
 
   const handleReaderContentClick = useCallback(
@@ -425,10 +514,11 @@ const EpubReader = () => {
       const dx = Math.abs(event.clientX - start.x);
       const dy = Math.abs(event.clientY - start.y);
       if (dx >= TAP_MAX_MOVEMENT_PX || dy >= TAP_MAX_MOVEMENT_PX || Date.now() - start.time >= TAP_MAX_DURATION_MS) return;
+      clearScrollTapFallback();
       lastHandledTouchTapAtRef.current = Date.now();
       toggleReaderChromeFromGesture();
     },
-    [toggleReaderChromeFromGesture]
+    [clearScrollTapFallback, toggleReaderChromeFromGesture]
   );
 
   const handleReaderPointerCancel = useCallback(() => {
@@ -571,11 +661,15 @@ const EpubReader = () => {
           doc.addEventListener("pointerup", handleReaderPointerUp, { passive: true, capture: true });
           doc.addEventListener("pointercancel", handleReaderPointerCancel, { passive: true, capture: true });
           doc.addEventListener("touchstart", handleReaderTouchStart, { passive: true, capture: true });
+          doc.addEventListener("touchmove", handleReaderTouchMove, { passive: true, capture: true });
           doc.addEventListener("touchend", handleReaderTouchEnd, { passive: true, capture: true });
           doc.addEventListener(
             "touchcancel",
             () => {
-              touchStartRef.current = null;
+              // Keep the stationary-tap fallback alive. iOS may emit cancel
+              // instead of end when its continuous iframe scroller claims the
+              // gesture; a genuine scroll has already cancelled it on move.
+              if (viewModeRef.current !== "scroll") touchStartRef.current = null;
             },
             { passive: true, capture: true }
           );
@@ -708,6 +802,7 @@ const EpubReader = () => {
     load();
     return () => {
       isMounted = false;
+      clearScrollTapFallback();
       renditionRef.current?.destroy();
       bookRef.current?.destroy();
       renditionRef.current = null;
@@ -738,7 +833,7 @@ const EpubReader = () => {
       clearTimeout(resizeTimeout);
       observer.disconnect();
     };
-  }, []);
+  }, [snapPaginationHeight]);
 
   // Covers the case where the real scroll surface in Scroll mode is an
   // epub.js-managed element *within* viewerRef (in this, the parent,
@@ -788,7 +883,7 @@ const EpubReader = () => {
   useEffect(() => {
     renditionRef.current?.themes.fontSize(`${fontSizePercent}%`);
     requestAnimationFrame(() => requestAnimationFrame(snapPaginationHeight));
-  }, [fontSizePercent]);
+  }, [fontSizePercent, snapPaginationHeight]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
