@@ -40,6 +40,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Seo, { SITE_URL } from "@/components/Seo";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
@@ -398,7 +399,11 @@ const StoryDetail = () => {
   // the "Completion: X%" text should actually show in that case instead.
   const primaryCompletionPercentage =
     story.chapters.length > 0 ? completionPercentage : Math.round((primaryFileProgress?.progress || 0) * 100);
-  const seoDescription = (story.about || `Read ${story.title} on WorldStories.`)
+  const plainTextSummary = (story.summary || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const seoDescription = (story.about || plainTextSummary || `Read ${story.title} on WorldStories.`)
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -451,6 +456,7 @@ const StoryDetail = () => {
           "@type": story.has_audio ? ["CreativeWork", "Audiobook"] : "CreativeWork",
           name: story.title,
           description: seoDescription,
+          abstract: plainTextSummary ? plainTextSummary.slice(0, 500) : undefined,
           url: `${SITE_URL}${storyPath}`,
           image: story.cover_image || undefined,
           genre: story.genres.map((genre) => genre.name),
@@ -695,6 +701,7 @@ const StoryDetail = () => {
               <TabsList>
                 {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
                 {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
+                {story.summary && <TabsTrigger value="summary">Summary</TabsTrigger>}
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
 
@@ -840,6 +847,23 @@ const StoryDetail = () => {
                 </Card>
               </TabsContent>
 
+
+              {story.summary && (
+                // forceMount + CSS-driven visibility (instead of Radix's default
+                // unmount-when-inactive) keeps the summary in the rendered DOM
+                // regardless of which tab is selected — search crawlers only see
+                // whatever's present on initial render, they don't click tabs.
+                <TabsContent value="summary" forceMount className="mt-6 data-[state=inactive]:hidden">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div
+                        className="prose max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
 
               <TabsContent value="about" className="mt-6">
                 <Card>

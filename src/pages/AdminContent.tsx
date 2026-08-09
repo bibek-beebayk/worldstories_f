@@ -15,6 +15,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bold, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Summary", "Religious Text"];
 
@@ -70,6 +71,7 @@ const AdminContent = () => {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [about, setAbout] = useState("");
+  const [summary, setSummary] = useState("");
   const [authorId, setAuthorId] = useState<string>("none");
   const [storyType, setStoryType] = useState("Short Story");
   const [language, setLanguage] = useState("en");
@@ -115,6 +117,7 @@ const AdminContent = () => {
   const [deletingAudio, setDeletingAudio] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState<string | null>(null);
   const chapterEditorRef = useRef<HTMLDivElement | null>(null);
+  const summaryEditorRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const isAutoLoadingRef = useRef(false);
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -177,6 +180,7 @@ const AdminContent = () => {
     setTitle("");
     setSlug("");
     setAbout("");
+    setSummary("");
     setAuthorId("none");
     setStoryType("Short Story");
     setLanguage("en");
@@ -469,6 +473,22 @@ const AdminContent = () => {
     runChapterEditorCommand("createLink", url);
   };
 
+  const syncSummaryEditorContent = () => {
+    setSummary(summaryEditorRef.current?.innerHTML || "");
+  };
+
+  const runSummaryEditorCommand = (command: string, value?: string) => {
+    summaryEditorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncSummaryEditorContent();
+  };
+
+  const addSummaryLink = () => {
+    const url = window.prompt("Enter URL");
+    if (!url) return;
+    runSummaryEditorCommand("createLink", url);
+  };
+
   useEffect(() => {
     if (!selectedStory) return;
     setPendingTranslationSourceId(null);
@@ -476,6 +496,7 @@ const AdminContent = () => {
     setTitle(selectedStory.title || "");
     setSlug(selectedStory.slug || "");
     setAbout(selectedStory.about || "");
+    setSummary(selectedStory.summary || "");
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
     setStoryType(selectedStory.story_type || "Short Story");
     setLanguage(selectedStory.language || "en");
@@ -543,6 +564,14 @@ const AdminContent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showChapterModal]);
 
+  useEffect(() => {
+    if (!showStoryForm || !summaryEditorRef.current) return;
+    summaryEditorRef.current.innerHTML = summary || "";
+    // Only seed the contenteditable when the form opens, same reasoning as
+    // the chapter editor above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showStoryForm]);
+
   const canSave = useMemo(() => title.trim().length > 2, [title]);
   const availableGenresByLowerName = useMemo(
     () => new Map((genres || []).map((genre) => [genre.name.trim().toLowerCase(), genre])),
@@ -580,6 +609,7 @@ const AdminContent = () => {
     formData.append("title", title.trim());
     if (slug.trim()) formData.append("slug", slug.trim());
     formData.append("about", about.trim());
+    formData.append("summary", summary.trim());
     formData.append("story_type", storyType);
     formData.append("language", language);
     if (authorId !== "none") {
@@ -965,6 +995,31 @@ const AdminContent = () => {
                 <div>
                   <Label htmlFor="admin-about">About</Label>
                   <Textarea id="admin-about" value={about} onChange={(e) => setAbout(e.target.value)} className="min-h-28" />
+                </div>
+
+                <div>
+                  <Label htmlFor="admin-summary">Summary</Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={addSummaryLink}><Link2 className="h-4 w-4" /></Button>
+                    </div>
+                    <div
+                      id="admin-summary"
+                      ref={summaryEditorRef}
+                      contentEditable
+                      dir="ltr"
+                      style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
+                      suppressContentEditableWarning
+                      onInput={syncSummaryEditorContent}
+                      className="min-h-40 rounded-md border px-3 py-2 text-left text-sm [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -1368,6 +1423,17 @@ const AdminContent = () => {
                     <div>
                       <p className="mb-1 text-muted-foreground">About</p>
                       <p className="rounded-md border bg-muted/30 px-3 py-2">{selectedStory.about || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Summary</p>
+                      {selectedStory.summary ? (
+                        <div
+                          className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.summary) }}
+                        />
+                      ) : (
+                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
+                      )}
                     </div>
                   </div>
                 ) : (

@@ -104,6 +104,7 @@ export interface StoryTranslation {
 export interface StoryDetail extends Story {
   story_type: string;
   about: string;
+  summary: string | null;
   original_published_year: number | null;
   original_published_month: number | null;
   original_published_day: number | null;
@@ -345,6 +346,7 @@ export interface AdminStory {
   title: string;
   slug: string;
   about: string | null;
+  summary: string | null;
   story_type: string;
   language: string;
   translations: StoryTranslation[];
