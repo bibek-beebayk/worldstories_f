@@ -620,7 +620,6 @@ const StoryReader = () => {
         title={`${chapter.title}${story?.title ? ` — ${story.title}` : ""} | WorldStories`}
         description={`Read ${chapter.title}${story?.title ? ` from ${story.title}` : ""} on WorldStories.`}
         path={`/read/${story_slug}/${chapter_slug}`}
-        noIndex
       />
       <main className="mx-auto w-full max-w-none px-0 py-0">
           <div

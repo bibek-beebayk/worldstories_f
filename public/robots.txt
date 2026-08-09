@@ -4,7 +4,6 @@ Disallow: /admin/
 Disallow: /profile
 Disallow: /publish
 Disallow: /login
-Disallow: /read/
 Disallow: /listen/
 Disallow: /search
 
