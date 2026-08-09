@@ -597,6 +597,11 @@ const StoryDetail = () => {
                   {story.genres.map((tag, index) => (
                     <Badge key={index} variant="secondary">{tag.name}</Badge>
                   ))}
+                  {story.categories.map((category) => (
+                    <Link key={category.id} to={`/library?category=${category.id}`}>
+                      <Badge variant="outline">{category.name}</Badge>
+                    </Link>
+                  ))}
                 </div>
 
                 <div className="flex flex-wrap gap-1">

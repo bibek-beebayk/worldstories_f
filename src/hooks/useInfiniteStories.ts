@@ -9,12 +9,13 @@ export function useInfiniteStories(
   q: string = "",
   language: string = "all",
   storyType: string = "all",
-  enabled: boolean = true
+  enabled: boolean = true,
+  categories: number[] = []
 ) {
   return useInfiniteQuery<StoryListResponse>({
-    queryKey: ["infinite-stories", genres, sort, status, q, language, storyType],
+    queryKey: ["infinite-stories", genres, sort, status, q, language, storyType, categories],
     queryFn: ({ pageParam }) =>
-      storyApi.getStories(pageParam as number, genres, sort, status, q, language, storyType),
+      storyApi.getStories(pageParam as number, genres, sort, status, q, language, storyType, categories),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.pagination.page < lastPage.pagination.pages ? lastPage.pagination.page + 1 : undefined,

@@ -199,6 +199,39 @@ const Discover = () => {
           </Carousel>
         </section>
 
+        {/* Categories are a separate, admin-managed taxonomy from genres —
+            same browsing pattern, independent list. */}
+        {data.categories.length > 0 && (
+          <section className="mb-8">
+            <div className="mb-4 flex items-center gap-2">
+              <Tag className="h-4 w-4 text-primary" />
+              <h2 className="text-lg font-semibold sm:text-xl">Browse by Category</h2>
+            </div>
+            <Carousel opts={{ align: "start" }} className="px-1">
+              <CarouselContent>
+                {data.categories.map((category) => (
+                  <CarouselItem key={category.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
+                    <Link
+                      to={`/library?category=${category.id}`}
+                      className="group flex min-h-28 h-full flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-primary/5"
+                    >
+                      <Sparkles className="h-4 w-4 text-primary/70 transition-colors group-hover:text-primary" />
+                      <div className="mt-3">
+                        <p className="text-sm font-semibold leading-tight">{category.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatViews(category.stories_count)} {category.stories_count === 1 ? "story" : "stories"}
+                        </p>
+                      </div>
+                    </Link>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </section>
+        )}
+
         <section className="mb-8">
           <div className="mb-4 flex items-center gap-2">
             <BookOpenText className="h-4 w-4 text-primary" />

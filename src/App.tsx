@@ -42,6 +42,8 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminHome = lazy(() => import("./pages/AdminHome"));
 const AdminSubmissions = lazy(() => import("./pages/AdminSubmissions"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const AdminCategories = lazy(() => import("./pages/AdminCategories"));
+const AdminAuthors = lazy(() => import("./pages/AdminAuthors"));
 
 const RequireAdminAuth = () => {
   const accessToken = getAccessToken();
@@ -127,6 +129,8 @@ const App = () => (
                 <Route path="content" element={<AdminContent />} />
                 <Route path="submissions" element={<AdminSubmissions />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="categories" element={<AdminCategories />} />
+                <Route path="authors" element={<AdminAuthors />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />

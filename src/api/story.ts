@@ -4,6 +4,7 @@ import {
   Chapter,
   StoryDetail,
   Genre,
+  Category,
   HomeDataResponse,
   OriginalsDataResponse,
   DiscoverDataResponse,
@@ -23,6 +24,7 @@ import {
   AdminOverviewResponse,
   AdminAuthor,
   AdminGenre,
+  AdminCategory,
   LibraryShelvesResponse,
   AdminAnalyticsRangeDays,
   AdminAnalyticsContentResponse,
@@ -43,10 +45,11 @@ export const storyApi = {
     status: string,
     q: string = "",
     language: string = "all",
-    storyType: string = "all"
+    storyType: string = "all",
+    categories: number[] | [] = []
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}`
     ),
 
   getStory: (slug: string) => 
@@ -59,6 +62,7 @@ export const storyApi = {
   //   apiClient<Audio>(`/stories/${story_slug}/audios/${audio_slug}/`),
 
   getGenres: () => apiClient<Genre[]>("/genres/"),
+  getCategories: () => apiClient<Category[]>("/categories/"),
   getAuthors: (page: number = 1) =>
     apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
   getAuthor: (id: number) => apiClient<AuthorDetail>(`/authors/${id}/`),
@@ -219,6 +223,13 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  updateAdminAuthor: (id: number, payload: { name: string; bio?: string; image?: string }) =>
+    apiClient<AdminAuthor>(`/admin/authors/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminAuthor: (id: number) =>
+    apiClient<void>(`/admin/authors/${id}/`, { method: "DELETE" }),
   getAdminGenres: () =>
     apiClient<AdminGenre[]>("/admin/genres/"),
   createAdminGenre: (name: string) =>
@@ -226,6 +237,20 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+  getAdminCategories: () =>
+    apiClient<AdminCategory[]>("/admin/categories/"),
+  createAdminCategory: (name: string) =>
+    apiClient<AdminCategory>("/admin/categories/", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  updateAdminCategory: (id: number, name: string) =>
+    apiClient<AdminCategory>(`/admin/categories/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  deleteAdminCategory: (id: number) =>
+    apiClient<void>(`/admin/categories/${id}/`, { method: "DELETE" }),
   createAdminChapter: (payload: {
     story: number;
     title: string;

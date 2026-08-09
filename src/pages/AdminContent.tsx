@@ -88,6 +88,8 @@ const AdminContent = () => {
   const [epubFile, setEpubFile] = useState<File | null>(null);
   const [selectedGenreNames, setSelectedGenreNames] = useState<string[]>([]);
   const [genreQuery, setGenreQuery] = useState("");
+  const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
+  const [categoryQuery, setCategoryQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAuthorModal, setShowAuthorModal] = useState(false);
   const [newAuthorName, setNewAuthorName] = useState("");
@@ -97,6 +99,9 @@ const AdminContent = () => {
   const [showGenreModal, setShowGenreModal] = useState(false);
   const [newGenreName, setNewGenreName] = useState("");
   const [creatingGenre, setCreatingGenre] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [editingChapterId, setEditingChapterId] = useState<number | null>(null);
   const [newChapterTitle, setNewChapterTitle] = useState("");
@@ -133,6 +138,11 @@ const AdminContent = () => {
   const { data: genres } = useQuery({
     queryKey: ["admin-genres"],
     queryFn: storyApi.getAdminGenres,
+    enabled: isAuthenticated && Boolean(me?.is_superuser),
+  });
+  const { data: categories } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: storyApi.getAdminCategories,
     enabled: isAuthenticated && Boolean(me?.is_superuser),
   });
   const { data: authors } = useQuery({
@@ -174,6 +184,10 @@ const AdminContent = () => {
     () => new Map((genres || []).map((genre) => [genre.id, genre.name])),
     [genres]
   );
+  const categoryNameById = useMemo(
+    () => new Map((categories || []).map((category) => [category.id, category.name])),
+    [categories]
+  );
 
   const resetForm = () => {
     setSelectedStoryId(null);
@@ -197,6 +211,8 @@ const AdminContent = () => {
     setEpubFile(null);
     setSelectedGenreNames([]);
     setGenreQuery("");
+    setSelectedCategoryNames([]);
+    setCategoryQuery("");
     setPendingTranslationSourceId(null);
     setPendingTranslationSourceTitle("");
   };
@@ -222,6 +238,11 @@ const AdminContent = () => {
     setSelectedGenreNames(
       (selectedStory.genres || [])
         .map((genreId) => genreNameById.get(genreId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setSelectedCategoryNames(
+      (selectedStory.categories || [])
+        .map((categoryId) => categoryNameById.get(categoryId))
         .filter((name): name is string => Boolean(name))
     );
     setPendingTranslationSourceId(sourceId);
@@ -273,6 +294,28 @@ const AdminContent = () => {
       toast.error(error instanceof Error ? error.message : "Failed to create genre.");
     } finally {
       setCreatingGenre(false);
+    }
+  };
+
+  const createCategory = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newCategoryName.trim()) return;
+    try {
+      setCreatingCategory(true);
+      const created = await storyApi.createAdminCategory(toTitleCase(newCategoryName));
+      await queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      setSelectedCategoryNames((current) =>
+        current.some((name) => name.toLowerCase() === created.name.toLowerCase())
+          ? current
+          : [...current, created.name]
+      );
+      setShowCategoryModal(false);
+      setNewCategoryName("");
+      toast.success("Category created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create category.");
+    } finally {
+      setCreatingCategory(false);
     }
   };
 
@@ -514,10 +557,16 @@ const AdminContent = () => {
         .filter((name): name is string => Boolean(name))
     );
     setGenreQuery("");
+    setSelectedCategoryNames(
+      (selectedStory.categories || [])
+        .map((categoryId) => categoryNameById.get(categoryId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setCategoryQuery("");
     setCoverImageFile(null);
     setPdfFile(null);
     setEpubFile(null);
-  }, [selectedStory, genreNameById]);
+  }, [selectedStory, genreNameById, categoryNameById]);
 
   useEffect(() => {
     if (!storiesData) return;
@@ -596,6 +645,34 @@ const AdminContent = () => {
   };
   const removeGenreName = (nameToRemove: string) => {
     setSelectedGenreNames((current) =>
+      current.filter((name) => name.toLowerCase() !== nameToRemove.toLowerCase())
+    );
+  };
+  const availableCategoriesByLowerName = useMemo(
+    () => new Map((categories || []).map((category) => [category.name.trim().toLowerCase(), category])),
+    [categories]
+  );
+  const filteredCategorySuggestions = useMemo(() => {
+    const query = categoryQuery.trim().toLowerCase();
+    if (!query) return [];
+    return (categories || [])
+      .filter((category) => category.name.toLowerCase().startsWith(query))
+      .filter(
+        (category) => !selectedCategoryNames.some((name) => name.toLowerCase() === category.name.toLowerCase())
+      )
+      .slice(0, 8);
+  }, [categoryQuery, categories, selectedCategoryNames]);
+  const addCategoryName = (rawName: string) => {
+    const name = toTitleCase(rawName);
+    if (!name) return;
+    setSelectedCategoryNames((current) => {
+      if (current.some((item) => item.toLowerCase() === name.toLowerCase())) return current;
+      return [...current, name];
+    });
+    setCategoryQuery("");
+  };
+  const removeCategoryName = (nameToRemove: string) => {
+    setSelectedCategoryNames((current) =>
       current.filter((name) => name.toLowerCase() !== nameToRemove.toLowerCase())
     );
   };
@@ -678,6 +755,33 @@ const AdminContent = () => {
         await queryClient.invalidateQueries({ queryKey: ["admin-genres"] });
       }
       genreIdsToSubmit.forEach((genreId) => formData.append("genres", String(genreId)));
+
+      const selectedCategoryMap = new Map<string, string>();
+      selectedCategoryNames
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .forEach((name) => {
+          const key = name.toLowerCase();
+          if (!selectedCategoryMap.has(key)) {
+            selectedCategoryMap.set(key, name);
+          }
+        });
+      const categoryIdsToSubmit: number[] = [];
+      let createdAnyCategory = false;
+      for (const [lowerName, originalName] of selectedCategoryMap.entries()) {
+        const existing = availableCategoriesByLowerName.get(lowerName);
+        if (existing) {
+          categoryIdsToSubmit.push(existing.id);
+          continue;
+        }
+        const created = await storyApi.createAdminCategory(toTitleCase(originalName));
+        categoryIdsToSubmit.push(created.id);
+        createdAnyCategory = true;
+      }
+      if (createdAnyCategory) {
+        await queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      }
+      categoryIdsToSubmit.forEach((categoryId) => formData.append("categories", String(categoryId)));
 
       if (mode === "edit" && selectedStoryId) {
         await storyApi.updateAdminStory(selectedStoryId, formData);
@@ -1238,6 +1342,75 @@ const AdminContent = () => {
                   </div>
                 </div>
 
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label>Categories</Label>
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowCategoryModal(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="mt-2 space-y-2 rounded-md border p-3">
+                    <div className="flex gap-2">
+                      <Input
+                        value={categoryQuery}
+                        onChange={(e) => setCategoryQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addCategoryName(categoryQuery);
+                          }
+                        }}
+                        placeholder="Type category name (e.g. Class...)"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => addCategoryName(categoryQuery)}
+                        disabled={!categoryQuery.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {filteredCategorySuggestions.length > 0 && (
+                      <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                        {filteredCategorySuggestions.map((category) => (
+                          <button
+                            key={category.id}
+                            type="button"
+                            className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                            onClick={() => addCategoryName(category.name)}
+                          >
+                            {toTitleCase(category.name)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedCategoryNames.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedCategoryNames.map((name) => (
+                          <span
+                            key={name.toLowerCase()}
+                            className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-1 text-xs"
+                          >
+                            {toTitleCase(name)}
+                            <button
+                              type="button"
+                              className="rounded p-0.5 hover:bg-background"
+                              onClick={() => removeCategoryName(name)}
+                              aria-label={`Remove ${name}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Type to search categories by starting letters. If a category does not exist, it will be created when you save.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <Button type="submit" disabled={isSubmitting || !canSave}>
                     {isSubmitting ? "Saving..." : mode === "edit" ? "Update Story" : "Create Story"}
@@ -1413,6 +1586,20 @@ const AdminContent = () => {
                           {selectedStory.genres.map((genreId) => (
                             <span key={genreId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
                               {toTitleCase(genreNameById.get(genreId) || `Genre #${genreId}`)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Categories</p>
+                      {(selectedStory.categories || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedStory.categories.map((categoryId) => (
+                            <span key={categoryId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
+                              {toTitleCase(categoryNameById.get(categoryId) || `Category #${categoryId}`)}
                             </span>
                           ))}
                         </div>
@@ -1907,6 +2094,33 @@ const AdminContent = () => {
                   <Button type="button" variant="outline" onClick={() => setShowGenreModal(false)}>Cancel</Button>
                   <Button type="submit" disabled={creatingGenre || !newGenreName.trim()}>
                     {creatingGenre ? "Creating..." : "Create Genre"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowCategoryModal(false)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base">Create Category</CardTitle>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowCategoryModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={createCategory}>
+                <div>
+                  <Label htmlFor="new-category-name">Name *</Label>
+                  <Input id="new-category-name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} required />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowCategoryModal(false)}>Cancel</Button>
+                  <Button type="submit" disabled={creatingCategory || !newCategoryName.trim()}>
+                    {creatingCategory ? "Creating..." : "Create Category"}
                   </Button>
                 </div>
               </form>

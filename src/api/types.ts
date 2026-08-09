@@ -36,6 +36,12 @@ export interface Genre{
   stories_count: number;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  stories_count: number;
+}
+
 export interface Story {
   id: number;
   slug: string;
@@ -50,6 +56,7 @@ export interface Story {
   views: number;
   is_completed: boolean;
   genres?: string[];
+  categories?: string[];
   has_audio?: boolean;
   reviews_count?: number;
   is_favorite?: boolean;
@@ -113,6 +120,7 @@ export interface StoryDetail extends Story {
   author: Author | null;
   submitted_by: StorySubmittedBy | null;
   genres: Genre[];
+  categories: Category[];
   pdf_file: string | null;
   epub_file: string | null;
   pdf_size_bytes?: number;
@@ -244,6 +252,7 @@ export interface DiscoverFacet {
 
 export interface DiscoverDataResponse extends TrendingDataResponse {
   genres: Genre[];
+  categories: Category[];
   story_types: DiscoverFacet[];
   languages: DiscoverFacet[];
   new_releases: Story[];
@@ -368,6 +377,7 @@ export interface AdminStory {
   is_published: boolean;
   publish_at: string | null;
   genres: number[];
+  categories: number[];
   tags: number[];
   rating: number;
   views: number;
@@ -379,11 +389,18 @@ export interface AdminAuthor {
   name: string;
   bio?: string | null;
   image?: string | null;
+  stories_count?: number;
 }
 
 export interface AdminGenre {
   id: number;
   name: string;
+}
+
+export interface AdminCategory {
+  id: number;
+  name: string;
+  stories_count?: number;
 }
 
 export interface AdminChapter {

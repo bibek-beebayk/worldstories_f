@@ -14,6 +14,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { useGenres } from "@/hooks/useGenres";
+import { useCategories } from "@/hooks/useCategories";
 import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
@@ -39,6 +40,11 @@ function getInitialGenreFromUrl(searchParams: URLSearchParams): number[] {
   return Number.isNaN(genreId) ? [] : [genreId];
 }
 
+function getInitialCategoryFromUrl(searchParams: URLSearchParams): number[] {
+  const categoryId = parseInt(searchParams.get("category") || "", 10);
+  return Number.isNaN(categoryId) ? [] : [categoryId];
+}
+
 // Small deliberate breathing room between the header's live bottom edge and
 // the filters bar below it — the bar sits at exactly headerBottom + this,
 // not a separately-guessed offset.
@@ -49,6 +55,9 @@ const Library = () => {
   const headerBottom = useHeaderHeight();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedGenres, setSelectedGenres] = useState<number[]>(() => getInitialGenreFromUrl(searchParams));
+  const [selectedCategories, setSelectedCategories] = useState<number[]>(() =>
+    getInitialCategoryFromUrl(searchParams)
+  );
   const [status, setStatus] = useState("all");
   const [language, setLanguage] = useState(() => searchParams.get("language") || "all");
   const [storyType, setStoryType] = useState(() => searchParams.get("story_type") || "all");
@@ -56,9 +65,12 @@ const Library = () => {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [openGenres, setOpenGenres] = useState(false);
+  const [openCategories, setOpenCategories] = useState(false);
   const [openMobileFilters, setOpenMobileFilters] = useState(false);
   const [tempGenres, setTempGenres] = useState<number[]>([]);
+  const [tempCategories, setTempCategories] = useState<number[]>([]);
   const { data: genres } = useGenres();
+  const { data: categories } = useCategories();
 
   const selectedGenreNames = useMemo(() => {
     const genreMap = new Map((genres || []).map((genre) => [genre.id, genre.name]));
@@ -67,8 +79,16 @@ const Library = () => {
       .filter((item): item is { id: number; name: string } => Boolean(item.name));
   }, [selectedGenres, genres]);
 
+  const selectedCategoryNames = useMemo(() => {
+    const categoryMap = new Map((categories || []).map((category) => [category.id, category.name]));
+    return selectedCategories
+      .map((categoryId) => ({ id: categoryId, name: categoryMap.get(categoryId) }))
+      .filter((item): item is { id: number; name: string } => Boolean(item.name));
+  }, [selectedCategories, categories]);
+
   const hasActiveFilters =
     selectedGenreNames.length > 0 ||
+    selectedCategoryNames.length > 0 ||
     status !== "all" ||
     language !== "all" ||
     storyType !== "all" ||
@@ -87,6 +107,16 @@ const Library = () => {
     }
   }, [searchParams]);
 
+  // Same as above, but for a category deep link (e.g. /library?category=4).
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    if (!categoryParam) return;
+    const categoryId = parseInt(categoryParam, 10);
+    if (!Number.isNaN(categoryId)) {
+      setSelectedCategories([categoryId]);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const languageParam = searchParams.get("language");
     const storyTypeParam = searchParams.get("story_type");
@@ -100,7 +130,16 @@ const Library = () => {
     fetchNextPage: fetchNextStoriesPage,
     hasNextPage: hasNextStoriesPage,
     isFetchingNextPage: isFetchingNextStoriesPage,
-  } = useInfiniteStories(selectedGenres, sort, status, searchQuery, language, storyType, !isBrowsing);
+  } = useInfiniteStories(
+    selectedGenres,
+    sort,
+    status,
+    searchQuery,
+    language,
+    storyType,
+    !isBrowsing,
+    selectedCategories
+  );
 
   const {
     data: shelvesData,
@@ -148,11 +187,15 @@ const Library = () => {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [selectedGenres, sort, status, language, storyType, searchQuery]);
+  }, [selectedGenres, selectedCategories, sort, status, language, storyType, searchQuery]);
 
   useEffect(() => {
     setTempGenres(selectedGenres);
   }, [selectedGenres, openGenres, openMobileFilters]);
+
+  useEffect(() => {
+    setTempCategories(selectedCategories);
+  }, [selectedCategories, openCategories, openMobileFilters]);
 
   const clearAllFilters = () => {
     setStatus("all");
@@ -161,6 +204,8 @@ const Library = () => {
     setSort("popular");
     setSelectedGenres([]);
     setTempGenres([]);
+    setSelectedCategories([]);
+    setTempCategories([]);
     setSearchInput("");
     setSearchQuery("");
   };
@@ -415,6 +460,69 @@ const Library = () => {
               </SheetContent>
             </Sheet>
 
+            <Sheet open={openCategories} onOpenChange={setOpenCategories}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`hidden transition-[height] duration-300 ease-in-out sm:inline-flex ${
+                    isHeaderScrolled ? "h-7" : "h-9"
+                  }`}
+                >
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Categories
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0">
+                <div className="flex h-full flex-col p-4">
+                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Select Categories
+                  </h2>
+                  <div className="flex-1 space-y-3 overflow-auto rounded-lg border p-3">
+                    {categories?.map((category) => (
+                      <label key={category.id} className="flex items-center gap-3">
+                        <Checkbox
+                          checked={tempCategories.includes(category.id)}
+                          onCheckedChange={(checked) => {
+                            setTempCategories((prev) =>
+                              checked ? [...prev, category.id] : prev.filter((id) => id !== category.id)
+                            );
+                          }}
+                        />
+                        <span className="text-sm">
+                          {category.name}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            ({formatViews(category.stories_count)})
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        setSelectedCategories(tempCategories);
+                        setOpenCategories(false);
+                      }}
+                    >
+                      Apply Categories
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setTempCategories([]);
+                        setSelectedCategories([]);
+                      }}
+                    >
+                      Clear Categories
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearAllFilters} className="hidden sm:inline-flex">
                 Reset All
@@ -531,12 +639,37 @@ const Library = () => {
                         ))}
                       </div>
                     </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Categories</label>
+                      <div className="space-y-3 rounded-lg border p-3">
+                        {categories?.map((category) => (
+                          <label key={category.id} className="flex items-center gap-3">
+                            <Checkbox
+                              checked={tempCategories.includes(category.id)}
+                              onCheckedChange={(checked) => {
+                                setTempCategories((prev) =>
+                                  checked ? [...prev, category.id] : prev.filter((id) => id !== category.id)
+                                );
+                              }}
+                            />
+                            <span className="text-sm">
+                              {category.name}{" "}
+                              <span className="text-xs text-muted-foreground">
+                                ({formatViews(category.stories_count)})
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="mt-4 space-y-2">
                     <Button
                       className="w-full"
                       onClick={() => {
                         setSelectedGenres(tempGenres);
+                        setSelectedCategories(tempCategories);
                         setOpenMobileFilters(false);
                       }}
                     >
@@ -617,6 +750,20 @@ const Library = () => {
                     onClick={() => {
                       setSelectedGenres((prev) => prev.filter((id) => id !== genre.id));
                       setTempGenres((prev) => prev.filter((id) => id !== genre.id));
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {selectedCategoryNames.map((category) => (
+                <Badge key={category.id} variant="outline" className="gap-1">
+                  {category.name}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategories((prev) => prev.filter((id) => id !== category.id));
+                      setTempCategories((prev) => prev.filter((id) => id !== category.id));
                     }}
                   >
                     <X className="h-3 w-3" />

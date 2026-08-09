@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Library, Inbox, Globe, LogOut, BarChart3, Menu } from "lucide-react";
+import { LayoutDashboard, Library, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Users } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
@@ -11,6 +11,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 const menuItems = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/admin/content", label: "Stories", icon: Library, exact: false },
+  { to: "/admin/categories", label: "Categories", icon: Tag, exact: false },
+  { to: "/admin/authors", label: "Authors", icon: Users, exact: false },
   { to: "/admin/submissions", label: "Submissions", icon: Inbox, exact: false },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3, exact: false },
 ];
