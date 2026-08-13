@@ -20,6 +20,7 @@ import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 const Index = lazy(() => import("./pages/Index"));
 const Library = lazy(() => import("./pages/Library"));
 const Discover = lazy(() => import("./pages/Discover"));
+const Audiobooks = lazy(() => import("./pages/Audiobooks"));
 const Authors = lazy(() => import("./pages/Authors"));
 const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
 const Publish = lazy(() => import("./pages/Publish"));
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="library" element={<Library />} />
             <Route path="trending" element={<Navigate to="/discover" replace />} />
             <Route path="discover" element={<Discover />} />
+            <Route path="audiobooks" element={<Audiobooks />} />
             <Route path="authors" element={<Authors />} />
             <Route path="authors/:id" element={<AuthorDetail />} />
             <Route path="contest" element={<Contest />} />

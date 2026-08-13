@@ -46,10 +46,11 @@ export const storyApi = {
     q: string = "",
     language: string = "all",
     storyType: string = "all",
-    categories: number[] | [] = []
+    categories: number[] | [] = [],
+    hasAudio: boolean = false
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}${hasAudio ? "&has_audio=true" : ""}`
     ),
 
   getStory: (slug: string) => 

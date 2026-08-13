@@ -56,6 +56,11 @@
   status = 200
 
 [[redirects]]
+  from = "/audiobooks"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/authors"
   to = "/index.html"
   status = 200
