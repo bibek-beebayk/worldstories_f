@@ -200,6 +200,8 @@ export default function ProfileDownloadedStory({
               <CoverImage
                 src={coverImage}
                 alt={`${storyTitle} cover`}
+                title={storyTitle}
+                author={authorName}
                 className="aspect-[3/4] w-24 shrink-0 rounded-xl object-cover shadow-lg"
               />
               <div className="min-w-0 flex-1 pt-1">
@@ -268,6 +270,8 @@ export default function ProfileDownloadedStory({
             <CoverImage
               src={coverImage}
               alt={`${storyTitle} cover`}
+              title={storyTitle}
+              author={authorName}
               className="aspect-[3/4] w-24 shrink-0 rounded-xl object-cover shadow-lg sm:w-32"
             />
             <div className="flex min-w-0 flex-1 flex-col justify-center">

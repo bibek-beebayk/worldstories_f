@@ -27,6 +27,7 @@ const TrendingList = ({ stories }: TrendingListProps) => {
               <CoverImage
                 src={story.cover_image}
                 alt={story.title}
+                author={story.author}
                 loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"

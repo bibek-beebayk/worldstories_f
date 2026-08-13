@@ -211,6 +211,7 @@ const Header = () => {
                           <CoverImage
                             src={story.cover_image}
                             alt={story.title}
+                            author={story.author}
                             className="h-12 w-10 rounded object-cover"
                           />
                           <div className="min-w-0 flex-1">

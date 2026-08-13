@@ -624,6 +624,7 @@ const AudioPlayerPage = () => {
                   <CoverImage
                     src={story.cover_image}
                     alt={story.title}
+                    author={story.author?.name}
                     className="block h-auto w-full"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

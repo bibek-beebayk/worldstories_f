@@ -93,6 +93,8 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               key={story.id}
               src={story.cover_image}
               alt=""
+              title={story.title}
+              author={story.author}
               loading="eager"
               decoding="async"
               fetchPriority="high"
@@ -177,6 +179,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                   key={`desktop-cover-${story.id}`}
                   src={story.cover_image}
                   alt={story.title}
+                  author={story.author}
                   loading="eager"
                   decoding="async"
                   fetchPriority="high"

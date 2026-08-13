@@ -491,6 +491,7 @@ const StoryDetail = () => {
                 <CoverImage
                   src={story.cover_image}
                   alt={story.title}
+                  author={story.author?.name}
                   loading="eager"
                   decoding="async"
                   fetchpriority="high"

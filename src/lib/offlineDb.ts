@@ -193,6 +193,7 @@ export interface DownloadStorySummary {
   story_slug: string;
   story_title: string;
   story_cover_image: string;
+  story_author?: string;
   chapterCount: number;
   audioCount: number;
   fileType: "epub" | "pdf" | null;
@@ -208,6 +209,7 @@ export function groupDownloadsByStory(records: DownloadRecord[]): DownloadStoryS
         story_slug: record.story_slug,
         story_title: record.story_title,
         story_cover_image: record.story_cover_image,
+        story_author: record.story_author,
         chapterCount: 0,
         audioCount: 0,
         fileType: null,

@@ -105,6 +105,7 @@ const ContinueReadingSection = ({
                     <CoverImage
                       src={item.story.cover_image}
                       alt={item.story.title}
+                      author={item.story.author}
                       loading="lazy"
                       decoding="async"
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

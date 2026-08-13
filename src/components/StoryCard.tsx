@@ -9,6 +9,7 @@ interface StoryCardProps {
   id: number;
   slug: string;
   title: string;
+  author?: string | null;
   cover_image: string;
   rating: number;
   views: number;
@@ -18,13 +19,14 @@ interface StoryCardProps {
   compact?: boolean;
 }
 
-const StoryCard = ({ title, cover_image, rating, views, story_type, language, slug, has_audio, compact = false }: StoryCardProps) => {
+const StoryCard = ({ title, author, cover_image, rating, views, story_type, language, slug, has_audio, compact = false }: StoryCardProps) => {
   return (
     <Link to={`/story/${slug}`} className="group cursor-pointer block">
       <div className={`relative overflow-hidden rounded-lg ${compact ? "mb-2 aspect-[4/5] shadow-sm" : "mb-3 aspect-[3/4] shadow-md"}`}>
         <CoverImage
           src={cover_image}
           alt={title}
+          author={author}
           loading="lazy"
           decoding="async"
           className="w-full object-cover transition-transform duration-300 group-hover:scale-105"

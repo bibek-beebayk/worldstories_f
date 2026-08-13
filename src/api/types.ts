@@ -46,7 +46,7 @@ export interface Story {
   id: number;
   slug: string;
   title: string;
-  // author: string;
+  author?: string | null;
   story_type: string;
   language: string;
   description: string;

@@ -64,6 +64,8 @@ export default function DownloadStorySummaryRow({ summary, onClick }: DownloadSt
         <CoverImage
           src={summary.story_cover_image}
           alt={`${summary.story_title} cover`}
+          title={summary.story_title}
+          author={summary.story_author}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/75 to-transparent" />
