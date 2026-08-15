@@ -121,6 +121,11 @@
   status = 200
 
 [[redirects]]
+  from = "/quick-read/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/read/*"
   to = "/index.html"
   status = 200

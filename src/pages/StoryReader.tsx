@@ -22,11 +22,13 @@ import {
   SlidersHorizontal,
   Sun,
   X,
+  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import Seo from "@/components/Seo";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 
 type ReaderThemeKey = string;
@@ -187,6 +189,7 @@ const StoryReader = () => {
 
   const { data: chapter, isLoading, isError } = useChapter(story_slug, chapter_slug, "text");
   const { data: story } = useStory(story_slug);
+  const hasQuickRead = estimateSummaryReadingMinutes(story?.summary) !== null;
   const isAuthenticated = useIsLoggedIn();
 
   const [fontSize, setFontSize] = useState(18);
@@ -675,6 +678,19 @@ const StoryReader = () => {
                   <List className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Contents</span>
                 </Button>
+                {hasQuickRead && story_slug && (
+                  <Link to={`/quick-read/${story_slug}`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2 sm:h-9 sm:px-3"
+                      aria-label="Switch to Quick Read"
+                    >
+                      <Zap className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Quick Read</span>
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

@@ -17,6 +17,7 @@ import { toast } from "@/components/ui/sonner";
 import { storyApi } from "@/api/story";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStory } from "@/hooks/useStory";
 import {
@@ -36,6 +37,7 @@ import {
   Star,
   Trash2,
   Twitter,
+  Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -45,6 +47,7 @@ import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload
 import { makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
 import { formatBytes, formatDurationMinutes } from "@/lib/utils";
+import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import CoverImage from "@/components/CoverImage";
 import StoryCard from "@/components/StoryCard";
 
@@ -90,10 +93,7 @@ const StoryDetail = () => {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [reviewLoading, setReviewLoading] = useState(false);
-  const [favoriteError, setFavoriteError] = useState("");
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoritesCount, setFavoritesCount] = useState(0);
+  const { isFavorite, favoritesCount, favoriteLoading, favoriteError, toggleFavorite } = useFavoriteToggle(slug, story);
   const queryClient = useQueryClient();
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
@@ -148,12 +148,6 @@ const StoryDetail = () => {
       setReviewComment(myReview.comment || "");
     }
   }, [myReview]);
-
-  useEffect(() => {
-    if (!story) return;
-    setIsFavorite(Boolean(story.is_favorite));
-    setFavoritesCount(story.favorites_count || 0);
-  }, [story]);
 
   // useEffect(() => {
   //   if (pendingScroll === "chapters" && chaptersRef.current) {
@@ -227,34 +221,6 @@ const StoryDetail = () => {
     }
   };
 
-  const toggleFavorite = async () => {
-    if (!slug) return;
-    setFavoriteError("");
-
-    if (!isAuthenticated) {
-      setFavoriteError("Please log in to favorite stories.");
-      openLoginModal();
-      return;
-    }
-
-    setFavoriteLoading(true);
-    try {
-      const response = isFavorite
-        ? await storyApi.removeFavorite(slug)
-        : await storyApi.addFavorite(slug);
-      setIsFavorite(response.is_favorite);
-      setFavoritesCount(response.favorites_count);
-      await queryClient.invalidateQueries({ queryKey: ["story", slug] });
-      await queryClient.invalidateQueries({ queryKey: ["stories"] });
-      await queryClient.invalidateQueries({ queryKey: ["home-data"] });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update favorite.";
-      setFavoriteError(message);
-    } finally {
-      setFavoriteLoading(false);
-    }
-  };
-
   const firstChapterSlug = story.chapters[0]?.slug;
   const savedChapterSlug = readingProgress?.chapter_slug;
   const hasSavedChapter =
@@ -293,6 +259,7 @@ const StoryDetail = () => {
       : story.pdf_file
       ? `/story/${story.slug}/pdf`
       : null;
+  const quickReadMinutes = estimateSummaryReadingMinutes(story.summary);
   // Whichever format primaryReadHref actually resolved to, when it's not
   // chapters (hasSavedChapter already covers that case separately) — used to
   // decide between "Start Reading" and "Continue Reading" for the EPUB/PDF
@@ -674,6 +641,15 @@ const StoryDetail = () => {
                   </DropdownMenu>
                   {/* </Link> */}
                 </div>
+                {quickReadMinutes !== null && (
+                  <Link
+                    to={`/quick-read/${story.slug}`}
+                    className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    Quick Read · {quickReadMinutes} min
+                  </Link>
+                )}
                 {isAuthenticated && primaryReadHref && (
                   <p className="text-sm text-muted-foreground">
                     Completion: {primaryCompletionPercentage}%
