@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import HeroSection from "@/components/HeroSection";
 import ContinueReadingSection from "@/components/ContinueReadingSection";
+import QuickReadSection from "@/components/QuickReadSection";
 import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
 import TrendingList from "@/components/TrendingList";
@@ -117,6 +118,8 @@ const Index = () => {
               isError={false}
             />
           )}
+
+          <QuickReadSection stories={data.quick_reads} />
 
           <section className="grid gap-4 sm:gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">

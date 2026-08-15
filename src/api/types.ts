@@ -61,6 +61,10 @@ export interface Story {
   reviews_count?: number;
   is_favorite?: boolean;
   favorites_count?: number;
+  // Availability + estimate only, not the full summary text — see
+  // StoryListSerializer.get_summary_reading_minutes. Present (non-null) is
+  // what gates whether a story is eligible for Quick Read in list views.
+  summary_reading_minutes?: number | null;
 }
 
 export interface StoryListResponse {
@@ -229,6 +233,7 @@ export interface HomeDataResponse {
   weekly_spotlight: Story[];
   new_trending: Story[];
   more_to_explore: Story[];
+  quick_reads: Story[];
   tabs: HomeTabs;
   sidebar: HomeSidebar;
 }
