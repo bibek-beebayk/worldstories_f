@@ -523,21 +523,20 @@ const StoryDetail = () => {
                     </div>
                   )}
                   <h1 className="text-4xl font-bold mb-2">{story.title}</h1>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={story.author?.image || ""} />
-                      <AvatarFallback>SC</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm text-muted-foreground">
-                      by {story.author ? (
+                  {story.author && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={story.author.image || ""} />
+                        <AvatarFallback>SC</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-muted-foreground">
+                        by{" "}
                         <Link to={`/authors/${story.author.id}`} className="font-medium text-foreground transition-colors hover:text-primary hover:underline">
                           {story.author.name}
                         </Link>
-                      ) : (
-                        <span className="font-medium text-foreground">Unknown</span>
-                      )}
-                    </span>
-                  </div>
+                      </span>
+                    </div>
+                  )}
                   {story.submitted_by && (
                     <p className="text-sm text-muted-foreground">
                       Submitted by{" "}
@@ -878,11 +877,11 @@ const StoryDetail = () => {
                       <h3 className="font-semibold mb-2">Story Description</h3>
                       <p className="text-muted-foreground">{story.about || "No description available."}</p>
                     </div>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold mb-2">About the Author</h3>
-                      {story.author ? (
-                        <>
+                    {story.author && (
+                      <>
+                        <Separator />
+                        <div>
+                          <h3 className="font-semibold mb-2">About the Author</h3>
                           <Link to={`/authors/${story.author.id}`} className="group mb-3 flex w-fit items-center gap-3">
                             <Avatar className="h-12 w-12">
                               <AvatarImage src={story.author.image || ""} />
@@ -898,13 +897,9 @@ const StoryDetail = () => {
                           <p className="text-sm text-muted-foreground">
                             {story.author.bio || "No author bio available."}
                           </p>
-                        </>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          No author information available for this story.
-                        </p>
-                      )}
-                    </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
