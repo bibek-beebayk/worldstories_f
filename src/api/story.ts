@@ -23,6 +23,7 @@ import {
   AdminSubmission,
   AdminOverviewResponse,
   AdminAuthor,
+  AdminUser,
   AdminGenre,
   AdminCategory,
   LibraryShelvesResponse,
@@ -232,6 +233,18 @@ export const storyApi = {
     }),
   deleteAdminAuthor: (id: number) =>
     apiClient<void>(`/admin/authors/${id}/`, { method: "DELETE" }),
+  getAdminUsers: (page: number = 1, q: string = "") =>
+    apiClient<PaginatedResponse<AdminUser>>(
+      `/admin/users/?page=${page}&search=${encodeURIComponent(q)}`
+    ),
+  updateAdminUser: (
+    id: string,
+    payload: Partial<{ is_staff: boolean; is_superuser: boolean; is_active: boolean }>
+  ) =>
+    apiClient<AdminUser>(`/admin/users/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   getAdminGenres: () =>
     apiClient<AdminGenre[]>("/admin/genres/"),
   createAdminGenre: (name: string) =>

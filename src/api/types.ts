@@ -397,6 +397,24 @@ export interface AdminAuthor {
   stories_count?: number;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  date_joined: string;
+  last_login: string | null;
+  login_count: number;
+  otp_verified: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
+  is_active: boolean;
+  favorites_count: number;
+  reviews_count: number;
+  submissions_count: number;
+}
+
 export interface AdminGenre {
   id: number;
   name: string;
