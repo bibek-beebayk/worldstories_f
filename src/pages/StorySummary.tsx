@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useStory } from "@/hooks/useStory";
 import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { ArrowLeft, ArrowRight, Clock, Headphones, Heart, Info, Zap } from "lucide-react";
@@ -19,6 +21,11 @@ import { Link, useParams } from "react-router-dom";
 // to the first chapter, not wherever the reader last left off.
 const StorySummary = () => {
   const { slug } = useParams();
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
+  // Fetched unconditionally (not gated on isAuthenticated) so that if someone
+  // logs in from the prompt below without leaving this page, the summary is
+  // already in cache and appears instantly instead of behind a fresh spinner.
   const { data: story, isLoading, isError } = useStory(slug);
   const { isFavorite, favoriteLoading, toggleFavorite } = useFavoriteToggle(slug, story);
 
@@ -35,6 +42,28 @@ const StorySummary = () => {
     ? `/story/${story.slug}/pdf`
     : null;
   const firstAudioSlug = story?.audios[0]?.slug;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
+        <Seo title="Quick Read | WorldStories" description="Log in to use Quick Read." noIndex />
+        <Card className="w-full max-w-sm text-center">
+          <CardContent className="p-8">
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              <Zap className="h-3.5 w-3.5" />
+              Quick Read
+            </div>
+            <p className="text-sm text-muted-foreground">
+              <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
+                Login
+              </button>{" "}
+              to read Quick Read summaries.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <FullScreenLoader />;

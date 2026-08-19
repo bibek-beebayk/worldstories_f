@@ -1,5 +1,6 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { storyApi } from "@/api/story";
 import { queueChapterProgress, saveChapterProgressLocally } from "@/lib/progressSync";
@@ -191,6 +192,7 @@ const StoryReader = () => {
   const { data: story } = useStory(story_slug);
   const hasQuickRead = estimateSummaryReadingMinutes(story?.summary) !== null;
   const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
@@ -679,17 +681,22 @@ const StoryReader = () => {
                   <span className="hidden sm:inline">Contents</span>
                 </Button>
                 {hasQuickRead && story_slug && (
-                  <Link to={`/quick-read/${story_slug}`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-2 sm:h-9 sm:px-3"
-                      aria-label="Switch to Quick Read"
-                    >
-                      <Zap className="h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Quick Read</span>
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2 sm:h-9 sm:px-3"
+                    aria-label="Switch to Quick Read"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        openLoginModal();
+                        return;
+                      }
+                      navigate(`/quick-read/${story_slug}`);
+                    }}
+                  >
+                    <Zap className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Quick Read</span>
+                  </Button>
                 )}
                 <Button
                   variant="outline"

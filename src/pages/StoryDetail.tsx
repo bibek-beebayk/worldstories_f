@@ -49,6 +49,7 @@ import { getLanguageLabel } from "@/lib/languages";
 import { formatBytes, formatDurationMinutes } from "@/lib/utils";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import CoverImage from "@/components/CoverImage";
+import AuthGatedLink from "@/components/AuthGatedLink";
 import StoryCard from "@/components/StoryCard";
 
 type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
@@ -284,6 +285,10 @@ const StoryDetail = () => {
       ? 1
       : 0;
   const openBulkDownload = () => {
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
     if (bulkChoices.length === 1) {
       setBulkDownloadKind(bulkChoices[0]);
       setBulkDownloadStage("confirm");
@@ -642,13 +647,13 @@ const StoryDetail = () => {
                   {/* </Link> */}
                 </div>
                 {quickReadMinutes !== null && (
-                  <Link
+                  <AuthGatedLink
                     to={`/quick-read/${story.slug}`}
                     className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline"
                   >
                     <Zap className="h-3.5 w-3.5" />
                     Quick Read · {quickReadMinutes} min
-                  </Link>
+                  </AuthGatedLink>
                 )}
                 {isAuthenticated && primaryReadHref && (
                   <p className="text-sm text-muted-foreground">

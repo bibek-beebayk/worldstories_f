@@ -7,8 +7,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Clock3, Headphones, Zap } from "lucide-react";
-import { Link } from "react-router-dom";
 import CoverImage from "@/components/CoverImage";
+import AuthGatedLink from "@/components/AuthGatedLink";
 
 interface QuickReadSectionProps {
   stories: Story[];
@@ -40,7 +40,7 @@ const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
           {stories.map((story) => (
             <CarouselItem key={story.id} className="basis-[170px] sm:basis-[185px]">
               <article className="h-full rounded-lg border border-border/70 bg-background/70 p-3">
-                <Link to={`/quick-read/${story.slug}`} className="group block">
+                <AuthGatedLink to={`/quick-read/${story.slug}`} className="group block w-full text-left">
                   <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-muted shadow-sm">
                     <CoverImage
                       src={story.cover_image}
@@ -56,14 +56,14 @@ const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
                       </div>
                     )}
                   </div>
-                </Link>
+                </AuthGatedLink>
 
                 <div className="space-y-2">
-                  <Link to={`/quick-read/${story.slug}`} className="group/title block">
+                  <AuthGatedLink to={`/quick-read/${story.slug}`} className="group/title block w-full text-left">
                     <h3 className="line-clamp-2 text-xs font-semibold transition-colors group-hover/title:text-primary">
                       {story.title}
                     </h3>
-                  </Link>
+                  </AuthGatedLink>
                   {story.author && (
                     <p className="line-clamp-1 text-[11px] text-muted-foreground">by {story.author}</p>
                   )}
@@ -74,13 +74,13 @@ const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
                     </div>
                   )}
 
-                  <Link
+                  <AuthGatedLink
                     to={`/quick-read/${story.slug}`}
                     className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     <Zap className="h-3 w-3" />
                     Quick Read
-                  </Link>
+                  </AuthGatedLink>
                 </div>
               </article>
             </CarouselItem>

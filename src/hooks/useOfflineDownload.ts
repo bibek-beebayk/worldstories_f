@@ -15,6 +15,8 @@ import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 import { preloadOfflineReader } from "@/lib/preloadOfflineReader";
 import { toast } from "@/components/ui/sonner";
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -129,6 +131,23 @@ export function useOfflineDownload() {
   // JSON payloads fetched via apiClient (not a raw stream), so there's no
   // byte-level progress to report for them; they just show a spinner.
   const [progressById, setProgressById] = useState<Record<string, number>>({});
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
+
+  // Offline downloads are a logged-in feature — gated here, once, rather than
+  // at every download-button call site, so every current and future caller
+  // (StoryDetail's bulk/per-item downloads, PdfReader, EpubReader,
+  // AudiobookPlayer) is covered automatically. Reading back content that's
+  // already downloaded (getDecryptedChapter/getDecryptedBinary, used by the
+  // reader pages) is intentionally NOT gated here — that's what makes
+  // offline reading actually work offline, including for a session whose
+  // token has since expired.
+  const requireAuth = useCallback(() => {
+    if (isAuthenticated) return true;
+    toast.error("Please log in to download stories for offline access.");
+    openLoginModal();
+    return false;
+  }, [isAuthenticated, openLoginModal]);
 
   const withPending = useCallback(async (id: string, run: () => Promise<void>) => {
     setPendingIds((prev) => ({ ...prev, [id]: true }));
@@ -150,6 +169,7 @@ export function useOfflineDownload() {
 
   const downloadChapter = useCallback(
     async (story: DownloadableStory, chapter_slug: string, title: string, order: number) => {
+      if (!requireAuth()) return false;
       if (!(await reserveDownloadTitle(story.slug))) return false;
       const id = makeDownloadId(story.slug, "chapter", chapter_slug);
       try {
@@ -163,11 +183,12 @@ export function useOfflineDownload() {
         releaseDownloadTitle(story.slug);
       }
     },
-    [withPending]
+    [requireAuth, withPending]
   );
 
   const downloadAudio = useCallback(
     async (story: DownloadableStory, audio_slug: string, title: string, order: number) => {
+      if (!requireAuth()) return false;
       if (!(await reserveDownloadTitle(story.slug))) return false;
       const id = makeDownloadId(story.slug, "audio", audio_slug);
       // Set before the fetch starts, not just on the first chunk — opening
@@ -190,11 +211,12 @@ export function useOfflineDownload() {
         releaseDownloadTitle(story.slug);
       }
     },
-    [withPending]
+    [requireAuth, withPending]
   );
 
   const downloadFile = useCallback(
     async (story: DownloadableStory, type: "epub" | "pdf", title: string) => {
+      if (!requireAuth()) return false;
       if (!(await reserveDownloadTitle(story.slug))) return false;
       const id = makeDownloadId(story.slug, type);
       setProgressById((prev) => ({ ...prev, [id]: 0 }));
@@ -212,7 +234,7 @@ export function useOfflineDownload() {
         releaseDownloadTitle(story.slug);
       }
     },
-    [withPending]
+    [requireAuth, withPending]
   );
 
   const removeDownloadItem = useCallback((id: string) => deleteDownload(id), []);

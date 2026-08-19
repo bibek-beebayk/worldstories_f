@@ -8,8 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DownloadRecord, groupDownloadsByStory, listDownloads } from "@/lib/offlineDb";
 import { formatBytes } from "@/lib/utils";
 import { MAX_DOWNLOADED_TITLES } from "@/hooks/useOfflineDownload";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
 
 const Downloads = () => {
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedStory = searchParams.get("story");
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
@@ -35,6 +39,29 @@ const Downloads = () => {
     : [];
   const groupedDownloads = groupDownloadsByStory(downloads);
   const totalBytes = downloads.reduce((sum, item) => sum + item.size_bytes, 0);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <Seo
+          title="Downloads | WorldStories"
+          description="Read and listen to content saved on this device."
+          path="/downloads"
+          noIndex
+        />
+        <Card className="mx-auto max-w-xl">
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">
+              <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
+                Login
+              </button>{" "}
+              to download stories for offline access.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">

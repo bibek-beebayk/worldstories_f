@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import LoggedOutBanner from "@/components/LoggedOutBanner";
 import LoginModal from "@/components/LoginModal";
 import PullToRefresh from "@/components/PullToRefresh";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -121,7 +122,12 @@ export default function DefaultLayout() {
         path={location.pathname}
         noIndex={metadata.noIndex}
       />
-      {!isImmersiveReaderRoute && <Header />}
+      {!isImmersiveReaderRoute && (
+        <>
+          <Header />
+          <LoggedOutBanner />
+        </>
+      )}
 
       {/* PullToRefresh always wraps <Outlet/> here (just internally disabled
           for immersive routes/modes) rather than being conditionally present —
