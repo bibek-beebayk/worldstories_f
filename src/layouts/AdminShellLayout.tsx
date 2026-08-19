@@ -4,6 +4,7 @@ import { LayoutDashboard, Library, Inbox, Globe, LogOut, BarChart3, Menu, Tag, U
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
+import { authApi } from "@/api/auth";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -30,6 +31,7 @@ export default function AdminShellLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const onLogout = () => {
+    authApi.logout().catch(() => undefined);
     clearTokens();
     setShowLogoutModal(false);
     setMobileNavOpen(false);

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { clearTokens } from "@/api/client";
+import { authApi } from "@/api/auth";
 import { useSearchStories } from "@/hooks/useSearchStories";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
@@ -53,6 +54,11 @@ const Header = () => {
   );
 
   const handleLogout = () => {
+    // Best-effort — blacklists the refresh token server-side, but the local
+    // logout below must happen regardless of whether this call succeeds
+    // (e.g. offline). Fired before clearTokens() since it needs the tokens
+    // still in localStorage to send.
+    authApi.logout().catch(() => undefined);
     clearTokens();
     setShowLogoutModal(false);
     navigate("/");

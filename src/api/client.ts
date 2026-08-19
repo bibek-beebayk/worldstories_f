@@ -216,8 +216,15 @@ export async function tryRefreshTokens() {
 
     const data = await res.json();
     const newAccess = data.access;
+    // The backend rotates refresh tokens (ROTATE_REFRESH_TOKENS) and
+    // blacklists the one just used — reusing the original `refresh` here
+    // instead of the freshly-issued one would make every session die after
+    // a single refresh, since that original token stops working the moment
+    // it's used once. Falls back to the original only if a response somehow
+    // doesn't include one (rotation disabled server-side).
+    const newRefresh = data.refresh || refresh;
 
-    saveTokens(newAccess, refresh);
+    saveTokens(newAccess, newRefresh);
 
     queuedRequests.forEach((resolve) => resolve(newAccess));
     queuedRequests = [];

@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient, getRefreshToken } from "./client";
 import {
   ContinueListeningItem,
   ContinueReadingItem,
@@ -85,5 +85,15 @@ export const authApi = {
     apiClient<AuthResponse>("/auth/admin-login/", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    }),
+  // Blacklists the current refresh token server-side so it can't be used
+  // again after logout — without this, "logging out" only ever cleared the
+  // tokens locally, and the refresh token itself stayed valid on the server
+  // for its full lifetime. Best-effort: if it fails (e.g. already offline),
+  // the caller should still clear local tokens regardless.
+  logout: () =>
+    apiClient<{ detail: string }>("/auth/logout/", {
+      method: "POST",
+      body: JSON.stringify({ refresh: getRefreshToken() }),
     }),
 };
