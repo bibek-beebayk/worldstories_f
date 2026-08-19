@@ -61,6 +61,11 @@
   status = 200
 
 [[redirects]]
+  from = "/quick-reads"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/authors"
   to = "/index.html"
   status = 200

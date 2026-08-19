@@ -6,7 +6,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Clock3, Headphones, Zap } from "lucide-react";
+import { ArrowRight, Clock3, Headphones, Zap } from "lucide-react";
 import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
 
@@ -85,6 +85,28 @@ const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
               </article>
             </CarouselItem>
           ))}
+
+          <CarouselItem className="basis-[170px] sm:basis-[185px]">
+            <AuthGatedLink
+              to="/quick-reads"
+              className="flex h-full min-h-[220px] w-full flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/10"
+            >
+              <div>
+                <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
+                  Show All
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Browse all Quick Reads</h3>
+                <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                  See every story with a summary available on WorldStories.
+                </p>
+              </div>
+
+              <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
+                <span>Open Quick Reads</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </div>
+            </AuthGatedLink>
+          </CarouselItem>
         </CarouselContent>
         <CarouselPrevious />
         <CarouselNext />
