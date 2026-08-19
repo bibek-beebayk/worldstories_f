@@ -684,14 +684,15 @@ const StoryDetail = () => {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
-                {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
-                {story.summary && <TabsTrigger value="summary">Summary</TabsTrigger>}
-                <TabsTrigger value="about">About</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-
-              </TabsList>
+              <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                <TabsList className="w-max">
+                  {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
+                  {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
+                  {story.summary && <TabsTrigger value="summary">Summary</TabsTrigger>}
+                  <TabsTrigger value="about">About</TabsTrigger>
+                  <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="chapters" className="mt-6" ref={chaptersRef}>
                 <Card >
