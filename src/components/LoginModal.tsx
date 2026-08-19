@@ -7,9 +7,14 @@ import BookWorldArt from "@/components/BookWorldArt";
 import { useAuthModal } from "@/context/AuthModalContext";
 
 const LoginModal = () => {
-  const { isLoginModalOpen, closeLoginModal } = useAuthModal();
+  const { isLoginModalOpen, closeLoginModal, openOnboarding } = useAuthModal();
 
   if (!isLoginModalOpen) return null;
+
+  const handleLoginSuccess = (isFirstLogin: boolean) => {
+    closeLoginModal();
+    if (isFirstLogin) openOnboarding();
+  };
 
   return (
     <div
@@ -56,7 +61,7 @@ const LoginModal = () => {
 
         <CardContent className="pb-6 pt-6">
           <div className="flex justify-center">
-            <GoogleLoginButton onSuccess={closeLoginModal} />
+            <GoogleLoginButton onSuccess={handleLoginSuccess} />
           </div>
           <p className="mt-5 text-center text-xs text-muted-foreground">
             By continuing, you agree to WorldStories'{" "}

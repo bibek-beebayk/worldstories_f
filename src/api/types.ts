@@ -277,6 +277,7 @@ export interface UserProfile {
   reviews_count: number;
   reading_in_progress_count: number;
   listening_in_progress_count: number;
+  preferred_genres: Genre[];
 }
 
 export interface ProfileInsightsResponse {

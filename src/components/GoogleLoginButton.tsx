@@ -22,7 +22,7 @@ declare global {
 }
 
 interface Props {
-  onSuccess?: () => void;
+  onSuccess?: (isFirstLogin: boolean) => void;
 }
 
 export default function GoogleLoginButton({ onSuccess }: Props) {
@@ -39,6 +39,7 @@ export default function GoogleLoginButton({ onSuccess }: Props) {
           const res = await apiClient<{
             access: string;
             refresh: string;
+            user: { id: string; email: string; name: string; is_first_login: boolean };
           }>("/auth/google-login/", {
             method: "POST",
             body: JSON.stringify({
@@ -50,7 +51,7 @@ export default function GoogleLoginButton({ onSuccess }: Props) {
           saveTokens(res.access, res.refresh);
           await adoptGuestProgress();
 
-          if (onSuccess) onSuccess();
+          if (onSuccess) onSuccess(res.user.is_first_login);
         } catch (err) {
           console.error("Google login failed:", err);
         }

@@ -6,6 +6,7 @@ import {
   MyReviewItem,
   PaginatedResponse,
   ProfileInsightsResponse,
+  Story,
   UserProfile,
 } from "./types";
 
@@ -31,6 +32,7 @@ interface ProfileUpdatePayload {
   display_name?: string;
   bio?: string;
   avatar_url?: string;
+  preferred_genres?: number[];
 }
 
 export const authApi = {
@@ -65,6 +67,10 @@ export const authApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  checkUsername: (username: string) =>
+    apiClient<{ available: boolean }>(
+      `/auth/username-available/?username=${encodeURIComponent(username)}`
+    ),
   getContinueReading: (page: number = 1) =>
     apiClient<PaginatedResponse<ContinueReadingItem>>(
       `/auth/library/continue-reading/?page=${page}`
@@ -81,6 +87,8 @@ export const authApi = {
     apiClient<PaginatedResponse<FavoriteItem>>(`/auth/library/favorites/?page=${page}`),
   getMyReviews: (page: number = 1) =>
     apiClient<PaginatedResponse<MyReviewItem>>(`/auth/library/reviews/?page=${page}`),
+  getRecommendations: () =>
+    apiClient<Story[]>("/auth/library/recommendations/"),
   adminLogin: (email: string, password: string) =>
     apiClient<AuthResponse>("/auth/admin-login/", {
       method: "POST",

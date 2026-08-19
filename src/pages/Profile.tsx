@@ -41,6 +41,7 @@ import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Seo from "@/components/Seo";
 import ProfileInsights from "@/components/ProfileInsights";
+import GenreChipPicker from "@/components/GenreChipPicker";
 
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
 type ReaderView = "reading" | "completed" | "listening" | "favorites" | "reviews";
@@ -71,6 +72,7 @@ const Profile = () => {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [preferredGenreIds, setPreferredGenreIds] = useState<number[]>([]);
   const [saveError, setSaveError] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
   const [showSubmissionViewModal, setShowSubmissionViewModal] = useState(false);
@@ -207,6 +209,7 @@ const Profile = () => {
     setDisplayName(profile.display_name || "");
     setBio(profile.bio || "");
     setAvatarUrl(profile.avatar_url || "");
+    setPreferredGenreIds((profile.preferred_genres || []).map((genre) => genre.id));
   }, [profile]);
 
   useEffect(() => {
@@ -267,8 +270,10 @@ const Profile = () => {
         display_name: displayName.trim(),
         bio: bio.trim(),
         avatar_url: avatarUrl.trim(),
+        preferred_genres: preferredGenreIds,
       });
       await queryClient.invalidateQueries({ queryKey: ["profile-me"] });
+      await queryClient.invalidateQueries({ queryKey: ["home-recommendations"] });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save profile.";
       setSaveError(message);
@@ -1434,6 +1439,22 @@ const Profile = () => {
                 <div>
                   <label className="mb-1 block text-sm">Bio</label>
                   <Textarea value={bio} onChange={(e) => setBio(e.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm">Preferred Genres</label>
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Used to recommend stories to you on the homepage.
+                  </p>
+                  <GenreChipPicker
+                    selectedIds={preferredGenreIds}
+                    onToggle={(id) =>
+                      setPreferredGenreIds((current) =>
+                        current.includes(id)
+                          ? current.filter((genreId) => genreId !== id)
+                          : [...current, id]
+                      )
+                    }
+                  />
                 </div>
                 {profile.is_superuser && (
                   <div className="rounded-md border bg-muted/30 p-3">

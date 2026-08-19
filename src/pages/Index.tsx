@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import HeroSection from "@/components/HeroSection";
 import ContinueReadingSection from "@/components/ContinueReadingSection";
+import RecommendedForYouSection from "@/components/RecommendedForYouSection";
 import QuickReadSection from "@/components/QuickReadSection";
 import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
@@ -18,6 +19,7 @@ import {
 import { AUTH_CHANGE_EVENT, getAccessToken } from "@/api/client";
 import { useHomeData } from "@/hooks/useHomeData";
 import { useContinueReading } from "@/hooks/useContinueReading";
+import { useRecommendations } from "@/hooks/useRecommendations";
 import { ArrowRight, BookOpenText, Compass, Flame, Sparkles, Users } from "lucide-react";
 import { ComponentType } from "react";
 import { formatViews } from "@/lib/utils";
@@ -62,6 +64,11 @@ const Index = () => {
     isLoading: isContinueReadingLoading,
     isError: isContinueReadingError,
   } = useContinueReading(isLoggedIn);
+  const {
+    data: recommendationsData,
+    isLoading: isRecommendationsLoading,
+    isError: isRecommendationsError,
+  } = useRecommendations(isLoggedIn);
 
   useEffect(() => {
     const syncAuthState = () => {
@@ -114,6 +121,21 @@ const Index = () => {
             (continueReadingData?.results.length || 0) > 0 && (
             <ContinueReadingSection
               items={continueReadingData!.results}
+              isLoading={false}
+              isError={false}
+            />
+          )}
+
+          {/* Renders only once recommendations actually come back — a user
+              who skipped the genre picker (or hasn't logged in) has none, and
+              the section just doesn't appear rather than showing an empty
+              state or nagging them to set preferences. */}
+          {isLoggedIn &&
+            !isRecommendationsLoading &&
+            !isRecommendationsError &&
+            (recommendationsData?.length || 0) > 0 && (
+            <RecommendedForYouSection
+              stories={recommendationsData!}
               isLoading={false}
               isError={false}
             />

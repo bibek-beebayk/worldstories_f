@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoggedOutBanner from "@/components/LoggedOutBanner";
 import LoginModal from "@/components/LoginModal";
+import FirstLoginSetupModal from "@/components/FirstLoginSetupModal";
 import PullToRefresh from "@/components/PullToRefresh";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -147,6 +148,7 @@ export default function DefaultLayout() {
 
       {!isImmersiveReaderRoute && <Footer />}
       <LoginModal />
+      <FirstLoginSetupModal />
     </>
   );
 }
