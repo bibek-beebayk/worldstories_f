@@ -43,7 +43,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { data, Link, useParams } from "react-router";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
-import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import type { Route } from "./+types/StoryDetail";
 import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
@@ -715,7 +714,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 <TabsList className="w-max">
                   {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
                   {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
-                  {story.summary && <TabsTrigger value="summary">Summary</TabsTrigger>}
                   <TabsTrigger value="about">About</TabsTrigger>
                   <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 </TabsList>
@@ -861,23 +859,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 </Card>
               </TabsContent>
 
-
-              {story.summary && (
-                // forceMount + CSS-driven visibility (instead of Radix's default
-                // unmount-when-inactive) keeps the summary in the rendered DOM
-                // regardless of which tab is selected — search crawlers only see
-                // whatever's present on initial render, they don't click tabs.
-                <TabsContent value="summary" forceMount className="mt-6 data-[state=inactive]:hidden">
-                  <Card>
-                    <CardContent className="p-6">
-                      <div
-                        className="prose max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
 
               <TabsContent value="about" className="mt-6">
                 <Card>
