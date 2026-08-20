@@ -28,6 +28,7 @@ import {
   Download,
   Eye,
   Facebook,
+  FileText,
   Headphones,
   Heart,
   Link2,
@@ -545,10 +546,17 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                     <Eye className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
                     <span>{story.views}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <BookMarked className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                    <span>{story.chapter_count} chapters</span>
-                  </div>
+                  {story.chapter_count > 0 ? (
+                    <div className="flex items-center gap-1">
+                      <BookMarked className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
+                      <span>{story.chapter_count} chapters</span>
+                    </div>
+                  ) : story.epub_file || story.pdf_file ? (
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
+                      <span>{story.epub_file ? "EPUB" : "PDF"}</span>
+                    </div>
+                  ) : null}
                   {story.reading_time_minutes != null && (
                     <div className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
