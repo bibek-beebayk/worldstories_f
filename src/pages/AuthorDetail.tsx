@@ -1,13 +1,58 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { data, Link, useParams } from "react-router";
 import { storyApi } from "@/api/story";
 import AuthorPortrait from "@/components/AuthorPortrait";
 import FullScreenLoader from "@/components/FullScreenLoader";
-import Seo, { SITE_URL } from "@/components/Seo";
+import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import StoryCard from "@/components/StoryCard";
+import type { Route } from "./+types/AuthorDetail";
 
-export default function AuthorDetail() {
+// Fetched here purely to supply meta() with real data server-side — the
+// component below still fetches independently via useQuery for now
+// (subtask 5 will consolidate these into one fetch).
+export async function loader({ params }: Route.LoaderArgs) {
+  const authorId = Number(params.id);
+  if (!Number.isInteger(authorId) || authorId <= 0) {
+    return data(null, { status: 404 });
+  }
+  try {
+    return await storyApi.getAuthor(authorId);
+  } catch {
+    return data(null, { status: 404 });
+  }
+}
+
+export function meta({ data: author, params }: Route.MetaArgs) {
+  if (!author) {
+    return buildMeta({
+      title: "Author Not Found | WorldStories",
+      description: "The requested author could not be found.",
+      path: `/authors/${params.id || ""}`,
+      noIndex: true,
+    });
+  }
+
+  const description = author.bio?.trim() || `Explore stories by ${author.name} on WorldStories.`;
+
+  return buildMeta({
+    title: `${author.name} — Author | WorldStories`,
+    description: description.slice(0, 160),
+    path: `/authors/${author.id}`,
+    image: author.image,
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: author.name,
+      description,
+      image: author.image || undefined,
+      url: `${SITE_URL}/authors/${author.id}`,
+      mainEntityOfPage: author.stories.map((story) => `${SITE_URL}/story/${story.slug}`),
+    },
+  });
+}
+
+export default function AuthorDetail({ loaderData }: Route.ComponentProps) {
   const { id } = useParams();
   const authorId = Number(id);
   const { data: author, isLoading, isError } = useQuery({
@@ -15,13 +60,13 @@ export default function AuthorDetail() {
     queryFn: () => storyApi.getAuthor(authorId),
     enabled: Number.isInteger(authorId) && authorId > 0,
     retry: false,
+    initialData: loaderData || undefined,
   });
 
   if (isLoading) return <FullScreenLoader />;
   if (isError || !author) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
-        <Seo title="Author Not Found | WorldStories" description="The requested author could not be found." path={`/authors/${id || ""}`} noIndex />
         <h1 className="text-2xl font-bold">Author not found</h1>
         <Link to="/authors" className="mt-4 inline-flex items-center gap-1 text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" /> Browse all authors
@@ -34,22 +79,6 @@ export default function AuthorDetail() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_38%)]">
-      <Seo
-        title={`${author.name} — Author | WorldStories`}
-        description={description.slice(0, 160)}
-        path={`/authors/${author.id}`}
-        image={author.image}
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Person",
-          name: author.name,
-          description,
-          image: author.image || undefined,
-          url: `${SITE_URL}/authors/${author.id}`,
-          mainEntityOfPage: author.stories.map((story) => `${SITE_URL}/story/${story.slug}`),
-        }}
-      />
-
       <main className="container mx-auto px-4 py-6 sm:py-10">
         <Link to="/authors" className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
           <ArrowLeft className="h-4 w-4" /> All authors

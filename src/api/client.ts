@@ -12,21 +12,32 @@ function notifyAuthChanged() {
 // ----------------------------
 // TOKEN HELPERS
 // ----------------------------
+// Guarded for SSR: these run during server rendering too now (any component
+// that calls them unconditionally at render time, not just inside an effect,
+// would otherwise crash the whole page with "localStorage is not defined").
+// There's no session on the server regardless, so "no token" is the correct
+// answer there, not a workaround.
+const hasLocalStorage = () => typeof window !== "undefined";
+
 export function saveTokens(access: string, refresh: string) {
+  if (!hasLocalStorage()) return;
   localStorage.setItem("access", access);
   localStorage.setItem("refresh", refresh);
   notifyAuthChanged();
 }
 
 export function getAccessToken() {
+  if (!hasLocalStorage()) return null;
   return localStorage.getItem("access");
 }
 
 export function getRefreshToken() {
+  if (!hasLocalStorage()) return null;
   return localStorage.getItem("refresh");
 }
 
 export function clearTokens() {
+  if (!hasLocalStorage()) return;
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
   notifyAuthChanged();

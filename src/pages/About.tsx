@@ -1,8 +1,17 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { BookOpen, Globe2, PenLine, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import Seo from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
+
+export function meta() {
+  return buildMeta({
+    title: "About WorldStories",
+    description:
+      "WorldStories is a home for stories from around the world — discover new tales, connect with authors, and immerse yourself in diverse narratives across genres.",
+    path: "/about",
+  });
+}
 
 const values = [
   {
@@ -25,11 +34,6 @@ const values = [
 const About = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title="About WorldStories"
-        description="WorldStories is a home for stories from around the world — discover new tales, connect with authors, and immerse yourself in diverse narratives across genres."
-        path="/about"
-      />
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:py-16">
         <div className="rounded-full bg-primary/10 p-3 w-fit">
           <BookOpen className="h-6 w-6 text-primary" />

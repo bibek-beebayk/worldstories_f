@@ -10,6 +10,7 @@ export type PageAnimationEffect = (typeof PAGE_ANIMATION_OPTIONS)[number]["value
 export type PageTurnDirection = "next" | "prev";
 
 export function getSavedPageAnimation(storageKey: string): PageAnimationEffect {
+  if (typeof window === "undefined") return "slide";
   const saved = localStorage.getItem(storageKey);
   return PAGE_ANIMATION_OPTIONS.some((option) => option.value === saved)
     ? (saved as PageAnimationEffect)

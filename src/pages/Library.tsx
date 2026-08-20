@@ -30,8 +30,8 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import Seo, { SITE_URL } from "@/components/Seo";
+import { Link, useSearchParams } from "react-router";
+import { buildMeta } from "@/lib/buildMeta";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 import { STORY_TYPE_OPTIONS } from "@/lib/storyTypes";
 
@@ -49,6 +49,25 @@ function getInitialCategoryFromUrl(searchParams: URLSearchParams): number[] {
 // the filters bar below it — the bar sits at exactly headerBottom + this,
 // not a separately-guessed offset.
 const FILTERS_BAR_GAP = 6;
+
+// Deliberately still no loader for this page's body content (unlike Home/
+// Discover/Authors/the dynamic pages), and the ItemList structuredData
+// stays dropped: Library's content is a filter/browse UI driven by 10 URL
+// params through useInfiniteStories/useInfiniteLibraryShelves
+// (useInfiniteQuery, not a plain query) — seeding that server-side means
+// replicating the component's own param parsing in the loader and shaping
+// the result as {pages, pageParams}. Real but meaningfully more work than
+// the other pages here for a filter/browse surface that's a lower SEO
+// priority than the story/author/home pages this migration actually
+// targets. Worth doing as a follow-up, not folded into this pass.
+export function meta() {
+  return buildMeta({
+    title: "Library — Browse Every Story | WorldStories",
+    description:
+      "Browse the full WorldStories library by genre, or filter by status and popularity to find your next short story, novel, or poetry collection.",
+    path: "/library",
+  });
+}
 
 const Library = () => {
   const isHeaderScrolled = useIsHeaderScrolled();
@@ -222,33 +241,8 @@ const Library = () => {
   const isLoading = isBrowsing ? isShelvesLoading : isStoriesLoading;
   if (isLoading) return <FullScreenLoader />;
 
-  const seoItemList = isBrowsing
-    ? shelves.flatMap((shelf) => shelf.preview_stories).slice(0, 20)
-    : stories.slice(0, 20);
-
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title="Library — Browse Every Story | WorldStories"
-        description="Browse the full WorldStories library by genre, or filter by status and popularity to find your next short story, novel, or poetry collection."
-        path="/library"
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Library — WorldStories",
-          url: `${SITE_URL}/library`,
-          mainEntity: {
-            "@type": "ItemList",
-            itemListElement: seoItemList.map((story, index) => ({
-              "@type": "ListItem",
-              position: index + 1,
-              url: `${SITE_URL}/story/${story.slug}`,
-              name: story.title,
-            })),
-          },
-        }}
-      />
-
       <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
+import { data, useParams, Link, useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,43 @@ import {
 } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import AdSpace from "@/components/AdSpace";
-import Seo from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
 import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
+import type { Route } from "./+types/AudiobookPlayer";
+
+// Fetched here purely to supply meta() with real data server-side — the
+// component below still fetches independently via useStory().
+export async function loader({ params }: Route.LoaderArgs) {
+  try {
+    return await storyApi.getStory(params.story_slug!);
+  } catch {
+    return data(null, { status: 404 });
+  }
+}
+
+// Always noIndex: this is a playback UI, not a page anyone should land on
+// from search — the story's own page is the indexable surface for its audio.
+export function meta({ data: story, params }: Route.MetaArgs) {
+  if (!story) {
+    return buildMeta({
+      title: "Audiobook Not Found | WorldStories",
+      description: "The requested audiobook could not be found.",
+      path: `/listen/${params.story_slug}/${params.chapter_slug}`,
+      noIndex: true,
+    });
+  }
+
+  const currentAudio = story.audios.find((audio) => audio.slug === params.chapter_slug);
+  return buildMeta({
+    title: `${currentAudio?.title ? `${currentAudio.title} — ` : ""}${story.title} Audiobook | WorldStories`,
+    description: `Listen to ${story.title} on WorldStories.`,
+    path: `/listen/${params.story_slug}/${params.chapter_slug}`,
+    noIndex: true,
+  });
+}
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { queueAudioProgress, saveAudioProgressLocally } from "@/lib/progressSync";
@@ -43,7 +75,7 @@ const isIOSDevice = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-const AudioPlayerPage = () => {
+const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   const { story_slug, chapter_slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,7 +83,7 @@ const AudioPlayerPage = () => {
   // page — the entry point passes this via navigation state (see
   // ProfileDownloadedStory.tsx).
   const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${story_slug}`;
-  const { data: story, isLoading, isError } = useStory(story_slug);
+  const { data: story, isLoading, isError } = useStory(story_slug, loaderData || undefined);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   // Keyed by audio slug rather than a single shared timer — with one shared
@@ -73,7 +105,7 @@ const AudioPlayerPage = () => {
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [autoplayEnabled, setAutoplayEnabled] = useState(
-    () => localStorage.getItem(AUDIOBOOK_AUTOPLAY_STORAGE_KEY) !== "false"
+    () => typeof window === "undefined" || localStorage.getItem(AUDIOBOOK_AUTOPLAY_STORAGE_KEY) !== "false"
   );
   const playlistDragRef = useRef<{ pointerId: number; startX: number; startY: number } | null>(null);
   const [liveAudioProgressMap, setLiveAudioProgressMap] = useState<
@@ -547,12 +579,6 @@ const AudioPlayerPage = () => {
           : "min-h-screen"
       } bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_55%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]`}
     >
-      <Seo
-        title={`${currentAudio?.title ? `${currentAudio.title} — ` : ""}${story.title} Audiobook | WorldStories`}
-        description={`Listen to ${story.title} on WorldStories.`}
-        path={`/listen/${story_slug}/${chapter_slug}`}
-        noIndex
-      />
       <main
         className={
           isFullscreen

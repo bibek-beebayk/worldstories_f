@@ -9,7 +9,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { ArrowRight, BookOpenText, Clock3, Headphones } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import CoverImage from "@/components/CoverImage";
 
 interface ContinueReadingSectionProps {

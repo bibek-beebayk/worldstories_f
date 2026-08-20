@@ -26,11 +26,45 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import Seo from "@/components/Seo";
+import { data, Link, useLocation, useNavigate, useParams } from "react-router";
+import { buildMeta } from "@/lib/buildMeta";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
+import type { Route } from "./+types/StoryReader";
+
+// Fetched here purely to supply meta() with real data server-side — the
+// component below still fetches independently via useChapter()/useStory().
+export async function loader({ params }: Route.LoaderArgs) {
+  const { story_slug, chapter_slug } = params;
+  try {
+    const [story, chapter] = await Promise.all([
+      storyApi.getStory(story_slug!),
+      storyApi.getChapter(story_slug!, chapter_slug!, "text"),
+    ]);
+    return { story, chapter };
+  } catch {
+    return data(null, { status: 404 });
+  }
+}
+
+export function meta({ data: loaderData, params }: Route.MetaArgs) {
+  if (!loaderData) {
+    return buildMeta({
+      title: "Chapter Not Found | WorldStories",
+      description: "The requested chapter could not be found.",
+      path: `/read/${params.story_slug}/${params.chapter_slug}`,
+      noIndex: true,
+    });
+  }
+
+  const { story, chapter } = loaderData;
+  return buildMeta({
+    title: `${chapter.title}${story?.title ? ` — ${story.title}` : ""} | WorldStories`,
+    description: `Read ${chapter.title}${story?.title ? ` from ${story.title}` : ""} on WorldStories.`,
+    path: `/read/${params.story_slug}/${params.chapter_slug}`,
+  });
+}
 
 type ReaderThemeKey = string;
 type ReaderFontKey = string;
@@ -175,7 +209,7 @@ export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
   },
 };
 
-const StoryReader = () => {
+const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   const { story_slug, chapter_slug } = useParams();
   useContentSessionAnalytics("reading_session", story_slug, true, {
     format: "chapter",
@@ -188,21 +222,29 @@ const StoryReader = () => {
   // ProfileDownloadedStory.tsx).
   const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${story_slug}`;
 
-  const { data: chapter, isLoading, isError } = useChapter(story_slug, chapter_slug, "text");
-  const { data: story } = useStory(story_slug);
+  const { data: chapter, isLoading, isError } = useChapter(
+    story_slug,
+    chapter_slug,
+    "text",
+    loaderData?.chapter
+  );
+  const { data: story } = useStory(story_slug, loaderData?.story || undefined);
   const hasQuickRead = estimateSummaryReadingMinutes(story?.summary) !== null;
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
-  const [fontFamily, setFontFamily] = useState<ReaderFontKey>(
-    () => (localStorage.getItem("reader_font") as ReaderFontKey) || "literata"
-  );
-  const [theme, setTheme] = useState<ReaderThemeKey>(
-    () => (localStorage.getItem("reader_theme") as ReaderThemeKey) || "parchment"
-  );
+  const [fontFamily, setFontFamily] = useState<ReaderFontKey>(() => {
+    if (typeof window === "undefined") return "literata";
+    return (localStorage.getItem("reader_font") as ReaderFontKey) || "literata";
+  });
+  const [theme, setTheme] = useState<ReaderThemeKey>(() => {
+    if (typeof window === "undefined") return "parchment";
+    return (localStorage.getItem("reader_theme") as ReaderThemeKey) || "parchment";
+  });
   const [customThemes, setCustomThemes] = useState<CustomReaderTheme[]>(() => {
+    if (typeof window === "undefined") return [];
     try {
       const raw = localStorage.getItem("reader_custom_themes");
       if (!raw) return [];
@@ -621,11 +663,6 @@ const StoryReader = () => {
       ref={readerContainerRef}
       className="flex h-[100dvh] min-h-screen flex-col overflow-y-auto bg-background"
     >
-      <Seo
-        title={`${chapter.title}${story?.title ? ` — ${story.title}` : ""} | WorldStories`}
-        description={`Read ${chapter.title}${story?.title ? ` from ${story.title}` : ""} on WorldStories.`}
-        path={`/read/${story_slug}/${chapter_slug}`}
-      />
       <main className="mx-auto w-full max-w-none px-0 py-0">
           <div
             className={`${activeTheme.cardClass} min-h-screen rounded-none border-0 p-0`}

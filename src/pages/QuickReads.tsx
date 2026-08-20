@@ -10,7 +10,20 @@ import { useAuthModal } from "@/context/AuthModalContext";
 import { formatViews } from "@/lib/utils";
 import { Clock3, Headphones, Loader2, Search, Zap } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import Seo, { SITE_URL } from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
+
+// Login-gated — an anonymous crawler only ever sees the login prompt, never
+// this content, so indexing this URL would just offer Google a page with
+// nothing on it.
+export function meta() {
+  return buildMeta({
+    title: "Quick Reads — Story Summaries | WorldStories",
+    description:
+      "Browse every Quick Read on WorldStories — short summaries for busy readers, with a straight line into the full story when you want more.",
+    path: "/quick-reads",
+    noIndex: true,
+  });
+}
 
 // Catalogue of every story with a Quick Read summary. Cards go straight to
 // /quick-read/:slug via the "Read" button — deliberately not through
@@ -56,17 +69,9 @@ const QuickReads = () => {
     setSearchQuery(searchInput.trim());
   };
 
-  const seoItemList = stories.slice(0, 20);
-
   if (!isAuthenticated) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-        <Seo
-          title="Quick Reads — Story Summaries | WorldStories"
-          description="Log in to browse Quick Read summaries on WorldStories."
-          path="/quick-reads"
-          noIndex
-        />
         <Card className="w-full max-w-sm text-center">
           <CardContent className="p-8">
             <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
@@ -89,31 +94,6 @@ const QuickReads = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title="Quick Reads — Story Summaries | WorldStories"
-        description="Browse every Quick Read on WorldStories — short summaries for busy readers, with a straight line into the full story when you want more."
-        path="/quick-reads"
-        // Login-gated — an anonymous crawler only ever sees the login prompt
-        // above, never this content, so indexing this URL would just offer
-        // Google a page with nothing on it.
-        noIndex
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Quick Reads — WorldStories",
-          url: `${SITE_URL}/quick-reads`,
-          mainEntity: {
-            "@type": "ItemList",
-            itemListElement: seoItemList.map((story, index) => ({
-              "@type": "ListItem",
-              position: index + 1,
-              url: `${SITE_URL}/story/${story.slug}`,
-              name: story.title,
-            })),
-          },
-        }}
-      />
-
       <div className="border-b border-amber-200/60 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">

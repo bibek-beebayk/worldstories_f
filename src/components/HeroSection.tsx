@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react
 import { BookOpen, ChevronLeft, ChevronRight, Eye, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { FeaturedStory } from "@/api/types";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
@@ -97,7 +97,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               author={story.author}
               loading="eager"
               decoding="async"
-              fetchPriority="high"
+              fetchpriority="high"
               className="h-full w-full animate-in fade-in-0 object-cover duration-700"
             />
           ) : (
@@ -182,7 +182,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                   author={story.author}
                   loading="eager"
                   decoding="async"
-                  fetchPriority="high"
+                  fetchpriority="high"
                   className="h-full w-full animate-in fade-in-0 object-cover duration-500"
                 />
               ) : (

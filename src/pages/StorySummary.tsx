@@ -1,32 +1,71 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import CoverImage from "@/components/CoverImage";
-import Seo from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
 import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { buildMeta } from "@/lib/buildMeta";
 import { ArrowLeft, ArrowRight, Clock, Headphones, Heart, Info, Zap } from "lucide-react";
 import { useMemo } from "react";
-import { Link, useParams } from "react-router-dom";
+import { data, Link, useParams } from "react-router";
+import type { Route } from "./+types/StorySummary";
+
+// Fetched here purely to supply meta() with real data server-side — the
+// component below still fetches independently via useStory() for now.
+export async function loader({ params }: Route.LoaderArgs) {
+  try {
+    return await storyApi.getStory(params.slug!);
+  } catch {
+    return data(null, { status: 404 });
+  }
+}
+
+// Always noIndex regardless of the story: the same summary text already
+// lives (and is indexed) on the story's own page — see the Summary tab on
+// StoryDetail. Quick Read exists as a fast reading surface, not a second
+// indexable copy of that text. It's also login-gated, so an anonymous
+// crawler never sees the real content below anyway.
+export function meta({ data: story }: Route.MetaArgs) {
+  if (!story) {
+    return buildMeta({
+      title: "Quick Read | WorldStories",
+      description: "Log in to use Quick Read.",
+      noIndex: true,
+    });
+  }
+
+  const quickReadMinutes = estimateSummaryReadingMinutes(story.summary);
+  return buildMeta({
+    title: `${story.title} — Quick Read | WorldStories`,
+    description: `A ${quickReadMinutes}-minute summary of ${story.title}${
+      story.author ? ` by ${story.author.name}` : ""
+    }.`,
+    path: `/quick-read/${story.slug}`,
+    image: story.cover_image,
+    type: "article",
+    noIndex: true,
+  });
+}
 
 // A fast, distraction-free "article" reading experience for a story's
 // summary — deliberately separate from StoryReader (chapters, EPUB/PDF,
 // immersive chrome, per-account progress). Quick Read is stateless: it
 // always opens the summary from the top and always sends "Read Full Story"
 // to the first chapter, not wherever the reader last left off.
-const StorySummary = () => {
+const StorySummary = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
   // Fetched unconditionally (not gated on isAuthenticated) so that if someone
   // logs in from the prompt below without leaving this page, the summary is
   // already in cache and appears instantly instead of behind a fresh spinner.
-  const { data: story, isLoading, isError } = useStory(slug);
+  const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
   const { isFavorite, favoriteLoading, toggleFavorite } = useFavoriteToggle(slug, story);
 
   const quickReadMinutes = useMemo(() => estimateSummaryReadingMinutes(story?.summary), [story?.summary]);
@@ -46,7 +85,6 @@ const StorySummary = () => {
   if (!isAuthenticated) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-        <Seo title="Quick Read | WorldStories" description="Log in to use Quick Read." noIndex />
         <Card className="w-full max-w-sm text-center">
           <CardContent className="p-8">
             <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
@@ -114,19 +152,6 @@ const StorySummary = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title={`${story.title} — Quick Read | WorldStories`}
-        description={`A ${quickReadMinutes}-minute summary of ${story.title}${
-          story.author ? ` by ${story.author.name}` : ""
-        }.`}
-        path={`/quick-read/${story.slug}`}
-        image={story.cover_image}
-        type="article"
-        // The same summary text already lives (and is indexed) on the story's
-        // own page — see the Summary tab on StoryDetail. Quick Read exists as
-        // a fast reading surface, not a second indexable copy of that text.
-        noIndex
-      />
 
       <main className="mx-auto max-w-[760px] px-4 py-6 sm:py-10">
         <Link

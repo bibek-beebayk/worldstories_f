@@ -1,46 +1,49 @@
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, ChevronLeft, ChevronRight, UsersRound } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { storyApi } from "@/api/story";
 import AuthorPortrait from "@/components/AuthorPortrait";
 import FullScreenLoader from "@/components/FullScreenLoader";
-import Seo, { SITE_URL } from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
 import { Button } from "@/components/ui/button";
+import type { Route } from "./+types/Authors";
 
-export default function Authors() {
+// TODO: this page's ItemList structuredData depended on the full author
+// list, only fetched client-side today — dropped here rather than wired to
+// the loader, since it's a nice-to-have on top of the title/description/
+// canonical fix this migration is actually for.
+export function meta() {
+  return buildMeta({
+    title: "Authors — Discover Writers | WorldStories",
+    description: "Meet the authors behind WorldStories and explore every story available from each writer.",
+    path: "/authors",
+  });
+}
+
+// First-paint data only — always page 1, matching the component's own
+// default. Paging past that still refetches client-side as before.
+export async function loader() {
+  try {
+    return await storyApi.getAuthors(1);
+  } catch {
+    return undefined;
+  }
+}
+
+export default function Authors({ loaderData }: Route.ComponentProps) {
   const [page, setPage] = useState(1);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["authors", page],
     queryFn: () => storyApi.getAuthors(page),
     placeholderData: (previous) => previous,
+    initialData: page === 1 ? loaderData : undefined,
   });
 
   if (isLoading && !data) return <FullScreenLoader />;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.09),transparent_45%)]">
-      <Seo
-        title="Authors — Discover Writers | WorldStories"
-        description="Meet the authors behind WorldStories and explore every story available from each writer."
-        path="/authors"
-        structuredData={data ? {
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Authors — WorldStories",
-          url: `${SITE_URL}/authors`,
-          mainEntity: {
-            "@type": "ItemList",
-            itemListElement: data.results.map((author, index) => ({
-              "@type": "ListItem",
-              position: (page - 1) * data.pagination.size + index + 1,
-              url: `${SITE_URL}/authors/${author.id}`,
-              name: author.name,
-            })),
-          },
-        } : undefined}
-      />
-
       <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-sky-50">
         <div className="container mx-auto px-4 py-8 sm:py-10">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700">

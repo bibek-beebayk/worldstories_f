@@ -1,21 +1,21 @@
 import { BookOpen, UsersRound } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router";
 import AuthorPortrait from "@/components/AuthorPortrait";
 import FullScreenLoader from "@/components/FullScreenLoader";
-import Seo from "@/components/Seo";
 import StoryCard from "@/components/StoryCard";
 import { Button } from "@/components/ui/button";
 import { useSearchStories } from "@/hooks/useSearchStories";
 import { LANGUAGE_OPTIONS } from "@/lib/languages";
+import { buildMeta } from "@/lib/buildMeta";
 
-const searchSeo = (
-  <Seo
-    title="Search | WorldStories"
-    description="Search titles and authors on WorldStories."
-    path="/search"
-    noIndex
-  />
-);
+export function meta() {
+  return buildMeta({
+    title: "Search | WorldStories",
+    description: "Search titles and authors on WorldStories.",
+    path: "/search",
+    noIndex: true,
+  });
+}
 
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,20 +45,14 @@ const Search = () => {
 
   if (!q) {
     return (
-      <>
-        {searchSeo}
-        <div className="container mx-auto px-4 py-8">Enter a name or keyword to search titles and authors.</div>
-      </>
+      <div className="container mx-auto px-4 py-8">Enter a name or keyword to search titles and authors.</div>
     );
   }
 
-  if (isLoading) return <>{searchSeo}<FullScreenLoader /></>;
+  if (isLoading) return <FullScreenLoader />;
   if (isError || !data) {
     return (
-      <>
-        {searchSeo}
-        <div className="container mx-auto px-4 py-8">Failed to load search results.</div>
-      </>
+      <div className="container mx-auto px-4 py-8">Failed to load search results.</div>
     );
   }
 
@@ -68,7 +62,6 @@ const Search = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.07),transparent_38%)]">
-      {searchSeo}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Search Results</h1>

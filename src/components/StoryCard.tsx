@@ -1,6 +1,6 @@
 import { Eye, Star, Headphones } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { formatViews } from "@/lib/utils";
 import { getLanguageLabel } from "@/lib/languages";
 import CoverImage from "@/components/CoverImage";
@@ -61,11 +61,17 @@ const StoryCard = ({ title, author, cover_image, rating, views, story_type, lang
       <div className={`flex items-center text-muted-foreground ${compact ? "gap-2 text-[11px]" : "gap-3 text-xs"}`}>
         <div className="flex items-center gap-1">
           <Star className={`${compact ? "h-2.5 w-2.5" : "h-3 w-3"} fill-amber-400 text-amber-400`} />
-          <span>{rating}</span>
+          {/* Live stat — can genuinely differ between the server's render and
+              the moment the client hydrates (real traffic changing it in
+              between). suppressHydrationWarning tells React to silently keep
+              the client's value for just this node instead of treating the
+              difference as an error and discarding/re-rendering the whole
+              tree client-side (which is what was dropping the page's CSS). */}
+          <span suppressHydrationWarning>{rating}</span>
         </div>
         <div className="flex items-center gap-1">
           <Eye className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
-          <span>{formatViews(views)}</span>
+          <span suppressHydrationWarning>{formatViews(views)}</span>
         </div>
       </div>
     </Link>

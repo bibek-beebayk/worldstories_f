@@ -1,15 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import { BookOpenText, Download, HardDrive, Library, WifiOff } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import DownloadStorySummaryRow from "@/components/DownloadStorySummaryRow";
 import ProfileDownloadedStory from "@/components/ProfileDownloadedStory";
-import Seo from "@/components/Seo";
 import { Card, CardContent } from "@/components/ui/card";
 import { DownloadRecord, groupDownloadsByStory, listDownloads } from "@/lib/offlineDb";
 import { formatBytes } from "@/lib/utils";
 import { MAX_DOWNLOADED_TITLES } from "@/hooks/useOfflineDownload";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { buildMeta } from "@/lib/buildMeta";
+
+export function meta() {
+  return buildMeta({
+    title: "Downloads | WorldStories",
+    description: "Read and listen to content saved on this device.",
+    path: "/downloads",
+    noIndex: true,
+  });
+}
 
 const Downloads = () => {
   const isAuthenticated = useIsLoggedIn();
@@ -43,12 +52,6 @@ const Downloads = () => {
   if (!isAuthenticated) {
     return (
       <div className="container mx-auto px-4 py-10">
-        <Seo
-          title="Downloads | WorldStories"
-          description="Read and listen to content saved on this device."
-          path="/downloads"
-          noIndex
-        />
         <Card className="mx-auto max-w-xl">
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">
@@ -65,12 +68,6 @@ const Downloads = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
-      <Seo
-        title="Downloads | WorldStories"
-        description="Read and listen to content saved on this device."
-        path="/downloads"
-        noIndex
-      />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         {!selectedStory && (
           <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">

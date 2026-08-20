@@ -1,6 +1,6 @@
 import { Eye, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Story } from "@/api/types";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";

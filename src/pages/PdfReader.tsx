@@ -37,7 +37,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
 } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { data, Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   GlobalWorkerOptions,
   getDocument,
@@ -45,7 +45,31 @@ import {
   type RenderTask,
 } from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import Seo from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
+import type { Route } from "./+types/PdfReader";
+
+// Fetched here purely to supply meta() with real data server-side — the
+// component below still fetches independently via useStory().
+export async function loader({ params }: Route.LoaderArgs) {
+  try {
+    return await storyApi.getStory(params.slug!);
+  } catch {
+    return data(null, { status: 404 });
+  }
+}
+
+// Always noIndex: this is a reading UI, not a page anyone should land on
+// from search — the story's own page is the indexable surface.
+export function meta({ data: story, params }: Route.MetaArgs) {
+  return buildMeta({
+    title: story ? `${story.title} — PDF | WorldStories` : "PDF Not Found | WorldStories",
+    description: story
+      ? `Read the PDF edition of ${story.title} on WorldStories.`
+      : "The requested PDF could not be found.",
+    path: `/story/${params.slug}/pdf`,
+    noIndex: true,
+  });
+}
 import {
   getSavedPageAnimation,
   PAGE_ANIMATION_OPTIONS,
@@ -201,7 +225,7 @@ const ScrollPdfPage = ({ pdfDoc, pageNumber, zoom, pageFilter }: ScrollPdfPagePr
   );
 };
 
-const PdfReader = () => {
+const PdfReader = ({ loaderData }: Route.ComponentProps) => {
   const navigate = useNavigate();
   const { slug } = useParams();
   const location = useLocation();
@@ -209,7 +233,7 @@ const PdfReader = () => {
   // page — the entry point passes this via navigation state (see
   // ProfileDownloadedStory.tsx).
   const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${slug}`;
-  const { data: story, isLoading, isError } = useStory(slug || "");
+  const { data: story, isLoading, isError } = useStory(slug || "", loaderData || undefined);
   const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
   const pageViewportRef = useRef<HTMLDivElement | null>(null);
@@ -224,7 +248,7 @@ const PdfReader = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [zoom, setZoom] = useState(() =>
-    window.matchMedia("(max-width: 767px)").matches ? 1.35 : 1.2
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 1.35 : 1.2
   );
   const [readerError, setReaderError] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -232,7 +256,9 @@ const PdfReader = () => {
   const [isPageRendering, setIsPageRendering] = useState(false);
   const [theme, setTheme] = useState<PdfThemeKey>("light");
   const [viewMode, setViewMode] = useState<PdfViewMode>(() =>
-    localStorage.getItem("pdf-reader-view-mode") === "scroll" ? "scroll" : "page"
+    typeof window !== "undefined" && localStorage.getItem("pdf-reader-view-mode") === "scroll"
+      ? "scroll"
+      : "page"
   );
   const [pageAnimation, setPageAnimation] = useState<PageAnimationEffect>(() =>
     getSavedPageAnimation("pdf-reader-page-animation")
@@ -655,12 +681,6 @@ const PdfReader = () => {
 
   return (
     <main className="min-h-screen bg-background px-2 py-2 md:px-4 md:py-4">
-      <Seo
-        title={`${story.title} — PDF | WorldStories`}
-        description={`Read the PDF edition of ${story.title} on WorldStories.`}
-        path={`/story/${slug}/pdf`}
-        noIndex
-      />
       <div
         ref={readerContainerRef}
         className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 md:p-3" : ""}`}

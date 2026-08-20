@@ -1,17 +1,21 @@
-import { Link } from "react-router-dom";
-import Seo from "@/components/Seo";
+import { Link } from "react-router";
+import { buildMeta } from "@/lib/buildMeta";
 
 const CONTACT_EMAIL = "worldstoriesnet@gmail.com";
 const LAST_UPDATED = "July 30, 2026";
 
+export function meta() {
+  return buildMeta({
+    title: "Privacy Policy | WorldStories",
+    description:
+      "Learn how WorldStories collects, uses, and protects your personal information, including data related to your account, reading activity, and cookies.",
+    path: "/privacy",
+  });
+}
+
 const Privacy = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title="Privacy Policy | WorldStories"
-        description="Learn how WorldStories collects, uses, and protects your personal information, including data related to your account, reading activity, and cookies."
-        path="/privacy"
-      />
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:py-16">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>
         <p className="mt-2 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>

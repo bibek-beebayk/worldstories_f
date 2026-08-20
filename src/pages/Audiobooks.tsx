@@ -6,7 +6,21 @@ import { useInfiniteStories } from "@/hooks/useInfiniteStories";
 import { formatViews } from "@/lib/utils";
 import { Headphones, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import Seo, { SITE_URL } from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
+
+// Same deliberate call as Library.tsx: driven by useInfiniteStories
+// (useInfiniteQuery, not a plain query) — no loader here, and the ItemList
+// structuredData that depended on the story list stays dropped. Real work
+// to seed correctly, for a browse/filter surface that's a lower SEO
+// priority than the pages that did get loaders (see subtask 5's notes).
+export function meta() {
+  return buildMeta({
+    title: "Audiobooks — Listen to Stories | WorldStories",
+    description:
+      "Browse every audiobook on WorldStories — narrated short stories, novels, and more you can listen to anywhere.",
+    path: "/audiobooks",
+  });
+}
 
 const Audiobooks = () => {
   const [sort, setSort] = useState("popular");
@@ -46,33 +60,10 @@ const Audiobooks = () => {
     setSearchQuery(searchInput.trim());
   };
 
-  const seoItemList = stories.slice(0, 20);
-
   if (isLoading) return <FullScreenLoader />;
 
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title="Audiobooks — Listen to Stories | WorldStories"
-        description="Browse every audiobook on WorldStories — narrated short stories, novels, and more you can listen to anywhere."
-        path="/audiobooks"
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Audiobooks — WorldStories",
-          url: `${SITE_URL}/audiobooks`,
-          mainEntity: {
-            "@type": "ItemList",
-            itemListElement: seoItemList.map((story, index) => ({
-              "@type": "ListItem",
-              position: index + 1,
-              url: `${SITE_URL}/story/${story.slug}`,
-              name: story.title,
-            })),
-          },
-        }}
-      />
-
       <div className="border-b border-rose-200/60 bg-gradient-to-br from-rose-50 via-pink-50 to-fuchsia-100">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700">

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import HeroSection from "@/components/HeroSection";
 import ContinueReadingSection from "@/components/ContinueReadingSection";
 import RecommendedForYouSection from "@/components/RecommendedForYouSection";
@@ -6,7 +5,7 @@ import QuickReadSection from "@/components/QuickReadSection";
 import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
 import TrendingList from "@/components/TrendingList";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -16,14 +15,40 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { AUTH_CHANGE_EVENT, getAccessToken } from "@/api/client";
+import { storyApi } from "@/api/story";
 import { useHomeData } from "@/hooks/useHomeData";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useContinueReading } from "@/hooks/useContinueReading";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { ArrowRight, BookOpenText, Compass, Flame, Sparkles, Users } from "lucide-react";
 import { ComponentType } from "react";
 import { formatViews } from "@/lib/utils";
-import Seo from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
+import type { Route } from "./+types/Index";
+
+// The homepage is the single highest-traffic, most SEO-critical page on the
+// site — this is real first-paint content, not just meta-only like the
+// dynamic per-item pages. Swallows failures rather than throwing: unlike the
+// per-item pages, there's no "not found" case here, and letting this throw
+// would replace the page's own isError UI with the top-level error
+// boundary. Falling back to undefined just means useHomeData() fetches
+// client-side as it always did.
+export async function loader() {
+  try {
+    return await storyApi.getHomeData();
+  } catch {
+    return undefined;
+  }
+}
+
+export function meta() {
+  return buildMeta({
+    title: "WorldStories - Home of Stories",
+    description:
+      "WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres.",
+    path: "/",
+  });
+}
 
 const SectionTitle = ({
   icon: Icon,
@@ -56,9 +81,9 @@ const SectionTitle = ({
   </div>
 );
 
-const Index = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getAccessToken()));
-  const { data, isLoading, isError } = useHomeData();
+const Index = ({ loaderData }: Route.ComponentProps) => {
+  const isLoggedIn = useIsLoggedIn();
+  const { data, isLoading, isError } = useHomeData(loaderData);
   const {
     data: continueReadingData,
     isLoading: isContinueReadingLoading,
@@ -70,27 +95,8 @@ const Index = () => {
     isError: isRecommendationsError,
   } = useRecommendations(isLoggedIn);
 
-  useEffect(() => {
-    const syncAuthState = () => {
-      setIsLoggedIn(Boolean(getAccessToken()));
-    };
-
-    window.addEventListener(AUTH_CHANGE_EVENT, syncAuthState);
-    window.addEventListener("storage", syncAuthState);
-
-    return () => {
-      window.removeEventListener(AUTH_CHANGE_EVENT, syncAuthState);
-      window.removeEventListener("storage", syncAuthState);
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
-      <Seo
-        title="WorldStories - Home of Stories"
-        description="WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres."
-        path="/"
-      />
       {/* Renders immediately with its own "Welcome to WorldStories" fallback copy —
           never blocked behind the home-data fetch, so the page's purpose is visible
           the instant it loads instead of hiding behind a full-screen spinner. */}

@@ -40,9 +40,10 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import Seo, { SITE_URL } from "@/components/Seo";
+import { data, Link, useParams } from "react-router";
+import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import type { Route } from "./+types/StoryDetail";
 import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
@@ -52,11 +53,92 @@ import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
 import StoryCard from "@/components/StoryCard";
 
+// Fetched here purely to supply meta() with real data server-side — the
+// component below still fetches independently via useStory() for now
+// (subtask 5 will consolidate these into one fetch).
+export async function loader({ params }: Route.LoaderArgs) {
+  try {
+    return await storyApi.getStory(params.slug!);
+  } catch {
+    // A story slug that doesn't resolve is a real 404, not a 200 — same
+    // "soft 404" reasoning as the catch-all NotFound route.
+    return data(null, { status: 404 });
+  }
+}
+
+function plainText(html: string) {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function meta({ data, params }: Route.MetaArgs) {
+  if (!data) {
+    return buildMeta({
+      title: "Story Not Found | WorldStories",
+      description: "The requested story could not be found.",
+      path: `/story/${params.slug}`,
+      noIndex: true,
+    });
+  }
+
+  const storyPath = `/story/${data.slug}`;
+  const plainTextSummary = plainText(data.summary || "");
+  const seoDescription = plainText(data.about || plainTextSummary || `Read ${data.title} on WorldStories.`).slice(
+    0,
+    160
+  );
+  const structuredDataDatePublished = data.original_published_year
+    ? [
+        String(data.original_published_year),
+        data.original_published_month ? String(data.original_published_month).padStart(2, "0") : null,
+        data.original_published_day ? String(data.original_published_day).padStart(2, "0") : null,
+      ]
+        .filter(Boolean)
+        .join("-")
+    : data.site_published_date || undefined;
+
+  return buildMeta({
+    title: `${data.title}${data.author?.name ? ` by ${data.author.name}` : ""} | WorldStories`,
+    description: seoDescription,
+    path: storyPath,
+    image: data.cover_image,
+    type: "book",
+    alternateLanguages: [
+      { language: data.language, path: storyPath },
+      ...data.translations.map((sibling) => ({
+        language: sibling.language,
+        path: `/story/${sibling.slug}`,
+      })),
+    ],
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": data.has_audio ? ["CreativeWork", "Audiobook"] : "CreativeWork",
+      name: data.title,
+      description: seoDescription,
+      abstract: plainTextSummary ? plainTextSummary.slice(0, 500) : undefined,
+      url: `${SITE_URL}${storyPath}`,
+      image: data.cover_image || undefined,
+      genre: data.genres.map((genre) => genre.name),
+      datePublished: structuredDataDatePublished,
+      author: data.author ? { "@type": "Person", name: data.author.name } : undefined,
+      aggregateRating:
+        data.reviews_count > 0
+          ? {
+              "@type": "AggregateRating",
+              ratingValue: data.rating,
+              reviewCount: data.reviews_count,
+              bestRating: 5,
+              worstRating: 1,
+            }
+          : undefined,
+    },
+  });
+}
+
 type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
 
-const StoryDetail = () => {
+const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
-  const { data: story, isLoading, isError } = useStory(slug);
+  const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
   const { downloadedIds, refresh: refreshDownloadedIds } = useDownloadedIds(slug || "");
   const {
     downloadChapter,
@@ -234,19 +316,6 @@ const StoryDetail = () => {
   const firstAudioSlug = story.audios[0]?.slug;
   const savedAudioSlug = audioProgress?.audio_slug;
   const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
-  // ISO-ish value for the structured-data datePublished field — as precise
-  // as the known original-publication parts allow, falling back to the
-  // site's own publish date when no original date is known at all (same
-  // fallback shown to readers via published_date_label).
-  const structuredDataDatePublished = story.original_published_year
-    ? [
-        String(story.original_published_year),
-        story.original_published_month ? String(story.original_published_month).padStart(2, "0") : null,
-        story.original_published_day ? String(story.original_published_day).padStart(2, "0") : null,
-      ]
-        .filter(Boolean)
-        .join("-")
-    : story.site_published_date || undefined;
 
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
@@ -371,15 +440,6 @@ const StoryDetail = () => {
   // the "Completion: X%" text should actually show in that case instead.
   const primaryCompletionPercentage =
     story.chapters.length > 0 ? completionPercentage : Math.round((primaryFileProgress?.progress || 0) * 100);
-  const plainTextSummary = (story.summary || "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const seoDescription = (story.about || plainTextSummary || `Read ${story.title} on WorldStories.`)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 160);
   const storyPath = `/story/${story.slug}`;
   const shareUrl = `${SITE_URL}${storyPath}`;
 
@@ -408,49 +468,6 @@ const StoryDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title={`${story.title}${
-          story.author?.name ? ` by ${story.author.name}` : ""
-        } | WorldStories`}
-        description={seoDescription}
-        path={storyPath}
-        image={story.cover_image}
-        type="book"
-        alternateLanguages={[
-          { language: story.language, path: storyPath },
-          ...story.translations.map((sibling) => ({
-            language: sibling.language,
-            path: `/story/${sibling.slug}`,
-          })),
-        ]}
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": story.has_audio ? ["CreativeWork", "Audiobook"] : "CreativeWork",
-          name: story.title,
-          description: seoDescription,
-          abstract: plainTextSummary ? plainTextSummary.slice(0, 500) : undefined,
-          url: `${SITE_URL}${storyPath}`,
-          image: story.cover_image || undefined,
-          genre: story.genres.map((genre) => genre.name),
-          datePublished: structuredDataDatePublished,
-          author: story.author
-            ? {
-                "@type": "Person",
-                name: story.author.name,
-              }
-            : undefined,
-          aggregateRating:
-            story.reviews_count > 0
-              ? {
-                  "@type": "AggregateRating",
-                  ratingValue: story.rating,
-                  reviewCount: story.reviews_count,
-                  bestRating: 5,
-                  worstRating: 1,
-                }
-              : undefined,
-        }}
-      />
       {/* <Header /> */}
 
       <main className="container mx-auto px-4 py-8">

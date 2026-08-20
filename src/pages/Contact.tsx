@@ -1,10 +1,19 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Mail, MessageSquareText, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Seo from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
 
 const CONTACT_EMAIL = "worldstoriesnet@gmail.com";
+
+export function meta() {
+  return buildMeta({
+    title: "Contact Us | WorldStories",
+    description:
+      "Get in touch with the WorldStories team for support, privacy requests, or feedback.",
+    path: "/contact",
+  });
+}
 
 const topics = [
   {
@@ -22,11 +31,6 @@ const topics = [
 const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Seo
-        title="Contact Us | WorldStories"
-        description="Get in touch with the WorldStories team for support, privacy requests, or feedback."
-        path="/contact"
-      />
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:py-16">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Contact Us</h1>
         <p className="mt-4 text-base text-muted-foreground sm:text-lg">

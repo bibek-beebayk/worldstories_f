@@ -1,4 +1,5 @@
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
+import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 
 // Tracks the exact viewport y-coordinate where the sticky <header> currently
 // ends (its live getBoundingClientRect().bottom), instead of hardcoding a
@@ -11,7 +12,7 @@ import { useLayoutEffect, useState } from "react";
 export function useHeaderHeight() {
   const [bottom, setBottom] = useState(0);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const headerEl = document.querySelector("header");
     if (!headerEl) return;
 

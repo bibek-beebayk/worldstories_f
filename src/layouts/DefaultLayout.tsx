@@ -4,53 +4,36 @@ import LoggedOutBanner from "@/components/LoggedOutBanner";
 import LoginModal from "@/components/LoginModal";
 import FirstLoginSetupModal from "@/components/FirstLoginSetupModal";
 import PullToRefresh from "@/components/PullToRefresh";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router";
 import { useEffect } from "react";
-import Seo from "@/components/Seo";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { flushPendingSaves } from "@/lib/progressSync";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { buildMeta } from "@/lib/buildMeta";
+import type { Route } from "./+types/DefaultLayout";
 
-const routeSeo: Record<string, { title: string; description: string; noIndex?: boolean }> = {
-  "/": {
-    title: "WorldStories | Discover Stories from Around the World",
-    description:
-      "Discover original stories, trending reads, audiobooks, and diverse voices from around the world on WorldStories.",
-  },
-  "/library": {
-    title: "Story Library | WorldStories",
-    description:
-      "Browse the WorldStories library by genre, popularity, rating, and publication status.",
-  },
-  "/discover": {
-    title: "Discover & Trending Stories | WorldStories",
-    description: "Explore trending, recommended, and newly published stories on WorldStories.",
-  },
-  "/authors": {
-    title: "Authors | WorldStories",
-    description: "Meet the authors behind WorldStories and explore all of their available books.",
-  },
-  "/contest": {
-    title: "Story Contests | WorldStories",
-    description: "Discover upcoming writing contests and opportunities from WorldStories.",
-  },
-  "/publish": {
-    title: "Submit Your Story | WorldStories",
-    description: "Submit your original writing to the WorldStories editorial team.",
-    noIndex: true,
-  },
-  "/profile": {
-    title: "Your Profile | WorldStories",
-    description: "Manage your WorldStories profile and personal library.",
-    noIndex: true,
-  },
-  "/downloads": {
-    title: "Downloads | WorldStories",
-    description: "Read and listen to stories saved on this device.",
-    noIndex: true,
-  },
-};
+// Fallback only, for whichever child routes don't yet define their own
+// meta() — every static page under this layout does now; the dynamic ones
+// (story/chapter/author detail, readers) are next. Mirrors the noIndex logic
+// those routes already use below (isPrivateUtilityRoute) so an
+// not-yet-converted reader/search page doesn't get marked indexable by
+// mistake in the meantime.
+export function meta({ location }: Route.MetaArgs) {
+  const isPrivateUtilityRoute =
+    location.pathname.startsWith("/read/") ||
+    location.pathname.startsWith("/listen/") ||
+    location.pathname.endsWith("/pdf") ||
+    location.pathname.endsWith("/epub") ||
+    location.pathname === "/search";
+
+  return buildMeta({
+    title: "WorldStories | Stories from Around the World",
+    description: "Read and discover diverse stories from writers around the world.",
+    path: location.pathname,
+    noIndex: isPrivateUtilityRoute,
+  });
+}
 
 export default function DefaultLayout() {
   const location = useLocation();
@@ -76,12 +59,6 @@ export default function DefaultLayout() {
     }
   }, [isOnline, isAllowedOffline, navigate]);
 
-  const isPrivateUtilityRoute =
-    location.pathname.startsWith("/read/") ||
-    location.pathname.startsWith("/listen/") ||
-    location.pathname.endsWith("/pdf") ||
-    location.pathname.endsWith("/epub") ||
-    location.pathname === "/search";
   // The PDF/EPUB readers are meant to be a full-viewport, distraction-free
   // reading experience with their own internal header/controls — their height
   // math (calc(100vh-...)) is tuned assuming they own the whole viewport, so
@@ -92,11 +69,6 @@ export default function DefaultLayout() {
   // ImmersiveReaderContext), rather than always hiding chrome for /read/.
   const isImmersiveReaderRoute =
     location.pathname.endsWith("/pdf") || location.pathname.endsWith("/epub") || isImmersiveReaderActive;
-  const metadata = routeSeo[location.pathname] || {
-    title: "WorldStories | Stories from Around the World",
-    description: "Read and discover diverse stories from writers around the world.",
-    noIndex: isPrivateUtilityRoute,
-  };
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -117,12 +89,6 @@ export default function DefaultLayout() {
 
   return (
     <>
-      <Seo
-        title={metadata.title}
-        description={metadata.description}
-        path={location.pathname}
-        noIndex={metadata.noIndex}
-      />
       {!isImmersiveReaderRoute && (
         <>
           <Header />

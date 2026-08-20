@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => ({
     // "destination stream closed early" errors and intermittent CSS/asset
     // loss seen in dev after the streaming SSR fix. Nothing here uses
     // redirects/edge-functions/images locally, so nothing is lost.
-    netlify({ middleware: false }),
+    netlify(),
     mode === "development" && componentTagger(),
     VitePWA({
       // Keep a newly-installed worker waiting until the user accepts the

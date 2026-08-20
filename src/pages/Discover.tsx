@@ -1,9 +1,11 @@
 import { useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router";
 import AdSpace from "@/components/AdSpace";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscoverData } from "@/hooks/useDiscoverData";
+import { storyApi } from "@/api/story";
+import type { Route } from "./+types/Discover";
 import { formatRelativeDate, formatViews } from "@/lib/utils";
 import {
   BookOpenText,
@@ -18,7 +20,7 @@ import {
   Star,
   Tag,
 } from "lucide-react";
-import Seo, { SITE_URL } from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
 import CoverImage from "@/components/CoverImage";
 import type { Story, TrendingDataResponse } from "@/api/types";
 import {
@@ -123,8 +125,29 @@ const TrendingLeaderboard = ({
   </div>
 );
 
-const Discover = () => {
-  const { data, isLoading, isError } = useDiscoverData();
+// TODO: this page's ItemList structuredData depended on new_releases —
+// dropped here since it's a nice-to-have on top of the title/description/
+// canonical fix this migration is actually for, not because a loader isn't
+// available (there is one now, below).
+export function meta() {
+  return buildMeta({
+    title: "Discover & Trending Stories | WorldStories",
+    description:
+      "Explore trending stories, new releases, and hidden gems, or browse WorldStories by genre, story type, and language.",
+    path: "/discover",
+  });
+}
+
+export async function loader() {
+  try {
+    return await storyApi.getDiscoverData();
+  } catch {
+    return undefined;
+  }
+}
+
+const Discover = ({ loaderData }: Route.ComponentProps) => {
+  const { data, isLoading, isError } = useDiscoverData(loaderData);
   const location = useLocation();
 
   useEffect(() => {
@@ -137,26 +160,6 @@ const Discover = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
-      <Seo
-        title="Discover & Trending Stories | WorldStories"
-        description="Explore trending stories, new releases, and hidden gems, or browse WorldStories by genre, story type, and language."
-        path="/discover"
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: "Discover — WorldStories",
-          url: `${SITE_URL}/discover`,
-          mainEntity: {
-            "@type": "ItemList",
-            itemListElement: data.new_releases.slice(0, 20).map((story, index) => ({
-              "@type": "ListItem",
-              position: index + 1,
-              url: `${SITE_URL}/story/${story.slug}`,
-              name: story.title,
-            })),
-          },
-        }}
-      />
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">

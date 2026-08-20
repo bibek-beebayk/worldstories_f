@@ -1,148 +1,24 @@
+[build]
+  command = "npm run build"
+  publish = "build/client"
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "https://worldstories-b-production.up.railway.app/api/sitemap.xml"
   status = 200
   force = true
 
-[[edge_functions]]
-  path = "/story/*"
-  function = "social-meta"
-
-# Known client-side routes: served the SPA shell with a genuine 200.
-# NOTE — add a matching entry here whenever a new top-level route is added to App.tsx,
-# otherwise it will fall through to the 404 catch-all below.
-[[redirects]]
-  from = "/admin/*"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/login"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/register"
-  to = "/index.html"
-  status = 200
-
-# /catalogue was renamed to /library; redirect old links/bookmarks/indexed search
-# results instead of letting them 404.
+# /catalogue was renamed to /library; no in-app route exists for the old
+# path, so this stays a CDN-level redirect for old links/bookmarks/indexed
+# search results instead of letting them 404.
 [[redirects]]
   from = "/catalogue"
   to = "/library"
   status = 301
   force = true
 
-[[redirects]]
-  from = "/library"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/trending"
-  to = "/discover"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/discover"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/audiobooks"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/quick-reads"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/authors"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/authors/*"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/contest"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/search"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/publish"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/profile"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/downloads"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/about"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/contact"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/privacy"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/terms"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/story/*"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/quick-read/*"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/read/*"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/listen/*"
-  to = "/index.html"
-  status = 200
-
-# Anything else is a genuine miss — serve the SPA shell (so client-side routing can render
-# the NotFound page) but report a real 404 status instead of masking it as 200.
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 404
+# Everything else that used to need a "serve the SPA shell, let client-side
+# routing sort it out" redirect here is now handled directly by the SSR
+# function itself — every route in src/routes.ts (including the /trending →
+# /discover redirect, now a real 301 from its own loader) resolves server-side
+# with the correct status. No catch-all fallback needed.

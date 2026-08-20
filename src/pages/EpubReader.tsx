@@ -38,11 +38,35 @@ import {
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
 } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { data, Link, useLocation, useNavigate, useParams } from "react-router";
 import Epub, { type Book, type Contents, type Location as EpubLocation, type Rendition } from "epubjs";
 import type { NavItem } from "epubjs/types/navigation";
-import Seo from "@/components/Seo";
+import { buildMeta } from "@/lib/buildMeta";
 import { FONTS } from "@/pages/StoryReader";
+import type { Route } from "./+types/EpubReader";
+
+// Fetched here purely to supply meta() with real data server-side — the
+// component below still fetches independently via useStory().
+export async function loader({ params }: Route.LoaderArgs) {
+  try {
+    return await storyApi.getStory(params.slug!);
+  } catch {
+    return data(null, { status: 404 });
+  }
+}
+
+// Always noIndex: this is a reading UI, not a page anyone should land on
+// from search — the story's own page is the indexable surface.
+export function meta({ data: story, params }: Route.MetaArgs) {
+  return buildMeta({
+    title: story ? `${story.title} — EPUB | WorldStories` : "EPUB Not Found | WorldStories",
+    description: story
+      ? `Read the EPUB edition of ${story.title} on WorldStories.`
+      : "The requested EPUB could not be found.",
+    path: `/story/${params.slug}/epub`,
+    noIndex: true,
+  });
+}
 import {
   getSavedPageAnimation,
   PAGE_ANIMATION_OPTIONS,
@@ -124,7 +148,7 @@ const isIOSWebKit = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-const EpubReader = () => {
+const EpubReader = ({ loaderData }: Route.ComponentProps) => {
   const navigate = useNavigate();
   const { slug } = useParams();
   const location = useLocation();
@@ -132,7 +156,7 @@ const EpubReader = () => {
   // page — the entry point passes this via navigation state (see
   // ProfileDownloadedStory.tsx).
   const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${slug}`;
-  const { data: story, isLoading, isError } = useStory(slug || "");
+  const { data: story, isLoading, isError } = useStory(slug || "", loaderData || undefined);
   const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<HTMLDivElement | null>(null);
@@ -155,7 +179,9 @@ const EpubReader = () => {
   const [fontFamily, setFontFamily] = useState<EpubFontKey>("literata");
   const [theme, setTheme] = useState<EpubThemeKey>("light");
   const [viewMode, setViewMode] = useState<EpubViewMode>(() =>
-    localStorage.getItem("epub-reader-view-mode") === "scroll" ? "scroll" : "page"
+    typeof window !== "undefined" && localStorage.getItem("epub-reader-view-mode") === "scroll"
+      ? "scroll"
+      : "page"
   );
   const viewModeRef = useRef<EpubViewMode>(viewMode);
   const [pageAnimation, setPageAnimation] = useState<PageAnimationEffect>(() =>
@@ -1099,12 +1125,6 @@ const EpubReader = () => {
 
   return (
     <main className="min-h-screen bg-background px-2 py-2 sm:px-4 sm:py-4">
-      <Seo
-        title={`${story.title} — EPUB | WorldStories`}
-        description={`Read the EPUB edition of ${story.title} on WorldStories.`}
-        path={`/story/${slug}/epub`}
-        noIndex
-      />
       <div
         ref={readerContainerRef}
         className={`mx-auto max-w-6xl space-y-3 ${isFullscreen ? "h-screen max-w-none bg-background p-2 sm:p-3" : ""}`}
