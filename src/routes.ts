@@ -42,6 +42,7 @@ export default [
         route("categories", "pages/AdminCategories.tsx"),
         route("authors", "pages/AdminAuthors.tsx"),
         route("users", "pages/AdminUsers.tsx"),
+        route("ai-settings", "pages/AdminAiSettings.tsx"),
       ]),
     ]),
     route("*", "pages/NotFound.tsx", { id: "admin-not-found" }),

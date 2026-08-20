@@ -20,7 +20,9 @@ import {
   AdminStory,
   AdminChapter,
   AdminAudio,
+  AiGenerationInputField,
   EpubImportJob,
+  PromptSettings,
   AdminSubmission,
   AdminOverviewResponse,
   AdminAuthor,
@@ -211,6 +213,22 @@ export const storyApi = {
   },
   getStoryEpubImportStatus: (storyId: number, jobId: number) =>
     apiClient<EpubImportJob>(`/admin/stories/${storyId}/import-epub/${jobId}/`),
+  generateStorySummary: (id: number, inputFields: AiGenerationInputField[] = ["title", "author", "content"]) =>
+    apiClient<AdminStory>(`/admin/stories/${id}/generate-summary/`, {
+      method: "POST",
+      body: JSON.stringify({ input_fields: inputFields }),
+    }),
+  generateStoryRetrospective: (id: number, inputFields: AiGenerationInputField[] = ["title", "author", "content"]) =>
+    apiClient<AdminStory>(`/admin/stories/${id}/generate-retrospective/`, {
+      method: "POST",
+      body: JSON.stringify({ input_fields: inputFields }),
+    }),
+  getPromptSettings: () => apiClient<PromptSettings>("/admin/prompt-settings/"),
+  updatePromptSettings: (payload: Partial<PromptSettings>) =>
+    apiClient<PromptSettings>("/admin/prompt-settings/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   getAdminChapters: (storyId: number) =>
     apiClient<PaginatedResponse<AdminChapter>>(`/admin/chapters/?story=${storyId}`),
   getAdminAudios: (storyId: number) =>

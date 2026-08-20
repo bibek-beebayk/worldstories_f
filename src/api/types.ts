@@ -357,13 +357,27 @@ export interface Submission {
   user_email?: string;
 }
 
+export type AiGenerationStatus = "pending" | "processing" | "completed" | "failed";
+export type AiGenerationSource = "metadata" | "content";
+export type AiGenerationInputField = "title" | "author" | "content";
+
 export interface AdminStory {
   id: number;
   title: string;
   slug: string;
   about: string | null;
   summary: string | null;
+  summary_status: AiGenerationStatus | null;
+  summary_source: AiGenerationSource | null;
+  summary_confident: boolean | null;
+  summary_confidence_note: string | null;
+  summary_error: string | null;
   retrospective: string | null;
+  retrospective_status: AiGenerationStatus | null;
+  retrospective_source: AiGenerationSource | null;
+  retrospective_confident: boolean | null;
+  retrospective_confidence_note: string | null;
+  retrospective_error: string | null;
   story_type: string;
   language: string;
   translations: StoryTranslation[];
@@ -392,6 +406,15 @@ export interface AdminStory {
   source: "admin" | "submission";
   chapter_count: number;
   audio_count: number;
+}
+
+export type AiGenerationModel = "claude-opus-5" | "claude-sonnet-5" | "claude-haiku-4-5";
+
+export interface PromptSettings {
+  summary_instructions: string;
+  summary_model: AiGenerationModel;
+  retrospective_instructions: string;
+  retrospective_model: AiGenerationModel;
 }
 
 export interface AdminAuthor {

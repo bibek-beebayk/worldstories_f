@@ -16,7 +16,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeft, Bold, Check, ChevronRight, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
-import { EpubImportJob } from "@/api/types";
+import { AiGenerationInputField, AiGenerationSource, AiGenerationStatus, EpubImportJob } from "@/api/types";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 
@@ -106,6 +106,124 @@ const CountBadge = ({ count, label }: { count: number; label: string }) => (
   </span>
 );
 
+// "Generate Summary"/"Generate Retrospective" header controls: an input-
+// mode selector (metadata vs content) plus the trigger button itself.
+const AiGenerationHeaderControls = ({
+  label,
+  status,
+  inputMode,
+  onModeChange,
+  onGenerate,
+}: {
+  label: string;
+  status: AiGenerationStatus | null;
+  inputMode: "metadata" | "content";
+  onModeChange: (mode: "metadata" | "content") => void;
+  onGenerate: (mode: "metadata" | "content") => void;
+}) => {
+  const busy = status === "pending" || status === "processing";
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={inputMode} onValueChange={(value) => onModeChange(value as "metadata" | "content")}>
+        <SelectTrigger className="h-8 w-[190px] text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="content">Title + Author + Content</SelectItem>
+          <SelectItem value="metadata">Title + Author only</SelectItem>
+        </SelectContent>
+      </Select>
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => onGenerate(inputMode)}>
+        {busy && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+        {busy ? "Generating..." : `Generate ${label}`}
+      </Button>
+    </div>
+  );
+};
+
+// Result banner shown below the generated text — surfaces the transparency
+// flag (metadata vs content source) distinctly, and for a metadata-mode
+// result presents it as an explicit decision (keep it, or retry grounded in
+// the actual book content) rather than a passive badge, per how confident
+// Claude reported being.
+const AiGenerationResultBanner = ({
+  label,
+  status,
+  source,
+  confident,
+  confidenceNote,
+  error,
+  dismissed,
+  onDismiss,
+  onRetryWithContent,
+  onTryAgain,
+}: {
+  label: string;
+  status: AiGenerationStatus | null;
+  source: AiGenerationSource | null;
+  confident: boolean | null;
+  confidenceNote: string | null;
+  error: string | null;
+  dismissed: boolean;
+  onDismiss: () => void;
+  onRetryWithContent: () => void;
+  onTryAgain: () => void;
+}) => {
+  if (status === "failed") {
+    return (
+      <div
+        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+        title={error || undefined}
+      >
+        <span>{label} generation failed{error ? `: ${error}` : "."}</span>
+        <Button size="sm" variant="outline" onClick={onTryAgain}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
+  if (status !== "completed" || !source) return null;
+
+  if (source === "content") {
+    return (
+      <div className="mb-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        AI-generated from this book's content.
+      </div>
+    );
+  }
+
+  if (dismissed) {
+    return (
+      <div className="mb-3 rounded-md border bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+        Generated from general knowledge, not this book's actual text.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 space-y-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+      <p>
+        Generated from general knowledge, not this book's actual text.{" "}
+        {confident === false
+          ? "Claude reported not being confident about this."
+          : confident === true
+            ? "Claude reported being confident about this."
+            : ""}
+      </p>
+      {confidenceNote && <p className="italic">&ldquo;{confidenceNote}&rdquo;</p>}
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={onDismiss}>
+          Keep this
+        </Button>
+        <Button size="sm" variant="outline" onClick={onRetryWithContent}>
+          Retry with full content
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const AdminContent = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -187,6 +305,10 @@ const AdminContent = () => {
   const [deletingAudio, setDeletingAudio] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState<string | null>(null);
   const [epubImportJob, setEpubImportJob] = useState<EpubImportJob | null>(null);
+  const [summaryInputMode, setSummaryInputMode] = useState<"metadata" | "content">("content");
+  const [retrospectiveInputMode, setRetrospectiveInputMode] = useState<"metadata" | "content">("content");
+  const [summaryBannerDismissed, setSummaryBannerDismissed] = useState(false);
+  const [retrospectiveBannerDismissed, setRetrospectiveBannerDismissed] = useState(false);
   const chapterEditorRef = useRef<HTMLDivElement | null>(null);
   const summaryEditorRef = useRef<HTMLDivElement | null>(null);
   const retrospectiveEditorRef = useRef<HTMLDivElement | null>(null);
@@ -229,6 +351,11 @@ const AdminContent = () => {
     queryKey: ["admin-story", selectedStoryId],
     queryFn: () => storyApi.getAdminStory(selectedStoryId!),
     enabled: isAuthenticated && Boolean(me?.is_superuser) && selectedStoryId !== null,
+    refetchInterval: (query) => {
+      const s = query.state.data;
+      const inFlight = (v?: AiGenerationStatus | null) => v === "pending" || v === "processing";
+      return inFlight(s?.summary_status) || inFlight(s?.retrospective_status) ? 2000 : false;
+    },
   });
 
   const { data: chaptersData, isLoading: chaptersLoading } = useQuery({
@@ -717,6 +844,8 @@ const AdminContent = () => {
 
   useEffect(() => {
     setEpubImportJob(null);
+    setSummaryBannerDismissed(false);
+    setRetrospectiveBannerDismissed(false);
   }, [selectedStoryId]);
 
   useEffect(() => {
@@ -751,6 +880,32 @@ const AdminContent = () => {
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to start EPUB import.");
+    }
+  };
+
+  const handleGenerateSummary = async (mode: "metadata" | "content") => {
+    if (!selectedStoryId) return;
+    setSummaryInputMode(mode);
+    setSummaryBannerDismissed(false);
+    const fields: AiGenerationInputField[] = mode === "content" ? ["title", "author", "content"] : ["title", "author"];
+    try {
+      await storyApi.generateStorySummary(selectedStoryId, fields);
+      await queryClient.invalidateQueries({ queryKey: ["admin-story", selectedStoryId] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start summary generation.");
+    }
+  };
+
+  const handleGenerateRetrospective = async (mode: "metadata" | "content") => {
+    if (!selectedStoryId) return;
+    setRetrospectiveInputMode(mode);
+    setRetrospectiveBannerDismissed(false);
+    const fields: AiGenerationInputField[] = mode === "content" ? ["title", "author", "content"] : ["title", "author"];
+    try {
+      await storyApi.generateStoryRetrospective(selectedStoryId, fields);
+      await queryClient.invalidateQueries({ queryKey: ["admin-story", selectedStoryId] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start retrospective generation.");
     }
   };
 
@@ -1799,8 +1954,29 @@ const AdminContent = () => {
             <CollapsibleSection
               title="Summary"
               titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.summary)} label="Summary" />}
+              headerAction={
+                <AiGenerationHeaderControls
+                  label="Summary"
+                  status={selectedStory?.summary_status ?? null}
+                  inputMode={summaryInputMode}
+                  onModeChange={setSummaryInputMode}
+                  onGenerate={handleGenerateSummary}
+                />
+              }
             >
               <CardContent>
+                <AiGenerationResultBanner
+                  label="Summary"
+                  status={selectedStory?.summary_status ?? null}
+                  source={selectedStory?.summary_source ?? null}
+                  confident={selectedStory?.summary_confident ?? null}
+                  confidenceNote={selectedStory?.summary_confidence_note ?? null}
+                  error={selectedStory?.summary_error ?? null}
+                  dismissed={summaryBannerDismissed}
+                  onDismiss={() => setSummaryBannerDismissed(true)}
+                  onRetryWithContent={() => handleGenerateSummary("content")}
+                  onTryAgain={() => handleGenerateSummary(summaryInputMode)}
+                />
                 {selectedStory?.summary ? (
                   <div
                     className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
@@ -1817,8 +1993,29 @@ const AdminContent = () => {
             <CollapsibleSection
               title="Retrospective"
               titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.retrospective)} label="Retrospective" />}
+              headerAction={
+                <AiGenerationHeaderControls
+                  label="Retrospective"
+                  status={selectedStory?.retrospective_status ?? null}
+                  inputMode={retrospectiveInputMode}
+                  onModeChange={setRetrospectiveInputMode}
+                  onGenerate={handleGenerateRetrospective}
+                />
+              }
             >
               <CardContent>
+                <AiGenerationResultBanner
+                  label="Retrospective"
+                  status={selectedStory?.retrospective_status ?? null}
+                  source={selectedStory?.retrospective_source ?? null}
+                  confident={selectedStory?.retrospective_confident ?? null}
+                  confidenceNote={selectedStory?.retrospective_confidence_note ?? null}
+                  error={selectedStory?.retrospective_error ?? null}
+                  dismissed={retrospectiveBannerDismissed}
+                  onDismiss={() => setRetrospectiveBannerDismissed(true)}
+                  onRetryWithContent={() => handleGenerateRetrospective("content")}
+                  onTryAgain={() => handleGenerateRetrospective(retrospectiveInputMode)}
+                />
                 {selectedStory?.retrospective ? (
                   <div
                     className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
