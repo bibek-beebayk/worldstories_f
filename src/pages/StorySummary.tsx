@@ -41,11 +41,15 @@ export function meta({ data: story }: Route.MetaArgs) {
   }
 
   const quickReadMinutes = estimateSummaryReadingMinutes(story.summary);
+  const description =
+    quickReadMinutes === null
+      ? `No quick summary is available for "${story.title}" yet.`
+      : `A ${quickReadMinutes}-minute summary of ${story.title}${
+          story.author ? ` by ${story.author.name}` : ""
+        }.`;
   return buildMeta({
     title: `${story.title} — Quick Read | WorldStories`,
-    description: `A ${quickReadMinutes}-minute summary of ${story.title}${
-      story.author ? ` by ${story.author.name}` : ""
-    }.`,
+    description,
     path: `/quick-read/${story.slug}`,
     image: story.cover_image,
     type: "article",

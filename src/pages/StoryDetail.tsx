@@ -83,10 +83,12 @@ export function meta({ data, params }: Route.MetaArgs) {
 
   const storyPath = `/story/${data.slug}`;
   const plainTextSummary = plainText(data.summary || "");
-  const seoDescription = plainText(data.about || plainTextSummary || `Read ${data.title} on WorldStories.`).slice(
-    0,
-    160
-  );
+  const fullDescription = plainText(data.about || plainTextSummary || `Read ${data.title} on WorldStories.`);
+  // Meta/OG/Twitter descriptions get cut off in SERPs and share cards past
+  // ~155-160 chars anyway, so truncating here is deliberate. Structured
+  // data has no such limit — reusing this same truncated string there (as
+  // this code used to) cut real sentences off mid-word for no reason.
+  const seoDescription = fullDescription.slice(0, 160);
   const structuredDataDatePublished = data.original_published_year
     ? [
         String(data.original_published_year),
@@ -114,7 +116,7 @@ export function meta({ data, params }: Route.MetaArgs) {
       "@context": "https://schema.org",
       "@type": data.has_audio ? ["CreativeWork", "Audiobook"] : "CreativeWork",
       name: data.title,
-      description: seoDescription,
+      description: fullDescription,
       abstract: plainTextSummary ? plainTextSummary.slice(0, 500) : undefined,
       url: `${SITE_URL}${storyPath}`,
       image: data.cover_image || undefined,
