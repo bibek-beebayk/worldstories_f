@@ -440,6 +440,18 @@ export interface AdminChapter {
   order: number;
 }
 
+export type EpubImportJobStatus = "pending" | "processing" | "completed" | "failed";
+
+export interface EpubImportJob {
+  id: number;
+  story: number;
+  status: EpubImportJobStatus;
+  error_message: string | null;
+  chapters_created: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AdminAudio {
   id: number;
   story: number;

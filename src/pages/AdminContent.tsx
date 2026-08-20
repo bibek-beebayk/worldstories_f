@@ -16,6 +16,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeft, Bold, Check, ChevronRight, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
+import { EpubImportJob } from "@/api/types";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 
@@ -185,6 +186,7 @@ const AdminContent = () => {
   const [pendingDeleteAudioId, setPendingDeleteAudioId] = useState<number | null>(null);
   const [deletingAudio, setDeletingAudio] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState<string | null>(null);
+  const [epubImportJob, setEpubImportJob] = useState<EpubImportJob | null>(null);
   const chapterEditorRef = useRef<HTMLDivElement | null>(null);
   const summaryEditorRef = useRef<HTMLDivElement | null>(null);
   const retrospectiveEditorRef = useRef<HTMLDivElement | null>(null);
@@ -193,6 +195,7 @@ const AdminContent = () => {
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
   const pdfFileInputRef = useRef<HTMLInputElement | null>(null);
   const epubFileInputRef = useRef<HTMLInputElement | null>(null);
+  const epubImportFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: me, isLoading: meLoading } = useQuery({
     queryKey: ["profile-me"],
@@ -711,6 +714,45 @@ const AdminContent = () => {
     // the chapter editor above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showStoryForm]);
+
+  useEffect(() => {
+    setEpubImportJob(null);
+  }, [selectedStoryId]);
+
+  useEffect(() => {
+    if (!epubImportJob || !selectedStoryId) return;
+    if (epubImportJob.status === "completed" || epubImportJob.status === "failed") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const latest = await storyApi.getStoryEpubImportStatus(selectedStoryId, epubImportJob.id);
+        setEpubImportJob(latest);
+        if (latest.status === "completed") {
+          await queryClient.invalidateQueries({ queryKey: ["admin-chapters", selectedStoryId] });
+          await queryClient.invalidateQueries({ queryKey: ["admin-story", selectedStoryId] });
+        }
+      } catch {
+        // Transient poll failure — try again on the next tick rather than
+        // giving up on the whole import.
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [epubImportJob, selectedStoryId, queryClient]);
+
+  const handleImportEpub = async (file?: File) => {
+    if (!selectedStoryId) return;
+    try {
+      const job = await storyApi.importStoryEpub(selectedStoryId, file);
+      setEpubImportJob(job);
+      if (file) {
+        // The upload also just set/replaced the story's epub_file.
+        await queryClient.invalidateQueries({ queryKey: ["admin-story", selectedStoryId] });
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start EPUB import.");
+    }
+  };
 
   const canSave = useMemo(() => title.trim().length > 2, [title]);
   const availableGenresByLowerName = useMemo(
@@ -1874,9 +1916,52 @@ const AdminContent = () => {
               title="Chapters"
               titleBadge={<CountBadge count={selectedStory?.chapter_count ?? 0} label="chapters" />}
               headerAction={
-                <Button size="sm" variant="outline" onClick={openCreateChapterModal}>
-                  Add New Chapter
-                </Button>
+                <div className="flex items-center gap-2">
+                  {epubImportJob && (epubImportJob.status === "pending" || epubImportJob.status === "processing") && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Importing...
+                    </span>
+                  )}
+                  {epubImportJob?.status === "completed" && (
+                    <span className="flex items-center gap-1 text-xs text-green-600">
+                      <Check className="h-3 w-3" /> Imported {epubImportJob.chapters_created} chapters
+                    </span>
+                  )}
+                  {epubImportJob?.status === "failed" && (
+                    <span
+                      className="flex items-center gap-1 text-xs text-red-600"
+                      title={epubImportJob.error_message || "Import failed."}
+                    >
+                      <X className="h-3 w-3" /> Import failed
+                    </span>
+                  )}
+                  <input
+                    ref={epubImportFileInputRef}
+                    type="file"
+                    accept="application/epub+zip,.epub"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImportEpub(file);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={epubImportJob?.status === "pending" || epubImportJob?.status === "processing"}
+                    onClick={() =>
+                      selectedStory?.epub_file
+                        ? handleImportEpub()
+                        : epubImportFileInputRef.current?.click()
+                    }
+                  >
+                    {selectedStory?.epub_file ? "Import chapters from EPUB" : "Upload EPUB & import chapters"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={openCreateChapterModal}>
+                    Add New Chapter
+                  </Button>
+                </div>
               }
             >
               <CardContent className="space-y-4">

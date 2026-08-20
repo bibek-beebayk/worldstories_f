@@ -20,6 +20,7 @@ import {
   AdminStory,
   AdminChapter,
   AdminAudio,
+  EpubImportJob,
   AdminSubmission,
   AdminOverviewResponse,
   AdminAuthor,
@@ -195,6 +196,21 @@ export const storyApi = {
     apiClient<AdminStory>(`/admin/stories/${id}/unlink-translation/`, {
       method: "POST",
     }),
+  importStoryEpub: (id: number, epubFile?: File) => {
+    if (epubFile) {
+      const formData = new FormData();
+      formData.append("epub_file", epubFile);
+      return apiClient<EpubImportJob>(`/admin/stories/${id}/import-epub/`, {
+        method: "POST",
+        body: formData,
+      });
+    }
+    return apiClient<EpubImportJob>(`/admin/stories/${id}/import-epub/`, {
+      method: "POST",
+    });
+  },
+  getStoryEpubImportStatus: (storyId: number, jobId: number) =>
+    apiClient<EpubImportJob>(`/admin/stories/${storyId}/import-epub/${jobId}/`),
   getAdminChapters: (storyId: number) =>
     apiClient<PaginatedResponse<AdminChapter>>(`/admin/chapters/?story=${storyId}`),
   getAdminAudios: (storyId: number) =>

@@ -460,7 +460,6 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   const queueSaveProgress = useCallback((progress: number) => {
     if (!story_slug || !chapter_slug) return;
     const normalized = Math.min(1, Math.max(0, progress));
-    hasRestoredRef.current = true;
     liveProgressRef.current = normalized;
     setLiveProgress(normalized);
     latestProgressRef.current = normalized;
@@ -513,16 +512,35 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     const timer = window.setTimeout(() => {
       const progress = Math.max(savedChapterProgress, liveProgressRef.current);
       scrollToProgress(progress);
-      liveProgressRef.current = progress;
-      setLiveProgress(progress);
-      if (progress > 0) hasRestoredRef.current = true;
+      // Goes through queueSaveProgress (not just the local refs) so this
+      // initial position is actually persisted even if the chapter is short
+      // enough that the user never scrolls at all — otherwise "continue
+      // reading" on another device would never advance past the previous
+      // chapter for a chapter like that.
+      queueSaveProgress(progress);
+      // Marks initial positioning as done regardless of whether saved
+      // progress was 0 — handleScroll below is gated on this so it can't
+      // read the *previous* chapter's leftover scrollTop (nothing resets
+      // scroll position when chapter content swaps) and misreport it as
+      // real progress on the new chapter before this restore has run.
+      hasRestoredRef.current = true;
     }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [savedChapterProgress, chapter_slug, chapter?.content]);
+  }, [savedChapterProgress, chapter_slug, chapter?.content, queueSaveProgress]);
 
   useEffect(() => {
     const handleScroll = () => {
+      // Until the restore-to-saved-position effect has run, container.scrollTop
+      // can still be the previous chapter's leftover offset (nothing resets
+      // it when chapter content swaps) — computing "progress" from that would
+      // misreport the old chapter's scroll fraction as this chapter's, and
+      // that bogus value would then win the Math.max in the restore effect,
+      // landing the new chapter wherever the old one left off instead of the
+      // top. Real scroll events only need to wait a beat; they'll fire again
+      // once the user actually scrolls, which is always after this.
+      if (!hasRestoredRef.current) return;
+
       const content = scrollContentRef.current;
       if (!content) return;
 
