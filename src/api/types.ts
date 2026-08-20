@@ -116,6 +116,7 @@ export interface StoryDetail extends Story {
   story_type: string;
   about: string;
   summary: string | null;
+  retrospective: string | null;
   original_published_year: number | null;
   original_published_month: number | null;
   original_published_day: number | null;
@@ -362,6 +363,7 @@ export interface AdminStory {
   slug: string;
   about: string | null;
   summary: string | null;
+  retrospective: string | null;
   story_type: string;
   language: string;
   translations: StoryTranslation[];
@@ -388,6 +390,8 @@ export interface AdminStory {
   rating: number;
   views: number;
   source: "admin" | "submission";
+  chapter_count: number;
+  audio_count: number;
 }
 
 export interface AdminAuthor {

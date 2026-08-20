@@ -8,14 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowLeft, Bold, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
+import { ArrowLeft, Bold, Check, ChevronRight, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { handleRichTextPaste } from "@/lib/richTextPaste";
 
 const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Summary", "Religious Text"];
 
@@ -46,6 +48,63 @@ const toTitleCase = (value: string) =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 
+// A Card whose body can be collapsed — used for the Story Details page's
+// heavier sections (Summary, Retrospective, Chapters, Audio List) so
+// reaching a section further down doesn't mean scrolling past everything
+// above it first. Starts collapsed by default for exactly that reason;
+// pass defaultOpen to override for a section worth always showing.
+const CollapsibleSection = ({
+  title,
+  titleBadge,
+  headerAction,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  titleBadge?: React.ReactNode;
+  headerAction?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) => (
+  <Card>
+    <Collapsible defaultOpen={defaultOpen}>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+        <CollapsibleTrigger asChild>
+          <button type="button" className="group flex min-w-0 items-center gap-2 text-left">
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
+            <CardTitle className="text-base">{title}</CardTitle>
+            {titleBadge}
+          </button>
+        </CollapsibleTrigger>
+        {headerAction}
+      </CardHeader>
+      <CollapsibleContent>{children}</CollapsibleContent>
+    </Collapsible>
+  </Card>
+);
+
+// Small green-check / red-cross indicator for optional rich-text fields
+// (Summary, Retrospective) — used both on the Story Details page and on
+// each card in the story list, so whether a field has been filled in is
+// visible without opening it.
+const ExistenceIndicator = ({ exists, label }: { exists: boolean; label: string }) =>
+  exists ? (
+    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-label={`${label}: present`} />
+  ) : (
+    <X className="h-3.5 w-3.5 shrink-0 text-red-500" aria-label={`${label}: missing`} />
+  );
+
+// Small pill showing a count next to a section title (Chapters, Audio
+// List) — both on Story Details and each story-list card.
+const CountBadge = ({ count, label }: { count: number; label: string }) => (
+  <span
+    className="rounded-full border bg-muted/50 px-1.5 py-0 text-[11px] font-medium text-muted-foreground"
+    aria-label={`${count} ${label}`}
+  >
+    {count}
+  </span>
+);
+
 const AdminContent = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -64,6 +123,10 @@ const AdminContent = () => {
       is_published: boolean;
       publish_at: string | null;
       source: "admin" | "submission";
+      chapter_count: number;
+      audio_count: number;
+      summary: string | null;
+      retrospective: string | null;
     }>
   >([]);
   const [hasMoreStories, setHasMoreStories] = useState(false);
@@ -72,6 +135,7 @@ const AdminContent = () => {
   const [slug, setSlug] = useState("");
   const [about, setAbout] = useState("");
   const [summary, setSummary] = useState("");
+  const [retrospective, setRetrospective] = useState("");
   const [authorId, setAuthorId] = useState<string>("none");
   const [storyType, setStoryType] = useState("Short Story");
   const [language, setLanguage] = useState("en");
@@ -123,6 +187,7 @@ const AdminContent = () => {
   const [fileActionLoading, setFileActionLoading] = useState<string | null>(null);
   const chapterEditorRef = useRef<HTMLDivElement | null>(null);
   const summaryEditorRef = useRef<HTMLDivElement | null>(null);
+  const retrospectiveEditorRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const isAutoLoadingRef = useRef(false);
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -195,6 +260,7 @@ const AdminContent = () => {
     setSlug("");
     setAbout("");
     setSummary("");
+    setRetrospective("");
     setAuthorId("none");
     setStoryType("Short Story");
     setLanguage("en");
@@ -532,6 +598,22 @@ const AdminContent = () => {
     runSummaryEditorCommand("createLink", url);
   };
 
+  const syncRetrospectiveEditorContent = () => {
+    setRetrospective(retrospectiveEditorRef.current?.innerHTML || "");
+  };
+
+  const runRetrospectiveEditorCommand = (command: string, value?: string) => {
+    retrospectiveEditorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncRetrospectiveEditorContent();
+  };
+
+  const addRetrospectiveLink = () => {
+    const url = window.prompt("Enter URL");
+    if (!url) return;
+    runRetrospectiveEditorCommand("createLink", url);
+  };
+
   useEffect(() => {
     if (!selectedStory) return;
     setPendingTranslationSourceId(null);
@@ -540,6 +622,7 @@ const AdminContent = () => {
     setSlug(selectedStory.slug || "");
     setAbout(selectedStory.about || "");
     setSummary(selectedStory.summary || "");
+    setRetrospective(selectedStory.retrospective || "");
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
     setStoryType(selectedStory.story_type || "Short Story");
     setLanguage(selectedStory.language || "en");
@@ -621,6 +704,14 @@ const AdminContent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showStoryForm]);
 
+  useEffect(() => {
+    if (!showStoryForm || !retrospectiveEditorRef.current) return;
+    retrospectiveEditorRef.current.innerHTML = retrospective || "";
+    // Only seed the contenteditable when the form opens, same reasoning as
+    // the chapter editor above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showStoryForm]);
+
   const canSave = useMemo(() => title.trim().length > 2, [title]);
   const availableGenresByLowerName = useMemo(
     () => new Map((genres || []).map((genre) => [genre.name.trim().toLowerCase(), genre])),
@@ -687,6 +778,7 @@ const AdminContent = () => {
     if (slug.trim()) formData.append("slug", slug.trim());
     formData.append("about", about.trim());
     formData.append("summary", summary.trim());
+    formData.append("retrospective", retrospective.trim());
     formData.append("story_type", storyType);
     formData.append("language", language);
     if (authorId !== "none") {
@@ -1033,6 +1125,20 @@ const AdminContent = () => {
                       );
                     })()}
                   </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2.5 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CountBadge count={item.chapter_count} label="chapters" /> chapters
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CountBadge count={item.audio_count} label="audio files" /> audio
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ExistenceIndicator exists={Boolean(item.summary)} label="Summary" /> summary
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ExistenceIndicator exists={Boolean(item.retrospective)} label="Retrospective" /> retro
+                    </span>
+                  </div>
                 </button>
               ))}
               {storiesList.length === 0 && !storiesLoading && (
@@ -1121,7 +1227,34 @@ const AdminContent = () => {
                       style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
                       suppressContentEditableWarning
                       onInput={syncSummaryEditorContent}
-                      className="min-h-40 rounded-md border px-3 py-2 text-left text-sm [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                      onPaste={(e) => handleRichTextPaste(e, syncSummaryEditorContent)}
+                      className="prose prose-sm dark:prose-invert min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="admin-retrospective">Retrospective</Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={addRetrospectiveLink}><Link2 className="h-4 w-4" /></Button>
+                    </div>
+                    <div
+                      id="admin-retrospective"
+                      ref={retrospectiveEditorRef}
+                      contentEditable
+                      dir="ltr"
+                      style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
+                      suppressContentEditableWarning
+                      onInput={syncRetrospectiveEditorContent}
+                      onPaste={(e) => handleRichTextPaste(e, syncRetrospectiveEditorContent)}
+                      className="prose prose-sm dark:prose-invert min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                 </div>
@@ -1507,7 +1640,8 @@ const AdminContent = () => {
                         style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
                         suppressContentEditableWarning
                         onInput={syncChapterEditorContent}
-                        className="min-h-40 rounded-md border px-3 py-2 text-left text-sm [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                        onPaste={(e) => handleRichTextPaste(e, syncChapterEditorContent)}
+                        className="prose prose-sm dark:prose-invert min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                   </div>
@@ -1611,23 +1745,48 @@ const AdminContent = () => {
                       <p className="mb-1 text-muted-foreground">About</p>
                       <p className="rounded-md border bg-muted/30 px-3 py-2">{selectedStory.about || "-"}</p>
                     </div>
-                    <div>
-                      <p className="mb-1 text-muted-foreground">Summary</p>
-                      {selectedStory.summary ? (
-                        <div
-                          className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.summary) }}
-                        />
-                      ) : (
-                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
-                      )}
-                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No story selected.</p>
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {!showStoryForm && !showChapterModal && selectedStoryId && (
+            <CollapsibleSection
+              title="Summary"
+              titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.summary)} label="Summary" />}
+            >
+              <CardContent>
+                {selectedStory?.summary ? (
+                  <div
+                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.summary) }}
+                  />
+                ) : (
+                  <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">-</p>
+                )}
+              </CardContent>
+            </CollapsibleSection>
+          )}
+
+          {!showStoryForm && !showChapterModal && selectedStoryId && (
+            <CollapsibleSection
+              title="Retrospective"
+              titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.retrospective)} label="Retrospective" />}
+            >
+              <CardContent>
+                {selectedStory?.retrospective ? (
+                  <div
+                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.retrospective) }}
+                  />
+                ) : (
+                  <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">-</p>
+                )}
+              </CardContent>
+            </CollapsibleSection>
           )}
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
@@ -1711,13 +1870,15 @@ const AdminContent = () => {
           )}
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <Card>
-              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-                <CardTitle className="text-base">Chapters</CardTitle>
+            <CollapsibleSection
+              title="Chapters"
+              titleBadge={<CountBadge count={selectedStory?.chapter_count ?? 0} label="chapters" />}
+              headerAction={
                 <Button size="sm" variant="outline" onClick={openCreateChapterModal}>
                   Add New Chapter
                 </Button>
-              </CardHeader>
+              }
+            >
               <CardContent className="space-y-4">
                 <div className="space-y-2 rounded-md border p-2">
                   {chaptersLoading && <p className="text-sm text-muted-foreground">Loading chapters...</p>}
@@ -1742,17 +1903,19 @@ const AdminContent = () => {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </CollapsibleSection>
           )}
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <Card>
-              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-                <CardTitle className="text-base">Audio List</CardTitle>
+            <CollapsibleSection
+              title="Audio List"
+              titleBadge={<CountBadge count={selectedStory?.audio_count ?? 0} label="audio files" />}
+              headerAction={
                 <Button size="sm" variant="outline" onClick={openCreateAudioModal}>
                   Add New Audio
                 </Button>
-              </CardHeader>
+              }
+            >
               <CardContent>
                 <div className="space-y-2 rounded-md border p-2">
                   {audiosLoading && <p className="text-sm text-muted-foreground">Loading audios...</p>}
@@ -1778,7 +1941,7 @@ const AdminContent = () => {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </CollapsibleSection>
           )}
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (

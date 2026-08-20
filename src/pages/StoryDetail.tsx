@@ -43,6 +43,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { data, Link, useParams } from "react-router";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import type { Route } from "./+types/StoryDetail";
 import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
@@ -714,6 +715,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 <TabsList className="w-max">
                   {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
                   {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
+                  {story.retrospective && <TabsTrigger value="retrospective">Retrospective</TabsTrigger>}
                   <TabsTrigger value="about">About</TabsTrigger>
                   <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 </TabsList>
@@ -859,6 +861,18 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 </Card>
               </TabsContent>
 
+              {story.retrospective && (
+                <TabsContent value="retrospective" className="mt-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div
+                        className="prose max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.retrospective) }}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
 
               <TabsContent value="about" className="mt-6">
                 <Card>
