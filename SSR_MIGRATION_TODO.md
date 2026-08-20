@@ -75,6 +75,12 @@ result before starting the next. Don't batch multiple subtasks into one sitting.
       already-completed migration, not a planned step, but it directly corrects a
       claim made in subtask 9's notes (see below).
 
+- [x] **Out-of-band: production outage — Netlify Function crashing on every
+      non-static route (subtask 12 happened via a direct git push, not the
+      planned flow above)**
+      Result: root cause and full fix — see "Production ERR_REQUIRE_ESM
+      notes" below.
+
 ---
 
 ## Audit findings (subtask 1)
@@ -850,3 +856,84 @@ way for zoom/view-mode initial state, and `useOnlineStatus.ts` does it for
 `navigator.onLine` — both would have the identical mismatch risk for a user
 with a saved preference (reader) or who is offline on first load
 (`useOnlineStatus`), just narrower in who's affected.
+
+## Production ERR_REQUIRE_ESM notes (out-of-band)
+
+Subtask 12 happened for real via a direct `git push` to `main` (auto-deployed
+by Netlify), not the planned "deploy and re-verify" step above — this section
+covers debugging the resulting outage rather than that planned step.
+
+**Symptom:** every route 502'd except the prerendered static `/` — confirmed
+by curling several routes directly against `worldstories.net`, not assumed
+from the one browser error the user first reported (`patchRoutesOnNavigation`
+failing during a client-side navigation, which just happened to be how the
+outage was first noticed — it wasn't specific to that code path).
+
+**Root cause, found via the Netlify dashboard's Function logs (no CLI/API
+access from this environment — the user pulled these manually):**
+`Error [ERR_REQUIRE_ESM]: require() of ES Module ... not supported`. Netlify
+ships the function's real `node_modules` alongside it rather than a single
+inlined bundle, and — regardless of our own code being ESM throughout
+(`"type": "module"`, confirmed zero `require()` calls in `build/server/index.js`
+itself) — once execution crosses into a *third-party* package that's
+published as CommonJS, Node evaluates that package's own module graph using
+*its* declared type, not ours. A CJS package cannot synchronously `require()`
+a pure-ESM dependency — that's a hard Node.js limitation, not a bundler
+setting — so any such package anywhere in the tree is a landmine, independent
+of how we write or bundle our own code.
+
+Hit this exact class of bug **three times in a row**, each a genuinely
+different package:
+
+1. `isomorphic-dompurify` → `jsdom@30` → `html-encoding-sniffer@6` →
+   `@exodus/bytes` (pure ESM). Initially patched by pinning `jsdom` to
+   `27.3.0` via `package.json` `overrides` (the last version before
+   `html-encoding-sniffer` bumped to the broken `6.x`) — this alone was not
+   enough, see next point.
+2. The *same* `jsdom` tree, different leaf: `cssstyle` (jsdom's CSS parser)
+   → `@asamuzakjp/css-color` → `@csstools/css-calc`, which has **never**
+   published a CommonJS build, in any version — confirmed by checking
+   `cssstyle` versions 4.6.0 through the current 7.0.0, all of which pull in
+   `@asamuzakjp/css-color`. This is structural, not a version fluke, so no
+   pin would have avoided it — it would have kept resurfacing as jsdom's
+   dependency tree evolved. Decided at this point to remove jsdom from the
+   server bundle entirely rather than keep patching around it: replaced
+   `isomorphic-dompurify` with `sanitize-html` (zero DOM dependency) in
+   `sanitizeHtml.ts`, configured with an explicit tag/attribute allowlist
+   chosen to match DOMPurify's previous permissiveness (broad body-content
+   tags; `style` attribute and `script`/`iframe`/`object`/`embed`/`form`
+   tags excluded, same as before) rather than sanitize-html's own narrower
+   defaults, to avoid silently stripping legitimate story content. Verified
+   directly against both real content and a battery of XSS payloads (`<script>`,
+   `onerror`/`onclick`, `javascript:` URLs, inline `style`, `<iframe>`,
+   `<form>`) — all handled equivalently to before.
+3. `sanitize-html@2.17.7` itself → `htmlparser2@^12`, which dropped its own
+   CommonJS build (v10, already elsewhere in the tree via a devDependency,
+   still ships both `require`/`import` conditions in its `exports` map;
+   v12 does not) — a real bug in sanitize-html's own packaging, not
+   something introduced by picking it. Fixed the same way as point 1: an
+   `overrides` entry pinning `sanitize-html`'s own `htmlparser2` down to
+   `10.1.0`.
+
+**Verification method, since this crashes only in Netlify's actual Function
+runtime and not in a plain local Node/ESM invocation (confirmed early on —
+directly `import()`-ing the generated function locally succeeded even for
+bug #1, giving false confidence):** after each fix, ran `npm install`
+(sometimes requiring a full `rm -rf node_modules package-lock.json` — a
+changed `overrides` entry did not reliably reapply against a stale
+lockfile), then **directly `require()`d the exact package/call site named in
+the crash** to reproduce the failure mode Netlify actually hits, then
+rebuilt and invoked the real generated function
+(`.netlify/v1/functions/react-router-server.mjs`) directly in Node against
+every single route in the app (all ~28 paths from `react-router routes
+--json`, including admin, both readers, the audio player, and a real
+chapter slug that exercises `sanitizeHtml`) — not a sample, all of them,
+since three separate landmines in a row justified being thorough rather than
+spot-checking. All returned correct status codes with no crashes.
+
+**Not fully provable from here:** whether some *fourth* ESM-only landmine
+exists elsewhere in the tree that the current route sweep doesn't exercise —
+this is fundamentally about the packaging quality of the wider npm
+ecosystem, not something exhaustively verifiable offline. The full-route
+sweep above is the strongest practical signal available without a live
+deploy.
