@@ -1999,7 +1999,7 @@ const AdminContent = () => {
               title="Chapters"
               titleBadge={<CountBadge count={selectedStory?.chapter_count ?? 0} label="chapters" />}
               headerAction={
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   {epubImportJob && (epubImportJob.status === "pending" || epubImportJob.status === "processing") && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Loader2 className="h-3 w-3 animate-spin" /> Importing...

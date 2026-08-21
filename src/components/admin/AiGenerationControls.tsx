@@ -18,9 +18,9 @@ export const AiGenerationHeaderControls = ({
 }) => {
   const busy = status === "pending" || status === "processing";
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
       <Select value={inputMode} onValueChange={(value) => onModeChange(value as "metadata" | "content")}>
-        <SelectTrigger className="h-8 w-[190px] text-xs">
+        <SelectTrigger className="h-8 w-full text-xs sm:w-[190px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
