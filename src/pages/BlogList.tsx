@@ -6,7 +6,7 @@ import { storyApi } from "@/api/story";
 import { useInfiniteBlogs } from "@/hooks/useInfiniteBlogs";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { Loader2, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import type { Route } from "./+types/BlogList";
 
@@ -112,18 +112,18 @@ const BlogList = () => {
         </p>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="relative max-w-sm flex-1">
+      <div className="mb-6 flex items-center gap-2 sm:flex-wrap sm:gap-3">
+        <div className="relative min-w-0 flex-1 sm:max-w-sm">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search posts"
-            className="pl-8"
+            className="h-9 pl-8 text-sm sm:h-10 sm:text-base"
           />
         </div>
         <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="h-9 w-[104px] shrink-0 px-2 text-xs sm:h-10 sm:w-[160px] sm:px-3 sm:text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -132,7 +132,7 @@ const BlogList = () => {
           </SelectContent>
         </Select>
         <Select value={linkedFilter} onValueChange={(value) => setLinkedFilter(value as LinkedFilter)}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="h-9 w-[112px] shrink-0 px-2 text-xs sm:h-10 sm:w-[200px] sm:px-3 sm:text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -148,9 +148,12 @@ const BlogList = () => {
       ) : blogs.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">No posts match your filters yet.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-          {blogs.map((blog) => (
-            <BlogCard key={blog.id} blog={blog} />
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {blogs.map((blog, index) => (
+            <Fragment key={blog.id}>
+              {index > 0 && <div className="h-px bg-border sm:hidden" aria-hidden="true" />}
+              <BlogCard blog={blog} />
+            </Fragment>
           ))}
         </div>
       )}
