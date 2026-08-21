@@ -45,3 +45,22 @@ export function sanitizeHtml(html: string | null | undefined): string {
     disallowedTagsMode: "discard",
   });
 }
+
+// Blog post bodies render inside a page that already has its own <h1> (the
+// post title, set separately from this content) — an admin authoring a post
+// in the rich-text editor can still put an <h1> in the body itself, which
+// would give the rendered page two, muddying the heading hierarchy signal
+// search engines use. Demoting it to <h2> here (render time only — the
+// stored content is left exactly as authored) fixes that without touching
+// what the admin sees while editing.
+export function sanitizeBlogContent(html: string | null | undefined): string {
+  return sanitizeHtmlLib(html || "", {
+    allowedTags: ALLOWED_TAGS,
+    allowedAttributes: ALLOWED_ATTRIBUTES,
+    allowedSchemes: sanitizeHtmlLib.defaults.allowedSchemes,
+    disallowedTagsMode: "discard",
+    transformTags: {
+      h1: "h2",
+    },
+  });
+}

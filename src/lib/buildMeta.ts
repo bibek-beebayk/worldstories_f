@@ -14,6 +14,12 @@ interface AlternateLanguage {
   path: string;
 }
 
+interface ArticleMeta {
+  publishedTime?: string;
+  modifiedTime?: string;
+  author?: string;
+}
+
 export interface BuildMetaOptions {
   title: string;
   description: string;
@@ -23,6 +29,9 @@ export interface BuildMetaOptions {
   noIndex?: boolean;
   structuredData?: Record<string, unknown>;
   alternateLanguages?: AlternateLanguage[];
+  // Emits the article: namespace OG tags (only meaningful — and only
+  // rendered — alongside type: "article").
+  article?: ArticleMeta;
 }
 
 export function buildMeta({
@@ -34,6 +43,7 @@ export function buildMeta({
   noIndex = false,
   structuredData,
   alternateLanguages,
+  article,
 }: BuildMetaOptions) {
   const canonicalUrl = `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
   const socialImage = image || DEFAULT_IMAGE;
@@ -54,6 +64,18 @@ export function buildMeta({
     { name: "twitter:image", content: socialImage },
     { tagName: "link", rel: "canonical", href: canonicalUrl },
   ];
+
+  if (type === "article" && article) {
+    if (article.publishedTime) {
+      tags.push({ property: "article:published_time", content: article.publishedTime });
+    }
+    if (article.modifiedTime) {
+      tags.push({ property: "article:modified_time", content: article.modifiedTime });
+    }
+    if (article.author) {
+      tags.push({ property: "article:author", content: article.author });
+    }
+  }
 
   for (const alt of alternateLanguages || []) {
     tags.push({

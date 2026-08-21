@@ -2,17 +2,49 @@ import BlogCard from "@/components/BlogCard";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { storyApi } from "@/api/story";
 import { useInfiniteBlogs } from "@/hooks/useInfiniteBlogs";
-import { buildMeta } from "@/lib/buildMeta";
+import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import type { Route } from "./+types/BlogList";
 
-export function meta() {
+// Fetched here purely to supply meta() with real data (for the Blog/
+// blogPost structured data) server-side — the component below still fetches
+// independently via useInfiniteBlogs, same "loader feeds meta only" pattern
+// used on the homepage and story detail page.
+export async function loader() {
+  try {
+    return await storyApi.getBlogs(1, "", "newest");
+  } catch {
+    return undefined;
+  }
+}
+
+export function meta({ data }: Route.MetaArgs) {
+  const posts = data?.results || [];
   return buildMeta({
     title: "Blog | WorldStories",
     description: "Reading recommendations, author spotlights, and news from the WorldStories team.",
     path: "/blog",
+    structuredData:
+      posts.length > 0
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Blog",
+            name: "WorldStories Blog",
+            url: `${SITE_URL}/blog`,
+            blogPost: posts.map((post) => ({
+              "@type": "BlogPosting",
+              headline: post.title,
+              url: `${SITE_URL}/blog/${post.slug}`,
+              datePublished: post.published_at,
+              dateModified: post.updated_at,
+              image: post.cover_image || undefined,
+            })),
+          }
+        : undefined,
   });
 }
 

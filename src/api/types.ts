@@ -754,6 +754,7 @@ export interface Blog {
   author_name: string | null;
   linked_story: BlogLinkedStory | null;
   published_at: string;
+  updated_at: string;
 }
 
 export interface AdminBlog {

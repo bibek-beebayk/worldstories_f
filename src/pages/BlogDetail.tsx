@@ -6,7 +6,7 @@ import { storyApi } from "@/api/story";
 import { useBlog } from "@/hooks/useBlog";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { plainText } from "@/lib/plainText";
-import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { sanitizeBlogContent } from "@/lib/sanitizeHtml";
 import { ArrowRight } from "lucide-react";
 import { Link, data, useParams } from "react-router";
 import type { Route } from "./+types/BlogDetail";
@@ -39,11 +39,17 @@ export function meta({ data: loaderData, params }: Route.MetaArgs) {
     path: blogPath,
     image: loaderData.cover_image,
     type: "article",
+    article: {
+      publishedTime: loaderData.published_at,
+      modifiedTime: loaderData.updated_at,
+      author: loaderData.author_name || undefined,
+    },
     structuredData: {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
       headline: loaderData.title,
       datePublished: loaderData.published_at,
+      dateModified: loaderData.updated_at,
       author: loaderData.author_name ? { "@type": "Person", name: loaderData.author_name } : undefined,
       image: loaderData.cover_image || undefined,
       url: `${SITE_URL}${blogPath}`,
@@ -89,7 +95,7 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
 
       <div
         className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(blog.content) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeBlogContent(blog.content) }}
       />
 
       <AdSpace size="rectangle" className="my-8" />
