@@ -1,4 +1,5 @@
 import AdSpace from "@/components/AdSpace";
+import { plainText } from "@/lib/plainText";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ import {
   Heart,
   Link2,
   Loader2,
+  Newspaper,
   Share2,
   Sparkles,
   Star,
@@ -53,6 +55,7 @@ import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
 import StoryCard from "@/components/StoryCard";
+import BlogCard from "@/components/BlogCard";
 
 // Fetched here purely to supply meta() with real data server-side — the
 // component below still fetches independently via useStory() for now
@@ -67,9 +70,6 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 }
 
-function plainText(html: string) {
-  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
 
 export function meta({ data, params }: Route.MetaArgs) {
   if (!data) {
@@ -142,6 +142,12 @@ type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
 const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
   const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
+  const { data: relatedBlogsData } = useQuery({
+    queryKey: ["related-blogs", slug],
+    queryFn: () => storyApi.getBlogsForStory(slug!),
+    enabled: !!slug,
+  });
+  const relatedBlogs = relatedBlogsData?.results || [];
   const { downloadedIds, refresh: refreshDownloadedIds } = useDownloadedIds(slug || "");
   const {
     downloadChapter,
@@ -715,7 +721,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 <TabsList className="w-max">
                   {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
                   {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
-                  {story.retrospective && <TabsTrigger value="retrospective">Retrospective</TabsTrigger>}
                   <TabsTrigger value="about">About</TabsTrigger>
                   <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 </TabsList>
@@ -861,19 +866,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 </Card>
               </TabsContent>
 
-              {story.retrospective && (
-                <TabsContent value="retrospective" className="mt-6">
-                  <Card>
-                    <CardContent className="p-6">
-                      <div
-                        className="prose max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.retrospective) }}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
-
               <TabsContent value="about" className="mt-6">
                 <Card>
                   <CardContent className="p-6 space-y-4">
@@ -1002,6 +994,23 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
             {/* <AdSpace size="rectangle" /> */}
           </div>
         </div>
+
+        {relatedBlogs.length > 0 && (
+          <section className="mt-12 border-t pt-8" aria-labelledby="related-blogs-heading">
+            <div className="mb-5 flex items-center gap-2">
+              <Newspaper className="h-5 w-5 text-primary" />
+              <div>
+                <h2 id="related-blogs-heading" className="text-xl font-bold sm:text-2xl">Related Blogs</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Blog posts about this story.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+              {relatedBlogs.map((blog) => (
+                <BlogCard key={blog.id} blog={blog} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {story.similar_stories.length > 0 && (
           <section className="mt-12 border-t pt-8" aria-labelledby="similar-titles-heading">

@@ -736,3 +736,39 @@ export interface AdminAnalyticsAudienceResponse {
     minutes: number;
   }>;
 }
+
+export interface BlogLinkedStory {
+  id: number;
+  slug: string;
+  title: string;
+  cover_image: string;
+}
+
+export interface Blog {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  cover_image: string;
+  author_name: string | null;
+  linked_story: BlogLinkedStory | null;
+  published_at: string;
+}
+
+export interface AdminBlog {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  cover_image_file: string | null;
+  cover_image_url: string;
+  author_name: string | null;
+  linked_story: number | null;
+  linked_story_detail: { id: number; title: string; slug: string } | null;
+  is_published: boolean;
+  publish_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

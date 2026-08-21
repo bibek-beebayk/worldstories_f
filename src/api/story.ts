@@ -23,6 +23,8 @@ import {
   AiGenerationInputField,
   EpubImportJob,
   PromptSettings,
+  Blog,
+  AdminBlog,
   AdminSubmission,
   AdminOverviewResponse,
   AdminAuthor,
@@ -229,6 +231,22 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  getBlogs: (page: number = 1, q: string = "", sort: string = "newest", linkedToStory?: boolean) =>
+    apiClient<PaginatedResponse<Blog>>(
+      `/blog/?page=${page}&search=${encodeURIComponent(q)}&sort=${sort}` +
+        (linkedToStory !== undefined ? `&linked_to_story=${linkedToStory}` : "")
+    ),
+  getBlog: (slug: string) => apiClient<Blog>(`/blog/${slug}/`),
+  getBlogsForStory: (storySlug: string) =>
+    apiClient<PaginatedResponse<Blog>>(`/blog/?linked_story=${encodeURIComponent(storySlug)}`),
+  getAdminBlogs: (page: number = 1, q: string = "") =>
+    apiClient<PaginatedResponse<AdminBlog>>(`/admin/blog/?page=${page}&search=${encodeURIComponent(q)}`),
+  getAdminBlog: (id: number) => apiClient<AdminBlog>(`/admin/blog/${id}/`),
+  createAdminBlog: (formData: FormData) =>
+    apiClient<AdminBlog>("/admin/blog/", { method: "POST", body: formData }),
+  updateAdminBlog: (id: number, formData: FormData) =>
+    apiClient<AdminBlog>(`/admin/blog/${id}/`, { method: "PATCH", body: formData }),
+  deleteAdminBlog: (id: number) => apiClient<void>(`/admin/blog/${id}/`, { method: "DELETE" }),
   getAdminChapters: (storyId: number) =>
     apiClient<PaginatedResponse<AdminChapter>>(`/admin/chapters/?story=${storyId}`),
   getAdminAudios: (storyId: number) =>
