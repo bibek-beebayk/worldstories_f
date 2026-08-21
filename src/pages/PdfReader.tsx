@@ -266,7 +266,7 @@ const PdfReader = ({ loaderData }: Route.ComponentProps) => {
   const pageAnimationRef = useRef<PageAnimationEffect>(pageAnimation);
   const pendingAnimationDirectionRef = useRef<PageTurnDirection | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
-  useContentSessionAnalytics("reading_session", slug, true, {
+  useContentSessionAnalytics("reading_session", slug ? { storySlug: slug } : undefined, true, {
     format: "pdf",
     view_mode: viewMode,
   });

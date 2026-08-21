@@ -1,17 +1,22 @@
 import { useEffect, useRef } from "react";
 import { AnalyticsEventType, trackAnalyticsEvent } from "@/lib/analytics";
 
+export type ContentIdentity = { storySlug: string } | { blogSlug: string };
+
 export function useContentSessionAnalytics(
   eventType: Extract<AnalyticsEventType, "reading_session" | "listening_session">,
-  storySlug?: string,
+  identity: ContentIdentity | undefined,
   enabled: boolean = true,
   metadata: Record<string, string | number | boolean | null> = {}
 ) {
   const metadataRef = useRef(metadata);
   metadataRef.current = metadata;
 
+  const storySlug = identity && "storySlug" in identity ? identity.storySlug : undefined;
+  const blogSlug = identity && "blogSlug" in identity ? identity.blogSlug : undefined;
+
   useEffect(() => {
-    if (!storySlug || !enabled) return;
+    if ((!storySlug && !blogSlug) || !enabled) return;
     let startedAt = document.visibilityState === "visible" ? Date.now() : null;
     let accumulatedMs = 0;
 
@@ -37,10 +42,11 @@ export function useContentSessionAnalytics(
         trackAnalyticsEvent({
           event_type: eventType,
           story_slug: storySlug,
+          blog_slug: blogSlug,
           duration_seconds: seconds,
           metadata: metadataRef.current,
         });
       }
     };
-  }, [enabled, eventType, storySlug]);
+  }, [enabled, eventType, storySlug, blogSlug]);
 }

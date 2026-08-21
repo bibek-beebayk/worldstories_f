@@ -247,6 +247,8 @@ export const storyApi = {
   updateAdminBlog: (id: number, formData: FormData) =>
     apiClient<AdminBlog>(`/admin/blog/${id}/`, { method: "PATCH", body: formData }),
   deleteAdminBlog: (id: number) => apiClient<void>(`/admin/blog/${id}/`, { method: "DELETE" }),
+  generateBlogExcerpt: (id: number) =>
+    apiClient<AdminBlog>(`/admin/blog/${id}/generate-excerpt/`, { method: "POST" }),
   getAdminChapters: (storyId: number) =>
     apiClient<PaginatedResponse<AdminChapter>>(`/admin/chapters/?story=${storyId}`),
   getAdminAudios: (storyId: number) =>

@@ -19,6 +19,7 @@ import {
   Link2,
   List,
   ListOrdered,
+  Loader2,
   Pencil,
   Plus,
   Search,
@@ -30,6 +31,7 @@ import { AdminBlog, AdminStory } from "@/api/types";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { getLanguageLabel } from "@/lib/languages";
+import { AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
 
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
 // timezone suffix) — the backend gives back a UTC ISO string, so this
@@ -88,9 +90,32 @@ const AdminBlogs = () => {
   const [saving, setSaving] = useState(false);
   const [pendingDeleteBlog, setPendingDeleteBlog] = useState<AdminBlog | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [excerptBannerDismissed, setExcerptBannerDismissed] = useState(false);
 
   const contentEditorRef = useRef<HTMLDivElement | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
+  const lastAppliedExcerptStatusRef = useRef<string | null>(null);
+
+  const { data: liveEditingBlog } = useQuery({
+    queryKey: ["admin-blog", editingBlog?.id],
+    queryFn: () => storyApi.getAdminBlog(editingBlog!.id),
+    enabled: isAuthenticated && isSuperuser && showForm && editingBlog !== null,
+    refetchInterval: (query) => {
+      const s = query.state.data;
+      return s?.excerpt_status === "pending" || s?.excerpt_status === "processing" ? 2000 : false;
+    },
+  });
+
+  useEffect(() => {
+    if (!liveEditingBlog) return;
+    if (liveEditingBlog.excerpt_status === "completed" && lastAppliedExcerptStatusRef.current !== "completed") {
+      setExcerpt(liveEditingBlog.excerpt || "");
+    }
+    lastAppliedExcerptStatusRef.current = liveEditingBlog.excerpt_status;
+  }, [liveEditingBlog]);
+
+  const excerptGenerationBusy =
+    liveEditingBlog?.excerpt_status === "pending" || liveEditingBlog?.excerpt_status === "processing";
 
   const [storySearchQuery, setStorySearchQuery] = useState("");
   const [debouncedStorySearchQuery, setDebouncedStorySearchQuery] = useState("");
@@ -143,6 +168,8 @@ const AdminBlogs = () => {
     setCopyCoverFromStoryUrl(null);
     setLinkStoryOffer(null);
     setStorySearchQuery("");
+    setExcerptBannerDismissed(false);
+    lastAppliedExcerptStatusRef.current = null;
   };
 
   const openCreateForm = () => {
@@ -167,6 +194,8 @@ const AdminBlogs = () => {
     setCopyCoverFromStoryUrl(null);
     setLinkStoryOffer(null);
     setStorySearchQuery("");
+    setExcerptBannerDismissed(false);
+    lastAppliedExcerptStatusRef.current = blog.excerpt_status;
     setShowForm(true);
   };
 
@@ -231,6 +260,17 @@ const AdminBlogs = () => {
       toast.error(error instanceof Error ? error.message : "Failed to save blog post.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerateExcerpt = async () => {
+    if (!editingBlog) return;
+    setExcerptBannerDismissed(false);
+    try {
+      await storyApi.generateBlogExcerpt(editingBlog.id);
+      await queryClient.invalidateQueries({ queryKey: ["admin-blog", editingBlog.id] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start excerpt generation.");
     }
   };
 
@@ -312,12 +352,42 @@ const AdminBlogs = () => {
               </div>
 
               <div>
-                <Label htmlFor="blog-excerpt">Excerpt</Label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="blog-excerpt">Excerpt</Label>
+                  {editingBlog && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={excerptGenerationBusy}
+                      onClick={handleGenerateExcerpt}
+                    >
+                      {excerptGenerationBusy && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                      {excerptGenerationBusy ? "Generating..." : "Generate from Content"}
+                    </Button>
+                  )}
+                </div>
+                {editingBlog && (
+                  <div className="mt-2">
+                    <AiGenerationResultBanner
+                      label="Excerpt"
+                      status={liveEditingBlog?.excerpt_status ?? null}
+                      source={liveEditingBlog?.excerpt_source ?? null}
+                      confident={liveEditingBlog?.excerpt_confident ?? null}
+                      confidenceNote={liveEditingBlog?.excerpt_confidence_note ?? null}
+                      error={liveEditingBlog?.excerpt_error ?? null}
+                      dismissed={excerptBannerDismissed}
+                      onDismiss={() => setExcerptBannerDismissed(true)}
+                      onRetryWithContent={handleGenerateExcerpt}
+                      onTryAgain={handleGenerateExcerpt}
+                    />
+                  </div>
+                )}
                 <Textarea
                   id="blog-excerpt"
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
-                  className="min-h-20"
+                  className="mt-2 min-h-20"
                   maxLength={300}
                   placeholder="Short summary shown on the blog list page and used as the SEO description."
                 />

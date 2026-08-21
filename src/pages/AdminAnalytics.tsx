@@ -180,6 +180,10 @@ const AdminAnalytics = () => {
           )}
           {contentQuery.data && (
             <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatTile label="Blog posts" value={formatNumber(contentQuery.data.blog_posts_count)} />
+              </div>
+
               <div className="grid gap-4 xl:grid-cols-2">
                 <ChartCard title="Views over time" subtitle="Real, de-duplicated story views">
                   <TrendLineChart
@@ -193,6 +197,13 @@ const AdminAnalytics = () => {
                     data={contentQuery.data.publishing_over_time}
                     xKey="day"
                     series={[{ key: "count", label: "Stories published" }]}
+                  />
+                </ChartCard>
+                <ChartCard title="Blog publishing velocity" subtitle="Blog posts published per day">
+                  <TrendLineChart
+                    data={contentQuery.data.blog_publishing_over_time}
+                    xKey="day"
+                    series={[{ key: "count", label: "Posts published" }]}
                   />
                 </ChartCard>
               </div>
@@ -356,6 +367,8 @@ const AdminAnalytics = () => {
                 <StatTile label="Completion rate" value={formatPercent(audienceQuery.data.summary.completion_rate)} />
                 <StatTile label="Reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.reading_minutes))}m`} />
                 <StatTile label="Listening time" value={`${formatNumber(Math.round(audienceQuery.data.summary.listening_minutes))}m`} />
+                <StatTile label="Blog reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.blog_reading_minutes))}m`} />
+                <StatTile label="Quick Read time" value={`${formatNumber(Math.round(audienceQuery.data.summary.quick_read_reading_minutes))}m`} />
                 <StatTile label="Avg session" value={`${audienceQuery.data.summary.avg_session_minutes}m`} />
               </div>
 
@@ -394,7 +407,7 @@ const AdminAnalytics = () => {
                 />
               </ChartCard>
 
-              <div className="grid gap-4 xl:grid-cols-2">
+              <div className="grid gap-4 xl:grid-cols-3">
                 <ChartCard title="Downloads by format">
                   <BreakdownBarChart
                     data={audienceQuery.data.download_types}
@@ -407,6 +420,13 @@ const AdminAnalytics = () => {
                     data={audienceQuery.data.completion_types}
                     xKey="content_type"
                     series={[{ key: "count", label: "Completions" }]}
+                  />
+                </ChartCard>
+                <ChartCard title="Ad impressions by content type">
+                  <BreakdownBarChart
+                    data={audienceQuery.data.ad_impressions_by_content_type}
+                    xKey="content_type"
+                    series={[{ key: "count", label: "Impressions" }]}
                   />
                 </ChartCard>
               </div>
@@ -449,6 +469,20 @@ const AdminAnalytics = () => {
                           <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
                         ))}
                         {audienceQuery.data.top_listened.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No listening sessions yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </ChartCard>
+
+                <ChartCard title="Top read blog posts">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
+                      <tbody>
+                        {audienceQuery.data.top_blogs_read.map((row) => (
+                          <tr key={row.blog_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
+                        ))}
+                        {audienceQuery.data.top_blogs_read.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No blog reading sessions yet.</td></tr>}
                       </tbody>
                     </table>
                   </div>

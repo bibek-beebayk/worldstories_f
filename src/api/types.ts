@@ -415,6 +415,8 @@ export interface PromptSettings {
   summary_model: AiGenerationModel;
   retrospective_instructions: string;
   retrospective_model: AiGenerationModel;
+  excerpt_instructions: string;
+  excerpt_model: AiGenerationModel;
 }
 
 export interface AdminAuthor {
@@ -606,6 +608,8 @@ export interface AdminAnalyticsContentResponse {
   story_type_breakdown: AdminAnalyticsStoryTypeBreakdown[];
   completion_split: AdminAnalyticsCompletionSplit[];
   publishing_over_time: AdminAnalyticsDayCount[];
+  blog_publishing_over_time: AdminAnalyticsDayCount[];
+  blog_posts_count: number;
 }
 
 export interface AdminAnalyticsProgressBucket {
@@ -703,6 +707,8 @@ export interface AdminAnalyticsAudienceResponse {
     completion_rate: number;
     reading_minutes: number;
     listening_minutes: number;
+    blog_reading_minutes: number;
+    quick_read_reading_minutes: number;
     avg_session_minutes: number;
   };
   daily_activity: Array<{
@@ -719,6 +725,7 @@ export interface AdminAnalyticsAudienceResponse {
     returning_visitors: number;
   }>;
   ad_placements: Array<{ path: string; size: string; count: number }>;
+  ad_impressions_by_content_type: Array<{ content_type: string; count: number }>;
   download_types: Array<{ content_type: string; count: number; bytes: number }>;
   completion_types: Array<{ content_type: string; count: number }>;
   top_downloads: Array<{
@@ -730,6 +737,13 @@ export interface AdminAnalyticsAudienceResponse {
   }>;
   top_listened: Array<{
     story_id: number;
+    title: string;
+    slug: string;
+    sessions: number;
+    minutes: number;
+  }>;
+  top_blogs_read: Array<{
+    blog_id: number;
     title: string;
     slug: string;
     sessions: number;
@@ -762,6 +776,11 @@ export interface AdminBlog {
   title: string;
   slug: string;
   excerpt: string | null;
+  excerpt_status: AiGenerationStatus | null;
+  excerpt_source: AiGenerationSource | null;
+  excerpt_confident: boolean | null;
+  excerpt_confidence_note: string | null;
+  excerpt_error: string | null;
   content: string;
   cover_image_file: string | null;
   cover_image_url: string;

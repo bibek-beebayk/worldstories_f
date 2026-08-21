@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
+import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
@@ -71,6 +72,12 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
   // already in cache and appears instantly instead of behind a fresh spinner.
   const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
   const { isFavorite, favoriteLoading, toggleFavorite } = useFavoriteToggle(slug, story);
+  useContentSessionAnalytics(
+    "reading_session",
+    story?.slug ? { storySlug: story.slug } : undefined,
+    true,
+    { format: "quick_read" }
+  );
 
   const quickReadMinutes = useMemo(() => estimateSummaryReadingMinutes(story?.summary), [story?.summary]);
 

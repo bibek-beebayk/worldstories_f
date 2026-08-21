@@ -293,7 +293,7 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
           </Carousel>
         </section>
 
-        <AdSpace size="banner" className="mb-8" />
+        <AdSpace size="banner" className="mb-8" contentType="discover" />
 
         <section id="trending" className="mb-8 scroll-mt-24">
           <div className="mb-5 rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50 via-orange-50 to-amber-100 p-5 sm:p-6">
@@ -362,7 +362,7 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
           </Carousel>
         </section>
 
-        <AdSpace size="banner" className="mb-8" />
+        <AdSpace size="banner" className="mb-8" contentType="discover" />
 
         {/* Hidden Gems — a list, not a grid, so the rating (the whole point of this section)
             reads as the headline rather than competing visually with cover art. */}

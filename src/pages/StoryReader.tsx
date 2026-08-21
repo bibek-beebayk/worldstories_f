@@ -211,7 +211,7 @@ export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
 
 const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   const { story_slug, chapter_slug } = useParams();
-  useContentSessionAnalytics("reading_session", story_slug, true, {
+  useContentSessionAnalytics("reading_session", story_slug ? { storySlug: story_slug } : undefined, true, {
     format: "chapter",
     item_slug: chapter_slug || "",
   });

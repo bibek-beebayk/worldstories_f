@@ -4,6 +4,7 @@ import FullScreenLoader from "@/components/FullScreenLoader";
 import { Card, CardContent } from "@/components/ui/card";
 import { storyApi } from "@/api/story";
 import { useBlog } from "@/hooks/useBlog";
+import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { plainText } from "@/lib/plainText";
 import { sanitizeBlogContent } from "@/lib/sanitizeHtml";
@@ -64,6 +65,12 @@ const formatDate = (iso: string) =>
 const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
   const { data: blog, isLoading, isError } = useBlog(slug!, loaderData || undefined);
+  useContentSessionAnalytics(
+    "reading_session",
+    blog?.slug ? { blogSlug: blog.slug } : undefined,
+    true,
+    { format: "blog" }
+  );
 
   if (isLoading) {
     return <FullScreenLoader />;
@@ -91,14 +98,14 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
         <span suppressHydrationWarning>{formatDate(blog.published_at)}</span>
       </div>
 
-      <AdSpace size="banner" className="mb-8" />
+      <AdSpace size="banner" className="mb-8" contentType="blog" />
 
       <div
         className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
         dangerouslySetInnerHTML={{ __html: sanitizeBlogContent(blog.content) }}
       />
 
-      <AdSpace size="rectangle" className="my-8" />
+      <AdSpace size="rectangle" className="my-8" contentType="blog" />
 
       {blog.linked_story && (
         <Card className="mt-8">

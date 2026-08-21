@@ -194,7 +194,7 @@ const EpubReader = ({ loaderData }: Route.ComponentProps) => {
   // Immersive-reading toggle shared by every viewport: tapping/clicking the
   // page hides the header/footer chrome without resizing the rendition.
   const [controlsVisible, setControlsVisible] = useState(true);
-  useContentSessionAnalytics("reading_session", slug, true, {
+  useContentSessionAnalytics("reading_session", slug ? { storySlug: slug } : undefined, true, {
     format: "epub",
     view_mode: viewMode,
   });

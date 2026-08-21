@@ -245,7 +245,7 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
             </Tabs>
           </section>
 
-          <AdSpace size="banner" />
+          <AdSpace size="banner" contentType="home" />
 
           <section className="grid gap-4 sm:gap-6 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">

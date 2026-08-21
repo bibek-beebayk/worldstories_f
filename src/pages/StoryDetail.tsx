@@ -713,7 +713,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
               </div>
             </div>
 
-            <AdSpace size="banner" className="mb-8" />
+            <AdSpace size="banner" className="mb-8" contentType="story" />
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -989,7 +989,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <AdSpace size="rectangle" />
+            <AdSpace size="rectangle" contentType="story" />
 
             {/* <AdSpace size="rectangle" /> */}
           </div>

@@ -18,7 +18,7 @@ const Originals = () => {
           <p className="text-lg text-muted-foreground text-gray-300">Exclusive stories created by our featured authors</p>
         </div>
 
-        <AdSpace size="banner" className="mb-8" />
+        <AdSpace size="banner" className="mb-8" contentType="originals" />
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
           {data.stories.map((story) => (
@@ -26,7 +26,7 @@ const Originals = () => {
           ))}
         </div>
 
-        <AdSpace size="banner" />
+        <AdSpace size="banner" contentType="originals" />
       </main>
     </div>
   );

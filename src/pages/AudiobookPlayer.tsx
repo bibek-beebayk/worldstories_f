@@ -139,7 +139,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   }, []);
 
   const currentAudio = story?.audios[currentIndex];
-  useContentSessionAnalytics("listening_session", story_slug, isPlaying, {
+  useContentSessionAnalytics("listening_session", story_slug ? { storySlug: story_slug } : undefined, isPlaying, {
     format: "audio",
     item_slug: currentAudio?.slug || chapter_slug || "",
     playback_rate: playbackRate,
@@ -958,8 +958,8 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
 
             {!isFullscreen && (
               <>
-                <AdSpace size="banner" />
-                <AdSpace size="rectangle" />
+                <AdSpace size="banner" contentType="audiobook" />
+                <AdSpace size="rectangle" contentType="audiobook" />
               </>
             )}
         </section>

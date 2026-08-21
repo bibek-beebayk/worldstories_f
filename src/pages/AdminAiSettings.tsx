@@ -39,8 +39,11 @@ const AdminAiSettings = () => {
   const [summaryModel, setSummaryModel] = useState<AiGenerationModel>("claude-sonnet-5");
   const [retrospectiveInstructions, setRetrospectiveInstructions] = useState("");
   const [retrospectiveModel, setRetrospectiveModel] = useState<AiGenerationModel>("claude-sonnet-5");
+  const [excerptInstructions, setExcerptInstructions] = useState("");
+  const [excerptModel, setExcerptModel] = useState<AiGenerationModel>("claude-sonnet-5");
   const [savingSummary, setSavingSummary] = useState(false);
   const [savingRetrospective, setSavingRetrospective] = useState(false);
+  const [savingExcerpt, setSavingExcerpt] = useState(false);
 
   useEffect(() => {
     if (!promptSettings) return;
@@ -48,6 +51,8 @@ const AdminAiSettings = () => {
     setSummaryModel(promptSettings.summary_model);
     setRetrospectiveInstructions(promptSettings.retrospective_instructions);
     setRetrospectiveModel(promptSettings.retrospective_model);
+    setExcerptInstructions(promptSettings.excerpt_instructions);
+    setExcerptModel(promptSettings.excerpt_model);
   }, [promptSettings]);
 
   const saveSummarySettings = async () => {
@@ -79,6 +84,22 @@ const AdminAiSettings = () => {
       toast.error(error instanceof Error ? error.message : "Failed to save retrospective prompt settings.");
     } finally {
       setSavingRetrospective(false);
+    }
+  };
+
+  const saveExcerptSettings = async () => {
+    try {
+      setSavingExcerpt(true);
+      const updated = await storyApi.updatePromptSettings({
+        excerpt_instructions: excerptInstructions,
+        excerpt_model: excerptModel,
+      });
+      queryClient.setQueryData<PromptSettings>(["admin-prompt-settings"], updated);
+      toast.success("Excerpt prompt settings saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save excerpt prompt settings.");
+    } finally {
+      setSavingExcerpt(false);
     }
   };
 
@@ -196,6 +217,50 @@ const AdminAiSettings = () => {
                   onClick={saveRetrospectiveSettings}
                 >
                   {savingRetrospective ? "Saving..." : "Save Retrospective Settings"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Excerpt</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Used for a blog post's SEO excerpt/meta description. Plain text only — no markdown or HTML.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label htmlFor="excerpt-instructions">Instructions</Label>
+                <Textarea
+                  id="excerpt-instructions"
+                  value={excerptInstructions}
+                  onChange={(e) => setExcerptInstructions(e.target.value)}
+                  className="mt-2 min-h-32"
+                />
+              </div>
+              <div>
+                <Label htmlFor="excerpt-model">Model</Label>
+                <Select value={excerptModel} onValueChange={(value) => setExcerptModel(value as AiGenerationModel)}>
+                  <SelectTrigger id="excerpt-model" className="mt-2 max-w-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  disabled={savingExcerpt || !excerptInstructions.trim()}
+                  onClick={saveExcerptSettings}
+                >
+                  {savingExcerpt ? "Saving..." : "Save Excerpt Settings"}
                 </Button>
               </div>
             </CardContent>

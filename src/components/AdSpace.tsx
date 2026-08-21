@@ -4,9 +4,15 @@ import { trackAnalyticsEvent } from "@/lib/analytics";
 interface AdSpaceProps {
   size: "banner" | "square" | "rectangle";
   className?: string;
+  // Which page/content type this slot renders on (e.g. "blog", "story",
+  // "home") — surfaced in the ad_impression event's metadata so impressions
+  // across content types are distinguishable in analytics, not just lumped
+  // together as raw path strings. Optional and additive; omitting it is
+  // fine, existing behavior is unaffected.
+  contentType?: string;
 }
 
-const AdSpace = ({ size, className = "" }: AdSpaceProps) => {
+const AdSpace = ({ size, className = "", contentType }: AdSpaceProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -22,7 +28,11 @@ const AdSpace = ({ size, className = "" }: AdSpaceProps) => {
             recorded = true;
             trackAnalyticsEvent({
               event_type: "ad_impression",
-              metadata: { size, path: window.location.pathname },
+              metadata: {
+                size,
+                path: window.location.pathname,
+                ...(contentType ? { content_type: contentType } : {}),
+              },
             });
             observer.disconnect();
           }, 1000);
@@ -38,7 +48,7 @@ const AdSpace = ({ size, className = "" }: AdSpaceProps) => {
       if (timer !== null) window.clearTimeout(timer);
       observer.disconnect();
     };
-  }, [size]);
+  }, [size, contentType]);
 
   const sizeClasses = {
     banner: "h-24 md:h-32",
