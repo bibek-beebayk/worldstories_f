@@ -46,6 +46,15 @@ export function clearTokens() {
 // ----------------------------
 // API CLIENT
 // ----------------------------
+// Set only when this module is executing in the SSR loader pass (Node),
+// never in the browser — process.env vars without a VITE_ prefix aren't
+// bundled into client code, so this is unreachable from a real visitor.
+// Loader-originated fetches all come from the Node host itself rather than
+// the visitor's browser, so without a distinct identity here every
+// visitor's page load would count against the same IP-keyed anon rate
+// limit on the backend (see core/libs/throttling.py in worldstories_b).
+const SSR_INTERNAL_API_KEY = typeof window === "undefined" ? process.env.SSR_INTERNAL_API_KEY : undefined;
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -60,6 +69,7 @@ export async function apiClient<T>(
       ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(SSR_INTERNAL_API_KEY ? { "X-Internal-SSR-Key": SSR_INTERNAL_API_KEY } : {}),
     },
   });
 
