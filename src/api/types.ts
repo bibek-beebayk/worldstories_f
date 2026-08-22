@@ -315,6 +315,7 @@ export interface ContinueReadingItem {
   chapter_progress: number;
   overall_progress: number;
   updated_at: string;
+  excerpt: string;
 }
 
 export interface ContinueListeningItem {

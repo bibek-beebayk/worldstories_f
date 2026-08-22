@@ -140,6 +140,12 @@ const ContinueReadingSection = ({
                     </span>
                   </div>
 
+                  {item.excerpt && (
+                    <p className="line-clamp-2 text-[11px] italic text-muted-foreground">
+                      {item.excerpt}
+                    </p>
+                  )}
+
                   <div>
                     <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
                       <div

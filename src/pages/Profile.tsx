@@ -887,6 +887,11 @@ const Profile = () => {
                           <p className="mt-1 text-sm text-muted-foreground">
                             {item.chapter_title || "Current chapter"}
                           </p>
+                          {item.excerpt && (
+                            <p className="mt-1 line-clamp-2 text-sm italic text-muted-foreground">
+                              {item.excerpt}
+                            </p>
+                          )}
                           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                             <div
                               className="h-full bg-primary"
