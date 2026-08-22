@@ -2,6 +2,7 @@ import { apiClient } from "./client";
 import {
   StoryListResponse,
   Chapter,
+  Story,
   StoryDetail,
   Genre,
   Category,
@@ -60,8 +61,11 @@ export const storyApi = {
       `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}`
     ),
 
-  getStory: (slug: string) => 
+  getStory: (slug: string) =>
     apiClient<StoryDetail>(`/stories/${slug}/`),
+
+  getBecauseFinished: (slug: string) =>
+    apiClient<Story[]>(`/stories/${slug}/because-finished/`),
 
   getChapter: (story_slug: string, chapter_slug: string, type: string) =>
     apiClient<Chapter>(`/stories/${story_slug}/chapters/${chapter_slug}/?type=${type}`),

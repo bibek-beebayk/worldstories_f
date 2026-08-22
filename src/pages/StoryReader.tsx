@@ -4,7 +4,9 @@ import { useAuthModal } from "@/context/AuthModalContext";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { storyApi } from "@/api/story";
 import { queueChapterProgress, saveChapterProgressLocally } from "@/lib/progressSync";
+import { markStoryFinishedIfComplete } from "@/lib/storyCompletion";
 import { usePendingProgress } from "@/hooks/usePendingProgress";
+import BecauseYouFinishedRail from "@/components/BecauseYouFinishedRail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -285,6 +287,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   };
   const [liveProgress, setLiveProgress] = useState(0);
   const [pinchScale, setPinchScale] = useState(1);
+  const [justFinishedStory, setJustFinishedStory] = useState(false);
 
   // liveProgress alone is only how far through the *current* chapter the
   // reader is. Overall book progress treats each chapter as an equal-sized
@@ -333,6 +336,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     currentChapterIndex >= 0 && currentChapterIndex < (story?.chapters.length || 0) - 1
       ? story?.chapters[currentChapterIndex + 1]?.slug
       : undefined;
+  const isLastChapter = currentChapterIndex >= 0 && !nextChapterSlug;
 
   const orderedChapters = useMemo(
     () => [...(story?.chapters || [])].sort((a, b) => a.order - b.order),
@@ -476,8 +480,11 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
           .saveReadingProgress(story_slug, chapter_slug, normalized)
           .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized));
       }
+      if (isLastChapter && normalized >= 0.995 && markStoryFinishedIfComplete(story_slug, true)) {
+        setJustFinishedStory(true);
+      }
     }, 400);
-  }, [chapter_slug, isAuthenticated, story_slug]);
+  }, [chapter_slug, isAuthenticated, isLastChapter, story_slug]);
 
   const scrollToProgress = (progress: number) => {
     const content = scrollContentRef.current;
@@ -501,10 +508,13 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
       }
       if (latestProgressRef.current !== null && story_slug && chapter_slug) {
         saveChapterProgressLocally(story_slug, chapter_slug, latestProgressRef.current);
+        if (isLastChapter && latestProgressRef.current >= 0.995) {
+          markStoryFinishedIfComplete(story_slug, true);
+        }
         latestProgressRef.current = null;
       }
     };
-  }, [story_slug, chapter_slug]);
+  }, [story_slug, chapter_slug, isLastChapter]);
 
   useEffect(() => {
     if (!chapter?.content || hasRestoredRef.current) return;
@@ -700,6 +710,11 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
                 style={typographyStyle}
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content) }}
               />
+              {justFinishedStory && story && (
+                <div className="mt-10">
+                  <BecauseYouFinishedRail storySlug={story.slug} storyTitle={story.title} />
+                </div>
+              )}
             </div>
           </div>
       </main>

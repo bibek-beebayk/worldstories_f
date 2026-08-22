@@ -66,12 +66,30 @@ export function trackAnalyticsEvent(input: AnalyticsEventInput): void {
   }).catch(() => undefined);
 }
 
+export type CompletionContentType = "chapter" | "audio" | "epub" | "pdf" | "story";
+
+function completionKey(storySlug: string, contentType: CompletionContentType, itemSlug: string) {
+  return `worldstories_completion:${storySlug}:${contentType}:${itemSlug}`;
+}
+
+export function hasTrackedCompletion(
+  storySlug: string,
+  contentType: CompletionContentType,
+  itemSlug: string
+): boolean {
+  try {
+    return Boolean(window.localStorage.getItem(completionKey(storySlug, contentType, itemSlug)));
+  } catch {
+    return false;
+  }
+}
+
 export function trackCompletionOnce(
   storySlug: string,
-  contentType: "chapter" | "audio" | "epub" | "pdf",
+  contentType: CompletionContentType,
   itemSlug: string
 ) {
-  const key = `worldstories_completion:${storySlug}:${contentType}:${itemSlug}`;
+  const key = completionKey(storySlug, contentType, itemSlug);
   try {
     if (window.localStorage.getItem(key)) return;
     window.localStorage.setItem(key, "1");

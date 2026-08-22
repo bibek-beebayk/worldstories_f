@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/sonner";
 import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
+import { consumeJustFinishedFlag } from "@/lib/storyCompletion";
+import BecauseYouFinishedRail from "@/components/BecauseYouFinishedRail";
 import { storyApi } from "@/api/story";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
@@ -143,6 +145,18 @@ type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
 const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
   const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
+  const [showFinishedRail, setShowFinishedRail] = useState(false);
+  useEffect(() => {
+    // Deliberately keyed on the slug (a stable primitive), not the `story`
+    // object itself — a background refetch giving a new object reference
+    // must NOT re-run this, since consumeJustFinishedFlag is a one-time
+    // read-and-clear and a second call would silently flip the rail back
+    // off right after it was shown.
+    if (story) {
+      setShowFinishedRail(consumeJustFinishedFlag(story.slug));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.slug]);
   const { data: relatedBlogsData } = useQuery({
     queryKey: ["related-blogs", slug],
     queryFn: () => storyApi.getBlogsForStory(slug!),
@@ -987,6 +1001,12 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
               ))}
             </div>
           </section>
+        )}
+
+        {showFinishedRail && (
+          <div className="mt-12">
+            <BecauseYouFinishedRail storySlug={story.slug} storyTitle={story.title} />
+          </div>
         )}
 
         {story.similar_stories.length > 0 && (

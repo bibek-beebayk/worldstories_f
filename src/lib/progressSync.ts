@@ -3,6 +3,7 @@ import { PendingSave, claimAnonymousDownloads, claimAnonymousLocalProgress, dele
 import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 import { PENDING_PROGRESS_EVENT } from "@/lib/progressEvents";
 import { trackCompletionOnce } from "@/lib/analytics";
+import { markStoryFinishedIfComplete } from "@/lib/storyCompletion";
 
 // A progress save that fails (almost always because the device is offline)
 // gets queued here instead of silently discarded, and retried the next time
@@ -64,7 +65,10 @@ export async function saveFileProgressLocally(
   position: string
 ): Promise<void> {
   await saveLocalProgress({ kind: "file", story_slug, item_slug: format, progress, position });
-  if (progress >= 0.995) trackCompletionOnce(story_slug, format, format);
+  if (progress >= 0.995) {
+    trackCompletionOnce(story_slug, format, format);
+    markStoryFinishedIfComplete(story_slug, true);
+  }
   window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
 }
 

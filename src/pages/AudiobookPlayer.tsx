@@ -63,6 +63,7 @@ export function meta({ data: story, params }: Route.MetaArgs) {
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { queueAudioProgress, saveAudioProgressLocally } from "@/lib/progressSync";
+import { markStoryFinishedIfComplete } from "@/lib/storyCompletion";
 import CoverImage from "@/components/CoverImage";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { API_BASE_URL } from "@/api/client";
@@ -320,6 +321,13 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
         .catch(() =>
           queueAudioProgress(story_slug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)
         );
+    }
+    if (normalizedProgress >= 0.995 && story?.audios) {
+      const allTracksFinished = story.audios.every(
+        (audio) =>
+          (audio.slug === audioSlug ? normalizedProgress : liveAudioProgressMap[audio.slug]?.progress || 0) >= 0.995
+      );
+      markStoryFinishedIfComplete(story_slug, allTracksFinished);
     }
   };
 
