@@ -22,6 +22,7 @@ import {
   BookMarked,
   Bell,
   FileText,
+  Flame,
   Heading2,
   Headphones,
   Heart,
@@ -140,6 +141,12 @@ const Profile = () => {
     queryKey: ["profile-insights"],
     queryFn: authApi.getProfileInsights,
     enabled: isAuthenticated && isOverviewSection,
+  });
+
+  const { data: readingStreak } = useQuery({
+    queryKey: ["reading-streak"],
+    queryFn: authApi.getReadingStreak,
+    enabled: isAuthenticated,
   });
 
   const { data: readingData } = useQuery({
@@ -651,6 +658,12 @@ const Profile = () => {
             </p>
           </div>
           <Badge variant="outline">@{profile.username}</Badge>
+          {readingStreak && readingStreak.current_streak > 0 && (
+            <Badge variant="outline" className="gap-1 border-orange-200 text-orange-600">
+              <Flame className="h-3.5 w-3.5" />
+              {readingStreak.current_streak} day{readingStreak.current_streak === 1 ? "" : "s"} streak
+            </Badge>
+          )}
         </div>
 
         <div className="mb-4 lg:hidden">

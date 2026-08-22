@@ -303,6 +303,11 @@ export interface ProfileInsightsResponse {
   }>;
 }
 
+export interface ReadingStreakResponse {
+  current_streak: number;
+  longest_streak: number;
+}
+
 export interface ContinueReadingItem {
   story: Story;
   chapter_slug: string | null;

@@ -6,6 +6,7 @@ import {
   MyReviewItem,
   PaginatedResponse,
   ProfileInsightsResponse,
+  ReadingStreakResponse,
   Story,
   UserProfile,
 } from "./types";
@@ -62,6 +63,8 @@ export const authApi = {
   getMe: () => apiClient<UserProfile>("/auth/me/"),
   getProfileInsights: () =>
     apiClient<ProfileInsightsResponse>("/auth/profile-insights/"),
+  getReadingStreak: () =>
+    apiClient<ReadingStreakResponse>("/auth/reading-streak/"),
   updateMe: (payload: ProfileUpdatePayload) =>
     apiClient<UserProfile>("/auth/me/", {
       method: "PATCH",
