@@ -181,6 +181,9 @@ const AdminAnalytics = () => {
           {contentQuery.data && (
             <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatTile label="Stories" value={formatNumber(contentQuery.data.stories_count)} />
+                <StatTile label="Audiobooks" value={formatNumber(contentQuery.data.audiobooks_count)} />
+                <StatTile label="Quick Reads" value={formatNumber(contentQuery.data.quick_read_count)} />
                 <StatTile label="Blog posts" value={formatNumber(contentQuery.data.blog_posts_count)} />
               </div>
 

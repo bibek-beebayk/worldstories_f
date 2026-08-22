@@ -610,6 +610,9 @@ export interface AdminAnalyticsContentResponse {
   publishing_over_time: AdminAnalyticsDayCount[];
   blog_publishing_over_time: AdminAnalyticsDayCount[];
   blog_posts_count: number;
+  stories_count: number;
+  audiobooks_count: number;
+  quick_read_count: number;
 }
 
 export interface AdminAnalyticsProgressBucket {
