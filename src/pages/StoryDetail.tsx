@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/sonner";
+import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
 import { storyApi } from "@/api/story";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
@@ -450,30 +451,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const primaryCompletionPercentage =
     story.chapters.length > 0 ? completionPercentage : Math.round((primaryFileProgress?.progress || 0) * 100);
   const storyPath = `/story/${story.slug}`;
-  const shareUrl = `${SITE_URL}${storyPath}`;
-
-  const openShareWindow = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer,width=600,height=500");
-  };
-
-  const shareToFacebook = () => {
-    openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
-  };
-
-  const shareToTwitter = () => {
-    openShareWindow(
-      `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(story.title)}`
-    );
-  };
-
-  const copyShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copied to clipboard.");
-    } catch {
-      toast.error("Couldn't copy the link. Please copy it manually.");
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -663,15 +640,15 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={shareToFacebook}>
+                      <DropdownMenuItem onClick={() => shareToFacebook(storyPath)}>
                         <Facebook className="h-4 w-4" />
                         Share on Facebook
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={shareToTwitter}>
+                      <DropdownMenuItem onClick={() => shareToTwitter(storyPath, story.title)}>
                         <Twitter className="h-4 w-4" />
                         Share on X (Twitter)
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={copyShareLink}>
+                      <DropdownMenuItem onClick={() => copyShareLink(storyPath)}>
                         <Link2 className="h-4 w-4" />
                         Copy link
                       </DropdownMenuItem>

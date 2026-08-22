@@ -11,6 +11,7 @@ import { flushPendingSaves } from "@/lib/progressSync";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { buildMeta } from "@/lib/buildMeta";
+import { normalizeReferralSource } from "@/lib/share";
 import type { Route } from "./+types/DefaultLayout";
 
 // Fallback only, for whichever child routes don't yet define their own
@@ -72,10 +73,12 @@ export default function DefaultLayout() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const ref = new URLSearchParams(location.search).get("ref");
     trackAnalyticsEvent({
       event_type: "visit",
-      metadata: { path: location.pathname },
+      metadata: { path: location.pathname, referral_source: normalizeReferralSource(ref) },
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   // Retries any progress saves that failed while offline. Runs once on

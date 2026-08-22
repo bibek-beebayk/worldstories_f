@@ -1,14 +1,22 @@
 import AdSpace from "@/components/AdSpace";
 import CoverImage from "@/components/CoverImage";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { storyApi } from "@/api/story";
 import { useBlog } from "@/hooks/useBlog";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { plainText } from "@/lib/plainText";
 import { sanitizeBlogContent } from "@/lib/sanitizeHtml";
-import { ArrowRight } from "lucide-react";
+import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
+import { ArrowRight, Facebook, Link2, Share2, Twitter } from "lucide-react";
 import { Link, data, useParams } from "react-router";
 import type { Route } from "./+types/BlogDetail";
 
@@ -85,6 +93,8 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
     );
   }
 
+  const blogPath = `/blog/${blog.slug}`;
+
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8">
       <div className="relative mb-6 aspect-video overflow-hidden rounded-lg shadow-md">
@@ -92,10 +102,33 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
       </div>
 
       <h1 className="mb-3 text-3xl font-bold">{blog.title}</h1>
-      <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        {blog.author_name && <span>{blog.author_name}</span>}
-        {blog.author_name && <span aria-hidden="true">&middot;</span>}
-        <span suppressHydrationWarning>{formatDate(blog.published_at)}</span>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          {blog.author_name && <span>{blog.author_name}</span>}
+          {blog.author_name && <span aria-hidden="true">&middot;</span>}
+          <span suppressHydrationWarning>{formatDate(blog.published_at)}</span>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline" aria-label="Share this blog post">
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => shareToFacebook(blogPath)}>
+              <Facebook className="h-4 w-4" />
+              Share on Facebook
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => shareToTwitter(blogPath, blog.title)}>
+              <Twitter className="h-4 w-4" />
+              Share on X (Twitter)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => copyShareLink(blogPath)}>
+              <Link2 className="h-4 w-4" />
+              Copy link
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <AdSpace size="banner" className="mb-8" contentType="blog" />

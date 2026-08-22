@@ -429,6 +429,13 @@ const AdminAnalytics = () => {
                     series={[{ key: "count", label: "Impressions" }]}
                   />
                 </ChartCard>
+                <ChartCard title="Referral sources">
+                  <BreakdownBarChart
+                    data={audienceQuery.data.referral_sources}
+                    xKey="referral_source"
+                    series={[{ key: "count", label: "Visits" }]}
+                  />
+                </ChartCard>
               </div>
 
               <div className="grid gap-4 xl:grid-cols-3">

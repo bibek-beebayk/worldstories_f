@@ -726,6 +726,7 @@ export interface AdminAnalyticsAudienceResponse {
   }>;
   ad_placements: Array<{ path: string; size: string; count: number }>;
   ad_impressions_by_content_type: Array<{ content_type: string; count: number }>;
+  referral_sources: Array<{ referral_source: string; count: number }>;
   download_types: Array<{ content_type: string; count: number; bytes: number }>;
   completion_types: Array<{ content_type: string; count: number }>;
   top_downloads: Array<{
