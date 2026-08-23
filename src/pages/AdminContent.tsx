@@ -13,9 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Bold, Check, ChevronRight, Heading1, Heading2, Heading3, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
+import { COUNTRY_OPTIONS, getCountryLabel } from "@/lib/countries";
 import { AiGenerationInputField, AiGenerationStatus, EpubImportJob } from "@/api/types";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
@@ -118,7 +119,14 @@ const AdminContent = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [selectedStoryId, setSelectedStoryId] = useState<number | null>(null);
+  // Lets a link from elsewhere (e.g. the Story Report table) open a specific
+  // story directly, via /admin/content?storyId=123 — read once on mount,
+  // same as any other deep-link initial-state pattern in this app.
+  const [searchParams] = useSearchParams();
+  const [selectedStoryId, setSelectedStoryId] = useState<number | null>(() => {
+    const storyIdParam = searchParams.get("storyId");
+    return storyIdParam ? Number(storyIdParam) : null;
+  });
   const [showStoryForm, setShowStoryForm] = useState(false);
   const [storiesList, setStoriesList] = useState<
     Array<{
@@ -144,6 +152,7 @@ const AdminContent = () => {
   const [authorId, setAuthorId] = useState<string>("none");
   const [storyType, setStoryType] = useState("Short Story");
   const [language, setLanguage] = useState("en");
+  const [country, setCountry] = useState("");
   const [originalPublishedYear, setOriginalPublishedYear] = useState("");
   const [originalPublishedMonth, setOriginalPublishedMonth] = useState("");
   const [originalPublishedDay, setOriginalPublishedDay] = useState("");
@@ -280,6 +289,7 @@ const AdminContent = () => {
     setAuthorId("none");
     setStoryType("Short Story");
     setLanguage("en");
+    setCountry("");
     setOriginalPublishedYear("");
     setOriginalPublishedMonth("");
     setOriginalPublishedDay("");
@@ -312,6 +322,7 @@ const AdminContent = () => {
     // Carry over the details that describe the same underlying work — title/about
     // still need to be written in the new language, so those stay blank.
     setStoryType(selectedStory.story_type || "Short Story");
+    setCountry(selectedStory.country || "");
     setOriginalPublishedYear(numToStr(selectedStory.original_published_year));
     setOriginalPublishedMonth(numToStr(selectedStory.original_published_month));
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
@@ -642,6 +653,7 @@ const AdminContent = () => {
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
     setStoryType(selectedStory.story_type || "Short Story");
     setLanguage(selectedStory.language || "en");
+    setCountry(selectedStory.country || "");
     setOriginalPublishedYear(numToStr(selectedStory.original_published_year));
     setOriginalPublishedMonth(numToStr(selectedStory.original_published_month));
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
@@ -864,6 +876,7 @@ const AdminContent = () => {
     formData.append("retrospective", retrospective.trim());
     formData.append("story_type", storyType);
     formData.append("language", language);
+    formData.append("country", country);
     if (authorId !== "none") {
       formData.append("author", authorId);
     } else if (mode === "edit") {
@@ -1370,6 +1383,18 @@ const AdminContent = () => {
                     </Select>
                   </div>
                   <div>
+                    <Label>Country</Label>
+                    <Select value={country || "none"} onValueChange={(value) => setCountry(value === "none" ? "" : value)}>
+                      <SelectTrigger className="mt-2"><SelectValue placeholder="Select country" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No country</SelectItem>
+                        {COUNTRY_OPTIONS.map((option) => (
+                          <SelectItem key={option.code} value={option.code}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <div className="flex items-center justify-between">
                       <Label>Author</Label>
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowAuthorModal(true)}>
@@ -1780,6 +1805,7 @@ const AdminContent = () => {
                       <p><span className="text-muted-foreground">Slug:</span> /{selectedStory.slug}</p>
                       <p><span className="text-muted-foreground">Type:</span> {selectedStory.story_type}</p>
                       <p><span className="text-muted-foreground">Language:</span> {getLanguageLabel(selectedStory.language)}</p>
+                      <p><span className="text-muted-foreground">Country:</span> {selectedStory.country ? getCountryLabel(selectedStory.country) : "-"}</p>
                       <p><span className="text-muted-foreground">Author:</span> {selectedStory.author ? (authorNameById.get(selectedStory.author) || "-") : "-"}</p>
                       <p>
                         <span className="text-muted-foreground">Submitted By:</span>{" "}

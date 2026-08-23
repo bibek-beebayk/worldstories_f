@@ -386,6 +386,7 @@ export interface AdminStory {
   retrospective_error: string | null;
   story_type: string;
   language: string;
+  country: string;
   translations: StoryTranslation[];
   author: number | null;
   submitted_by: StorySubmittedBy | null;
@@ -801,4 +802,60 @@ export interface AdminBlog {
   publish_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface StoryQueueItem {
+  id: number;
+  title: string;
+  author_name: string;
+  about: string | null;
+  story_type: string;
+  country: string;
+  genres: number[];
+  categories: number[];
+  original_published_year: number | null;
+  original_published_month: number | null;
+  original_published_day: number | null;
+  published_date_label: string | null;
+  epub_link: string;
+  pdf_link: string;
+  cover_image_link: string;
+  is_added: boolean;
+  added_story: number | null;
+  created_at: string;
+}
+
+export interface StoryQueueTitleMatch {
+  id: number;
+  title: string;
+}
+
+export interface StoryQueueTitleStoryMatch extends StoryQueueTitleMatch {
+  slug: string;
+  is_published: boolean;
+}
+
+export interface StoryQueueTitleQueueMatch extends StoryQueueTitleMatch {
+  author_name: string;
+}
+
+export interface StoryQueueTitleCheck {
+  story_matches: StoryQueueTitleStoryMatch[];
+  queue_matches: StoryQueueTitleQueueMatch[];
+}
+
+export interface StoryQueueItemPayload {
+  title: string;
+  author_name: string;
+  about?: string;
+  story_type?: string;
+  country?: string;
+  genres?: number[];
+  categories?: number[];
+  original_published_year?: number | null;
+  original_published_month?: number | null;
+  original_published_day?: number | null;
+  epub_link?: string;
+  pdf_link?: string;
+  cover_image_link?: string;
 }

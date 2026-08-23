@@ -42,6 +42,9 @@ import {
   Author,
   AuthorDetail,
   SearchResponse,
+  StoryQueueItem,
+  StoryQueueItemPayload,
+  StoryQueueTitleCheck,
 } from "./types";
 
 export const storyApi = {
@@ -179,9 +182,22 @@ export const storyApi = {
     apiClient<void>(`/submissions/${id}/`, {
       method: "DELETE",
     }),
-  getAdminStories: (page: number = 1, q: string = "") =>
+  getAdminStories: (
+    page: number = 1,
+    q: string = "",
+    filters: {
+      is_published?: boolean;
+      is_completed?: boolean;
+      has_summary?: boolean;
+      has_retrospective?: boolean;
+    } = {}
+  ) =>
     apiClient<PaginatedResponse<AdminStory>>(
-      `/admin/stories/?page=${page}&search=${encodeURIComponent(q)}`
+      `/admin/stories/?page=${page}&search=${encodeURIComponent(q)}` +
+        Object.entries(filters)
+          .filter(([, value]) => value !== undefined)
+          .map(([key, value]) => `&${key}=${value}`)
+          .join("")
     ),
   getAdminStory: (id: number) =>
     apiClient<AdminStory>(`/admin/stories/${id}/`),
@@ -251,6 +267,21 @@ export const storyApi = {
   updateAdminBlog: (id: number, formData: FormData) =>
     apiClient<AdminBlog>(`/admin/blog/${id}/`, { method: "PATCH", body: formData }),
   deleteAdminBlog: (id: number) => apiClient<void>(`/admin/blog/${id}/`, { method: "DELETE" }),
+  getStoryQueue: (page: number = 1, isAdded?: boolean) =>
+    apiClient<PaginatedResponse<StoryQueueItem>>(
+      `/admin/story-queue/?page=${page}${isAdded === undefined ? "" : `&is_added=${isAdded}`}`
+    ),
+  createStoryQueueItem: (payload: StoryQueueItemPayload) =>
+    apiClient<StoryQueueItem>("/admin/story-queue/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  addStoryQueueItem: (id: number) =>
+    apiClient<StoryQueueItem>(`/admin/story-queue/${id}/add/`, { method: "POST" }),
+  checkStoryQueueTitle: (title: string) =>
+    apiClient<StoryQueueTitleCheck>(`/admin/story-queue/check-title/?title=${encodeURIComponent(title)}`),
+  deleteStoryQueueItem: (id: number) =>
+    apiClient<void>(`/admin/story-queue/${id}/`, { method: "DELETE" }),
   generateBlogExcerpt: (id: number) =>
     apiClient<AdminBlog>(`/admin/blog/${id}/generate-excerpt/`, { method: "POST" }),
   getAdminChapters: (storyId: number) =>

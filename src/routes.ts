@@ -39,6 +39,7 @@ export default [
       layout("layouts/AdminShellLayout.tsx", [
         index("pages/AdminHome.tsx"),
         route("content", "pages/AdminContent.tsx"),
+        route("story-report", "pages/AdminStoryReport.tsx"),
         route("submissions", "pages/AdminSubmissions.tsx"),
         route("analytics", "pages/AdminAnalytics.tsx"),
         route("categories", "pages/AdminCategories.tsx"),
