@@ -8,12 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
 import { storyApi } from "@/api/story";
-import { StoryQueueItem, StoryQueueItemPayload } from "@/api/types";
+import { BookFetchJob, StoryQueueItem, StoryQueueItemPayload } from "@/api/types";
 import { COUNTRY_OPTIONS, getCountryLabel } from "@/lib/countries";
-import { AlertTriangle, Eye, Plus, X } from "lucide-react";
+import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
+import { AlertTriangle, Check, Eye, Loader2, Plus, X } from "lucide-react";
 
 const STORY_TYPES = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Religious Text", "Summary"];
 type AddedFilter = "all" | "true" | "false";
+// Kept in sync with book_fetch.MAX_BOOK_FETCH_COUNT on the backend.
+const MAX_BOOK_FETCH_COUNT = 14;
 
 const toTitleCase = (value: string) =>
   value
@@ -29,6 +32,7 @@ const EMPTY_FORM = {
   about: "",
   storyType: "",
   country: "",
+  language: "en",
   publishedYear: "",
   publishedMonth: "",
   publishedDay: "",
@@ -58,6 +62,10 @@ const StoryQueueManager = () => {
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
   const [debouncedTitle, setDebouncedTitle] = useState("");
+  const [showFetchModal, setShowFetchModal] = useState(false);
+  const [fetchCount, setFetchCount] = useState("10");
+  const [starting, setStarting] = useState(false);
+  const [fetchJob, setFetchJob] = useState<BookFetchJob | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -75,6 +83,32 @@ const StoryQueueManager = () => {
     debouncedTitle && debouncedTitle === form.title.trim()
       ? [...(titleCheck?.story_matches || []), ...(titleCheck?.queue_matches || [])].length
       : 0;
+
+  useEffect(() => {
+    if (!fetchJob) return;
+    if (fetchJob.status === "completed" || fetchJob.status === "failed") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const latest = await storyApi.getStoryQueueFetchBooksStatus(fetchJob.id);
+        setFetchJob(latest);
+        if (latest.status === "completed") {
+          await queryClient.invalidateQueries({ queryKey: ["admin-story-queue"] });
+          toast.success(
+            `Added ${latest.created_count} new book${latest.created_count === 1 ? "" : "s"} to the queue` +
+              (latest.skipped_count ? ` (${latest.skipped_count} skipped as duplicates).` : ".")
+          );
+        }
+        if (latest.status === "failed") {
+          toast.error(latest.error_message || "Fetching book data failed.");
+        }
+      } catch {
+        // Transient poll failure — try again on the next tick.
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [fetchJob, queryClient]);
 
   const { data: queueData, isLoading } = useQuery({
     queryKey: ["admin-story-queue", page, addedFilter],
@@ -263,6 +297,7 @@ const StoryQueueManager = () => {
         about: form.about.trim(),
         story_type: form.storyType,
         country: form.country,
+        language: form.language,
         genres: genreIdsToSubmit,
         categories: categoryIdsToSubmit,
         original_published_year: form.publishedYear ? Number(form.publishedYear) : null,
@@ -287,6 +322,23 @@ const StoryQueueManager = () => {
       toast.error(error instanceof Error ? error.message : "Failed to add book to the queue.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const startFetchBooks = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const count = Number(fetchCount);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_BOOK_FETCH_COUNT) return;
+    try {
+      setStarting(true);
+      const job = await storyApi.fetchStoryQueueBooks(count);
+      setFetchJob(job);
+      setShowFetchModal(false);
+      toast.success("Fetching book suggestions from Claude...");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start fetching book data.");
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -322,11 +374,88 @@ const StoryQueueManager = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {fetchJob && (fetchJob.status === "pending" || fetchJob.status === "processing") && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> Fetching book data...
+          </span>
+        )}
+        {fetchJob?.status === "completed" && (
+          <span className="flex items-center gap-1 text-xs text-green-600">
+            <Check className="h-3 w-3" /> Added {fetchJob.created_count}
+          </span>
+        )}
+        {fetchJob?.status === "failed" && (
+          <span
+            className="flex items-center gap-1 text-xs text-destructive"
+            title={fetchJob.error_message || "Fetch failed."}
+          >
+            <X className="h-3 w-3" /> Fetch failed
+          </span>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={fetchJob?.status === "pending" || fetchJob?.status === "processing"}
+          onClick={() => setShowFetchModal(true)}
+        >
+          Fetch Book Data
+        </Button>
         <Button size="sm" onClick={() => setShowAddModal(true)}>
           Add to Queue
         </Button>
       </div>
+
+      {showFetchModal && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={() => setShowFetchModal(false)}
+        >
+          <Card className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base">Fetch Book Data</CardTitle>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowFetchModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={startFetchBooks}>
+                <p className="text-xs text-muted-foreground">
+                  Asks Claude to suggest public-domain books not already in your catalog and adds them to
+                  the queue.
+                </p>
+                <div>
+                  <Label htmlFor="fetch-count">How many books?</Label>
+                  <Input
+                    id="fetch-count"
+                    type="number"
+                    min={1}
+                    max={MAX_BOOK_FETCH_COUNT}
+                    value={fetchCount}
+                    onChange={(e) => setFetchCount(e.target.value)}
+                    className="mt-2"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowFetchModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={starting}>
+                    {starting ? "Starting..." : "Fetch"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {showAddModal && (
         <div
@@ -417,7 +546,7 @@ const StoryQueueManager = () => {
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-4">
               <div>
                 <Label htmlFor="queue-story-type">Story Type</Label>
                 <Select
@@ -431,6 +560,24 @@ const StoryQueueManager = () => {
                     {STORY_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="queue-language">Language</Label>
+                <Select
+                  value={form.language}
+                  onValueChange={(value) => setForm((f) => ({ ...f, language: value }))}
+                >
+                  <SelectTrigger id="queue-language" className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-[80]">
+                    {LANGUAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.code} value={option.code}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -683,6 +830,7 @@ const StoryQueueManager = () => {
                     <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Title</th>
                     <th className="px-3 py-2">Author</th>
+                    <th className="px-3 py-2">Language</th>
                     <th className="px-3 py-2">Publication Date</th>
                     <th className="px-3 py-2 text-right">Action</th>
                   </tr>
@@ -693,6 +841,9 @@ const StoryQueueManager = () => {
                       <td className="px-3 py-2 text-muted-foreground">{startSerial + index + 1}</td>
                       <td className="max-w-64 truncate px-3 py-2 font-medium">{item.title}</td>
                       <td className="px-3 py-2 text-muted-foreground">{item.author_name || "-"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {item.language ? getLanguageLabel(item.language) : "-"}
+                      </td>
                       <td className="px-3 py-2 text-muted-foreground">{item.published_date_label || "-"}</td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex justify-end gap-1">
@@ -808,6 +959,12 @@ const StoryQueueManager = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Country</p>
                   <p>{getCountryLabel(detailsItem.country)}</p>
+                </div>
+              )}
+              {detailsItem.language && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Language</p>
+                  <p>{getLanguageLabel(detailsItem.language)}</p>
                 </div>
               )}
               {detailsItem.published_date_label && (

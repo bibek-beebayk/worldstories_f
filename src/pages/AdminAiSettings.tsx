@@ -41,9 +41,12 @@ const AdminAiSettings = () => {
   const [retrospectiveModel, setRetrospectiveModel] = useState<AiGenerationModel>("claude-sonnet-5");
   const [excerptInstructions, setExcerptInstructions] = useState("");
   const [excerptModel, setExcerptModel] = useState<AiGenerationModel>("claude-sonnet-5");
+  const [bookFetchInstructions, setBookFetchInstructions] = useState("");
+  const [bookFetchModel, setBookFetchModel] = useState<AiGenerationModel>("claude-sonnet-5");
   const [savingSummary, setSavingSummary] = useState(false);
   const [savingRetrospective, setSavingRetrospective] = useState(false);
   const [savingExcerpt, setSavingExcerpt] = useState(false);
+  const [savingBookFetch, setSavingBookFetch] = useState(false);
 
   useEffect(() => {
     if (!promptSettings) return;
@@ -53,6 +56,8 @@ const AdminAiSettings = () => {
     setRetrospectiveModel(promptSettings.retrospective_model);
     setExcerptInstructions(promptSettings.excerpt_instructions);
     setExcerptModel(promptSettings.excerpt_model);
+    setBookFetchInstructions(promptSettings.book_fetch_instructions);
+    setBookFetchModel(promptSettings.book_fetch_model);
   }, [promptSettings]);
 
   const saveSummarySettings = async () => {
@@ -100,6 +105,22 @@ const AdminAiSettings = () => {
       toast.error(error instanceof Error ? error.message : "Failed to save excerpt prompt settings.");
     } finally {
       setSavingExcerpt(false);
+    }
+  };
+
+  const saveBookFetchSettings = async () => {
+    try {
+      setSavingBookFetch(true);
+      const updated = await storyApi.updatePromptSettings({
+        book_fetch_instructions: bookFetchInstructions,
+        book_fetch_model: bookFetchModel,
+      });
+      queryClient.setQueryData<PromptSettings>(["admin-prompt-settings"], updated);
+      toast.success("Fetch Book Data prompt settings saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save Fetch Book Data prompt settings.");
+    } finally {
+      setSavingBookFetch(false);
     }
   };
 
@@ -261,6 +282,55 @@ const AdminAiSettings = () => {
                   onClick={saveExcerptSettings}
                 >
                   {savingExcerpt ? "Saving..." : "Save Excerpt Settings"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Fetch Book Data</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Used by the "Fetch Book Data" button on the Story Queue tab to suggest public-domain books not
+                already in the catalog. The list of existing titles and the requested count are always assembled
+                by the backend — these instructions only control tone, quality bar, and field-level guidance.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label htmlFor="book-fetch-instructions">Instructions</Label>
+                <Textarea
+                  id="book-fetch-instructions"
+                  value={bookFetchInstructions}
+                  onChange={(e) => setBookFetchInstructions(e.target.value)}
+                  className="mt-2 min-h-32"
+                />
+              </div>
+              <div>
+                <Label htmlFor="book-fetch-model">Model</Label>
+                <Select
+                  value={bookFetchModel}
+                  onValueChange={(value) => setBookFetchModel(value as AiGenerationModel)}
+                >
+                  <SelectTrigger id="book-fetch-model" className="mt-2 max-w-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  disabled={savingBookFetch || !bookFetchInstructions.trim()}
+                  onClick={saveBookFetchSettings}
+                >
+                  {savingBookFetch ? "Saving..." : "Save Fetch Book Data Settings"}
                 </Button>
               </div>
             </CardContent>

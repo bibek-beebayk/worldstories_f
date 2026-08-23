@@ -23,6 +23,7 @@ import {
   AdminAudio,
   AiGenerationInputField,
   EpubImportJob,
+  BookFetchJob,
   PromptSettings,
   Blog,
   AdminBlog,
@@ -282,6 +283,13 @@ export const storyApi = {
     apiClient<StoryQueueTitleCheck>(`/admin/story-queue/check-title/?title=${encodeURIComponent(title)}`),
   deleteStoryQueueItem: (id: number) =>
     apiClient<void>(`/admin/story-queue/${id}/`, { method: "DELETE" }),
+  fetchStoryQueueBooks: (count: number) =>
+    apiClient<BookFetchJob>("/admin/story-queue/fetch-books/", {
+      method: "POST",
+      body: JSON.stringify({ count }),
+    }),
+  getStoryQueueFetchBooksStatus: (jobId: number) =>
+    apiClient<BookFetchJob>(`/admin/story-queue/fetch-books/${jobId}/`),
   generateBlogExcerpt: (id: number) =>
     apiClient<AdminBlog>(`/admin/blog/${id}/generate-excerpt/`, { method: "POST" }),
   getAdminChapters: (storyId: number) =>

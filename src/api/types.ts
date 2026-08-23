@@ -424,6 +424,8 @@ export interface PromptSettings {
   retrospective_model: AiGenerationModel;
   excerpt_instructions: string;
   excerpt_model: AiGenerationModel;
+  book_fetch_instructions: string;
+  book_fetch_model: AiGenerationModel;
 }
 
 export interface AdminAuthor {
@@ -470,6 +472,19 @@ export interface AdminChapter {
   slug: string;
   content: string;
   order: number;
+}
+
+export type BookFetchJobStatus = "pending" | "processing" | "completed" | "failed";
+
+export interface BookFetchJob {
+  id: number;
+  requested_count: number;
+  created_count: number;
+  skipped_count: number;
+  status: BookFetchJobStatus;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type EpubImportJobStatus = "pending" | "processing" | "completed" | "failed";
@@ -811,6 +826,7 @@ export interface StoryQueueItem {
   about: string | null;
   story_type: string;
   country: string;
+  language: string;
   genres: number[];
   categories: number[];
   original_published_year: number | null;
@@ -850,6 +866,7 @@ export interface StoryQueueItemPayload {
   about?: string;
   story_type?: string;
   country?: string;
+  language?: string;
   genres?: number[];
   categories?: number[];
   original_published_year?: number | null;
