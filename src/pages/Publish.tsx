@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/sonner";
 import { getAccessToken } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useGenres } from "@/hooks/useGenres";
-import { Link2, Bold, Italic, Underline, Heading2, List, ListOrdered } from "lucide-react";
+import { Link2, Bold, Italic, Underline, Heading1, Heading2, Heading3, List, ListOrdered } from "lucide-react";
 import { buildMeta } from "@/lib/buildMeta";
 import { LANGUAGE_OPTIONS } from "@/lib/languages";
 
@@ -280,7 +280,9 @@ const Publish = () => {
               <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
               <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
               <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
               <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
               <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
               <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
               <Button type="button" variant="outline" size="sm" onClick={addLink}><Link2 className="h-4 w-4" /></Button>

@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Bold,
   Heading2,
+  Heading3,
   Italic,
   Link2,
   List,
@@ -413,6 +414,14 @@ const AdminBlogs = () => {
                       onClick={() => runContentCommand("formatBlock", "h2")}
                     >
                       <Heading2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => runContentCommand("formatBlock", "h3")}
+                    >
+                      <Heading3 className="h-4 w-4" />
                     </Button>
                     <Button
                       type="button"

@@ -8,6 +8,8 @@ import { useStory } from "@/hooks/useStory";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useQuickReadRecommendations } from "@/hooks/useQuickReadRecommendations";
+import RecommendedQuickReadsSection from "@/components/RecommendedQuickReadsSection";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
@@ -80,6 +82,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
   );
 
   const quickReadMinutes = useMemo(() => estimateSummaryReadingMinutes(story?.summary), [story?.summary]);
+  const { data: recommendedQuickReads } = useQuickReadRecommendations(isAuthenticated && Boolean(story), story?.slug);
 
   const firstChapterSlug = story?.chapters[0]?.slug;
   const primaryReadHref = !story
@@ -209,44 +212,49 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
           />
         </div>
 
+        <p className="mt-8 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-medium text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          This quick summary may include spoilers for the story.
+        </p>
+
         <article
-          className="prose prose-lg mt-8 max-w-none leading-relaxed dark:prose-invert"
+          className="prose prose-lg mt-6 max-w-none leading-relaxed dark:prose-invert"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
         />
 
-        <p className="mt-6 flex items-start gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          This quick summary may include story details up to the ending.
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-3 rounded-xl border border-border bg-muted/30 p-4 text-center sm:flex-row sm:justify-between sm:p-5 sm:text-left">
+          <div>
+            <p className="text-sm font-semibold">Enjoyed the story?</p>
+            {!primaryReadHref && (
+              <p className="mt-0.5 text-xs text-muted-foreground">The full story isn't available yet.</p>
+            )}
+          </div>
 
-        <div className="mt-10 rounded-xl border border-border bg-muted/30 p-6 text-center sm:p-8">
-          <p className="text-lg font-semibold">Enjoyed the story?</p>
-          {primaryReadHref ? (
-            <Link to={primaryReadHref}>
-              <Button size="lg" className="mt-4">
-                Read Full Story
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          ) : (
-            <p className="mt-4 text-sm text-muted-foreground">The full story isn't available yet.</p>
-          )}
-
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
+            {primaryReadHref && (
+              <Link to={primaryReadHref}>
+                <Button size="sm">
+                  Read Full Story
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            )}
             {firstAudioSlug && (
               <Link to={`/listen/${story.slug}/${firstAudioSlug}`}>
-                <Button variant="outline">
-                  <Headphones className="mr-2 h-4 w-4" />
+                <Button variant="outline" size="sm">
+                  <Headphones className="mr-1.5 h-3.5 w-3.5" />
                   Listen
                 </Button>
               </Link>
             )}
-            <Button variant="outline" onClick={toggleFavorite} disabled={favoriteLoading}>
-              <Heart className={`mr-2 h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+            <Button variant="outline" size="sm" onClick={toggleFavorite} disabled={favoriteLoading}>
+              <Heart className={`mr-1.5 h-3.5 w-3.5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
               {isFavorite ? "Saved" : "Save"}
             </Button>
           </div>
         </div>
+
+        <RecommendedQuickReadsSection stories={recommendedQuickReads || []} />
       </main>
     </div>
   );

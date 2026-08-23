@@ -23,7 +23,9 @@ import {
   Bell,
   FileText,
   Flame,
+  Heading1,
   Heading2,
+  Heading3,
   Headphones,
   Heart,
   LayoutGrid,
@@ -1148,7 +1150,9 @@ const Profile = () => {
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "bold")}><Bold className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "italic")}><Italic className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "underline")}><Underline className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "insertUnorderedList")}><List className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(createContentEditorRef, syncCreateEditorContent, "insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => addEditorLink(createContentEditorRef, syncCreateEditorContent)}><Link2 className="h-4 w-4" /></Button>
@@ -1275,7 +1279,9 @@ const Profile = () => {
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "bold")}><Bold className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "italic")}><Italic className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "underline")}><Underline className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                                <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "insertUnorderedList")}><List className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => runEditorCommand(editContentEditorRef, syncEditEditorContent, "insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
                                 <Button type="button" variant="outline" size="sm" onClick={() => addEditorLink(editContentEditorRef, syncEditEditorContent)}><Link2 className="h-4 w-4" /></Button>

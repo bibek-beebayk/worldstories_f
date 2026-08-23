@@ -14,7 +14,7 @@ import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowLeft, Bold, Check, ChevronRight, Heading2, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
+import { ArrowLeft, Bold, Check, ChevronRight, Heading1, Heading2, Heading3, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 import { AiGenerationInputField, AiGenerationStatus, EpubImportJob } from "@/api/types";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
@@ -1297,7 +1297,9 @@ const AdminContent = () => {
                       <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runSummaryEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={addSummaryLink}><Link2 className="h-4 w-4" /></Button>
@@ -1323,7 +1325,9 @@ const AdminContent = () => {
                       <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => runRetrospectiveEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
                       <Button type="button" variant="outline" size="sm" onClick={addRetrospectiveLink}><Link2 className="h-4 w-4" /></Button>
@@ -1710,7 +1714,9 @@ const AdminContent = () => {
                         <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => runChapterEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
                         <Button type="button" variant="outline" size="sm" onClick={addChapterLink}><Link2 className="h-4 w-4" /></Button>

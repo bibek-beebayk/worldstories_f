@@ -92,6 +92,12 @@ export const authApi = {
     apiClient<PaginatedResponse<MyReviewItem>>(`/auth/library/reviews/?page=${page}`),
   getRecommendations: () =>
     apiClient<Story[]>("/auth/library/recommendations/"),
+  getQuickReadRecommendations: (excludeSlug?: string) =>
+    apiClient<Story[]>(
+      `/auth/library/recommendations/?quick_read=true${
+        excludeSlug ? `&exclude=${encodeURIComponent(excludeSlug)}` : ""
+      }`
+    ),
   adminLogin: (email: string, password: string) =>
     apiClient<AuthResponse>("/auth/admin-login/", {
       method: "POST",
