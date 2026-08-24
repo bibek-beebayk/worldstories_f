@@ -31,17 +31,25 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopQuery, setDesktopQuery] = useState("");
   const [mobileQuery, setMobileQuery] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const isScrolled = useIsHeaderScrolled();
   const blurTimerRef = useRef<number | null>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDebouncedQuery(desktopQuery.trim());
+      setDebouncedQuery((mobileSearchOpen ? mobileQuery : desktopQuery).trim());
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [desktopQuery]);
+  }, [desktopQuery, mobileQuery, mobileSearchOpen]);
+
+  useEffect(() => {
+    if (!mobileSearchOpen) return;
+    const frame = window.requestAnimationFrame(() => mobileSearchInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [mobileSearchOpen]);
 
   const { data: suggestionData } = useSearchStories(debouncedQuery, 1, "popular");
   const storySuggestions = useMemo(
@@ -92,7 +100,14 @@ const Header = () => {
 
   const handleMobileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mobileQuery.trim()) return;
     goToSearchPage(mobileQuery);
+    setMobileSearchOpen(false);
+  };
+
+  const openMobileSearchResult = (path: string) => {
+    navigate(path);
+    setMobileSearchOpen(false);
   };
 
   return (
@@ -159,7 +174,7 @@ const Header = () => {
         </div>
 
         {/* Right Side */}
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           {/* Desktop Search */}
           <div className="hidden lg:flex items-center gap-2">
             <div className="relative">
@@ -311,6 +326,158 @@ const Header = () => {
             </>
           )}
 
+          {/* Mobile/tablet search expands over the header from this icon. */}
+          <div className="md:hidden">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={mobileSearchOpen ? "invisible" : "visible"}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setMobileSearchOpen(true);
+              }}
+              aria-label="Open site search"
+              aria-expanded={mobileSearchOpen}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+
+            <form
+              onSubmit={handleMobileSubmit}
+              className={`absolute right-0 top-1/2 z-20 flex h-10 -translate-y-1/2 origin-right items-center overflow-hidden rounded-full border bg-background shadow-md transition-[width,opacity] duration-300 ease-out supports-[backdrop-filter]:bg-background/95 ${
+                mobileSearchOpen
+                  ? "w-[calc(100vw-2rem)] opacity-100"
+                  : "pointer-events-none w-10 opacity-0"
+              }`}
+              role="search"
+            >
+              <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <Input
+                ref={mobileSearchInputRef}
+                type="search"
+                value={mobileQuery}
+                onChange={(event) => setMobileQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setMobileSearchOpen(false);
+                  }
+                }}
+                placeholder="Search titles or authors..."
+                aria-label="Search titles, authors, and chapters"
+                className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                tabIndex={mobileSearchOpen ? 0 : -1}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="mr-1 h-8 w-8 shrink-0 rounded-full"
+                onClick={() => setMobileSearchOpen(false)}
+                aria-label="Close site search"
+                tabIndex={mobileSearchOpen ? 0 : -1}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </form>
+
+            {mobileSearchOpen && mobileQuery.trim().length >= 2 && debouncedQuery.length >= 2 && (
+              <div className="absolute right-0 top-[calc(50%+1.5rem)] z-20 max-h-[min(70vh,28rem)] w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border bg-background p-2 shadow-xl">
+                {storySuggestions.length > 0 || authorSuggestions.length > 0 || chapterSuggestions.length > 0 ? (
+                  <>
+                    {authorSuggestions.length > 0 && (
+                      <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <UsersRound className="h-3.5 w-3.5" /> Authors
+                      </p>
+                    )}
+                    {authorSuggestions.map((author) => (
+                      <button
+                        key={`mobile-author-${author.id}`}
+                        type="button"
+                        onClick={() => openMobileSearchResult(`/authors/${author.id}`)}
+                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
+                      >
+                        <AuthorPortrait src={author.image} name={author.name} className="h-11 w-9 shrink-0 rounded" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{author.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {author.stories_count} {author.stories_count === 1 ? "title" : "titles"}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+
+                    {storySuggestions.length > 0 && (
+                      <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <BookOpen className="h-3.5 w-3.5" /> Titles
+                      </p>
+                    )}
+                    {storySuggestions.map((story) => (
+                      <button
+                        key={`mobile-story-${story.id}`}
+                        type="button"
+                        onClick={() => openMobileSearchResult(`/story/${story.slug}`)}
+                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
+                      >
+                        <CoverImage
+                          src={story.cover_image}
+                          alt={story.title}
+                          author={story.author}
+                          className="h-12 w-10 shrink-0 rounded object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{story.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {story.rating} · {formatViews(story.views)} views
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+
+                    {chapterSuggestions.length > 0 && (
+                      <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <FileText className="h-3.5 w-3.5" /> Chapters
+                      </p>
+                    )}
+                    {chapterSuggestions.map((chapter) => (
+                      <button
+                        key={`mobile-chapter-${chapter.story_slug}-${chapter.chapter_slug}`}
+                        type="button"
+                        onClick={() => openMobileSearchResult(`/read/${chapter.story_slug}/${chapter.chapter_slug}`)}
+                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
+                      >
+                        <CoverImage
+                          src={chapter.story_cover_image}
+                          alt={chapter.story_title}
+                          className="h-12 w-10 shrink-0 rounded object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{chapter.chapter_title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{chapter.story_title}</p>
+                        </div>
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      className="mt-1 w-full rounded-lg border-t px-2 py-2 text-left text-sm font-medium text-primary active:bg-muted"
+                      onClick={() => {
+                        goToSearchPage(mobileQuery);
+                        setMobileSearchOpen(false);
+                      }}
+                    >
+                      View all results
+                    </button>
+                  </>
+                ) : (
+                  <p className="px-2 py-3 text-sm text-muted-foreground">
+                    No matching titles, authors, or chapters.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Mobile Menu Trigger */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -339,17 +506,6 @@ const Header = () => {
               </SheetHeader>
 
               <Separator className="my-4" />
-
-              {/* Mobile Search */}
-              <form className="relative mb-4" onSubmit={handleMobileSubmit}>
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search titles or authors..."
-                  className="w-full pl-9 bg-secondary border-0"
-                  value={mobileQuery}
-                  onChange={(e) => setMobileQuery(e.target.value)}
-                />
-              </form>
 
               <nav className="flex flex-col gap-4 mt-4">
                 <SheetClose asChild>
