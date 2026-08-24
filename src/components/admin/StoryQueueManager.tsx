@@ -14,7 +14,7 @@ import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 import { AlertTriangle, Check, Eye, Loader2, Plus, X } from "lucide-react";
 import StoryQueueImportModal from "./StoryQueueImportModal";
 
-const STORY_TYPES = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Religious Text", "Summary"];
+const STORY_TYPES = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Religious Text", "Summary", "Collection"];
 type AddedFilter = "all" | "true" | "false";
 // Kept in sync with book_fetch.MAX_BOOK_FETCH_COUNT on the backend.
 const MAX_BOOK_FETCH_COUNT = 14;

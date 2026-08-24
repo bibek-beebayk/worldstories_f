@@ -22,7 +22,7 @@ import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 import { AiGenerationHeaderControls, AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
 
-const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Summary", "Religious Text"];
+const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Summary", "Religious Text", "Collection"];
 
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
 // timezone suffix) — the backend gives back a UTC ISO string, so this
