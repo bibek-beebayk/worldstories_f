@@ -100,9 +100,19 @@ export interface AuthorDetail extends Author {
   stories: Story[];
 }
 
+export interface ChapterSearchResult {
+  story_slug: string;
+  story_title: string;
+  story_cover_image: string;
+  chapter_slug: string;
+  chapter_title: string;
+  excerpt: string;
+}
+
 export interface SearchResponse {
   titles: PaginatedResponse<Story>;
   authors: PaginatedResponse<Author>;
+  chapters: PaginatedResponse<ChapterSearchResult>;
 }
 
 export interface StoryTranslation {

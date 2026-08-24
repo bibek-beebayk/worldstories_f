@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, Menu, Search, UsersRound, X } from "lucide-react";
+import { BookOpen, FileText, Menu, Search, UsersRound, X } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
@@ -50,6 +50,10 @@ const Header = () => {
   );
   const authorSuggestions = useMemo(
     () => (suggestionData?.authors.results || []).slice(0, 3),
+    [suggestionData]
+  );
+  const chapterSuggestions = useMemo(
+    () => (suggestionData?.chapters.results || []).slice(0, 3),
     [suggestionData]
   );
 
@@ -176,7 +180,7 @@ const Header = () => {
               </form>
               {showSuggestions && debouncedQuery.length >= 2 && (
                 <div className="absolute left-0 top-11 z-50 w-80 rounded-md border bg-background p-2 shadow-lg">
-                  {storySuggestions.length > 0 || authorSuggestions.length > 0 ? (
+                  {storySuggestions.length > 0 || authorSuggestions.length > 0 || chapterSuggestions.length > 0 ? (
                     <>
                       {authorSuggestions.length > 0 && (
                         <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -237,6 +241,35 @@ const Header = () => {
                           </div>
                         </button>
                       ))}
+                      {chapterSuggestions.length > 0 && (
+                        <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <FileText className="h-3.5 w-3.5" /> Chapters
+                        </p>
+                      )}
+                      {chapterSuggestions.map((chapter) => (
+                        <button
+                          key={`chapter-${chapter.story_slug}-${chapter.chapter_slug}`}
+                          type="button"
+                          onMouseDown={() => {
+                            if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+                          }}
+                          onClick={() => {
+                            navigate(`/read/${chapter.story_slug}/${chapter.chapter_slug}`);
+                            setShowSuggestions(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
+                        >
+                          <CoverImage
+                            src={chapter.story_cover_image}
+                            alt={chapter.story_title}
+                            className="h-12 w-10 rounded object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{chapter.chapter_title}</p>
+                            <p className="truncate text-xs text-muted-foreground">{chapter.story_title}</p>
+                          </div>
+                        </button>
+                      ))}
                       <button
                         type="button"
                         className="mt-1 w-full rounded px-2 py-2 text-left text-sm font-medium text-primary hover:bg-muted"
@@ -249,7 +282,7 @@ const Header = () => {
                       </button>
                     </>
                   ) : (
-                    <p className="px-2 py-2 text-sm text-muted-foreground">No matching titles or authors.</p>
+                    <p className="px-2 py-2 text-sm text-muted-foreground">No matching titles, authors, or chapters.</p>
                   )}
                 </div>
               )}

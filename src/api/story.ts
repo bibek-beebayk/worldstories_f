@@ -97,10 +97,12 @@ export const storyApi = {
     page: number = 1,
     sort: string = "popular",
     language: string = "all",
-    authorPage: number = 1
+    authorPage: number = 1,
+    chapterPage: number = 1
   ) =>
     apiClient<SearchResponse>(
-      `/search/?q=${encodeURIComponent(q)}&page=${page}&author_page=${authorPage}&sort=${sort}&language=${encodeURIComponent(language)}`
+      `/search/?q=${encodeURIComponent(q)}&page=${page}&author_page=${authorPage}&chapter_page=${chapterPage}` +
+        `&sort=${sort}&language=${encodeURIComponent(language)}`
     ),
   getStoryReviews: (slug: string, page: number = 1) =>
     apiClient<ReviewListResponse>(`/stories/${slug}/reviews/?page=${page}`),

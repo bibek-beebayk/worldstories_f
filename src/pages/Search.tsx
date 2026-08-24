@@ -1,6 +1,7 @@
-import { BookOpen, UsersRound } from "lucide-react";
+import { BookOpen, FileText, UsersRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import AuthorPortrait from "@/components/AuthorPortrait";
+import CoverImage from "@/components/CoverImage";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import StoryCard from "@/components/StoryCard";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { buildMeta } from "@/lib/buildMeta";
 export function meta() {
   return buildMeta({
     title: "Search | WorldStories",
-    description: "Search titles and authors on WorldStories.",
+    description: "Search titles, authors, and chapters on WorldStories.",
     path: "/search",
     noIndex: true,
   });
@@ -22,14 +23,16 @@ const Search = () => {
   const q = (searchParams.get("q") || "").trim();
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
   const authorPage = Math.max(1, parseInt(searchParams.get("author_page") || "1", 10) || 1);
+  const chapterPage = Math.max(1, parseInt(searchParams.get("chapter_page") || "1", 10) || 1);
   const sort = (searchParams.get("sort") || "popular").toLowerCase();
   const language = (searchParams.get("language") || "all").toLowerCase();
 
-  const { data, isLoading, isError } = useSearchStories(q, page, sort, language, authorPage);
+  const { data, isLoading, isError } = useSearchStories(q, page, sort, language, authorPage, chapterPage);
 
   const setParam = (next: {
     page?: number;
     authorPage?: number;
+    chapterPage?: number;
     sort?: string;
     q?: string;
     language?: string;
@@ -40,12 +43,13 @@ const Search = () => {
     if (next.language !== undefined) params.set("language", next.language);
     if (next.page !== undefined) params.set("page", String(next.page));
     if (next.authorPage !== undefined) params.set("author_page", String(next.authorPage));
+    if (next.chapterPage !== undefined) params.set("chapter_page", String(next.chapterPage));
     setSearchParams(params);
   };
 
   if (!q) {
     return (
-      <div className="container mx-auto px-4 py-8">Enter a name or keyword to search titles and authors.</div>
+      <div className="container mx-auto px-4 py-8">Enter a name or keyword to search titles, authors, and chapters.</div>
     );
   }
 
@@ -58,7 +62,9 @@ const Search = () => {
 
   const titles = data.titles.results;
   const authors = data.authors.results;
-  const totalResults = data.titles.pagination.count + data.authors.pagination.count;
+  const chapters = data.chapters.results;
+  const totalResults =
+    data.titles.pagination.count + data.authors.pagination.count + data.chapters.pagination.count;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.07),transparent_38%)]">
@@ -72,7 +78,7 @@ const Search = () => {
 
         {totalResults === 0 ? (
           <div className="rounded-xl border bg-card p-10 text-center text-muted-foreground">
-            No matching titles or authors were found.
+            No matching titles, authors, or chapters were found.
           </div>
         ) : (
           <div className="space-y-12">
@@ -185,6 +191,68 @@ const Search = () => {
                 </>
               ) : (
                 <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">No titles matched this search.</div>
+              )}
+            </section>
+
+            <section className="border-t pt-9" aria-labelledby="chapter-results-heading">
+              <div className="mb-5 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <h2 id="chapter-results-heading" className="text-xl font-bold sm:text-2xl">Chapters</h2>
+                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                  {data.chapters.pagination.count}
+                </span>
+              </div>
+
+              {chapters.length > 0 ? (
+                <>
+                  <div className="space-y-3">
+                    {chapters.map((chapter) => (
+                      <Link
+                        key={`${chapter.story_slug}-${chapter.chapter_slug}`}
+                        to={`/read/${chapter.story_slug}/${chapter.chapter_slug}`}
+                        className="group flex items-center gap-4 rounded-xl border bg-card p-3 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                      >
+                        <CoverImage
+                          src={chapter.story_cover_image}
+                          alt={chapter.story_title}
+                          className="h-20 w-16 shrink-0 rounded-lg object-cover"
+                        />
+                        <div className="min-w-0">
+                          <h3 className="truncate font-semibold transition-colors group-hover:text-primary">
+                            {chapter.chapter_title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">{chapter.story_title}</p>
+                          {chapter.excerpt && (
+                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{chapter.excerpt}</p>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+
+                  {data.chapters.pagination.pages > 1 && (
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                      <Button
+                        variant="outline"
+                        disabled={chapterPage <= 1}
+                        onClick={() => setParam({ chapterPage: chapterPage - 1 })}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Page {data.chapters.pagination.page} of {data.chapters.pagination.pages}
+                      </span>
+                      <Button
+                        disabled={chapterPage >= data.chapters.pagination.pages}
+                        onClick={() => setParam({ chapterPage: chapterPage + 1 })}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">No chapters matched this search.</div>
               )}
             </section>
           </div>
