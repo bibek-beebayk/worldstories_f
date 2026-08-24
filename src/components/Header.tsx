@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, FileText, Menu, Search, UsersRound, X } from "lucide-react";
+import { BookOpen, Earth, FileText, Menu, Search, UsersRound, X } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
@@ -326,6 +326,12 @@ const Header = () => {
             </>
           )}
 
+          <Button asChild variant="ghost" size="icon" className="md:hidden">
+            <Link to="/story-map" aria-label="Open Story Map" title="Story Map">
+              <Earth className="h-5 w-5" />
+            </Link>
+          </Button>
+
           {/* Mobile/tablet search expands over the header from this icon. */}
           <div className="md:hidden">
             <Button
@@ -532,15 +538,6 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Discover
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/story-map"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Story Map
                   </Link>
                 </SheetClose>
 
