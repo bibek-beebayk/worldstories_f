@@ -8,6 +8,7 @@ export default [
     route("library", "pages/Library.tsx"),
     route("trending", "routes/trending-redirect.tsx"),
     route("discover", "pages/Discover.tsx"),
+    route("story-map", "pages/StoryMap.tsx"),
     route("audiobooks", "pages/Audiobooks.tsx"),
     route("quick-reads", "pages/QuickReads.tsx"),
     route("authors", "pages/Authors.tsx"),

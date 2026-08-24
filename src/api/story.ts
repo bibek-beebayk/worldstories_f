@@ -48,6 +48,7 @@ import {
   StoryQueueTitleCheck,
   StoryQueueImportPreview,
   StoryQueueImportRecord,
+  StoryMapResponse,
 } from "./types";
 
 export const storyApi = {
@@ -61,10 +62,11 @@ export const storyApi = {
     storyType: string = "all",
     categories: number[] | [] = [],
     hasAudio: boolean = false,
-    hasSummary: boolean = false
+    hasSummary: boolean = false,
+    country: string = "all"
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}`
     ),
 
   getStory: (slug: string) =>
@@ -89,6 +91,7 @@ export const storyApi = {
   getHomeData: () => apiClient<HomeDataResponse>("/home/"),
   getOriginalsData: () => apiClient<OriginalsDataResponse>("/originals/"),
   getDiscoverData: () => apiClient<DiscoverDataResponse>("/discover/"),
+  getStoryMap: () => apiClient<StoryMapResponse>("/story-map/"),
   searchStories: (
     q: string,
     page: number = 1,

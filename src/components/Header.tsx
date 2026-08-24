@@ -125,7 +125,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-4 xl:gap-6">
             <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Library
             </Link>
@@ -134,6 +134,9 @@ const Header = () => {
             </Link>
             <Link to="/discover" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Discover
+            </Link>
+            <Link to="/story-map" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Story Map
             </Link>
             <Link to="/audiobooks" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Audiobooks
@@ -340,6 +343,15 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Discover
+                  </Link>
+                </SheetClose>
+
+                <SheetClose asChild>
+                  <Link
+                    to="/story-map"
+                    className="text-lg font-medium hover:text-primary"
+                  >
+                    Story Map
                   </Link>
                 </SheetClose>
 

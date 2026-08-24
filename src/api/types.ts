@@ -265,6 +265,19 @@ export interface DiscoverDataResponse extends TrendingDataResponse {
   hidden_gems: Story[];
 }
 
+export interface StoryMapCountry {
+  code: string;
+  name: string;
+  stories_count: number;
+}
+
+export interface StoryMapResponse {
+  countries: StoryMapCountry[];
+  total_stories: number;
+  countries_count: number;
+  max_stories_count: number;
+}
+
 export interface UserProfile {
   id: string;
   email: string;

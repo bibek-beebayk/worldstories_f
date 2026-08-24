@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 
 const footerLinks = [
+  { to: "/story-map", label: "Story Map" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
   { to: "/privacy", label: "Privacy Policy" },
