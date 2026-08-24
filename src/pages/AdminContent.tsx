@@ -162,6 +162,7 @@ const AdminContent = () => {
   const [publishAt, setPublishAt] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [removeCoverImage, setRemoveCoverImage] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [epubFile, setEpubFile] = useState<File | null>(null);
   const [selectedGenreNames, setSelectedGenreNames] = useState<string[]>([]);
@@ -299,6 +300,7 @@ const AdminContent = () => {
     setPublishAt("");
     setCoverImage("");
     setCoverImageFile(null);
+    setRemoveCoverImage(false);
     setPdfFile(null);
     setEpubFile(null);
     setSelectedGenreNames([]);
@@ -328,6 +330,7 @@ const AdminContent = () => {
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
     setIsCompleted(Boolean(selectedStory.is_completed));
     setCoverImage(selectedStory.cover_image || "");
+    setRemoveCoverImage(false);
     setSelectedGenreNames(
       (selectedStory.genres || [])
         .map((genreId) => genreNameById.get(genreId))
@@ -662,6 +665,7 @@ const AdminContent = () => {
     setIsPublished(Boolean(selectedStory.is_published));
     setPublishAt(toDatetimeLocalValue(selectedStory.publish_at));
     setCoverImage(selectedStory.cover_image || "");
+    setRemoveCoverImage(false);
     setSelectedGenreNames(
       (selectedStory.genres || [])
         .map((genreId) => genreNameById.get(genreId))
@@ -910,7 +914,14 @@ const AdminContent = () => {
     } else if (mode === "edit") {
       formData.append("publish_at", "");
     }
-    if (coverImage.trim()) formData.append("cover_image", coverImage.trim());
+    if (coverImage.trim()) {
+      formData.append("cover_image", coverImage.trim());
+    } else if (mode === "edit") {
+      // Omitting an empty optional field means "leave unchanged" to PATCH.
+      // Send the blank value explicitly so clearing a saved cover URL persists.
+      formData.append("cover_image", "");
+    }
+    if (removeCoverImage) formData.append("remove_cover_image_file", "true");
     if (coverImageFile) formData.append("cover_image_file", coverImageFile);
     if (pdfFile) formData.append("pdf_file", pdfFile);
     if (epubFile) formData.append("epub_file", epubFile);
@@ -1034,7 +1045,27 @@ const AdminContent = () => {
     }
   };
 
-  const removeStoryFile = async (field: "remove_cover_image_file" | "remove_pdf_file" | "remove_epub_file") => {
+  const removeStoryCover = async () => {
+    if (!selectedStoryId) return;
+    try {
+      setFileActionLoading("remove_cover_image");
+      const formData = new FormData();
+      // A story can retain both an uploaded file and a fallback URL. Clear
+      // both so Remove always leaves the story with no configured cover.
+      formData.append("remove_cover_image_file", "true");
+      formData.append("cover_image", "");
+      await storyApi.updateAdminStory(selectedStoryId, formData);
+      await queryClient.invalidateQueries({ queryKey: ["admin-story", selectedStoryId] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-story"] });
+      toast.success("Cover image removed.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove cover image.");
+    } finally {
+      setFileActionLoading(null);
+    }
+  };
+
+  const removeStoryFile = async (field: "remove_pdf_file" | "remove_epub_file") => {
     if (!selectedStoryId) return;
     try {
       setFileActionLoading(field);
@@ -1500,13 +1531,86 @@ const AdminContent = () => {
 
                 <div>
                   <Label htmlFor="admin-cover-url">Cover Image URL</Label>
-                  <Input id="admin-cover-url" type="url" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} className="mt-2" />
+                  <div className="mt-2 flex items-center gap-2">
+                    <Input
+                      id="admin-cover-url"
+                      type="url"
+                      value={coverImage}
+                      onChange={(e) => {
+                        setCoverImage(e.target.value);
+                        setRemoveCoverImage(false);
+                      }}
+                    />
+                    {coverImage && (
+                      <Button type="button" size="sm" variant="outline" onClick={() => setCoverImage("")}>
+                        Clear URL
+                      </Button>
+                    )}
+                  </div>
+                  {mode === "edit" && selectedStory?.cover_image_url && !coverImageFile && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {removeCoverImage ? (
+                        <>
+                          <span className="text-xs text-destructive">The current cover will be removed when you save.</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setRemoveCoverImage(false);
+                              setCoverImage(selectedStory.cover_image || "");
+                            }}
+                          >
+                            Undo
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setCoverImage("");
+                            setCoverImageFile(null);
+                            if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+                            setRemoveCoverImage(true);
+                          }}
+                        >
+                          Remove Current Cover
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
                     <Label htmlFor="admin-cover-file">Cover Upload</Label>
-                    <Input id="admin-cover-file" type="file" accept="image/*" className="mt-2" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
+                    <Input
+                      ref={coverFileInputRef}
+                      id="admin-cover-file"
+                      type="file"
+                      accept="image/*"
+                      className="mt-2"
+                      onChange={(e) => {
+                        setCoverImageFile(e.target.files?.[0] || null);
+                        setRemoveCoverImage(false);
+                      }}
+                    />
+                    {coverImageFile && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="mt-1"
+                        onClick={() => {
+                          setCoverImageFile(null);
+                          if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+                        }}
+                      >
+                        Remove Selected File
+                      </Button>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="admin-pdf-file">PDF File</Label>
@@ -2183,14 +2287,14 @@ const AdminContent = () => {
                           ? "Change"
                           : "Upload"}
                     </Button>
-                    {selectedStory?.cover_image_file && (
+                    {selectedStory?.cover_image_url && (
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={fileActionLoading !== null}
-                        onClick={() => removeStoryFile("remove_cover_image_file")}
+                        onClick={removeStoryCover}
                       >
-                        {fileActionLoading === "remove_cover_image_file" ? "Removing..." : "Remove"}
+                        {fileActionLoading === "remove_cover_image" ? "Removing..." : "Remove"}
                       </Button>
                     )}
                   </div>
