@@ -611,6 +611,11 @@ const StoryQueueManager = () => {
                     <option key={option.code} value={option.label} />
                   ))}
                 </datalist>
+                {countryQuery.trim() && !form.country && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    No exact match — pick a country from the suggestions or it won't be saved.
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Publication Date</Label>
@@ -842,6 +847,7 @@ const StoryQueueManager = () => {
                     <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Title</th>
                     <th className="px-3 py-2">Author</th>
+                    <th className="px-3 py-2">Country</th>
                     <th className="px-3 py-2">Language</th>
                     <th className="px-3 py-2">Publication Date</th>
                     <th className="px-3 py-2 text-right">Action</th>
@@ -853,6 +859,9 @@ const StoryQueueManager = () => {
                       <td className="px-3 py-2 text-muted-foreground">{startSerial + index + 1}</td>
                       <td className="max-w-64 truncate px-3 py-2 font-medium">{item.title}</td>
                       <td className="px-3 py-2 text-muted-foreground">{item.author_name || "-"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {item.country ? getCountryLabel(item.country) : "-"}
+                      </td>
                       <td className="px-3 py-2 text-muted-foreground">
                         {item.language ? getLanguageLabel(item.language) : "-"}
                       </td>
