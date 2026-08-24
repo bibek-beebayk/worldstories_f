@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient, fetchAuthenticatedBinary } from "./client";
 import {
   StoryListResponse,
   Chapter,
@@ -46,6 +46,8 @@ import {
   StoryQueueItem,
   StoryQueueItemPayload,
   StoryQueueTitleCheck,
+  StoryQueueImportPreview,
+  StoryQueueImportRecord,
 } from "./types";
 
 export const storyApi = {
@@ -200,6 +202,22 @@ export const storyApi = {
           .map(([key, value]) => `&${key}=${value}`)
           .join("")
     ),
+  exportAdminStories: (
+    q: string = "",
+    filters: {
+      is_published?: boolean;
+      is_completed?: boolean;
+      has_summary?: boolean;
+      has_retrospective?: boolean;
+    } = {}
+  ) =>
+    fetchAuthenticatedBinary(
+      `/admin/stories/export/?search=${encodeURIComponent(q)}` +
+        Object.entries(filters)
+          .filter(([, value]) => value !== undefined)
+          .map(([key, value]) => `&${key}=${value}`)
+          .join("")
+    ),
   getAdminStory: (id: number) =>
     apiClient<AdminStory>(`/admin/stories/${id}/`),
   createAdminStory: (formData: FormData) =>
@@ -290,6 +308,19 @@ export const storyApi = {
     }),
   getStoryQueueFetchBooksStatus: (jobId: number) =>
     apiClient<BookFetchJob>(`/admin/story-queue/fetch-books/${jobId}/`),
+  previewStoryQueueImport: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient<StoryQueueImportPreview>("/admin/story-queue/import-preview/", {
+      method: "POST",
+      body: formData,
+    });
+  },
+  confirmStoryQueueImport: (records: StoryQueueImportRecord[]) =>
+    apiClient<{ created_count: number; skipped_count: number }>("/admin/story-queue/import-confirm/", {
+      method: "POST",
+      body: JSON.stringify({ records }),
+    }),
   generateBlogExcerpt: (id: number) =>
     apiClient<AdminBlog>(`/admin/blog/${id}/generate-excerpt/`, { method: "POST" }),
   getAdminChapters: (storyId: number) =>

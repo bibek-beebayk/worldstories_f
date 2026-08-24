@@ -12,6 +12,7 @@ import { BookFetchJob, StoryQueueItem, StoryQueueItemPayload } from "@/api/types
 import { COUNTRY_OPTIONS, getCountryLabel } from "@/lib/countries";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 import { AlertTriangle, Check, Eye, Loader2, Plus, X } from "lucide-react";
+import StoryQueueImportModal from "./StoryQueueImportModal";
 
 const STORY_TYPES = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Religious Text", "Summary"];
 type AddedFilter = "all" | "true" | "false";
@@ -66,6 +67,7 @@ const StoryQueueManager = () => {
   const [fetchCount, setFetchCount] = useState("10");
   const [starting, setStarting] = useState(false);
   const [fetchJob, setFetchJob] = useState<BookFetchJob | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -375,6 +377,9 @@ const StoryQueueManager = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => setShowImportModal(true)}>
+          Import Book Data
+        </Button>
         {fetchJob && (fetchJob.status === "pending" || fetchJob.status === "processing") && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" /> Fetching book data...
@@ -405,6 +410,13 @@ const StoryQueueManager = () => {
           Add to Queue
         </Button>
       </div>
+
+      {showImportModal && (
+        <StoryQueueImportModal
+          onClose={() => setShowImportModal(false)}
+          onImported={() => queryClient.invalidateQueries({ queryKey: ["admin-story-queue"] })}
+        />
+      )}
 
       {showFetchModal && (
         <div

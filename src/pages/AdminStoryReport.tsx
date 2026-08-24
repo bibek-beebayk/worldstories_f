@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Search } from "lucide-react";
+import { Download, Search } from "lucide-react";
 import StoryQueueManager from "@/components/admin/StoryQueueManager";
 
 type TriStateFilter = "all" | "true" | "false";
@@ -43,6 +44,7 @@ const AdminStoryReport = () => {
   const [completionFilter, setCompletionFilter] = useState<TriStateFilter>("all");
   const [summaryFilter, setSummaryFilter] = useState<TriStateFilter>("all");
   const [retrospectiveFilter, setRetrospectiveFilter] = useState<TriStateFilter>("all");
+  const [exporting, setExporting] = useState(false);
 
   const { data: authors } = useQuery({
     queryKey: ["admin-authors"],
@@ -69,6 +71,29 @@ const AdminStoryReport = () => {
   const runSearch = () => {
     setPage(1);
     setSearch(searchInput.trim());
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const buffer = await storyApi.exportAdminStories(search, {
+        is_published: publicationFilter === "all" ? undefined : publicationFilter === "true",
+        is_completed: completionFilter === "all" ? undefined : completionFilter === "true",
+        has_summary: summaryFilter === "all" ? undefined : summaryFilter === "true",
+        has_retrospective: retrospectiveFilter === "all" ? undefined : retrospectiveFilter === "true",
+      });
+      const blob = new Blob([buffer], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "stories-export.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to export stories.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const resetToFirstPage = (setter: (value: TriStateFilter) => void) => (value: string) => {
@@ -178,9 +203,15 @@ const AdminStoryReport = () => {
                 </Select>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Total stories: <span className="font-medium text-foreground">{pagination?.count ?? 0}</span>
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Total stories: <span className="font-medium text-foreground">{pagination?.count ?? 0}</span>
+                </p>
+                <Button size="sm" variant="outline" disabled={exporting} onClick={handleExport}>
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  {exporting ? "Exporting..." : "Export"}
+                </Button>
+              </div>
 
               {storiesLoading ? (
                 <p className="text-sm text-muted-foreground">Loading stories...</p>

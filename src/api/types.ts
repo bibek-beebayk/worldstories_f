@@ -876,3 +876,41 @@ export interface StoryQueueItemPayload {
   pdf_link?: string;
   cover_image_link?: string;
 }
+
+export type StoryQueueImportDuplicateReason =
+  | "already_a_story"
+  | "already_in_queue"
+  | "duplicate_in_file"
+  | "missing_title";
+
+export interface StoryQueueImportRecord {
+  title: string;
+  author_name: string;
+  about: string;
+  story_type: string;
+  country: string;
+  language: string;
+  genres: string[];
+  categories: string[];
+  original_published_year: number | null;
+  original_published_month: number | null;
+  original_published_day: number | null;
+  published_date_label: string | null;
+  epub_link: string;
+  pdf_link: string;
+  cover_image_link: string;
+}
+
+export interface StoryQueueImportDuplicate extends StoryQueueImportRecord {
+  reason: StoryQueueImportDuplicateReason;
+}
+
+export interface StoryQueueImportPreview {
+  to_add: StoryQueueImportRecord[];
+  duplicates: StoryQueueImportDuplicate[];
+  errors: string[];
+  to_add_count: number;
+  duplicate_count: number;
+  error_count: number;
+  total_rows: number;
+}
