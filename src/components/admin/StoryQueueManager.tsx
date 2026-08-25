@@ -11,7 +11,7 @@ import { storyApi } from "@/api/story";
 import { BookFetchJob, StoryQueueItem, StoryQueueItemPayload } from "@/api/types";
 import { COUNTRY_OPTIONS, getCountryLabel } from "@/lib/countries";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
-import { AlertTriangle, Check, Eye, Loader2, Plus, X } from "lucide-react";
+import { AlertTriangle, Check, Eye, Loader2, Pencil, Plus, X } from "lucide-react";
 import StoryQueueImportModal from "./StoryQueueImportModal";
 
 type AddedFilter = "all" | "true" | "false";
@@ -48,6 +48,7 @@ const StoryQueueManager = () => {
   const [creating, setCreating] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<StoryQueueItem | null>(null);
   const [addedFilter, setAddedFilter] = useState<AddedFilter>("all");
   const [detailsItem, setDetailsItem] = useState<StoryQueueItem | null>(null);
   const [selectedGenreNames, setSelectedGenreNames] = useState<string[]>([]);
@@ -79,8 +80,8 @@ const StoryQueueManager = () => {
   }, [form.title]);
 
   const { data: titleCheck } = useQuery({
-    queryKey: ["story-queue-title-check", debouncedTitle],
-    queryFn: () => storyApi.checkStoryQueueTitle(debouncedTitle),
+    queryKey: ["story-queue-title-check", debouncedTitle, editingItem?.id],
+    queryFn: () => storyApi.checkStoryQueueTitle(debouncedTitle, editingItem?.id),
     enabled: showAddModal && debouncedTitle.length >= 2,
   });
   const titleMatches =
@@ -268,7 +269,55 @@ const StoryQueueManager = () => {
     }
   };
 
-  const addBook = async (event: React.FormEvent) => {
+  const openCreateModal = () => {
+    setEditingItem(null);
+    setForm(EMPTY_FORM);
+    setCountryQuery("");
+    setSelectedGenreNames([]);
+    setGenreQuery("");
+    setSelectedCategoryNames([]);
+    setCategoryQuery("");
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (item: StoryQueueItem) => {
+    setEditingItem(item);
+    setForm({
+      title: item.title,
+      authorName: item.author_name,
+      about: item.about || "",
+      storyType: item.story_type ? String(item.story_type) : "",
+      country: item.country || "",
+      language: item.language || "en",
+      publishedYear: item.original_published_year ? String(item.original_published_year) : "",
+      publishedMonth: item.original_published_month ? String(item.original_published_month) : "",
+      publishedDay: item.original_published_day ? String(item.original_published_day) : "",
+      epubLink: item.epub_link || "",
+      pdfLink: item.pdf_link || "",
+      coverImageLink: item.cover_image_link || "",
+    });
+    setCountryQuery(item.country ? getCountryLabel(item.country) : "");
+    setSelectedGenreNames(
+      (item.genres || [])
+        .map((genreId) => genreNameById.get(genreId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setGenreQuery("");
+    setSelectedCategoryNames(
+      (item.categories || [])
+        .map((categoryId) => categoryNameById.get(categoryId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setCategoryQuery("");
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
+    setEditingItem(null);
+  };
+
+  const saveBook = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.title.trim()) return;
     try {
@@ -334,19 +383,26 @@ const StoryQueueManager = () => {
         pdf_link: form.pdfLink.trim(),
         cover_image_link: form.coverImageLink.trim(),
       };
-      await storyApi.createStoryQueueItem(payload);
+      if (editingItem) {
+        await storyApi.updateStoryQueueItem(editingItem.id, payload);
+        toast.success("Queue item updated.");
+      } else {
+        await storyApi.createStoryQueueItem(payload);
+        setPage(1);
+        toast.success("Added to the queue.");
+      }
       setForm(EMPTY_FORM);
       setCountryQuery("");
       setSelectedGenreNames([]);
       setGenreQuery("");
       setSelectedCategoryNames([]);
       setCategoryQuery("");
-      setPage(1);
-      setShowAddModal(false);
+      closeAddModal();
       await queryClient.invalidateQueries({ queryKey: ["admin-story-queue"] });
-      toast.success("Added to the queue.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to add book to the queue.");
+      toast.error(
+        error instanceof Error ? error.message : `Failed to ${editingItem ? "update" : "add"} this book.`
+      );
     } finally {
       setCreating(false);
     }
@@ -369,14 +425,16 @@ const StoryQueueManager = () => {
     }
   };
 
-  const addToStories = async (id: number) => {
+  const addToStories = async (id: number): Promise<boolean> => {
     try {
       setAddingId(id);
       await storyApi.addStoryQueueItem(id);
       toast.success("Story created as a draft.");
       await queryClient.invalidateQueries({ queryKey: ["admin-story-queue"] });
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add this book.");
+      return false;
     } finally {
       setAddingId(null);
     }
@@ -387,12 +445,14 @@ const StoryQueueManager = () => {
     setAddedFilter(value as AddedFilter);
   };
 
-  const removeItem = async (id: number) => {
+  const removeItem = async (id: number): Promise<boolean> => {
     try {
       await storyApi.deleteStoryQueueItem(id);
       await queryClient.invalidateQueries({ queryKey: ["admin-story-queue"] });
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to remove this entry.");
+      return false;
     }
   };
 
@@ -431,7 +491,7 @@ const StoryQueueManager = () => {
         >
           Fetch Book Data
         </Button>
-        <Button size="sm" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" onClick={openCreateModal}>
           Add to Queue
         </Button>
       </div>
@@ -497,26 +557,26 @@ const StoryQueueManager = () => {
       {showAddModal && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-          onClick={() => setShowAddModal(false)}
+          onClick={closeAddModal}
         >
           <Card
             className="max-h-[90vh] w-full max-w-2xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-              <CardTitle className="text-base">Add to Queue</CardTitle>
+              <CardTitle className="text-base">{editingItem ? "Edit Queue Item" : "Add to Queue"}</CardTitle>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                onClick={() => setShowAddModal(false)}
+                onClick={closeAddModal}
               >
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
             <CardContent>
-              <form onSubmit={addBook} className="space-y-4">
+              <form onSubmit={saveBook} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="queue-title">Title *</Label>
@@ -841,7 +901,13 @@ const StoryQueueManager = () => {
 
                 <div className="flex justify-end">
                   <Button type="submit" disabled={creating || !form.title.trim()}>
-                    {creating ? "Adding..." : "Add to Queue"}
+                    {creating
+                      ? editingItem
+                        ? "Saving..."
+                        : "Adding..."
+                      : editingItem
+                        ? "Save Changes"
+                        : "Add to Queue"}
                   </Button>
                 </div>
               </form>
@@ -907,6 +973,16 @@ const StoryQueueManager = () => {
                             onClick={() => setDetailsItem(item)}
                           >
                             <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            aria-label={`Edit ${item.title}`}
+                            onClick={() => openEditModal(item)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           {item.is_added ? (
                             <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
@@ -1081,6 +1157,51 @@ const StoryQueueManager = () => {
                   </a>
                 </div>
               )}
+
+              <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
+                {!detailsItem.is_added && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={addingId === detailsItem.id}
+                    onClick={async () => {
+                      const success = await addToStories(detailsItem.id);
+                      if (success) setDetailsItem(null);
+                    }}
+                  >
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                    {addingId === detailsItem.id ? "Adding..." : "Add to Stories"}
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const item = detailsItem;
+                    setDetailsItem(null);
+                    openEditModal(item);
+                  }}
+                >
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                {!detailsItem.is_added && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={async () => {
+                      const success = await removeItem(detailsItem.id);
+                      if (success) setDetailsItem(null);
+                    }}
+                  >
+                    <X className="mr-1.5 h-3.5 w-3.5" />
+                    Remove
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

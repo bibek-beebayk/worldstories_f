@@ -302,10 +302,18 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  updateStoryQueueItem: (id: number, payload: StoryQueueItemPayload) =>
+    apiClient<StoryQueueItem>(`/admin/story-queue/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   addStoryQueueItem: (id: number) =>
     apiClient<StoryQueueItem>(`/admin/story-queue/${id}/add/`, { method: "POST" }),
-  checkStoryQueueTitle: (title: string) =>
-    apiClient<StoryQueueTitleCheck>(`/admin/story-queue/check-title/?title=${encodeURIComponent(title)}`),
+  checkStoryQueueTitle: (title: string, excludeQueueId?: number) =>
+    apiClient<StoryQueueTitleCheck>(
+      `/admin/story-queue/check-title/?title=${encodeURIComponent(title)}` +
+        (excludeQueueId ? `&exclude_queue_id=${excludeQueueId}` : "")
+    ),
   deleteStoryQueueItem: (id: number) =>
     apiClient<void>(`/admin/story-queue/${id}/`, { method: "DELETE" }),
   fetchStoryQueueBooks: (count: number) =>
