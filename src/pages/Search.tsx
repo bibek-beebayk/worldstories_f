@@ -139,34 +139,36 @@ const Search = () => {
                     {data.titles.pagination.count}
                   </span>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <div className="w-full sm:w-52">
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Sort titles</label>
-                    <select
-                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      value={sort}
-                      onChange={(event) => setParam({ sort: event.target.value, page: 1 })}
-                    >
-                      <option value="popular">Most Popular</option>
-                      <option value="recent">Most Recent</option>
-                      <option value="rating">Highest Rated</option>
-                      <option value="views">Most Viewed</option>
-                    </select>
+                {(data.titles.pagination.count > 0 || language !== "all") && (
+                  <div className="grid w-full grid-cols-2 gap-2 lg:w-auto lg:gap-3">
+                    <div className="min-w-0 lg:w-52">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Sort titles</label>
+                      <select
+                        className="w-full min-w-0 rounded-md border bg-background px-2 py-2 text-xs sm:px-3 sm:text-sm"
+                        value={sort}
+                        onChange={(event) => setParam({ sort: event.target.value, page: 1 })}
+                      >
+                        <option value="popular">Most Popular</option>
+                        <option value="recent">Most Recent</option>
+                        <option value="rating">Highest Rated</option>
+                        <option value="views">Most Viewed</option>
+                      </select>
+                    </div>
+                    <div className="min-w-0 lg:w-52">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Title language</label>
+                      <select
+                        className="w-full min-w-0 rounded-md border bg-background px-2 py-2 text-xs sm:px-3 sm:text-sm"
+                        value={language}
+                        onChange={(event) => setParam({ language: event.target.value, page: 1 })}
+                      >
+                        <option value="all">All Languages</option>
+                        {LANGUAGE_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.code}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div className="w-full sm:w-52">
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Title language</label>
-                    <select
-                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      value={language}
-                      onChange={(event) => setParam({ language: event.target.value, page: 1 })}
-                    >
-                      <option value="all">All Languages</option>
-                      {LANGUAGE_OPTIONS.map((option) => (
-                        <option key={option.code} value={option.code}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                )}
               </div>
 
               {titles.length > 0 ? (
