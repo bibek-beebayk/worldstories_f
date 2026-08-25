@@ -853,6 +853,7 @@ export interface StoryQueueItem {
   title: string;
   author_name: string;
   about: string | null;
+  content: string;
   story_type: number | null;
   country: string;
   language: string;
@@ -893,6 +894,7 @@ export interface StoryQueueItemPayload {
   title: string;
   author_name: string;
   about?: string;
+  content?: string;
   story_type?: number | null;
   country?: string;
   language?: string;

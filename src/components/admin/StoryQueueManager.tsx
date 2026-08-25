@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,26 @@ import { storyApi } from "@/api/story";
 import { BookFetchJob, StoryQueueItem, StoryQueueItemPayload } from "@/api/types";
 import { COUNTRY_OPTIONS, getCountryLabel } from "@/lib/countries";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
-import { AlertTriangle, Check, Eye, Loader2, Pencil, Plus, X } from "lucide-react";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { handleRichTextPaste } from "@/lib/richTextPaste";
+import {
+  AlertTriangle,
+  Bold,
+  Check,
+  Eye,
+  Heading1,
+  Heading2,
+  Heading3,
+  Italic,
+  Link2,
+  List,
+  ListOrdered,
+  Loader2,
+  Pencil,
+  Plus,
+  Underline,
+  X,
+} from "lucide-react";
 import StoryQueueImportModal from "./StoryQueueImportModal";
 
 type AddedFilter = "all" | "true" | "false";
@@ -30,6 +49,7 @@ const EMPTY_FORM = {
   title: "",
   authorName: "",
   about: "",
+  content: "",
   storyType: "",
   country: "",
   language: "en",
@@ -71,6 +91,7 @@ const StoryQueueManager = () => {
   const [starting, setStarting] = useState(false);
   const [fetchJob, setFetchJob] = useState<BookFetchJob | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const contentEditorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -78,6 +99,30 @@ const StoryQueueManager = () => {
     }, 400);
     return () => window.clearTimeout(timer);
   }, [form.title]);
+
+  const syncContentEditorContent = () => {
+    setForm((f) => ({ ...f, content: contentEditorRef.current?.innerHTML || "" }));
+  };
+
+  const runContentEditorCommand = (command: string, value?: string) => {
+    contentEditorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncContentEditorContent();
+  };
+
+  const addContentLink = () => {
+    const url = window.prompt("Enter URL");
+    if (!url) return;
+    runContentEditorCommand("createLink", url);
+  };
+
+  useEffect(() => {
+    if (!showAddModal || !contentEditorRef.current) return;
+    contentEditorRef.current.innerHTML = form.content || "";
+    // Only seed the contenteditable when the modal opens; depending on the
+    // mirrored state would reset the caret after every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddModal]);
 
   const { data: titleCheck } = useQuery({
     queryKey: ["story-queue-title-check", debouncedTitle, editingItem?.id],
@@ -286,6 +331,7 @@ const StoryQueueManager = () => {
       title: item.title,
       authorName: item.author_name,
       about: item.about || "",
+      content: item.content || "",
       storyType: item.story_type ? String(item.story_type) : "",
       country: item.country || "",
       language: item.language || "en",
@@ -371,6 +417,7 @@ const StoryQueueManager = () => {
         title: form.title.trim(),
         author_name: form.authorName.trim(),
         about: form.about.trim(),
+        content: form.content.trim(),
         story_type: form.storyType ? Number(form.storyType) : null,
         country: form.country,
         language: form.language,
@@ -641,6 +688,37 @@ const StoryQueueManager = () => {
                 onChange={(e) => setForm((f) => ({ ...f, about: e.target.value }))}
                 className="mt-2 min-h-20"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="queue-content">Content</Label>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runContentEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={addContentLink}><Link2 className="h-4 w-4" /></Button>
+                </div>
+                <div
+                  id="queue-content"
+                  ref={contentEditorRef}
+                  contentEditable
+                  dir="ltr"
+                  style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
+                  suppressContentEditableWarning
+                  onInput={syncContentEditorContent}
+                  onPaste={(e) => handleRichTextPaste(e, syncContentEditorContent)}
+                  className="prose prose-sm dark:prose-invert min-h-32 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                If filled in, this becomes the new story's "Chapter 1" when added to Stories.
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-4">
@@ -1104,6 +1182,17 @@ const StoryQueueManager = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">About</p>
                   <p className="whitespace-pre-wrap">{detailsItem.about}</p>
+                </div>
+              )}
+              {detailsItem.content && (
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Content <span className="italic">(becomes "Chapter 1" when added to Stories)</span>
+                  </p>
+                  <div
+                    className="prose prose-sm dark:prose-invert max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(detailsItem.content) }}
+                  />
                 </div>
               )}
               {detailsItem.genres.length > 0 && (
