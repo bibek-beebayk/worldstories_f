@@ -2,6 +2,9 @@
   command = "npm run build"
   publish = "build/client"
 
+[build.environment]
+  VITE_GA_MEASUREMENT_ID = "G-BQ2MC1QBFR"
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "https://worldstories-b-production.up.railway.app/api/sitemap.xml"

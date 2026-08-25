@@ -49,6 +49,14 @@ const ORGANIZATION_JSON_LD = {
   ],
 };
 
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim();
+const GA_BOOTSTRAP_SCRIPT = GA_MEASUREMENT_ID
+  ? `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', ${JSON.stringify(GA_MEASUREMENT_ID)});`
+  : null;
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -89,6 +97,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
         <link rel="preconnect" href="https://pub-17e5aea668624aa283be17aed25d6471.r2.dev" />
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="" />
+
+        {GA_MEASUREMENT_ID && GA_BOOTSTRAP_SCRIPT ? (
+          <>
+            <link rel="preconnect" href="https://www.googletagmanager.com" />
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`}
+            />
+            <script dangerouslySetInnerHTML={{ __html: GA_BOOTSTRAP_SCRIPT }} />
+          </>
+        ) : null}
 
         <script src="https://accounts.google.com/gsi/client" async defer />
         <script
