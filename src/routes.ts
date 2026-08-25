@@ -44,6 +44,7 @@ export default [
         route("submissions", "pages/AdminSubmissions.tsx"),
         route("analytics", "pages/AdminAnalytics.tsx"),
         route("categories", "pages/AdminCategories.tsx"),
+        route("story-types", "pages/AdminStoryTypes.tsx"),
         route("authors", "pages/AdminAuthors.tsx"),
         route("users", "pages/AdminUsers.tsx"),
         route("ai-settings", "pages/AdminAiSettings.tsx"),

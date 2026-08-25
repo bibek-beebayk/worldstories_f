@@ -22,8 +22,6 @@ import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 import { AiGenerationHeaderControls, AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
 
-const storyTypes = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Summary", "Religious Text", "Collection"];
-
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
 // timezone suffix) — the backend gives back a UTC ISO string, so this
 // converts between the two in both directions.
@@ -150,7 +148,7 @@ const AdminContent = () => {
   const [summary, setSummary] = useState("");
   const [retrospective, setRetrospective] = useState("");
   const [authorId, setAuthorId] = useState<string>("none");
-  const [storyType, setStoryType] = useState("Short Story");
+  const [storyTypeId, setStoryTypeId] = useState<string>("");
   const [language, setLanguage] = useState("en");
   const [country, setCountry] = useState("");
   const [originalPublishedYear, setOriginalPublishedYear] = useState("");
@@ -178,6 +176,9 @@ const AdminContent = () => {
   const [showGenreModal, setShowGenreModal] = useState(false);
   const [newGenreName, setNewGenreName] = useState("");
   const [creatingGenre, setCreatingGenre] = useState(false);
+  const [showStoryTypeModal, setShowStoryTypeModal] = useState(false);
+  const [newStoryTypeName, setNewStoryTypeName] = useState("");
+  const [creatingStoryType, setCreatingStoryType] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
@@ -224,6 +225,11 @@ const AdminContent = () => {
   const { data: genres } = useQuery({
     queryKey: ["admin-genres"],
     queryFn: storyApi.getAdminGenres,
+    enabled: isAuthenticated && Boolean(me?.is_superuser),
+  });
+  const { data: storyTypes } = useQuery({
+    queryKey: ["admin-story-types"],
+    queryFn: storyApi.getAdminStoryTypes,
     enabled: isAuthenticated && Boolean(me?.is_superuser),
   });
   const { data: categories } = useQuery({
@@ -279,6 +285,19 @@ const AdminContent = () => {
     () => new Map((categories || []).map((category) => [category.id, category.name])),
     [categories]
   );
+  const storyTypeNameById = useMemo(
+    () => new Map((storyTypes || []).map((type) => [type.id, type.name])),
+    [storyTypes]
+  );
+  // Story type is required server-side (falls back to "Short Story" for a
+  // brand-new story) — computed here rather than seeded into state via an
+  // effect, since storyTypes loads asynchronously and the create form must
+  // still work correctly before that query resolves.
+  const defaultStoryTypeId = useMemo(() => {
+    const shortStory = (storyTypes || []).find((type) => type.name === "Short Story");
+    return String((shortStory || storyTypes?.[0])?.id || "");
+  }, [storyTypes]);
+  const effectiveStoryTypeId = storyTypeId || defaultStoryTypeId;
 
   const resetForm = () => {
     setSelectedStoryId(null);
@@ -288,7 +307,7 @@ const AdminContent = () => {
     setSummary("");
     setRetrospective("");
     setAuthorId("none");
-    setStoryType("Short Story");
+    setStoryTypeId("");
     setLanguage("en");
     setCountry("");
     setOriginalPublishedYear("");
@@ -323,7 +342,7 @@ const AdminContent = () => {
     resetForm();
     // Carry over the details that describe the same underlying work — title/about
     // still need to be written in the new language, so those stay blank.
-    setStoryType(selectedStory.story_type || "Short Story");
+    setStoryTypeId(selectedStory.story_type ? String(selectedStory.story_type) : "");
     setCountry(selectedStory.country || "");
     setOriginalPublishedYear(numToStr(selectedStory.original_published_year));
     setOriginalPublishedMonth(numToStr(selectedStory.original_published_month));
@@ -390,6 +409,24 @@ const AdminContent = () => {
       toast.error(error instanceof Error ? error.message : "Failed to create genre.");
     } finally {
       setCreatingGenre(false);
+    }
+  };
+
+  const createStoryType = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newStoryTypeName.trim()) return;
+    try {
+      setCreatingStoryType(true);
+      const created = await storyApi.createAdminStoryType(newStoryTypeName.trim());
+      await queryClient.invalidateQueries({ queryKey: ["admin-story-types"] });
+      setStoryTypeId(String(created.id));
+      setShowStoryTypeModal(false);
+      setNewStoryTypeName("");
+      toast.success("Story type created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create story type.");
+    } finally {
+      setCreatingStoryType(false);
     }
   };
 
@@ -654,7 +691,7 @@ const AdminContent = () => {
     setSummary(selectedStory.summary || "");
     setRetrospective(selectedStory.retrospective || "");
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
-    setStoryType(selectedStory.story_type || "Short Story");
+    setStoryTypeId(selectedStory.story_type ? String(selectedStory.story_type) : "");
     setLanguage(selectedStory.language || "en");
     setCountry(selectedStory.country || "");
     setOriginalPublishedYear(numToStr(selectedStory.original_published_year));
@@ -878,7 +915,7 @@ const AdminContent = () => {
     formData.append("about", about.trim());
     formData.append("summary", summary.trim());
     formData.append("retrospective", retrospective.trim());
-    formData.append("story_type", storyType);
+    if (effectiveStoryTypeId) formData.append("story_type", effectiveStoryTypeId);
     formData.append("language", language);
     formData.append("country", country);
     if (authorId !== "none") {
@@ -1392,12 +1429,17 @@ const AdminContent = () => {
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
-                    <Label>Story Type</Label>
-                    <Select value={storyType} onValueChange={setStoryType}>
-                      <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                    <div className="flex items-center justify-between">
+                      <Label>Story Type</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowStoryTypeModal(true)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Select value={effectiveStoryTypeId} onValueChange={setStoryTypeId}>
+                      <SelectTrigger className="mt-2"><SelectValue placeholder="Select story type" /></SelectTrigger>
                       <SelectContent>
-                        {storyTypes.map((type) => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        {(storyTypes || []).map((type) => (
+                          <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1907,7 +1949,7 @@ const AdminContent = () => {
                     <div className="grid gap-2 sm:grid-cols-2">
                       <p><span className="text-muted-foreground">Title:</span> {selectedStory.title}</p>
                       <p><span className="text-muted-foreground">Slug:</span> /{selectedStory.slug}</p>
-                      <p><span className="text-muted-foreground">Type:</span> {selectedStory.story_type}</p>
+                      <p><span className="text-muted-foreground">Type:</span> {storyTypeNameById.get(selectedStory.story_type) || selectedStory.story_type}</p>
                       <p><span className="text-muted-foreground">Language:</span> {getLanguageLabel(selectedStory.language)}</p>
                       <p><span className="text-muted-foreground">Country:</span> {selectedStory.country ? getCountryLabel(selectedStory.country) : "-"}</p>
                       <p><span className="text-muted-foreground">Author:</span> {selectedStory.author ? (authorNameById.get(selectedStory.author) || "-") : "-"}</p>
@@ -2534,6 +2576,33 @@ const AdminContent = () => {
                   <Button type="button" variant="outline" onClick={() => setShowAuthorModal(false)}>Cancel</Button>
                   <Button type="submit" disabled={creatingAuthor || !newAuthorName.trim()}>
                     {creatingAuthor ? "Creating..." : "Create Author"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showStoryTypeModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowStoryTypeModal(false)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base">Create Story Type</CardTitle>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowStoryTypeModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={createStoryType}>
+                <div>
+                  <Label htmlFor="new-story-type-name">Name *</Label>
+                  <Input id="new-story-type-name" value={newStoryTypeName} onChange={(e) => setNewStoryTypeName(e.target.value)} required />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowStoryTypeModal(false)}>Cancel</Button>
+                  <Button type="submit" disabled={creatingStoryType || !newStoryTypeName.trim()}>
+                    {creatingStoryType ? "Creating..." : "Create Story Type"}
                   </Button>
                 </div>
               </form>

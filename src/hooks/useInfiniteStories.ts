@@ -8,7 +8,7 @@ export function useInfiniteStories(
   status: string = "all",
   q: string = "",
   language: string = "all",
-  storyType: string = "all",
+  storyType: string | number = "all",
   enabled: boolean = true,
   categories: number[] = [],
   hasAudio: boolean = false,

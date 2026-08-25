@@ -244,18 +244,18 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
           <Carousel opts={{ align: "start" }} className="px-1">
             <CarouselContent>
               {data.story_types?.map((storyType) => (
-                <CarouselItem key={storyType.value} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                <CarouselItem key={storyType.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
                   <Link
-                    to={`/library?story_type=${encodeURIComponent(storyType.value)}`}
+                    to={`/library?story_type=${storyType.id}`}
                     className="group flex min-h-24 h-full items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-primary/5"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                       <BookOpenText className="h-5 w-5" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-semibold leading-tight">{storyType.label}</span>
+                      <span className="block text-sm font-semibold leading-tight">{storyType.name}</span>
                       <span className="mt-1 block text-xs text-muted-foreground">
-                        {formatViews(storyType.stories_count)} {storyType.stories_count === 1 ? "story" : "stories"}
+                        {formatViews(storyType.stories_count ?? 0)} {storyType.stories_count === 1 ? "story" : "stories"}
                       </span>
                     </span>
                   </Link>

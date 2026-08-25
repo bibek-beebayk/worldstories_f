@@ -14,7 +14,6 @@ import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 import { AlertTriangle, Check, Eye, Loader2, Plus, X } from "lucide-react";
 import StoryQueueImportModal from "./StoryQueueImportModal";
 
-const STORY_TYPES = ["Short Story", "Novel", "Novella", "Poetry", "Non Fiction", "Religious Text", "Summary", "Collection"];
 type AddedFilter = "all" | "true" | "false";
 // Kept in sync with book_fetch.MAX_BOOK_FETCH_COUNT on the backend.
 const MAX_BOOK_FETCH_COUNT = 14;
@@ -61,6 +60,9 @@ const StoryQueueManager = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [showStoryTypeModal, setShowStoryTypeModal] = useState(false);
+  const [newStoryTypeName, setNewStoryTypeName] = useState("");
+  const [creatingStoryType, setCreatingStoryType] = useState(false);
   const [countryQuery, setCountryQuery] = useState("");
   const [debouncedTitle, setDebouncedTitle] = useState("");
   const [showFetchModal, setShowFetchModal] = useState(false);
@@ -119,6 +121,7 @@ const StoryQueueManager = () => {
   const { data: authors } = useQuery({ queryKey: ["admin-authors"], queryFn: storyApi.getAdminAuthors });
   const { data: genres } = useQuery({ queryKey: ["admin-genres"], queryFn: storyApi.getAdminGenres });
   const { data: categories } = useQuery({ queryKey: ["admin-categories"], queryFn: storyApi.getAdminCategories });
+  const { data: storyTypes } = useQuery({ queryKey: ["admin-story-types"], queryFn: storyApi.getAdminStoryTypes });
   const genreNameById = useMemo(
     () => new Map((genres || []).map((genre) => [genre.id, genre.name])),
     [genres]
@@ -126,6 +129,10 @@ const StoryQueueManager = () => {
   const categoryNameById = useMemo(
     () => new Map((categories || []).map((category) => [category.id, category.name])),
     [categories]
+  );
+  const storyTypeNameById = useMemo(
+    () => new Map((storyTypes || []).map((type) => [type.id, type.name])),
+    [storyTypes]
   );
 
   const filteredAuthorSuggestions = useMemo(() => {
@@ -243,6 +250,24 @@ const StoryQueueManager = () => {
     }
   };
 
+  const createStoryType = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newStoryTypeName.trim()) return;
+    try {
+      setCreatingStoryType(true);
+      const created = await storyApi.createAdminStoryType(newStoryTypeName.trim());
+      await queryClient.invalidateQueries({ queryKey: ["admin-story-types"] });
+      setForm((f) => ({ ...f, storyType: String(created.id) }));
+      setShowStoryTypeModal(false);
+      setNewStoryTypeName("");
+      toast.success("Story type created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create story type.");
+    } finally {
+      setCreatingStoryType(false);
+    }
+  };
+
   const addBook = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.title.trim()) return;
@@ -297,7 +322,7 @@ const StoryQueueManager = () => {
         title: form.title.trim(),
         author_name: form.authorName.trim(),
         about: form.about.trim(),
-        story_type: form.storyType,
+        story_type: form.storyType ? Number(form.storyType) : null,
         country: form.country,
         language: form.language,
         genres: genreIdsToSubmit,
@@ -560,7 +585,12 @@ const StoryQueueManager = () => {
 
             <div className="grid gap-4 sm:grid-cols-4">
               <div>
-                <Label htmlFor="queue-story-type">Story Type</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="queue-story-type">Story Type</Label>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowStoryTypeModal(true)}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
                 <Select
                   value={form.storyType || undefined}
                   onValueChange={(value) => setForm((f) => ({ ...f, storyType: value }))}
@@ -569,9 +599,9 @@ const StoryQueueManager = () => {
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent className="z-[80]">
-                    {STORY_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {(storyTypes || []).map((type) => (
+                      <SelectItem key={type.id} value={String(type.id)}>
+                        {type.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -973,7 +1003,7 @@ const StoryQueueManager = () => {
               {detailsItem.story_type && (
                 <div>
                   <p className="text-xs text-muted-foreground">Story Type</p>
-                  <p>{detailsItem.story_type}</p>
+                  <p>{storyTypeNameById.get(detailsItem.story_type) || detailsItem.story_type}</p>
                 </div>
               )}
               {detailsItem.country && (
@@ -1051,6 +1081,33 @@ const StoryQueueManager = () => {
                   </a>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showStoryTypeModal && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowStoryTypeModal(false)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base">Create Story Type</CardTitle>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowStoryTypeModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={createStoryType}>
+                <div>
+                  <Label htmlFor="new-queue-story-type-name">Name *</Label>
+                  <Input id="new-queue-story-type-name" value={newStoryTypeName} onChange={(e) => setNewStoryTypeName(e.target.value)} required />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowStoryTypeModal(false)}>Cancel</Button>
+                  <Button type="submit" disabled={creatingStoryType || !newStoryTypeName.trim()}>
+                    {creatingStoryType ? "Creating..." : "Create Story Type"}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         </div>

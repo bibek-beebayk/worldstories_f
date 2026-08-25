@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/sonner";
 import { getAccessToken } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useGenres } from "@/hooks/useGenres";
+import { useStoryTypes } from "@/hooks/useStoryTypes";
 import { Link2, Bold, Italic, Underline, Heading1, Heading2, Heading3, List, ListOrdered } from "lucide-react";
 import { buildMeta } from "@/lib/buildMeta";
 import { LANGUAGE_OPTIONS } from "@/lib/languages";
@@ -25,13 +26,12 @@ export function meta() {
   });
 }
 
-const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
-
 const Publish = () => {
   const navigate = useNavigate();
   const isAuthenticated = Boolean(getAccessToken());
   const editorRef = useRef<HTMLDivElement>(null);
   const { data: genres } = useGenres();
+  const { data: storyTypes } = useStoryTypes();
 
   const [title, setTitle] = useState("");
   const [about, setAbout] = useState("");
@@ -201,9 +201,9 @@ const Publish = () => {
                     <SelectValue placeholder="Select story type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {storyTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {(storyTypes || []).map((type) => (
+                      <SelectItem key={type.id} value={type.name}>
+                        {type.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

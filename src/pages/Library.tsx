@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/carousel";
 import { useGenres } from "@/hooks/useGenres";
 import { useCategories } from "@/hooks/useCategories";
+import { useStoryTypes } from "@/hooks/useStoryTypes";
 import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
@@ -33,7 +34,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { buildMeta } from "@/lib/buildMeta";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
-import { STORY_TYPE_OPTIONS } from "@/lib/storyTypes";
 
 function getInitialGenreFromUrl(searchParams: URLSearchParams): number[] {
   const genreId = parseInt(searchParams.get("genre") || "", 10);
@@ -90,6 +90,11 @@ const Library = () => {
   const [tempCategories, setTempCategories] = useState<number[]>([]);
   const { data: genres } = useGenres();
   const { data: categories } = useCategories();
+  const { data: storyTypes } = useStoryTypes();
+  const storyTypeNameById = useMemo(
+    () => new Map((storyTypes || []).map((storyType) => [String(storyType.id), storyType.name])),
+    [storyTypes]
+  );
 
   const selectedGenreNames = useMemo(() => {
     const genreMap = new Map((genres || []).map((genre) => [genre.id, genre.name]));
@@ -382,9 +387,9 @@ const Library = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {STORY_TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
+                  {(storyTypes || []).map((option) => (
+                    <SelectItem key={option.id} value={String(option.id)}>
+                      {option.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -601,9 +606,9 @@ const Library = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Types</SelectItem>
-                          {STORY_TYPE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
+                          {(storyTypes || []).map((option) => (
+                            <SelectItem key={option.id} value={String(option.id)}>
+                              {option.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -730,7 +735,7 @@ const Library = () => {
               )}
               {storyType !== "all" && (
                 <Badge variant="outline" className="gap-1">
-                  Type: {storyType}
+                  Type: {storyTypeNameById.get(storyType) || storyType}
                   <button type="button" onClick={() => setStoryType("all")}>
                     <X className="h-3 w-3" />
                   </button>

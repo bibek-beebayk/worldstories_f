@@ -15,6 +15,7 @@ import { authApi } from "@/api/auth";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
+import { useStoryTypes } from "@/hooks/useStoryTypes";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -58,7 +59,6 @@ import GenreChipPicker from "@/components/GenreChipPicker";
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
 type ReaderView = "reading" | "completed" | "listening" | "favorites" | "reviews";
 
-const storyTypes = ["Short Story", "Novel", "Poetry", "Non Fiction"];
 const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings"];
 const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews"];
 
@@ -194,6 +194,8 @@ const Profile = () => {
     queryFn: storyApi.getGenres,
     enabled: isAuthenticated && activeSection === "creator",
   });
+
+  const { data: storyTypes } = useStoryTypes();
 
   const { data: activeSubmissionData } = useQuery({
     queryKey: ["profile-submission", activeSubmissionId],
@@ -1137,8 +1139,8 @@ const Profile = () => {
                             <Select value={createStoryType} onValueChange={setCreateStoryType}>
                               <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {storyTypes.map((type) => (
-                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                {(storyTypes || []).map((type) => (
+                                  <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -1266,8 +1268,8 @@ const Profile = () => {
                             <Select value={submissionStoryType} onValueChange={setSubmissionStoryType}>
                               <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {storyTypes.map((type) => (
-                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                {(storyTypes || []).map((type) => (
+                                  <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>

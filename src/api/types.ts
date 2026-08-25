@@ -36,6 +36,12 @@ export interface Genre{
   stories_count: number;
 }
 
+export interface StoryType {
+  id: number;
+  name: string;
+  stories_count?: number;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -269,7 +275,7 @@ export interface DiscoverFacet {
 export interface DiscoverDataResponse extends TrendingDataResponse {
   genres: Genre[];
   categories: Category[];
-  story_types: DiscoverFacet[];
+  story_types: StoryType[];
   languages: DiscoverFacet[];
   new_releases: Story[];
   hidden_gems: Story[];
@@ -407,7 +413,7 @@ export interface AdminStory {
   retrospective_confident: boolean | null;
   retrospective_confidence_note: string | null;
   retrospective_error: string | null;
-  story_type: string;
+  story_type: number;
   language: string;
   country: string;
   translations: StoryTranslation[];
@@ -847,7 +853,7 @@ export interface StoryQueueItem {
   title: string;
   author_name: string;
   about: string | null;
-  story_type: string;
+  story_type: number | null;
   country: string;
   language: string;
   genres: number[];
@@ -887,7 +893,7 @@ export interface StoryQueueItemPayload {
   title: string;
   author_name: string;
   about?: string;
-  story_type?: string;
+  story_type?: number | null;
   country?: string;
   language?: string;
   genres?: number[];

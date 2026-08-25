@@ -33,6 +33,7 @@ import {
   AdminUser,
   AdminGenre,
   AdminCategory,
+  StoryType,
   LibraryShelvesResponse,
   AdminAnalyticsRangeDays,
   AdminAnalyticsContentResponse,
@@ -59,14 +60,14 @@ export const storyApi = {
     status: string,
     q: string = "",
     language: string = "all",
-    storyType: string = "all",
+    storyType: string | number = "all",
     categories: number[] | [] = [],
     hasAudio: boolean = false,
     hasSummary: boolean = false,
     country: string = "all"
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(storyType)}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}`
     ),
 
   getStory: (slug: string) =>
@@ -83,6 +84,7 @@ export const storyApi = {
 
   getGenres: () => apiClient<Genre[]>("/genres/"),
   getCategories: () => apiClient<Category[]>("/categories/"),
+  getStoryTypes: () => apiClient<StoryType[]>("/story-types/"),
   getAuthors: (page: number = 1) =>
     apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
   getAuthor: (id: number) => apiClient<AuthorDetail>(`/authors/${id}/`),
@@ -399,6 +401,20 @@ export const storyApi = {
     }),
   deleteAdminCategory: (id: number) =>
     apiClient<void>(`/admin/categories/${id}/`, { method: "DELETE" }),
+  getAdminStoryTypes: () =>
+    apiClient<StoryType[]>("/admin/story-types/"),
+  createAdminStoryType: (name: string) =>
+    apiClient<StoryType>("/admin/story-types/", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  updateAdminStoryType: (id: number, name: string) =>
+    apiClient<StoryType>(`/admin/story-types/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  deleteAdminStoryType: (id: number) =>
+    apiClient<void>(`/admin/story-types/${id}/`, { method: "DELETE" }),
   createAdminChapter: (payload: {
     story: number;
     title: string;
