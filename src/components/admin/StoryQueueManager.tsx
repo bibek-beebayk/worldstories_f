@@ -50,6 +50,7 @@ const EMPTY_FORM = {
   authorName: "",
   about: "",
   content: "",
+  notes: "",
   storyType: "",
   country: "",
   language: "en",
@@ -92,6 +93,7 @@ const StoryQueueManager = () => {
   const [fetchJob, setFetchJob] = useState<BookFetchJob | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const contentEditorRef = useRef<HTMLDivElement | null>(null);
+  const notesEditorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -116,10 +118,27 @@ const StoryQueueManager = () => {
     runContentEditorCommand("createLink", url);
   };
 
+  const syncNotesEditorContent = () => {
+    setForm((f) => ({ ...f, notes: notesEditorRef.current?.innerHTML || "" }));
+  };
+
+  const runNotesEditorCommand = (command: string, value?: string) => {
+    notesEditorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncNotesEditorContent();
+  };
+
+  const addNotesLink = () => {
+    const url = window.prompt("Enter URL");
+    if (!url) return;
+    runNotesEditorCommand("createLink", url);
+  };
+
   useEffect(() => {
-    if (!showAddModal || !contentEditorRef.current) return;
-    contentEditorRef.current.innerHTML = form.content || "";
-    // Only seed the contenteditable when the modal opens; depending on the
+    if (!showAddModal) return;
+    if (contentEditorRef.current) contentEditorRef.current.innerHTML = form.content || "";
+    if (notesEditorRef.current) notesEditorRef.current.innerHTML = form.notes || "";
+    // Only seed the contenteditables when the modal opens; depending on the
     // mirrored state would reset the caret after every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddModal]);
@@ -332,6 +351,7 @@ const StoryQueueManager = () => {
       authorName: item.author_name,
       about: item.about || "",
       content: item.content || "",
+      notes: item.notes || "",
       storyType: item.story_type ? String(item.story_type) : "",
       country: item.country || "",
       language: item.language || "en",
@@ -418,6 +438,7 @@ const StoryQueueManager = () => {
         author_name: form.authorName.trim(),
         about: form.about.trim(),
         content: form.content.trim(),
+        notes: form.notes.trim(),
         story_type: form.storyType ? Number(form.storyType) : null,
         country: form.country,
         language: form.language,
@@ -718,6 +739,37 @@ const StoryQueueManager = () => {
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 If filled in, this becomes the new story's "Chapter 1" when added to Stories.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="queue-notes">Notes</Label>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("formatBlock", "h1")}><Heading1 className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("formatBlock", "h3")}><Heading3 className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => runNotesEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="sm" onClick={addNotesLink}><Link2 className="h-4 w-4" /></Button>
+                </div>
+                <div
+                  id="queue-notes"
+                  ref={notesEditorRef}
+                  contentEditable
+                  dir="ltr"
+                  style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
+                  suppressContentEditableWarning
+                  onInput={syncNotesEditorContent}
+                  onPaste={(e) => handleRichTextPaste(e, syncNotesEditorContent)}
+                  className="prose prose-sm dark:prose-invert min-h-20 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Internal notes about this queue entry — never copied onto the story when added to Stories.
               </p>
             </div>
 
@@ -1192,6 +1244,15 @@ const StoryQueueManager = () => {
                   <div
                     className="prose prose-sm dark:prose-invert max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(detailsItem.content) }}
+                  />
+                </div>
+              )}
+              {detailsItem.notes && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Notes</p>
+                  <div
+                    className="prose prose-sm dark:prose-invert max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(detailsItem.notes) }}
                   />
                 </div>
               )}
