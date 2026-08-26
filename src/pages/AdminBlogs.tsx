@@ -15,6 +15,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Bold,
+  Code2,
   Heading2,
   Heading3,
   Italic,
@@ -93,6 +94,7 @@ const AdminBlogs = () => {
   const [pendingDeleteBlog, setPendingDeleteBlog] = useState<AdminBlog | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [excerptBannerDismissed, setExcerptBannerDismissed] = useState(false);
+  const [isContentHtmlMode, setIsContentHtmlMode] = useState(false);
 
   const contentEditorRef = useRef<HTMLDivElement | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -153,6 +155,20 @@ const AdminBlogs = () => {
     runContentCommand("createLink", url);
   };
 
+  // Switching *out* of HTML mode has to push whatever was typed in the
+  // textarea back into the actual contentEditable node — editing the
+  // textarea only ever touches the `content` string state, not that DOM
+  // node, so without this the WYSIWYG view would silently show stale
+  // content until something else happened to re-sync it.
+  const toggleContentHtmlMode = () => {
+    setIsContentHtmlMode((prev) => {
+      if (prev && contentEditorRef.current) {
+        contentEditorRef.current.innerHTML = content;
+      }
+      return !prev;
+    });
+  };
+
   const resetForm = () => {
     setEditingBlog(null);
     setTitle("");
@@ -171,6 +187,7 @@ const AdminBlogs = () => {
     setLinkStoryOffer(null);
     setStorySearchQuery("");
     setExcerptBannerDismissed(false);
+    setIsContentHtmlMode(false);
     lastAppliedExcerptStatusRef.current = null;
   };
 
@@ -197,6 +214,7 @@ const AdminBlogs = () => {
     setLinkStoryOffer(null);
     setStorySearchQuery("");
     setExcerptBannerDismissed(false);
+    setIsContentHtmlMode(false);
     lastAppliedExcerptStatusRef.current = blog.excerpt_status;
     setShowForm(true);
   };
@@ -398,63 +416,94 @@ const AdminBlogs = () => {
               <div>
                 <Label htmlFor="blog-content">Content *</Label>
                 <div className="mt-2 space-y-2">
-                  <div className="flex flex-wrap gap-2 rounded-md border p-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => runContentCommand("bold")}>
-                      <Bold className="h-4 w-4" />
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => runContentCommand("italic")}>
-                      <Italic className="h-4 w-4" />
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => runContentCommand("underline")}>
-                      <Underline className="h-4 w-4" />
-                    </Button>
+                  <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
+                    {!isContentHtmlMode && (
+                      <>
+                        <Button type="button" variant="outline" size="sm" onClick={() => runContentCommand("bold")}>
+                          <Bold className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => runContentCommand("italic")}>
+                          <Italic className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => runContentCommand("underline")}
+                        >
+                          <Underline className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => runContentCommand("formatBlock", "h2")}
+                        >
+                          <Heading2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => runContentCommand("formatBlock", "h3")}
+                        >
+                          <Heading3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => runContentCommand("insertUnorderedList")}
+                        >
+                          <List className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => runContentCommand("insertOrderedList")}
+                        >
+                          <ListOrdered className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={addContentLink}>
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                     <Button
                       type="button"
-                      variant="outline"
+                      variant={isContentHtmlMode ? "default" : "outline"}
                       size="sm"
-                      onClick={() => runContentCommand("formatBlock", "h2")}
+                      onClick={toggleContentHtmlMode}
+                      className="ml-auto gap-1.5"
+                      title={isContentHtmlMode ? "Switch to visual editor" : "Edit raw HTML"}
                     >
-                      <Heading2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => runContentCommand("formatBlock", "h3")}
-                    >
-                      <Heading3 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => runContentCommand("insertUnorderedList")}
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => runContentCommand("insertOrderedList")}
-                    >
-                      <ListOrdered className="h-4 w-4" />
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={addContentLink}>
-                      <Link2 className="h-4 w-4" />
+                      <Code2 className="h-4 w-4" />
+                      HTML
                     </Button>
                   </div>
-                  <div
-                    id="blog-content"
-                    ref={contentEditorRef}
-                    contentEditable
-                    dir="ltr"
-                    style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
-                    suppressContentEditableWarning
-                    onInput={syncContentEditor}
-                    onPaste={(e) => handleRichTextPaste(e, syncContentEditor)}
-                    className="prose prose-sm dark:prose-invert min-h-60 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
+                  {isContentHtmlMode ? (
+                    <Textarea
+                      id="blog-content"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      className="min-h-60 font-mono text-xs"
+                      spellCheck={false}
+                      placeholder="<p>Raw HTML for this post&hellip;</p>"
+                    />
+                  ) : (
+                    <div
+                      id="blog-content"
+                      ref={contentEditorRef}
+                      contentEditable
+                      dir="ltr"
+                      style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
+                      suppressContentEditableWarning
+                      onInput={syncContentEditor}
+                      onPaste={(e) => handleRichTextPaste(e, syncContentEditor)}
+                      className="prose prose-sm dark:prose-invert min-h-60 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  )}
                 </div>
               </div>
 
