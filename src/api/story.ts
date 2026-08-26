@@ -1,4 +1,4 @@
-import { apiClient, fetchAuthenticatedBinary } from "./client";
+import { apiClient, fetchAuthenticatedBinary, fetchAuthenticatedFile } from "./client";
 import {
   StoryListResponse,
   Chapter,
@@ -42,6 +42,8 @@ import {
   AdminAnalyticsSubmissionsResponse,
   AdminAnalyticsAudienceResponse,
   AdminAnalyticsGeographyResponse,
+  AdminAnalyticsExportSection,
+  AdminAnalyticsExportFileFormat,
   Author,
   AuthorDetail,
   SearchResponse,
@@ -365,6 +367,15 @@ export const storyApi = {
     apiClient<AdminAnalyticsAudienceResponse>(`/admin/analytics/audience/?days=${days}`),
   getAdminAnalyticsGeography: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsGeographyResponse>(`/admin/analytics/geography/?days=${days}`),
+  exportAdminAnalytics: (
+    sections: AdminAnalyticsExportSection[],
+    days: AdminAnalyticsRangeDays,
+    fileFormat: AdminAnalyticsExportFileFormat
+  ) =>
+    fetchAuthenticatedFile(
+      `/admin/analytics/export/?sections=${sections.join(",")}&days=${days}&file_format=${fileFormat}`,
+      `analytics-export.${fileFormat}`
+    ),
   getAdminAuthors: () =>
     apiClient<AdminAuthor[]>("/admin/authors/"),
   createAdminAuthor: (payload: { name: string; bio?: string; image?: string }) =>

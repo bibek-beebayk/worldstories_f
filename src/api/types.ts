@@ -623,6 +623,14 @@ export interface AdminOverviewResponse {
 }
 
 export type AdminAnalyticsRangeDays = 7 | 30 | 90 | 365;
+export type AdminAnalyticsExportSection =
+  | "content"
+  | "engagement"
+  | "audience"
+  | "users"
+  | "geography"
+  | "submissions";
+export type AdminAnalyticsExportFileFormat = "csv" | "xlsx";
 
 export interface AdminAnalyticsDayCount {
   day: string;

@@ -16,6 +16,7 @@ import {
 import { TrendLineChart } from "@/components/admin/charts/TrendLineChart";
 import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
 import { CountryHeatmapMap } from "@/components/admin/charts/CountryHeatmapMap";
+import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog";
 import type { AdminAnalyticsRangeDays } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
 
@@ -154,18 +155,21 @@ const AdminAnalytics = () => {
             Content performance, reading engagement, growth, and submissions in detail.
           </p>
         </div>
-        <Select value={String(days)} onValueChange={(value) => setDays(Number(value) as AdminAnalyticsRangeDays)}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {RANGE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={String(option.value)}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={String(days)} onValueChange={(value) => setDays(Number(value) as AdminAnalyticsRangeDays)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RANGE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={String(option.value)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <AnalyticsExportDialog days={days} />
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>

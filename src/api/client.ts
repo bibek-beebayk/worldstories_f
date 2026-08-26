@@ -176,6 +176,41 @@ export async function fetchAuthenticatedBinary(
   return combined.buffer;
 }
 
+// Like fetchAuthenticatedBinary, but for downloads whose actual file type
+// isn't known ahead of time from the endpoint alone — e.g. the analytics
+// export endpoint returns a .csv, .xlsx, or .zip depending on the request,
+// so the filename (and its extension) has to come from the server's
+// Content-Disposition header rather than being hardcoded client-side.
+export async function fetchAuthenticatedFile(
+  endpoint: string,
+  fallbackFilename: string
+): Promise<{ buffer: ArrayBuffer; filename: string; contentType: string }> {
+  const token = getAccessToken();
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (res.status === 401) {
+    const refreshed = await tryRefreshTokens();
+    if (refreshed) {
+      return fetchAuthenticatedFile(endpoint, fallbackFilename);
+    }
+    clearTokens();
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${endpoint} (${res.status}).`);
+  }
+
+  const disposition = res.headers.get("content-disposition") || "";
+  const filenameMatch = disposition.match(/filename="([^"]+)"/);
+  const filename = filenameMatch?.[1] || fallbackFilename;
+  const contentType = res.headers.get("content-type") || "application/octet-stream";
+  const buffer = await res.arrayBuffer();
+  return { buffer, filename, contentType };
+}
+
 // ----------------------------
 // ERROR FORMATTING
 // ----------------------------
