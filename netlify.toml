@@ -20,6 +20,93 @@
   status = 301
   force = true
 
+# The site previously used /stories/{slug}/ (plural, trailing slash) as its
+# story URL before the move to /story/:slug. Google still has ~24 of these
+# indexed; some still out-rank the live pages for the same titles. Redirect
+# at the CDN so old ranking signal transfers instead of hitting a 404.
+# Renamed titles first (Netlify matches top-down, first hit wins), then a
+# generic rule for slugs that didn't change.
+[[redirects]]
+  from = "/stories/the-tale-of-sishir-and-basanta-part-1/"
+  to = "/story/the-tale-of-shishir-and-basanta"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/the-tale-of-sishir-and-basanta-part-2/"
+  to = "/story/the-tale-of-shishir-and-basanta"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/botan-doro-the-peony-lantern/"
+  to = "/story/botan-doro"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/the-king-who-was-fried/"
+  to = "/story/the-king-who-was-fried-every-morning"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/la-llorana/"
+  to = "/story/la-llorona"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/the-legend-of-sleepy-hollow/"
+  to = "/story/legend-of-the-sleepy-hollow"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/old-sultans-loyalty/"
+  to = "/story/old-sultan"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/the-tale-of-david-and-puss-in-boots/"
+  to = "/story/puss-in-boots"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/the-legend-of-the-white-snake/"
+  to = "/story/the-white-snake"
+  status = 301
+  force = true
+
+# No live equivalent found for these — send to the library rather than guess.
+[[redirects]]
+  from = "/stories/old-mother-and-the-son/"
+  to = "/library"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/stories/the-silent-queens-secret/"
+  to = "/library"
+  status = 301
+  force = true
+
+# Bare /stories/ (the old index) has no direct equivalent.
+[[redirects]]
+  from = "/stories/"
+  to = "/library"
+  status = 301
+  force = true
+
+# Every other /stories/{slug}/ where the slug is unchanged.
+[[redirects]]
+  from = "/stories/:slug/"
+  to = "/story/:slug"
+  status = 301
+  force = true
+
 # Everything else that used to need a "serve the SPA shell, let client-side
 # routing sort it out" redirect here is now handled directly by the SSR
 # function itself — every route in src/routes.ts (including the /trending →
