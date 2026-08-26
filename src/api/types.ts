@@ -834,6 +834,47 @@ export interface AdminAnalyticsGeographyResponse {
   logins_over_time: Array<{ day: string; count: number; users: number }>;
 }
 
+export interface AdminStoryDetailAnalyticsResponse {
+  range_days: AdminAnalyticsRangeDays;
+  story: { id: number; title: string; slug: string };
+  page_opens: number;
+  started_reading: number;
+  completed_reading: number;
+  avg_progress: number;
+  reading_minutes: number;
+  completions_tracked: number;
+  favorites_count: number;
+  reviews_count: number;
+  avg_rating_in_range: number;
+  chapter_breakdown: Array<{
+    chapter_order: number;
+    chapter_title: string;
+    chapter_slug: string;
+    readers: number;
+    avg_progress: number;
+    completed: number;
+  }>;
+  has_audio: boolean;
+  audio: { listeners: number; avg_progress: number; listening_minutes: number } | null;
+}
+
+export interface AdminBlogDetailAnalyticsResponse {
+  range_days: AdminAnalyticsRangeDays;
+  blog: { id: number; title: string; slug: string };
+  page_opens: number;
+  started_reading: number;
+  reading_minutes: number;
+  signed_in_readers_with_depth_tracked: number;
+  avg_progress_signed_in: number;
+  completed_signed_in: number;
+  progress_distribution_signed_in: Array<{ bucket: string; count: number }>;
+}
+
+export interface BlogReadingProgress {
+  progress: number;
+  updated_at: string;
+}
+
 export interface BlogLinkedStory {
   id: number;
   slug: string;

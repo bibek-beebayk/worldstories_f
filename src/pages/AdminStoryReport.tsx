@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Download, Search } from "lucide-react";
 import StoryQueueManager from "@/components/admin/StoryQueueManager";
+import { TitleAnalyticsDialog } from "@/components/admin/TitleAnalyticsDialog";
 
 type TriStateFilter = "all" | "true" | "false";
 type TabKey = "report" | "queue";
@@ -229,6 +230,7 @@ const AdminStoryReport = () => {
                         <th className="px-3 py-2">Retrospective</th>
                         <th className="px-3 py-2">Completion</th>
                         <th className="px-3 py-2">Publication</th>
+                        <th className="px-3 py-2">Analytics</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -257,6 +259,9 @@ const AdminStoryReport = () => {
                           </td>
                           <td className="px-3 py-2">
                             <StatusBadge present={story.is_published} presentLabel="Published" missingLabel="Draft" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <TitleAnalyticsDialog kind="story" slug={story.slug} title={story.title} />
                           </td>
                         </tr>
                       ))}

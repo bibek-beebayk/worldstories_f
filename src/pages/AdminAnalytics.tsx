@@ -16,6 +16,7 @@ import {
 import { TrendLineChart } from "@/components/admin/charts/TrendLineChart";
 import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
 import { CountryHeatmapMap } from "@/components/admin/charts/CountryHeatmapMap";
+import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog";
 import type { AdminAnalyticsRangeDays } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
@@ -32,31 +33,6 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
 ];
 
 type TabKey = "content" | "engagement" | "audience" | "users" | "geography" | "submissions";
-
-const StatTile = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-md border bg-card px-3 py-2 shadow-sm">
-    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-    <p className="mt-1 text-lg font-semibold leading-none">{value}</p>
-  </div>
-);
-
-const ChartCard = ({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) => (
-  <Card className="overflow-hidden">
-    <CardHeader className="border-b bg-muted/20 py-3">
-      <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-    </CardHeader>
-    <CardContent className="pt-4">{children}</CardContent>
-  </Card>
-);
 
 const AdminAnalytics = () => {
   const isAuthenticated = Boolean(getAccessToken());

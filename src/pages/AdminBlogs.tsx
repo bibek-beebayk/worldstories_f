@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
+import { TitleAnalyticsDialog } from "@/components/admin/TitleAnalyticsDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import {
@@ -706,6 +707,7 @@ const AdminBlogs = () => {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">
+                    <TitleAnalyticsDialog kind="blog" slug={blog.slug} title={blog.title} />
                     <Button
                       size="icon"
                       variant="ghost"

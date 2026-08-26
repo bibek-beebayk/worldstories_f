@@ -12,11 +12,13 @@ import {
 import { storyApi } from "@/api/story";
 import { useBlog } from "@/hooks/useBlog";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { plainText } from "@/lib/plainText";
 import { sanitizeBlogContent } from "@/lib/sanitizeHtml";
 import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
 import { ArrowRight, Facebook, Link2, Share2, Twitter } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
 import { Link, data, useParams } from "react-router";
 import type { Route } from "./+types/BlogDetail";
 
@@ -70,15 +72,62 @@ export function meta({ data: loaderData, params }: Route.MetaArgs) {
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 
+const BLOG_PROGRESS_SAVE_DELAY_MS = 800;
+
 const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
   const { data: blog, isLoading, isError } = useBlog(slug!, loaderData || undefined);
+  const isAuthenticated = useIsLoggedIn();
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
   useContentSessionAnalytics(
     "reading_session",
     blog?.slug ? { blogSlug: blog.slug } : undefined,
     true,
     { format: "blog" }
   );
+
+  // Scroll-depth analytics: authenticated readers only, mirroring
+  // ReadingProgress's own limitation for stories — anonymous readers still
+  // count toward page opens/reading sessions (useContentSessionAnalytics
+  // above), just not toward "how far did they get".
+  const queueSaveBlogProgress = useCallback(
+    (progress: number) => {
+      const blogSlug = blog?.slug;
+      if (!isAuthenticated || !blogSlug) return;
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = window.setTimeout(() => {
+        storyApi.saveBlogReadingProgress(blogSlug, progress).catch(() => undefined);
+      }, BLOG_PROGRESS_SAVE_DELAY_MS);
+    },
+    [isAuthenticated, blog?.slug]
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || !blog?.slug) return;
+    const contentEl = contentRef.current;
+    if (!contentEl) return;
+
+    // Blog posts render in normal document flow (no custom scroll
+    // container like the story chapter reader), so progress is measured
+    // against window scroll position and the content element's own
+    // height, rather than a container's scrollTop.
+    const handleScroll = () => {
+      const contentTop = contentEl.getBoundingClientRect().top + window.scrollY;
+      const contentHeight = contentEl.offsetHeight;
+      if (contentHeight === 0) return;
+      const viewportBottom = window.scrollY + window.innerHeight;
+      const scrolled = Math.min(Math.max(viewportBottom - contentTop, 0), contentHeight);
+      queueSaveBlogProgress(scrolled / contentHeight);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    const initialTimer = window.setTimeout(handleScroll, 300);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [isAuthenticated, blog?.slug, queueSaveBlogProgress]);
 
   if (isLoading) {
     return <FullScreenLoader />;
@@ -134,6 +183,7 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
       <AdSpace size="banner" className="mb-8" contentType="blog" />
 
       <div
+        ref={contentRef}
         className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
         dangerouslySetInnerHTML={{ __html: sanitizeBlogContent(blog.content) }}
       />

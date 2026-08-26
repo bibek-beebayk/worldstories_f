@@ -44,6 +44,9 @@ import {
   AdminAnalyticsGeographyResponse,
   AdminAnalyticsExportSection,
   AdminAnalyticsExportFileFormat,
+  AdminStoryDetailAnalyticsResponse,
+  AdminBlogDetailAnalyticsResponse,
+  BlogReadingProgress,
   Author,
   AuthorDetail,
   SearchResponse,
@@ -168,6 +171,13 @@ export const storyApi = {
     apiClient<FileReadingProgress>(`/file-reading-progress/${story_slug}/${format}/`, {
       method: "PUT",
       body: JSON.stringify({ progress, position }),
+    }),
+  getBlogReadingProgress: (blog_slug: string) =>
+    apiClient<BlogReadingProgress>(`/blog-reading-progress/${blog_slug}/`),
+  saveBlogReadingProgress: (blog_slug: string, progress: number) =>
+    apiClient<BlogReadingProgress>(`/blog-reading-progress/${blog_slug}/`, {
+      method: "PUT",
+      body: JSON.stringify({ progress }),
     }),
   addFavorite: (slug: string) =>
     apiClient<FavoriteStatusResponse>(`/stories/${slug}/favorite/`, {
@@ -367,6 +377,10 @@ export const storyApi = {
     apiClient<AdminAnalyticsAudienceResponse>(`/admin/analytics/audience/?days=${days}`),
   getAdminAnalyticsGeography: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsGeographyResponse>(`/admin/analytics/geography/?days=${days}`),
+  getAdminStoryDetailAnalytics: (storySlug: string, days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminStoryDetailAnalyticsResponse>(`/admin/analytics/stories/${storySlug}/?days=${days}`),
+  getAdminBlogDetailAnalytics: (blogSlug: string, days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminBlogDetailAnalyticsResponse>(`/admin/analytics/blog/${blogSlug}/?days=${days}`),
   exportAdminAnalytics: (
     sections: AdminAnalyticsExportSection[],
     days: AdminAnalyticsRangeDays,
