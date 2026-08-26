@@ -87,6 +87,11 @@ const StoryQueueManager = () => {
   const [showTagModal, setShowTagModal] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [creatingTag, setCreatingTag] = useState(false);
+  const [selectedThemeNames, setSelectedThemeNames] = useState<string[]>([]);
+  const [themeQuery, setThemeQuery] = useState("");
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [newThemeName, setNewThemeName] = useState("");
+  const [creatingTheme, setCreatingTheme] = useState(false);
   const [showStoryTypeModal, setShowStoryTypeModal] = useState(false);
   const [newStoryTypeName, setNewStoryTypeName] = useState("");
   const [creatingStoryType, setCreatingStoryType] = useState(false);
@@ -192,6 +197,7 @@ const StoryQueueManager = () => {
   const { data: genres } = useQuery({ queryKey: ["admin-genres"], queryFn: storyApi.getAdminGenres });
   const { data: categories } = useQuery({ queryKey: ["admin-categories"], queryFn: storyApi.getAdminCategories });
   const { data: tags } = useQuery({ queryKey: ["admin-tags"], queryFn: storyApi.getAdminTags });
+  const { data: themes } = useQuery({ queryKey: ["admin-themes"], queryFn: storyApi.getAdminThemes });
   const { data: storyTypes } = useQuery({ queryKey: ["admin-story-types"], queryFn: storyApi.getAdminStoryTypes });
   const genreNameById = useMemo(
     () => new Map((genres || []).map((genre) => [genre.id, genre.name])),
@@ -204,6 +210,10 @@ const StoryQueueManager = () => {
   const tagNameById = useMemo(
     () => new Map((tags || []).map((tag) => [tag.id, tag.name])),
     [tags]
+  );
+  const themeNameById = useMemo(
+    () => new Map((themes || []).map((theme) => [theme.id, theme.name])),
+    [themes]
   );
   const storyTypeNameById = useMemo(
     () => new Map((storyTypes || []).map((type) => [type.id, type.name])),
@@ -308,6 +318,33 @@ const StoryQueueManager = () => {
     );
   };
 
+  const availableThemesByLowerName = useMemo(
+    () => new Map((themes || []).map((theme) => [theme.name.trim().toLowerCase(), theme])),
+    [themes]
+  );
+  const filteredThemeSuggestions = useMemo(() => {
+    const query = themeQuery.trim().toLowerCase();
+    if (!query) return [];
+    return (themes || [])
+      .filter((theme) => theme.name.toLowerCase().startsWith(query))
+      .filter((theme) => !selectedThemeNames.some((name) => name.toLowerCase() === theme.name.toLowerCase()))
+      .slice(0, 8);
+  }, [themeQuery, themes, selectedThemeNames]);
+  const addThemeName = (rawName: string) => {
+    const name = toTitleCase(rawName);
+    if (!name) return;
+    setSelectedThemeNames((current) => {
+      if (current.some((item) => item.toLowerCase() === name.toLowerCase())) return current;
+      return [...current, name];
+    });
+    setThemeQuery("");
+  };
+  const removeThemeName = (nameToRemove: string) => {
+    setSelectedThemeNames((current) =>
+      current.filter((name) => name.toLowerCase() !== nameToRemove.toLowerCase())
+    );
+  };
+
   const createGenre = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newGenreName.trim()) return;
@@ -374,6 +411,28 @@ const StoryQueueManager = () => {
     }
   };
 
+  const createTheme = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newThemeName.trim()) return;
+    try {
+      setCreatingTheme(true);
+      const created = await storyApi.createAdminTheme(toTitleCase(newThemeName));
+      await queryClient.invalidateQueries({ queryKey: ["admin-themes"] });
+      setSelectedThemeNames((current) =>
+        current.some((name) => name.toLowerCase() === created.name.toLowerCase())
+          ? current
+          : [...current, created.name]
+      );
+      setShowThemeModal(false);
+      setNewThemeName("");
+      toast.success("Theme created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create theme.");
+    } finally {
+      setCreatingTheme(false);
+    }
+  };
+
   const createStoryType = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newStoryTypeName.trim()) return;
@@ -402,6 +461,8 @@ const StoryQueueManager = () => {
     setCategoryQuery("");
     setSelectedTagNames([]);
     setTagQuery("");
+    setSelectedThemeNames([]);
+    setThemeQuery("");
     setShowAddModal(true);
   };
 
@@ -442,6 +503,12 @@ const StoryQueueManager = () => {
         .filter((name): name is string => Boolean(name))
     );
     setTagQuery("");
+    setSelectedThemeNames(
+      (item.themes || [])
+        .map((themeId) => themeNameById.get(themeId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setThemeQuery("");
     setShowAddModal(true);
   };
 
@@ -522,6 +589,28 @@ const StoryQueueManager = () => {
       }
       if (createdAnyTag) await queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
 
+      const selectedThemeMap = new Map<string, string>();
+      selectedThemeNames
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .forEach((name) => {
+          const key = name.toLowerCase();
+          if (!selectedThemeMap.has(key)) selectedThemeMap.set(key, name);
+        });
+      const themeIdsToSubmit: number[] = [];
+      let createdAnyTheme = false;
+      for (const [lowerName, originalName] of selectedThemeMap.entries()) {
+        const existing = availableThemesByLowerName.get(lowerName);
+        if (existing) {
+          themeIdsToSubmit.push(existing.id);
+          continue;
+        }
+        const created = await storyApi.createAdminTheme(toTitleCase(originalName));
+        themeIdsToSubmit.push(created.id);
+        createdAnyTheme = true;
+      }
+      if (createdAnyTheme) await queryClient.invalidateQueries({ queryKey: ["admin-themes"] });
+
       const payload: StoryQueueItemPayload = {
         title: form.title.trim(),
         author_name: form.authorName.trim(),
@@ -534,6 +623,7 @@ const StoryQueueManager = () => {
         genres: genreIdsToSubmit,
         categories: categoryIdsToSubmit,
         tags: tagIdsToSubmit,
+        themes: themeIdsToSubmit,
         original_published_year: form.publishedYear ? Number(form.publishedYear) : null,
         original_published_month: form.publishedMonth ? Number(form.publishedMonth) : null,
         original_published_day: form.publishedDay ? Number(form.publishedDay) : null,
@@ -557,6 +647,8 @@ const StoryQueueManager = () => {
       setCategoryQuery("");
       setSelectedTagNames([]);
       setTagQuery("");
+      setSelectedThemeNames([]);
+      setThemeQuery("");
       closeAddModal();
       await queryClient.invalidateQueries({ queryKey: ["admin-story-queue"] });
     } catch (error) {
@@ -1151,6 +1243,72 @@ const StoryQueueManager = () => {
               </div>
             </div>
 
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Themes</Label>
+                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowThemeModal(true)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="mt-2 space-y-2 rounded-md border p-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={themeQuery}
+                    onChange={(e) => setThemeQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addThemeName(themeQuery);
+                      }
+                    }}
+                    placeholder="Type theme name (e.g. Grief and Loss...)"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => addThemeName(themeQuery)}
+                    disabled={!themeQuery.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
+                {filteredThemeSuggestions.length > 0 && (
+                  <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                    {filteredThemeSuggestions.map((theme) => (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                        onClick={() => addThemeName(theme.name)}
+                      >
+                        {toTitleCase(theme.name)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedThemeNames.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedThemeNames.map((name) => (
+                      <span key={name.toLowerCase()} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-1 text-xs">
+                        {toTitleCase(name)}
+                        <button
+                          type="button"
+                          className="rounded p-0.5 hover:bg-background"
+                          onClick={() => removeThemeName(name)}
+                          aria-label={`Remove ${name}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Type to search themes by starting letters. If a theme does not exist, it will be created when you save. Themes capture the reading experience — emotional register and real-world subject matter (e.g. "Grief and Loss", "Coming of Age") — as distinct from Tags' search-phrase keywords.
+                </p>
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <Label htmlFor="queue-cover-link">Cover Image Link</Label>
@@ -1615,6 +1773,33 @@ const StoryQueueManager = () => {
                   <Button type="button" variant="outline" onClick={() => setShowTagModal(false)}>Cancel</Button>
                   <Button type="submit" disabled={creatingTag || !newTagName.trim()}>
                     {creatingTag ? "Creating..." : "Create Tag"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showThemeModal && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowThemeModal(false)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base">Create Theme</CardTitle>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowThemeModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={createTheme}>
+                <div>
+                  <Label htmlFor="new-queue-theme-name">Name *</Label>
+                  <Input id="new-queue-theme-name" value={newThemeName} onChange={(e) => setNewThemeName(e.target.value)} required />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowThemeModal(false)}>Cancel</Button>
+                  <Button type="submit" disabled={creatingTheme || !newThemeName.trim()}>
+                    {creatingTheme ? "Creating..." : "Create Theme"}
                   </Button>
                 </div>
               </form>

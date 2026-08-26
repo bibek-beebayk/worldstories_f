@@ -8,6 +8,8 @@ import {
   Category,
   Tag,
   TagDetail,
+  Theme,
+  ThemeDetail,
   HomeDataResponse,
   OriginalsDataResponse,
   DiscoverDataResponse,
@@ -36,6 +38,7 @@ import {
   AdminGenre,
   AdminCategory,
   AdminTag,
+  AdminTheme,
   StoryType,
   LibraryShelvesResponse,
   AdminAnalyticsRangeDays,
@@ -95,6 +98,8 @@ export const storyApi = {
   getCategories: () => apiClient<Category[]>("/categories/"),
   getTags: () => apiClient<Tag[]>("/tags/"),
   getTag: (slug: string) => apiClient<TagDetail>(`/tags/${slug}/`),
+  getThemes: () => apiClient<Theme[]>("/themes/"),
+  getTheme: (slug: string) => apiClient<ThemeDetail>(`/themes/${slug}/`),
   getStoryTypes: () => apiClient<StoryType[]>("/story-types/"),
   getAuthors: (page: number = 1) =>
     apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
@@ -439,6 +444,13 @@ export const storyApi = {
     apiClient<AdminTag[]>("/admin/tags/"),
   createAdminTag: (name: string) =>
     apiClient<AdminTag>("/admin/tags/", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  getAdminThemes: () =>
+    apiClient<AdminTheme[]>("/admin/themes/"),
+  createAdminTheme: (name: string) =>
+    apiClient<AdminTheme>("/admin/themes/", {
       method: "POST",
       body: JSON.stringify({ name }),
     }),

@@ -60,6 +60,18 @@ export interface TagDetail extends Tag {
   stories: Story[];
 }
 
+export interface Theme {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  stories_count: number;
+}
+
+export interface ThemeDetail extends Theme {
+  stories: Story[];
+}
+
 export interface Story {
   id: number;
   slug: string;
@@ -449,6 +461,7 @@ export interface AdminStory {
   genres: number[];
   categories: number[];
   tags: number[];
+  themes: number[];
   rating: number;
   views: number;
   source: "admin" | "submission";
@@ -507,6 +520,12 @@ export interface AdminCategory {
 }
 
 export interface AdminTag {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface AdminTheme {
   id: number;
   name: string;
   slug: string;
@@ -948,6 +967,7 @@ export interface StoryQueueItem {
   genres: number[];
   categories: number[];
   tags: number[];
+  themes: number[];
   original_published_year: number | null;
   original_published_month: number | null;
   original_published_day: number | null;
@@ -991,6 +1011,7 @@ export interface StoryQueueItemPayload {
   genres?: number[];
   categories?: number[];
   tags?: number[];
+  themes?: number[];
   original_published_year?: number | null;
   original_published_month?: number | null;
   original_published_day?: number | null;
