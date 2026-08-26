@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
-import { geoCentroid } from "d3-geo";
 import worldGeography from "world-atlas/countries-110m.json";
 import { ChevronLeft, ChevronRight, Globe2, Minus, Plus, RotateCcw } from "lucide-react";
 import { storyApi } from "@/api/story";
@@ -19,7 +18,6 @@ const MIN_MAP_ZOOM = 1;
 const MAX_MAP_ZOOM = 18;
 const MAP_ZOOM_FACTOR = 1.5;
 const COUNT_MARKER_RADIUS = 7;
-const COUNT_MARKER_FONT_SIZE = 8;
 const DEFAULT_MAP_CENTER: [number, number] = [0, 4];
 const COUNTRY_MARKERS: Array<{ code: string; name: string; coordinates: [number, number] }> = [
   { code: "AD", name: "Andorra", coordinates: [1.6, 42.5] },
@@ -52,7 +50,6 @@ const COUNTRY_MARKERS: Array<{ code: string; name: string; coordinates: [number,
   { code: "TV", name: "Tuvalu", coordinates: [179.2, -8.5] },
   { code: "VA", name: "Vatican City", coordinates: [12.45, 41.9] },
 ];
-const SMALL_COUNTRY_CODES = new Set(COUNTRY_MARKERS.map((marker) => marker.code));
 
 export function meta() {
   return buildMeta({
@@ -298,37 +295,6 @@ export default function StoryMap({ loaderData }: Route.ComponentProps) {
                               );
                             })}
 
-                            {geographies.map((geography) => {
-                              const numericCode = String(geography.id).padStart(3, "0");
-                              const country = countryByNumericCode.get(numericCode);
-                              if (!country || SMALL_COUNTRY_CODES.has(country.code)) return null;
-                              const coordinates = geoCentroid(geography);
-
-                              return (
-                                <Marker
-                                  key={`count-${geography.rsmKey}`}
-                                  coordinates={coordinates}
-                                  className="pointer-events-none"
-                                  aria-hidden="true"
-                                >
-                                  <circle
-                                    r={COUNT_MARKER_RADIUS * countMarkerScale}
-                                    fill="hsl(var(--background) / 0.88)"
-                                    stroke="hsl(var(--primary))"
-                                    strokeWidth={countMarkerScale}
-                                  />
-                                  <text
-                                    textAnchor="middle"
-                                    dominantBaseline="central"
-                                    fill="hsl(var(--foreground))"
-                                    fontSize={COUNT_MARKER_FONT_SIZE * countMarkerScale}
-                                    fontWeight={700}
-                                  >
-                                    {country.stories_count}
-                                  </text>
-                                </Marker>
-                              );
-                            })}
                           </>
                         )}
                       </Geographies>
@@ -357,16 +323,6 @@ export default function StoryMap({ loaderData }: Route.ComponentProps) {
                               stroke={country.code === selectedCode ? MAP_SELECTED_COLOR : "hsl(var(--primary))"}
                               strokeWidth={(country.code === selectedCode ? 1.5 : 1) * countMarkerScale}
                             />
-                            <text
-                              textAnchor="middle"
-                              dominantBaseline="central"
-                              fill="hsl(var(--foreground))"
-                              fontSize={COUNT_MARKER_FONT_SIZE * countMarkerScale}
-                              fontWeight={700}
-                              className="pointer-events-none"
-                            >
-                              {country.stories_count}
-                            </text>
                           </Marker>
                         );
                       })}
