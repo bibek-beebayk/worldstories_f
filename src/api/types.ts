@@ -1035,6 +1035,8 @@ export interface StoryQueueImportRecord {
   language: string;
   genres: string[];
   categories: string[];
+  tags: string[];
+  themes: string[];
   original_published_year: number | null;
   original_published_month: number | null;
   original_published_day: number | null;

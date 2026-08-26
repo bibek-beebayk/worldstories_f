@@ -93,9 +93,10 @@ const StoryQueueImportModal = ({ onClose, onImported }: StoryQueueImportModalPro
             <>
               <p className="text-xs text-muted-foreground">
                 Upload a CSV or Excel (.xlsx) file. Expected columns: title, author_name, about, story_type,
-                country, language, genres, categories, original_published_year, original_published_month,
-                original_published_day, epub_link, pdf_link, cover_image_link. Only "title" is required — genres
-                and categories can hold multiple values separated by commas or semicolons.
+                country, language, genres, categories, tags, themes, original_published_year,
+                original_published_month, original_published_day, epub_link, pdf_link, cover_image_link. Only
+                "title" is required — genres, categories, tags, and themes can each hold multiple values
+                separated by commas or semicolons.
               </p>
               <div>
                 <Label htmlFor="import-file">File</Label>
