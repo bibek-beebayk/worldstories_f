@@ -70,15 +70,20 @@ export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialog
       >
         <BarChart3 className="h-4 w-4" />
       </Button>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-x-hidden overflow-y-auto">
-        <DialogHeader className="flex-row items-center justify-between space-y-0 pr-6">
-          {/* min-w-0 is required for truncate to actually take effect on a
-              flex item — flex items default to min-width:auto, which uses
-              the text's own intrinsic (untruncated) width as the floor, so
-              a long title was never shrinking at all and was instead
-              stretching the whole dialog (and everything below it)
-              horizontally past its intended width. */}
-          <DialogTitle className="min-w-0 flex-1 truncate">{title}</DialogTitle>
+      {/* overflow-auto (not overflow-x-hidden) is deliberate: it's a safety
+          net, not the actual fix — if anything below ever still ends up
+          wider than the dialog, it becomes scrollable instead of silently
+          clipped and inaccessible. */}
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-auto">
+        <DialogHeader className="flex-row items-start justify-between gap-3 space-y-0 pr-6">
+          {/* min-w-0 lets this flex item actually shrink below the title's
+              own intrinsic width — flex items default to min-width:auto,
+              which otherwise uses the untruncated text width as the floor
+              and stretches the whole dialog to fit a one-line title. No
+              truncate: a long title wraps to multiple lines instead of
+              being cut off, while the range filter stays put on the right
+              (shrink-0, so it never gets squeezed by the wrapped title). */}
+          <DialogTitle className="min-w-0 flex-1 leading-snug">{title}</DialogTitle>
           <Select value={String(days)} onValueChange={(value) => setDays(Number(value) as AdminAnalyticsRangeDays)}>
             <SelectTrigger className="w-[150px] shrink-0">
               <SelectValue />
