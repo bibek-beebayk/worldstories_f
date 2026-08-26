@@ -48,6 +48,18 @@ export interface Category {
   stories_count: number;
 }
 
+export interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  stories_count: number;
+}
+
+export interface TagDetail extends Tag {
+  stories: Story[];
+}
+
 export interface Story {
   id: number;
   slug: string;
@@ -494,6 +506,12 @@ export interface AdminCategory {
   stories_count?: number;
 }
 
+export interface AdminTag {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export interface AdminChapter {
   id: number;
   story: number;
@@ -929,6 +947,7 @@ export interface StoryQueueItem {
   language: string;
   genres: number[];
   categories: number[];
+  tags: number[];
   original_published_year: number | null;
   original_published_month: number | null;
   original_published_day: number | null;
@@ -971,6 +990,7 @@ export interface StoryQueueItemPayload {
   language?: string;
   genres?: number[];
   categories?: number[];
+  tags?: number[];
   original_published_year?: number | null;
   original_published_month?: number | null;
   original_published_day?: number | null;

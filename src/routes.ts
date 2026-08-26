@@ -25,6 +25,7 @@ export default [
     route("blog", "pages/BlogList.tsx"),
     route("blog/:slug", "pages/BlogDetail.tsx"),
     route("story/:slug", "pages/StoryDetail.tsx"),
+    route("tag/:slug", "pages/TagDetail.tsx"),
     route("quick-read/:slug", "pages/StorySummary.tsx"),
     route("story/:slug/pdf", "pages/PdfReader.tsx"),
     route("story/:slug/epub", "pages/EpubReader.tsx"),

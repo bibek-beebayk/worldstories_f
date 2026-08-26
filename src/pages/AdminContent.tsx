@@ -182,6 +182,11 @@ const AdminContent = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>([]);
+  const [tagQuery, setTagQuery] = useState("");
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [creatingTag, setCreatingTag] = useState(false);
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [editingChapterId, setEditingChapterId] = useState<number | null>(null);
   const [newChapterTitle, setNewChapterTitle] = useState("");
@@ -237,6 +242,11 @@ const AdminContent = () => {
     queryFn: storyApi.getAdminCategories,
     enabled: isAuthenticated && Boolean(me?.is_superuser),
   });
+  const { data: tags } = useQuery({
+    queryKey: ["admin-tags"],
+    queryFn: storyApi.getAdminTags,
+    enabled: isAuthenticated && Boolean(me?.is_superuser),
+  });
   const { data: authors } = useQuery({
     queryKey: ["admin-authors"],
     queryFn: storyApi.getAdminAuthors,
@@ -285,6 +295,10 @@ const AdminContent = () => {
     () => new Map((categories || []).map((category) => [category.id, category.name])),
     [categories]
   );
+  const tagNameById = useMemo(
+    () => new Map((tags || []).map((tag) => [tag.id, tag.name])),
+    [tags]
+  );
   const storyTypeNameById = useMemo(
     () => new Map((storyTypes || []).map((type) => [type.id, type.name])),
     [storyTypes]
@@ -326,6 +340,8 @@ const AdminContent = () => {
     setGenreQuery("");
     setSelectedCategoryNames([]);
     setCategoryQuery("");
+    setSelectedTagNames([]);
+    setTagQuery("");
     setPendingTranslationSourceId(null);
     setPendingTranslationSourceTitle("");
   };
@@ -449,6 +465,28 @@ const AdminContent = () => {
       toast.error(error instanceof Error ? error.message : "Failed to create category.");
     } finally {
       setCreatingCategory(false);
+    }
+  };
+
+  const createTag = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newTagName.trim()) return;
+    try {
+      setCreatingTag(true);
+      const created = await storyApi.createAdminTag(toTitleCase(newTagName));
+      await queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
+      setSelectedTagNames((current) =>
+        current.some((name) => name.toLowerCase() === created.name.toLowerCase())
+          ? current
+          : [...current, created.name]
+      );
+      setShowTagModal(false);
+      setNewTagName("");
+      toast.success("Tag created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create tag.");
+    } finally {
+      setCreatingTag(false);
     }
   };
 
@@ -715,10 +753,16 @@ const AdminContent = () => {
         .filter((name): name is string => Boolean(name))
     );
     setCategoryQuery("");
+    setSelectedTagNames(
+      (selectedStory.tags || [])
+        .map((tagId) => tagNameById.get(tagId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setTagQuery("");
     setCoverImageFile(null);
     setPdfFile(null);
     setEpubFile(null);
-  }, [selectedStory, genreNameById, categoryNameById]);
+  }, [selectedStory, genreNameById, categoryNameById, tagNameById]);
 
   useEffect(() => {
     if (!storiesData) return;
@@ -903,6 +947,32 @@ const AdminContent = () => {
       current.filter((name) => name.toLowerCase() !== nameToRemove.toLowerCase())
     );
   };
+  const availableTagsByLowerName = useMemo(
+    () => new Map((tags || []).map((tag) => [tag.name.trim().toLowerCase(), tag])),
+    [tags]
+  );
+  const filteredTagSuggestions = useMemo(() => {
+    const query = tagQuery.trim().toLowerCase();
+    if (!query) return [];
+    return (tags || [])
+      .filter((tag) => tag.name.toLowerCase().startsWith(query))
+      .filter((tag) => !selectedTagNames.some((name) => name.toLowerCase() === tag.name.toLowerCase()))
+      .slice(0, 8);
+  }, [tagQuery, tags, selectedTagNames]);
+  const addTagName = (rawName: string) => {
+    const name = toTitleCase(rawName);
+    if (!name) return;
+    setSelectedTagNames((current) => {
+      if (current.some((item) => item.toLowerCase() === name.toLowerCase())) return current;
+      return [...current, name];
+    });
+    setTagQuery("");
+  };
+  const removeTagName = (nameToRemove: string) => {
+    setSelectedTagNames((current) =>
+      current.filter((name) => name.toLowerCase() !== nameToRemove.toLowerCase())
+    );
+  };
 
   const persistStory = async (options?: { forceDraft?: boolean; forcePublish?: boolean }) => {
     const forceDraft = Boolean(options?.forceDraft);
@@ -1018,6 +1088,33 @@ const AdminContent = () => {
         await queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
       }
       categoryIdsToSubmit.forEach((categoryId) => formData.append("categories", String(categoryId)));
+
+      const selectedTagMap = new Map<string, string>();
+      selectedTagNames
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .forEach((name) => {
+          const key = name.toLowerCase();
+          if (!selectedTagMap.has(key)) {
+            selectedTagMap.set(key, name);
+          }
+        });
+      const tagIdsToSubmit: number[] = [];
+      let createdAnyTag = false;
+      for (const [lowerName, originalName] of selectedTagMap.entries()) {
+        const existing = availableTagsByLowerName.get(lowerName);
+        if (existing) {
+          tagIdsToSubmit.push(existing.id);
+          continue;
+        }
+        const created = await storyApi.createAdminTag(toTitleCase(originalName));
+        tagIdsToSubmit.push(created.id);
+        createdAnyTag = true;
+      }
+      if (createdAnyTag) {
+        await queryClient.invalidateQueries({ queryKey: ["admin-tags"] });
+      }
+      tagIdsToSubmit.forEach((tagId) => formData.append("tags", String(tagId)));
 
       if (mode === "edit" && selectedStoryId) {
         await storyApi.updateAdminStory(selectedStoryId, formData);
@@ -1802,6 +1899,75 @@ const AdminContent = () => {
                   </div>
                 </div>
 
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label>Tags</Label>
+                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowTagModal(true)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="mt-2 space-y-2 rounded-md border p-3">
+                    <div className="flex gap-2">
+                      <Input
+                        value={tagQuery}
+                        onChange={(e) => setTagQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addTagName(tagQuery);
+                          }
+                        }}
+                        placeholder="Type tag name (e.g. Indian Folklore...)"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => addTagName(tagQuery)}
+                        disabled={!tagQuery.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {filteredTagSuggestions.length > 0 && (
+                      <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                        {filteredTagSuggestions.map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-muted"
+                            onClick={() => addTagName(tag.name)}
+                          >
+                            {toTitleCase(tag.name)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedTagNames.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTagNames.map((name) => (
+                          <span
+                            key={name.toLowerCase()}
+                            className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-1 text-xs"
+                          >
+                            {toTitleCase(name)}
+                            <button
+                              type="button"
+                              className="rounded p-0.5 hover:bg-background"
+                              onClick={() => removeTagName(name)}
+                              aria-label={`Remove ${name}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Type to search tags by starting letters. If a tag does not exist, it will be created when you save. Use keyword phrases people actually search (e.g. "Indian Folklore", "White Snake Legend") — each tag with enough stories gets its own /tag page.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <Button type="submit" disabled={isSubmitting || !canSave}>
                     {isSubmitting ? "Saving..." : mode === "edit" ? "Update Story" : "Create Story"}
@@ -1995,6 +2161,20 @@ const AdminContent = () => {
                           {selectedStory.categories.map((categoryId) => (
                             <span key={categoryId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
                               {toTitleCase(categoryNameById.get(categoryId) || `Category #${categoryId}`)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-1 text-muted-foreground">Tags</p>
+                      {(selectedStory.tags || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedStory.tags.map((tagId) => (
+                            <span key={tagId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
+                              {toTitleCase(tagNameById.get(tagId) || `Tag #${tagId}`)}
                             </span>
                           ))}
                         </div>
@@ -2657,6 +2837,33 @@ const AdminContent = () => {
                   <Button type="button" variant="outline" onClick={() => setShowCategoryModal(false)}>Cancel</Button>
                   <Button type="submit" disabled={creatingCategory || !newCategoryName.trim()}>
                     {creatingCategory ? "Creating..." : "Create Category"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showTagModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowTagModal(false)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base">Create Tag</CardTitle>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowTagModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={createTag}>
+                <div>
+                  <Label htmlFor="new-tag-name">Name *</Label>
+                  <Input id="new-tag-name" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} required />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowTagModal(false)}>Cancel</Button>
+                  <Button type="submit" disabled={creatingTag || !newTagName.trim()}>
+                    {creatingTag ? "Creating..." : "Create Tag"}
                   </Button>
                 </div>
               </form>
