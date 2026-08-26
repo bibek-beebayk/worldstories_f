@@ -41,6 +41,7 @@ import {
   AdminAnalyticsUsersResponse,
   AdminAnalyticsSubmissionsResponse,
   AdminAnalyticsAudienceResponse,
+  AdminAnalyticsGeographyResponse,
   Author,
   AuthorDetail,
   SearchResponse,
@@ -362,6 +363,8 @@ export const storyApi = {
     apiClient<AdminAnalyticsSubmissionsResponse>(`/admin/analytics/submissions/?days=${days}`),
   getAdminAnalyticsAudience: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsAudienceResponse>(`/admin/analytics/audience/?days=${days}`),
+  getAdminAnalyticsGeography: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminAnalyticsGeographyResponse>(`/admin/analytics/geography/?days=${days}`),
   getAdminAuthors: () =>
     apiClient<AdminAuthor[]>("/admin/authors/"),
   createAdminAuthor: (payload: { name: string; bio?: string; image?: string }) =>

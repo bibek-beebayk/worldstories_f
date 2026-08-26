@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { TrendLineChart } from "@/components/admin/charts/TrendLineChart";
 import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
+import { CountryHeatmapMap } from "@/components/admin/charts/CountryHeatmapMap";
 import type { AdminAnalyticsRangeDays } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 365, label: "Last year" },
 ];
 
-type TabKey = "content" | "engagement" | "audience" | "users" | "submissions";
+type TabKey = "content" | "engagement" | "audience" | "users" | "geography" | "submissions";
 
 const StatTile = ({ label, value }: { label: string; value: string }) => (
   <div className="rounded-md border bg-card px-3 py-2 shadow-sm">
@@ -93,6 +94,11 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "submissions", days],
     queryFn: () => storyApi.getAdminAnalyticsSubmissions(days),
     enabled: canFetch && activeTab === "submissions",
+  });
+  const geographyQuery = useQuery({
+    queryKey: ["admin-analytics", "geography", days],
+    queryFn: () => storyApi.getAdminAnalyticsGeography(days),
+    enabled: canFetch && activeTab === "geography",
   });
 
   const cumulativeSignups = useMemo(() => {
@@ -169,6 +175,7 @@ const AdminAnalytics = () => {
             <TabsTrigger value="engagement">Engagement</TabsTrigger>
             <TabsTrigger value="audience">Audience</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="geography">Geography</TabsTrigger>
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
           </TabsList>
         </div>
@@ -373,6 +380,11 @@ const AdminAnalytics = () => {
                 <StatTile label="Blog reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.blog_reading_minutes))}m`} />
                 <StatTile label="Quick Read time" value={`${formatNumber(Math.round(audienceQuery.data.summary.quick_read_reading_minutes))}m`} />
                 <StatTile label="Avg session" value={`${audienceQuery.data.summary.avg_session_minutes}m`} />
+                <StatTile label="Page views" value={formatNumber(audienceQuery.data.summary.total_page_views)} />
+                <StatTile
+                  label="Median browsing session"
+                  value={`${audienceQuery.data.summary.median_browsing_session_minutes}m`}
+                />
               </div>
 
               <div className="grid gap-4 xl:grid-cols-2">
@@ -498,6 +510,36 @@ const AdminAnalytics = () => {
                   </div>
                 </ChartCard>
               </div>
+
+              <ChartCard title="Top pages visited" subtitle="By page views, this range">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                        <th className="py-2 pr-3">Path</th>
+                        <th className="py-2 pr-3 text-right">Views</th>
+                        <th className="py-2 text-right">Unique visitors</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {audienceQuery.data.top_pages.map((row) => (
+                        <tr key={row.path} className="border-b last:border-0">
+                          <td className="max-w-xs truncate py-2 pr-3 font-mono text-xs">{row.path}</td>
+                          <td className="py-2 pr-3 text-right">{formatNumber(row.views)}</td>
+                          <td className="py-2 text-right">{formatNumber(row.unique_visitors)}</td>
+                        </tr>
+                      ))}
+                      {audienceQuery.data.top_pages.length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="py-6 text-center text-muted-foreground">
+                            No page views yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </ChartCard>
             </>
           )}
         </TabsContent>
@@ -546,6 +588,79 @@ const AdminAnalytics = () => {
                   xKey="bucket"
                   series={[{ key: "count", label: "Users" }]}
                 />
+              </ChartCard>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="geography" className="space-y-4">
+          {geographyQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {geographyQuery.isError && (
+            <p className="text-sm text-red-600">Failed to load geography analytics.</p>
+          )}
+          {geographyQuery.data && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatTile label="Sign-ins" value={formatNumber(geographyQuery.data.total_logins)} />
+                <StatTile label="Countries reached" value={formatNumber(geographyQuery.data.countries_reached)} />
+                <StatTile
+                  label="Top country"
+                  value={geographyQuery.data.by_country[0]?.country ?? "—"}
+                />
+                <StatTile
+                  label="Unresolved locations"
+                  value={formatNumber(geographyQuery.data.unresolved_logins)}
+                />
+              </div>
+
+              <ChartCard
+                title="Sign-ins by country"
+                subtitle="Unique signed-in users per country, this range — hover a country for details"
+              >
+                <CountryHeatmapMap data={geographyQuery.data.by_country} />
+              </ChartCard>
+
+              <ChartCard title="Sign-ins over time">
+                <TrendLineChart
+                  data={geographyQuery.data.logins_over_time}
+                  xKey="day"
+                  series={[
+                    { key: "count", label: "Sign-ins" },
+                    { key: "users", label: "Unique users" },
+                  ]}
+                />
+              </ChartCard>
+
+              <ChartCard title="Top cities" subtitle="Where sign-ins are concentrated within each country">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                        <th className="py-2 pr-3">City</th>
+                        <th className="py-2 pr-3">Country</th>
+                        <th className="py-2 pr-3 text-right">Users</th>
+                        <th className="py-2 text-right">Sign-ins</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {geographyQuery.data.by_city.map((row) => (
+                        <tr key={`${row.city}-${row.country}`} className="border-b last:border-0">
+                          <td className="py-2 pr-3">{row.city}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{row.country}</td>
+                          <td className="py-2 pr-3 text-right">{formatNumber(row.users)}</td>
+                          <td className="py-2 text-right">{formatNumber(row.logins)}</td>
+                        </tr>
+                      ))}
+                      {geographyQuery.data.by_city.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                            No resolved sign-in cities for this range yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </ChartCard>
             </>
           )}

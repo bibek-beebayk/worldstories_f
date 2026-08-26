@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from "react-simple-maps";
 import { geoCentroid } from "d3-geo";
-import isoCountries from "i18n-iso-countries";
 import worldGeography from "world-atlas/countries-110m.json";
 import { ChevronLeft, ChevronRight, Globe2, Minus, Plus, RotateCcw } from "lucide-react";
 import { storyApi } from "@/api/story";
@@ -11,18 +10,11 @@ import StoryCard from "@/components/StoryCard";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Button } from "@/components/ui/button";
 import { buildMeta } from "@/lib/buildMeta";
+import { EMPTY_COUNTRY_COLOR, HEAT_COLORS, heatColor, numericCountryCode } from "@/lib/geoMapColors";
 import type { Route } from "./+types/StoryMap";
 
-const EMPTY_COUNTRY_COLOR = "hsl(var(--muted))";
 const MAP_BORDER_COLOR = "hsl(var(--background))";
 const MAP_SELECTED_COLOR = "hsl(var(--foreground))";
-const HEAT_COLORS = [
-  "hsl(var(--primary) / 0.18)",
-  "hsl(var(--primary) / 0.35)",
-  "hsl(var(--primary) / 0.55)",
-  "hsl(var(--primary) / 0.75)",
-  "hsl(var(--primary))",
-];
 const MIN_MAP_ZOOM = 1;
 const MAX_MAP_ZOOM = 18;
 const MAP_ZOOM_FACTOR = 1.5;
@@ -61,17 +53,6 @@ const COUNTRY_MARKERS: Array<{ code: string; name: string; coordinates: [number,
   { code: "VA", name: "Vatican City", coordinates: [12.45, 41.9] },
 ];
 const SMALL_COUNTRY_CODES = new Set(COUNTRY_MARKERS.map((marker) => marker.code));
-
-function mapColor(storiesCount: number, maximum: number) {
-  if (storiesCount <= 0 || maximum <= 0) return EMPTY_COUNTRY_COLOR;
-  const ratio = storiesCount / maximum;
-  return HEAT_COLORS[Math.min(HEAT_COLORS.length - 1, Math.ceil(ratio * HEAT_COLORS.length) - 1)];
-}
-
-function numericCountryCode(alpha2: string) {
-  const code = isoCountries.alpha2ToNumeric(alpha2);
-  return code ? String(code).padStart(3, "0") : null;
-}
 
 export function meta() {
   return buildMeta({
@@ -280,7 +261,7 @@ export default function StoryMap({ loaderData }: Route.ComponentProps) {
                               const country = countryByNumericCode.get(numericCode);
                               const count = country?.stories_count || 0;
                               const isSelected = country?.code === selectedCode;
-                              const fill = mapColor(count, data.max_stories_count);
+                              const fill = heatColor(count, data.max_stories_count);
                               const countryName = country?.name || geography.properties.name || "Unknown country";
 
                               return (

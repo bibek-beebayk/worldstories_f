@@ -764,6 +764,8 @@ export interface AdminAnalyticsAudienceResponse {
     blog_reading_minutes: number;
     quick_read_reading_minutes: number;
     avg_session_minutes: number;
+    total_page_views: number;
+    median_browsing_session_minutes: number;
   };
   daily_activity: Array<{
     day: string;
@@ -804,6 +806,24 @@ export interface AdminAnalyticsAudienceResponse {
     sessions: number;
     minutes: number;
   }>;
+  top_pages: Array<{ path: string; views: number; unique_visitors: number }>;
+}
+
+export interface AdminAnalyticsCountryRow {
+  country: string;
+  country_code: string;
+  logins: number;
+  users: number;
+}
+
+export interface AdminAnalyticsGeographyResponse {
+  range_days: AdminAnalyticsRangeDays;
+  total_logins: number;
+  unresolved_logins: number;
+  countries_reached: number;
+  by_country: AdminAnalyticsCountryRow[];
+  by_city: Array<{ city: string; country: string; logins: number; users: number }>;
+  logins_over_time: Array<{ day: string; count: number; users: number }>;
 }
 
 export interface BlogLinkedStory {
