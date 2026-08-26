@@ -70,11 +70,17 @@ export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialog
       >
         <BarChart3 className="h-4 w-4" />
       </Button>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-x-hidden overflow-y-auto">
         <DialogHeader className="flex-row items-center justify-between space-y-0 pr-6">
-          <DialogTitle className="truncate">{title}</DialogTitle>
+          {/* min-w-0 is required for truncate to actually take effect on a
+              flex item — flex items default to min-width:auto, which uses
+              the text's own intrinsic (untruncated) width as the floor, so
+              a long title was never shrinking at all and was instead
+              stretching the whole dialog (and everything below it)
+              horizontally past its intended width. */}
+          <DialogTitle className="min-w-0 flex-1 truncate">{title}</DialogTitle>
           <Select value={String(days)} onValueChange={(value) => setDays(Number(value) as AdminAnalyticsRangeDays)}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[150px] shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
