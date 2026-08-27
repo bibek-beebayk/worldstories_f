@@ -957,8 +957,10 @@ export interface Blog {
   content: string;
   cover_image: string;
   author_name: string | null;
-  linked_stories: BlogLinkedStory[];
-  linked_blogs: BlogLinkedBlog[];
+  linked_stories?: BlogLinkedStory[];
+  linked_blogs?: BlogLinkedBlog[];
+  /** Temporary compatibility with API responses from before linked_stories became many-to-many. */
+  linked_story?: BlogLinkedStory | null;
   published_at: string;
   updated_at: string;
 }
@@ -977,10 +979,13 @@ export interface AdminBlog {
   cover_image_file: string | null;
   cover_image_url: string;
   author_name: string | null;
-  linked_stories: number[];
-  linked_story_details: { id: number; title: string; slug: string }[];
-  linked_blogs: number[];
-  linked_blog_details: { id: number; title: string; slug: string }[];
+  linked_stories?: number[];
+  linked_story_details?: { id: number; title: string; slug: string }[];
+  linked_blogs?: number[];
+  linked_blog_details?: { id: number; title: string; slug: string }[];
+  /** Temporary compatibility with API responses from before linked_stories became many-to-many. */
+  linked_story?: number | null;
+  linked_story_detail?: { id: number; title: string; slug: string } | null;
   is_published: boolean;
   publish_at: string | null;
   created_at: string;

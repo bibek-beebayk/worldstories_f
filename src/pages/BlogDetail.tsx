@@ -143,6 +143,8 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
   }
 
   const blogPath = `/blog/${blog.slug}`;
+  const linkedStories = blog.linked_stories || (blog.linked_story ? [blog.linked_story] : []);
+  const linkedBlogs = blog.linked_blogs || [];
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8">
@@ -190,14 +192,14 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
 
       <AdSpace size="rectangle" className="my-8" contentType="blog" />
 
-      {(blog.linked_stories || []).length > 0 && (
+      {linkedStories.length > 0 && (
         <section className="mt-10" aria-labelledby="linked-stories-heading">
           <div className="mb-4 flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
             <h2 id="linked-stories-heading" className="text-xl font-bold">Related Stories</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            {blog.linked_stories.map((story) => (
+            {linkedStories.map((story) => (
               <Card key={story.id} className="overflow-hidden transition-shadow hover:shadow-md">
                 <CardContent className="flex gap-4 p-4">
                   <Link to={`/story/${story.slug}`} className="aspect-[3/4] w-20 shrink-0 overflow-hidden rounded-md">
@@ -230,14 +232,14 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
         </section>
       )}
 
-      {(blog.linked_blogs || []).length > 0 && (
+      {linkedBlogs.length > 0 && (
         <section className="mt-10" aria-labelledby="linked-blogs-heading">
           <div className="mb-4 flex items-center gap-2">
             <Newspaper className="h-5 w-5 text-primary" />
             <h2 id="linked-blogs-heading" className="text-xl font-bold">Related Posts</h2>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
-            {blog.linked_blogs.map((relatedBlog) => (
+            {linkedBlogs.map((relatedBlog) => (
               <Link key={relatedBlog.id} to={`/blog/${relatedBlog.slug}`} className="group block">
                 <div className="aspect-video overflow-hidden rounded-lg shadow-sm">
                   <CoverImage

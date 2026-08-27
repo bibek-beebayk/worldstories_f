@@ -57,6 +57,12 @@ const fromDatetimeLocalValue = (value: string) => {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 };
 
+const adminBlogLinkedStoryDetails = (blog: AdminBlog): LinkedContentOption[] =>
+  blog.linked_story_details || (blog.linked_story_detail ? [blog.linked_story_detail] : []);
+
+const adminBlogLinkedBlogDetails = (blog: AdminBlog): LinkedContentOption[] =>
+  blog.linked_blog_details || [];
+
 const AdminBlogs = () => {
   const queryClient = useQueryClient();
   const isAuthenticated = Boolean(getAccessToken());
@@ -221,8 +227,8 @@ const AdminBlogs = () => {
     setPublishAt(toDatetimeLocalValue(blog.publish_at));
     setCoverImageFile(null);
     setRemoveCoverImage(false);
-    setLinkedStories(blog.linked_story_details || []);
-    setLinkedBlogs(blog.linked_blog_details || []);
+    setLinkedStories(adminBlogLinkedStoryDetails(blog));
+    setLinkedBlogs(adminBlogLinkedBlogDetails(blog));
     setCopyCoverFromStoryId(null);
     setCopyCoverFromStoryUrl(null);
     setLinkStoryOffer(null);
@@ -862,8 +868,8 @@ const AdminBlogs = () => {
                     <p className="truncate text-sm font-medium">{blog.title}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       /{blog.slug} &middot; {blog.is_published ? "Published" : "Draft"}
-                      {blog.linked_story_details.length > 0 && ` · ${blog.linked_story_details.length} linked ${blog.linked_story_details.length === 1 ? "story" : "stories"}`}
-                      {blog.linked_blog_details.length > 0 && ` · ${blog.linked_blog_details.length} linked ${blog.linked_blog_details.length === 1 ? "post" : "posts"}`}
+                      {adminBlogLinkedStoryDetails(blog).length > 0 && ` · ${adminBlogLinkedStoryDetails(blog).length} linked ${adminBlogLinkedStoryDetails(blog).length === 1 ? "story" : "stories"}`}
+                      {adminBlogLinkedBlogDetails(blog).length > 0 && ` · ${adminBlogLinkedBlogDetails(blog).length} linked ${adminBlogLinkedBlogDetails(blog).length === 1 ? "post" : "posts"}`}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">
