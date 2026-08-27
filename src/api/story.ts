@@ -243,11 +243,15 @@ export const storyApi = {
       is_completed?: boolean;
       has_summary?: boolean;
       has_retrospective?: boolean;
+    } = {},
+    sources: {
+      include_stories?: boolean;
+      include_queue?: boolean;
     } = {}
   ) =>
     fetchAuthenticatedBinary(
       `/admin/stories/export/?search=${encodeURIComponent(q)}` +
-        Object.entries(filters)
+        Object.entries({ ...filters, ...sources })
           .filter(([, value]) => value !== undefined)
           .map(([key, value]) => `&${key}=${value}`)
           .join("")

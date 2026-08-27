@@ -4,14 +4,16 @@ import { getAccessToken } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Download, Search } from "lucide-react";
+import { ChevronDown, Download, Search } from "lucide-react";
 import StoryQueueManager from "@/components/admin/StoryQueueManager";
 import { TitleAnalyticsDialog } from "@/components/admin/TitleAnalyticsDialog";
 
@@ -46,6 +48,9 @@ const AdminStoryReport = () => {
   const [summaryFilter, setSummaryFilter] = useState<TriStateFilter>("all");
   const [retrospectiveFilter, setRetrospectiveFilter] = useState<TriStateFilter>("all");
   const [exporting, setExporting] = useState(false);
+  const [exportPopoverOpen, setExportPopoverOpen] = useState(false);
+  const [exportIncludeStories, setExportIncludeStories] = useState(true);
+  const [exportIncludeQueue, setExportIncludeQueue] = useState(true);
 
   const { data: authors } = useQuery({
     queryKey: ["admin-authors"],
@@ -75,14 +80,22 @@ const AdminStoryReport = () => {
   };
 
   const handleExport = async () => {
+    if (!exportIncludeStories && !exportIncludeQueue) return;
     try {
       setExporting(true);
-      const buffer = await storyApi.exportAdminStories(search, {
-        is_published: publicationFilter === "all" ? undefined : publicationFilter === "true",
-        is_completed: completionFilter === "all" ? undefined : completionFilter === "true",
-        has_summary: summaryFilter === "all" ? undefined : summaryFilter === "true",
-        has_retrospective: retrospectiveFilter === "all" ? undefined : retrospectiveFilter === "true",
-      });
+      const buffer = await storyApi.exportAdminStories(
+        search,
+        {
+          is_published: publicationFilter === "all" ? undefined : publicationFilter === "true",
+          is_completed: completionFilter === "all" ? undefined : completionFilter === "true",
+          has_summary: summaryFilter === "all" ? undefined : summaryFilter === "true",
+          has_retrospective: retrospectiveFilter === "all" ? undefined : retrospectiveFilter === "true",
+        },
+        {
+          include_stories: exportIncludeStories,
+          include_queue: exportIncludeQueue,
+        }
+      );
       const blob = new Blob([buffer], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -90,6 +103,7 @@ const AdminStoryReport = () => {
       link.download = "stories-export.csv";
       link.click();
       URL.revokeObjectURL(url);
+      setExportPopoverOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to export stories.");
     } finally {
@@ -208,10 +222,40 @@ const AdminStoryReport = () => {
                 <p className="text-xs text-muted-foreground">
                   Total stories: <span className="font-medium text-foreground">{pagination?.count ?? 0}</span>
                 </p>
-                <Button size="sm" variant="outline" disabled={exporting} onClick={handleExport}>
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  {exporting ? "Exporting..." : "Export"}
-                </Button>
+                <Popover open={exportPopoverOpen} onOpenChange={setExportPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" disabled={exporting}>
+                      <Download className="mr-1.5 h-3.5 w-3.5" />
+                      {exporting ? "Exporting..." : "Export"}
+                      <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64 space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground">What to include</p>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={exportIncludeStories}
+                        onCheckedChange={(checked) => setExportIncludeStories(checked === true)}
+                      />
+                      Stories (respects the filters above)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={exportIncludeQueue}
+                        onCheckedChange={(checked) => setExportIncludeQueue(checked === true)}
+                      />
+                      Story queue (not yet added)
+                    </label>
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      disabled={exporting || (!exportIncludeStories && !exportIncludeQueue)}
+                      onClick={handleExport}
+                    >
+                      {exporting ? "Exporting..." : "Export CSV"}
+                    </Button>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {storiesLoading ? (
