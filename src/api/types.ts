@@ -33,7 +33,13 @@ export interface Audio {
 export interface Genre{
   id: number;
   name: string;
+  slug: string;
+  description: string;
   stories_count: number;
+}
+
+export interface GenreDetail extends Genre {
+  stories: Story[];
 }
 
 export interface StoryType {
@@ -45,7 +51,13 @@ export interface StoryType {
 export interface Category {
   id: number;
   name: string;
+  slug: string;
+  description: string;
   stories_count: number;
+}
+
+export interface CategoryDetail extends Category {
+  stories: Story[];
 }
 
 export interface Tag {

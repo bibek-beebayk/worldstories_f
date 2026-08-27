@@ -24,6 +24,7 @@ import { formatViews } from "@/lib/utils";
 import {
   ArrowLeft,
   ArrowRight,
+  ExternalLink,
   Library as LibraryIcon,
   Loader2,
   Search,
@@ -416,22 +417,32 @@ const Library = () => {
                   </h2>
                   <div className="flex-1 space-y-3 overflow-auto rounded-lg border p-3">
                     {genres?.map((genre) => (
-                      <label key={genre.id} className="flex items-center gap-3">
-                        <Checkbox
-                          checked={tempGenres.includes(genre.id)}
-                          onCheckedChange={(checked) => {
-                            setTempGenres((prev) =>
-                              checked ? [...prev, genre.id] : prev.filter((id) => id !== genre.id)
-                            );
-                          }}
-                        />
-                        <span className="text-sm">
-                          {genre.name}{" "}
-                          <span className="text-xs text-muted-foreground">
-                            ({formatViews(genre.stories_count)})
+                      <div key={genre.id} className="flex items-center gap-2">
+                        <label className="flex flex-1 items-center gap-3">
+                          <Checkbox
+                            checked={tempGenres.includes(genre.id)}
+                            onCheckedChange={(checked) => {
+                              setTempGenres((prev) =>
+                                checked ? [...prev, genre.id] : prev.filter((id) => id !== genre.id)
+                              );
+                            }}
+                          />
+                          <span className="text-sm">
+                            {genre.name}{" "}
+                            <span className="text-xs text-muted-foreground">
+                              ({formatViews(genre.stories_count)})
+                            </span>
                           </span>
-                        </span>
-                      </label>
+                        </label>
+                        <Link
+                          to={`/genre/${genre.slug}`}
+                          title={`View the ${genre.name} page`}
+                          className="shrink-0 text-muted-foreground hover:text-primary"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
                     ))}
                   </div>
                   <div className="mt-4 space-y-2">
@@ -479,22 +490,32 @@ const Library = () => {
                   </h2>
                   <div className="flex-1 space-y-3 overflow-auto rounded-lg border p-3">
                     {categories?.map((category) => (
-                      <label key={category.id} className="flex items-center gap-3">
-                        <Checkbox
-                          checked={tempCategories.includes(category.id)}
-                          onCheckedChange={(checked) => {
-                            setTempCategories((prev) =>
-                              checked ? [...prev, category.id] : prev.filter((id) => id !== category.id)
-                            );
-                          }}
-                        />
-                        <span className="text-sm">
-                          {category.name}{" "}
-                          <span className="text-xs text-muted-foreground">
-                            ({formatViews(category.stories_count)})
+                      <div key={category.id} className="flex items-center gap-2">
+                        <label className="flex flex-1 items-center gap-3">
+                          <Checkbox
+                            checked={tempCategories.includes(category.id)}
+                            onCheckedChange={(checked) => {
+                              setTempCategories((prev) =>
+                                checked ? [...prev, category.id] : prev.filter((id) => id !== category.id)
+                              );
+                            }}
+                          />
+                          <span className="text-sm">
+                            {category.name}{" "}
+                            <span className="text-xs text-muted-foreground">
+                              ({formatViews(category.stories_count)})
+                            </span>
                           </span>
-                        </span>
-                      </label>
+                        </label>
+                        <Link
+                          to={`/category/${category.slug}`}
+                          title={`View the ${category.name} page`}
+                          className="shrink-0 text-muted-foreground hover:text-primary"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
                     ))}
                   </div>
                   <div className="mt-4 space-y-2">
@@ -619,22 +640,32 @@ const Library = () => {
                       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Genres</label>
                       <div className="space-y-3 rounded-lg border p-3">
                         {genres?.map((genre) => (
-                          <label key={genre.id} className="flex items-center gap-3">
-                            <Checkbox
-                              checked={tempGenres.includes(genre.id)}
-                              onCheckedChange={(checked) => {
-                                setTempGenres((prev) =>
-                                  checked ? [...prev, genre.id] : prev.filter((id) => id !== genre.id)
-                                );
-                              }}
-                            />
-                            <span className="text-sm">
-                              {genre.name}{" "}
-                              <span className="text-xs text-muted-foreground">
-                                ({formatViews(genre.stories_count)})
+                          <div key={genre.id} className="flex items-center gap-2">
+                            <label className="flex flex-1 items-center gap-3">
+                              <Checkbox
+                                checked={tempGenres.includes(genre.id)}
+                                onCheckedChange={(checked) => {
+                                  setTempGenres((prev) =>
+                                    checked ? [...prev, genre.id] : prev.filter((id) => id !== genre.id)
+                                  );
+                                }}
+                              />
+                              <span className="text-sm">
+                                {genre.name}{" "}
+                                <span className="text-xs text-muted-foreground">
+                                  ({formatViews(genre.stories_count)})
+                                </span>
                               </span>
-                            </span>
-                          </label>
+                            </label>
+                            <Link
+                              to={`/genre/${genre.slug}`}
+                              title={`View the ${genre.name} page`}
+                              className="shrink-0 text-muted-foreground hover:text-primary"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -643,22 +674,32 @@ const Library = () => {
                       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Categories</label>
                       <div className="space-y-3 rounded-lg border p-3">
                         {categories?.map((category) => (
-                          <label key={category.id} className="flex items-center gap-3">
-                            <Checkbox
-                              checked={tempCategories.includes(category.id)}
-                              onCheckedChange={(checked) => {
-                                setTempCategories((prev) =>
-                                  checked ? [...prev, category.id] : prev.filter((id) => id !== category.id)
-                                );
-                              }}
-                            />
-                            <span className="text-sm">
-                              {category.name}{" "}
-                              <span className="text-xs text-muted-foreground">
-                                ({formatViews(category.stories_count)})
+                          <div key={category.id} className="flex items-center gap-2">
+                            <label className="flex flex-1 items-center gap-3">
+                              <Checkbox
+                                checked={tempCategories.includes(category.id)}
+                                onCheckedChange={(checked) => {
+                                  setTempCategories((prev) =>
+                                    checked ? [...prev, category.id] : prev.filter((id) => id !== category.id)
+                                  );
+                                }}
+                              />
+                              <span className="text-sm">
+                                {category.name}{" "}
+                                <span className="text-xs text-muted-foreground">
+                                  ({formatViews(category.stories_count)})
+                                </span>
                               </span>
-                            </span>
-                          </label>
+                            </label>
+                            <Link
+                              to={`/category/${category.slug}`}
+                              title={`View the ${category.name} page`}
+                              className="shrink-0 text-muted-foreground hover:text-primary"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
                         ))}
                       </div>
                     </div>

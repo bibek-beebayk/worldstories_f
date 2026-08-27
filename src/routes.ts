@@ -29,6 +29,8 @@ export default [
     route("tag/:slug", "pages/TagDetail.tsx"),
     route("themes", "pages/ThemesIndex.tsx"),
     route("theme/:slug", "pages/ThemeDetail.tsx"),
+    route("genre/:slug", "pages/GenreDetail.tsx"),
+    route("category/:slug", "pages/CategoryDetail.tsx"),
     route("quick-read/:slug", "pages/StorySummary.tsx"),
     route("story/:slug/pdf", "pages/PdfReader.tsx"),
     route("story/:slug/epub", "pages/EpubReader.tsx"),
