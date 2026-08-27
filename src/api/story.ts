@@ -63,6 +63,8 @@ import {
   StoryQueueTitleCheck,
   StoryQueueImportPreview,
   StoryQueueImportRecord,
+  TaxonomyImportPreview,
+  TaxonomyImportRow,
   StoryMapResponse,
 } from "./types";
 
@@ -367,6 +369,22 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify({ records }),
     }),
+  previewTaxonomyBulkUpdate: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient<TaxonomyImportPreview>("/admin/stories/bulk-taxonomy-preview/", {
+      method: "POST",
+      body: formData,
+    });
+  },
+  confirmTaxonomyBulkUpdate: (records: TaxonomyImportRow[]) =>
+    apiClient<{ updated_count: number; skipped_count: number; errors: string[] }>(
+      "/admin/stories/bulk-taxonomy-confirm/",
+      {
+        method: "POST",
+        body: JSON.stringify({ records }),
+      }
+    ),
   generateBlogExcerpt: (id: number) =>
     apiClient<AdminBlog>(`/admin/blog/${id}/generate-excerpt/`, { method: "POST" }),
   getAdminChapters: (storyId: number) =>

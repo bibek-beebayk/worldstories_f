@@ -1071,3 +1071,77 @@ export interface StoryQueueImportPreview {
   error_count: number;
   total_rows: number;
 }
+
+// Bulk-edits tags/themes/genres/categories on already-published Story rows
+// (matched by title, disambiguated by author_name) — distinct from the
+// Story Queue import above, which creates new StoryQueue rows instead of
+// editing existing Story rows. Field names here match
+// apps/story/taxonomy_bulk_update.py's actual response exactly (flat,
+// prefixed per field — not nested) rather than a generic wrapper shape.
+export type TaxonomyMatchStatus = "matched" | "ambiguous" | "not_found";
+
+export interface TaxonomyImportCandidate {
+  id: number;
+  slug: string;
+  title: string;
+  author_name: string;
+}
+
+// Normalized per-field view — the wire format is the flat, prefixed keys
+// on TaxonomyImportRow below (current_tags, proposed_tags, tags_added,
+// tags_removed, ...); this is what a UI helper plucks those into so
+// tags/themes/genres can share one rendering function instead of three
+// near-identical ones.
+export interface TaxonomyFieldDiff {
+  current: string[];
+  proposed: string[] | null;
+  added: string[];
+  removed: string[];
+}
+
+export interface TaxonomyImportRow {
+  title: string;
+  author_name: string;
+  match_status: TaxonomyMatchStatus;
+  story_id: number | null;
+  story_slug: string | null;
+  ambiguous_candidates: TaxonomyImportCandidate[];
+
+  current_tags: string[];
+  proposed_tags: string[] | null;
+  tags_added: string[];
+  tags_removed: string[];
+  new_tags_to_create: string[];
+
+  current_themes: string[];
+  proposed_themes: string[] | null;
+  themes_added: string[];
+  themes_removed: string[];
+  new_themes_to_create: string[];
+
+  current_genres: string[];
+  proposed_genres: string[] | null;
+  genres_added: string[];
+  genres_removed: string[];
+  new_genres_to_create: string[];
+
+  // Categories' variant carries new_categories_not_created (they're NEVER
+  // created, unlike tags/themes/genres' new_X_to_create) plus two
+  // category-specific business-rule flags instead of a create list.
+  current_categories: string[];
+  proposed_categories: string[] | null;
+  categories_added: string[];
+  categories_removed: string[];
+  new_categories_not_created: string[];
+  category_count_warning: string | null;
+  category_forbidden_value: string | null;
+}
+
+export interface TaxonomyImportPreview {
+  rows: TaxonomyImportRow[];
+  matched_count: number;
+  ambiguous_count: number;
+  not_found_count: number;
+  errors: string[];
+  total_rows: number;
+}

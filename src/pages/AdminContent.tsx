@@ -14,13 +14,14 @@ import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Bold, Check, ChevronRight, Heading1, Heading2, Heading3, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, X } from "lucide-react";
+import { ArrowLeft, Bold, Check, ChevronRight, Heading1, Heading2, Heading3, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, Upload, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
 import { COUNTRY_OPTIONS, getCountryLabel } from "@/lib/countries";
 import { AiGenerationInputField, AiGenerationStatus, EpubImportJob } from "@/api/types";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 import { AiGenerationHeaderControls, AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
+import BulkTaxonomyImportModal from "@/components/admin/BulkTaxonomyImportModal";
 
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
 // timezone suffix) — the backend gives back a UTC ISO string, so this
@@ -190,6 +191,7 @@ const AdminContent = () => {
   const [selectedThemeNames, setSelectedThemeNames] = useState<string[]>([]);
   const [themeQuery, setThemeQuery] = useState("");
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showBulkTaxonomyModal, setShowBulkTaxonomyModal] = useState(false);
   const [newThemeName, setNewThemeName] = useState("");
   const [creatingTheme, setCreatingTheme] = useState(false);
   const [showChapterModal, setShowChapterModal] = useState(false);
@@ -1435,6 +1437,15 @@ const AdminContent = () => {
                 title="Create new story"
               >
                 <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkTaxonomyModal(true)}
+                aria-label="Bulk update tags, themes, genres, and categories"
+                title="Bulk update tags, themes, genres, and categories"
+              >
+                <Upload className="h-4 w-4" />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -3077,6 +3088,16 @@ const AdminContent = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {showBulkTaxonomyModal && (
+        <BulkTaxonomyImportModal
+          onClose={() => setShowBulkTaxonomyModal(false)}
+          onImported={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["admin-stories"] });
+            await queryClient.invalidateQueries({ queryKey: ["admin-story"] });
+          }}
+        />
       )}
     </main>
   );
