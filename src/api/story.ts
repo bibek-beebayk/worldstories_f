@@ -459,6 +459,13 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+  updateAdminGenre: (id: number, name: string) =>
+    apiClient<AdminGenre>(`/admin/genres/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  deleteAdminGenre: (id: number) =>
+    apiClient<void>(`/admin/genres/${id}/`, { method: "DELETE" }),
   getAdminCategories: () =>
     apiClient<AdminCategory[]>("/admin/categories/"),
   createAdminCategory: (name: string) =>
@@ -473,6 +480,13 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+  updateAdminTag: (id: number, name: string) =>
+    apiClient<AdminTag>(`/admin/tags/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  deleteAdminTag: (id: number) =>
+    apiClient<void>(`/admin/tags/${id}/`, { method: "DELETE" }),
   getAdminThemes: () =>
     apiClient<AdminTheme[]>("/admin/themes/"),
   createAdminTheme: (name: string) =>
@@ -480,6 +494,13 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+  updateAdminTheme: (id: number, name: string) =>
+    apiClient<AdminTheme>(`/admin/themes/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  deleteAdminTheme: (id: number) =>
+    apiClient<void>(`/admin/themes/${id}/`, { method: "DELETE" }),
   updateAdminCategory: (id: number, name: string) =>
     apiClient<AdminCategory>(`/admin/categories/${id}/`, {
       method: "PATCH",

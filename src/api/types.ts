@@ -523,11 +523,14 @@ export interface AdminUser {
 export interface AdminGenre {
   id: number;
   name: string;
+  slug: string;
+  stories_count?: number;
 }
 
 export interface AdminCategory {
   id: number;
   name: string;
+  slug: string;
   stories_count?: number;
 }
 
@@ -535,12 +538,14 @@ export interface AdminTag {
   id: number;
   name: string;
   slug: string;
+  stories_count?: number;
 }
 
 export interface AdminTheme {
   id: number;
   name: string;
   slug: string;
+  stories_count?: number;
 }
 
 export interface AdminChapter {
