@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { Badge } from "@/components/ui/badge";
 import CoverImage from "@/components/CoverImage";
 import { Blog } from "@/api/types";
 
@@ -17,11 +16,6 @@ const BlogCard = ({ blog }: { blog: Blog }) => {
           decoding="async"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        {blog.linked_story && (
-          <Badge className="absolute left-2 top-2 border-0 bg-black/70 text-white">
-            Linked to a Story
-          </Badge>
-        )}
       </div>
 
       <h3 className="mb-1 line-clamp-2 text-sm font-semibold transition-colors group-hover:text-primary">

@@ -17,7 +17,7 @@ import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { plainText } from "@/lib/plainText";
 import { sanitizeBlogContent } from "@/lib/sanitizeHtml";
 import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
-import { ArrowRight, Facebook, Link2, Share2, Twitter } from "lucide-react";
+import { ArrowRight, BookOpen, Facebook, Link2, Newspaper, Share2, Twitter } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { Link, data, useParams } from "react-router";
 import type { Route } from "./+types/BlogDetail";
@@ -190,28 +190,74 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
 
       <AdSpace size="rectangle" className="my-8" contentType="blog" />
 
-      {blog.linked_story && (
-        <Card className="mt-8">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-20 w-16 shrink-0 overflow-hidden rounded-md">
-              <CoverImage
-                src={blog.linked_story.cover_image}
-                alt={blog.linked_story.title}
-                className="h-full w-full object-cover"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground">Continue reading the full story</p>
-              <p className="truncate font-semibold">{blog.linked_story.title}</p>
-            </div>
-            <Link
-              to={`/story/${blog.linked_story.slug}`}
-              className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              Read Story <ArrowRight className="h-4 w-4" />
-            </Link>
-          </CardContent>
-        </Card>
+      {(blog.linked_stories || []).length > 0 && (
+        <section className="mt-10" aria-labelledby="linked-stories-heading">
+          <div className="mb-4 flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h2 id="linked-stories-heading" className="text-xl font-bold">Related Stories</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {blog.linked_stories.map((story) => (
+              <Card key={story.id} className="overflow-hidden transition-shadow hover:shadow-md">
+                <CardContent className="flex gap-4 p-4">
+                  <Link to={`/story/${story.slug}`} className="aspect-[3/4] w-20 shrink-0 overflow-hidden rounded-md">
+                    <CoverImage
+                      src={story.cover_image}
+                      alt={story.title}
+                      author={story.author}
+                      className="h-full w-full object-cover"
+                    />
+                  </Link>
+                  <div className="flex min-w-0 flex-1 flex-col justify-center">
+                    <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                      {story.story_type || "Story"}
+                    </p>
+                    <Link to={`/story/${story.slug}`} className="mt-1 line-clamp-2 font-semibold hover:text-primary">
+                      {story.title}
+                    </Link>
+                    {story.author && <p className="mt-1 truncate text-xs text-muted-foreground">by {story.author}</p>}
+                    <Link
+                      to={`/story/${story.slug}`}
+                      className="mt-3 flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                    >
+                      Read Story <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {(blog.linked_blogs || []).length > 0 && (
+        <section className="mt-10" aria-labelledby="linked-blogs-heading">
+          <div className="mb-4 flex items-center gap-2">
+            <Newspaper className="h-5 w-5 text-primary" />
+            <h2 id="linked-blogs-heading" className="text-xl font-bold">Related Posts</h2>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {blog.linked_blogs.map((relatedBlog) => (
+              <Link key={relatedBlog.id} to={`/blog/${relatedBlog.slug}`} className="group block">
+                <div className="aspect-video overflow-hidden rounded-lg shadow-sm">
+                  <CoverImage
+                    src={relatedBlog.cover_image}
+                    alt={relatedBlog.title}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <h3 className="mt-3 line-clamp-2 font-semibold group-hover:text-primary">{relatedBlog.title}</h3>
+                {relatedBlog.excerpt && (
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{relatedBlog.excerpt}</p>
+                )}
+                <p className="mt-2 text-xs text-muted-foreground" suppressHydrationWarning>
+                  {relatedBlog.author_name ? `${relatedBlog.author_name} · ` : ""}
+                  {formatDate(relatedBlog.published_at)}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

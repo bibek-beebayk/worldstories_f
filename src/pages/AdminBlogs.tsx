@@ -36,6 +36,8 @@ import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { getLanguageLabel } from "@/lib/languages";
 import { AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
 
+type LinkedContentOption = { id: number; title: string; slug: string };
+
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
 // timezone suffix) — the backend gives back a UTC ISO string, so this
 // converts between the two in both directions. Mirrors the identical helper
@@ -85,8 +87,8 @@ const AdminBlogs = () => {
   const [publishAt, setPublishAt] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [removeCoverImage, setRemoveCoverImage] = useState(false);
-  const [linkedStoryId, setLinkedStoryId] = useState<number | null>(null);
-  const [linkedStoryTitle, setLinkedStoryTitle] = useState<string | null>(null);
+  const [linkedStories, setLinkedStories] = useState<LinkedContentOption[]>([]);
+  const [linkedBlogs, setLinkedBlogs] = useState<LinkedContentOption[]>([]);
   const [copyCoverFromStoryId, setCopyCoverFromStoryId] = useState<number | null>(null);
   const [copyCoverFromStoryUrl, setCopyCoverFromStoryUrl] = useState<string | null>(null);
   const [linkStoryOffer, setLinkStoryOffer] = useState<AdminStory | null>(null);
@@ -123,14 +125,25 @@ const AdminBlogs = () => {
 
   const [storySearchQuery, setStorySearchQuery] = useState("");
   const [debouncedStorySearchQuery, setDebouncedStorySearchQuery] = useState("");
+  const [blogSearchQuery, setBlogSearchQuery] = useState("");
+  const [debouncedBlogSearchQuery, setDebouncedBlogSearchQuery] = useState("");
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedStorySearchQuery(storySearchQuery.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [storySearchQuery]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedBlogSearchQuery(blogSearchQuery.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [blogSearchQuery]);
   const { data: storySearchResults } = useQuery({
     queryKey: ["admin-stories-linked-search", debouncedStorySearchQuery],
     queryFn: () => storyApi.getAdminStories(1, debouncedStorySearchQuery),
     enabled: debouncedStorySearchQuery.length >= 2,
+  });
+  const { data: blogSearchResults } = useQuery({
+    queryKey: ["admin-blogs-linked-search", debouncedBlogSearchQuery],
+    queryFn: () => storyApi.getAdminBlogs(1, debouncedBlogSearchQuery),
+    enabled: debouncedBlogSearchQuery.length >= 2,
   });
 
   useEffect(() => {
@@ -180,12 +193,13 @@ const AdminBlogs = () => {
     setPublishAt("");
     setCoverImageFile(null);
     setRemoveCoverImage(false);
-    setLinkedStoryId(null);
-    setLinkedStoryTitle(null);
+    setLinkedStories([]);
+    setLinkedBlogs([]);
     setCopyCoverFromStoryId(null);
     setCopyCoverFromStoryUrl(null);
     setLinkStoryOffer(null);
     setStorySearchQuery("");
+    setBlogSearchQuery("");
     setExcerptBannerDismissed(false);
     setIsContentHtmlMode(false);
     lastAppliedExcerptStatusRef.current = null;
@@ -207,12 +221,13 @@ const AdminBlogs = () => {
     setPublishAt(toDatetimeLocalValue(blog.publish_at));
     setCoverImageFile(null);
     setRemoveCoverImage(false);
-    setLinkedStoryId(blog.linked_story_detail?.id ?? null);
-    setLinkedStoryTitle(blog.linked_story_detail?.title ?? null);
+    setLinkedStories(blog.linked_story_details || []);
+    setLinkedBlogs(blog.linked_blog_details || []);
     setCopyCoverFromStoryId(null);
     setCopyCoverFromStoryUrl(null);
     setLinkStoryOffer(null);
     setStorySearchQuery("");
+    setBlogSearchQuery("");
     setExcerptBannerDismissed(false);
     setIsContentHtmlMode(false);
     lastAppliedExcerptStatusRef.current = blog.excerpt_status;
@@ -220,12 +235,25 @@ const AdminBlogs = () => {
   };
 
   const selectLinkedStory = (story: AdminStory) => {
-    setLinkedStoryId(story.id);
-    setLinkedStoryTitle(story.title);
+    setLinkedStories((current) =>
+      current.some((item) => item.id === story.id)
+        ? current
+        : [...current, { id: story.id, title: story.title, slug: story.slug }]
+    );
     setStorySearchQuery("");
     if (story.retrospective || story.cover_image_url) {
       setLinkStoryOffer(story);
     }
+  };
+
+  const selectLinkedBlog = (blog: AdminBlog) => {
+    if (blog.id === editingBlog?.id) return;
+    setLinkedBlogs((current) =>
+      current.some((item) => item.id === blog.id)
+        ? current
+        : [...current, { id: blog.id, title: blog.title, slug: blog.slug }]
+    );
+    setBlogSearchQuery("");
   };
 
   const useRetrospectiveAsContent = () => {
@@ -257,10 +285,15 @@ const AdminBlogs = () => {
       formData.append("content", content);
       formData.append("is_published", String(isPublished));
       formData.append("publish_at", publishAt ? fromDatetimeLocalValue(publishAt) : "");
-      if (linkedStoryId !== null) {
-        formData.append("linked_story", String(linkedStoryId));
-      } else if (editingBlog) {
-        formData.append("linked_story", "");
+      if (linkedStories.length > 0) {
+        linkedStories.forEach((story) => formData.append("linked_stories", String(story.id)));
+      } else {
+        formData.append("linked_stories", "");
+      }
+      if (linkedBlogs.length > 0) {
+        linkedBlogs.forEach((blog) => formData.append("linked_blogs", String(blog.id)));
+      } else {
+        formData.append("linked_blogs", "");
       }
       if (coverImageFile) formData.append("cover_image_file", coverImageFile);
       if (removeCoverImage) formData.append("remove_cover_image_file", "true");
@@ -574,26 +607,33 @@ const AdminBlogs = () => {
               </div>
 
               <div className="border-t pt-3">
-                <Label htmlFor="blog-linked-story">Linked Story (optional)</Label>
-                {linkedStoryId !== null && (
-                  <div className="mt-2 flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
-                    <span className="flex-1 truncate">{linkedStoryTitle}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      onClick={() => {
-                        setLinkedStoryId(null);
-                        setLinkedStoryTitle(null);
-                        if (copyCoverFromStoryId === linkedStoryId) {
-                          setCopyCoverFromStoryId(null);
-                          setCopyCoverFromStoryUrl(null);
-                        }
-                      }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                <Label htmlFor="blog-linked-story">Linked Stories (optional)</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Selected stories will appear after the blog post.
+                </p>
+                {linkedStories.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {linkedStories.map((story) => (
+                      <div key={story.id} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
+                        <span className="flex-1 truncate">{story.title}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          aria-label={`Remove ${story.title}`}
+                          onClick={() => {
+                            setLinkedStories((current) => current.filter((item) => item.id !== story.id));
+                            if (copyCoverFromStoryId === story.id) {
+                              setCopyCoverFromStoryId(null);
+                              setCopyCoverFromStoryUrl(null);
+                            }
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div className="relative mt-2">
@@ -608,7 +648,9 @@ const AdminBlogs = () => {
                 </div>
                 {debouncedStorySearchQuery.length >= 2 && (
                   <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
-                    {(storySearchResults?.results || []).map((story) => (
+                    {(storySearchResults?.results || [])
+                      .filter((story) => !linkedStories.some((selected) => selected.id === story.id))
+                      .map((story) => (
                       <button
                         key={story.id}
                         type="button"
@@ -621,8 +663,76 @@ const AdminBlogs = () => {
                         </span>
                       </button>
                     ))}
-                    {(storySearchResults?.results || []).length === 0 && (
+                    {(storySearchResults?.results || []).filter(
+                      (story) => !linkedStories.some((selected) => selected.id === story.id)
+                    ).length === 0 && (
                       <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-3">
+                <Label htmlFor="blog-linked-blog">Linked Blogs (optional)</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Selected posts will appear in a Related Posts section after this blog.
+                </p>
+                {linkedBlogs.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {linkedBlogs.map((blog) => (
+                      <div key={blog.id} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
+                        <span className="flex-1 truncate">{blog.title}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          aria-label={`Remove ${blog.title}`}
+                          onClick={() => setLinkedBlogs((current) => current.filter((item) => item.id !== blog.id))}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="relative mt-2">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="blog-linked-blog"
+                    placeholder="Search blog posts by title..."
+                    className="pl-9"
+                    value={blogSearchQuery}
+                    onChange={(e) => setBlogSearchQuery(e.target.value)}
+                  />
+                </div>
+                {debouncedBlogSearchQuery.length >= 2 && (
+                  <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
+                    {(blogSearchResults?.results || [])
+                      .filter(
+                        (blog) =>
+                          blog.id !== editingBlog?.id &&
+                          !linkedBlogs.some((selected) => selected.id === blog.id)
+                      )
+                      .map((blog) => (
+                        <button
+                          key={blog.id}
+                          type="button"
+                          className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                          onClick={() => selectLinkedBlog(blog)}
+                        >
+                          <span className="truncate">{blog.title}</span>
+                          <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                            {blog.is_published ? "Published" : "Draft"}
+                          </span>
+                        </button>
+                      ))}
+                    {(blogSearchResults?.results || []).filter(
+                      (blog) =>
+                        blog.id !== editingBlog?.id &&
+                        !linkedBlogs.some((selected) => selected.id === blog.id)
+                    ).length === 0 && (
+                      <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching blog posts.</p>
                     )}
                   </div>
                 )}
@@ -716,7 +826,7 @@ const AdminBlogs = () => {
           <div>
             <CardTitle className="text-lg">Blog</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Manage blog posts shown at /blog — optionally link one to a story.
+              Manage blog posts and their related stories and posts shown at /blog.
             </p>
           </div>
           <Button size="sm" onClick={openCreateForm}>
@@ -752,7 +862,8 @@ const AdminBlogs = () => {
                     <p className="truncate text-sm font-medium">{blog.title}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       /{blog.slug} &middot; {blog.is_published ? "Published" : "Draft"}
-                      {blog.linked_story_detail && ` · Linked to ${blog.linked_story_detail.title}`}
+                      {blog.linked_story_details.length > 0 && ` · ${blog.linked_story_details.length} linked ${blog.linked_story_details.length === 1 ? "story" : "stories"}`}
+                      {blog.linked_blog_details.length > 0 && ` · ${blog.linked_blog_details.length} linked ${blog.linked_blog_details.length === 1 ? "post" : "posts"}`}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">
