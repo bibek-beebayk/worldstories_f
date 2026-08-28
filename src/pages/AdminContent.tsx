@@ -374,10 +374,15 @@ const AdminContent = () => {
     if (!selectedStoryId || !selectedStory) return;
     const sourceId = selectedStoryId;
     resetForm();
-    // Carry over the details that describe the same underlying work — title/about
-    // still need to be written in the new language, so those stay blank.
+    // Carry over everything that describes the same underlying work so the
+    // admin only re-authors the target-language prose. Left blank on purpose:
+    // title, about, summary, retrospective and chapter content (all
+    // source-language text), the slug (regenerated from the new title), the
+    // language (must differ for a translation) and the publish state (a new
+    // translation starts as an unpublished draft).
     setStoryTypeId(selectedStory.story_type ? String(selectedStory.story_type) : "");
     setCountry(selectedStory.country || "");
+    setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
     setOriginalPublishedYear(numToStr(selectedStory.original_published_year));
     setOriginalPublishedMonth(numToStr(selectedStory.original_published_month));
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
@@ -392,6 +397,16 @@ const AdminContent = () => {
     setSelectedCategoryNames(
       (selectedStory.categories || [])
         .map((categoryId) => categoryNameById.get(categoryId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setSelectedTagNames(
+      (selectedStory.tags || [])
+        .map((tagId) => tagNameById.get(tagId))
+        .filter((name): name is string => Boolean(name))
+    );
+    setSelectedThemeNames(
+      (selectedStory.themes || [])
+        .map((themeId) => themeNameById.get(themeId))
         .filter((name): name is string => Boolean(name))
     );
     setPendingTranslationSourceId(sourceId);
