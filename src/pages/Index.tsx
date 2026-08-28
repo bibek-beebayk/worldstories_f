@@ -1,5 +1,6 @@
 import HeroSection from "@/components/HeroSection";
 import ContinueReadingSection from "@/components/ContinueReadingSection";
+import ContinueListeningSection from "@/components/ContinueListeningSection";
 import RecommendedForYouSection from "@/components/RecommendedForYouSection";
 import QuickReadSection from "@/components/QuickReadSection";
 import RecentBlogsSection from "@/components/RecentBlogsSection";
@@ -20,6 +21,7 @@ import { storyApi } from "@/api/story";
 import { useHomeData } from "@/hooks/useHomeData";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useContinueReading } from "@/hooks/useContinueReading";
+import { useContinueListening } from "@/hooks/useContinueListening";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { ArrowRight, BookOpenText, Compass, Flame, Sparkles, Users } from "lucide-react";
 import { ComponentType } from "react";
@@ -91,6 +93,11 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
     isError: isContinueReadingError,
   } = useContinueReading(isLoggedIn);
   const {
+    data: continueListeningData,
+    isLoading: isContinueListeningLoading,
+    isError: isContinueListeningError,
+  } = useContinueListening(isLoggedIn);
+  const {
     data: recommendationsData,
     isLoading: isRecommendationsLoading,
     isError: isRecommendationsError,
@@ -128,6 +135,17 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
             (continueReadingData?.results.length || 0) > 0 && (
             <ContinueReadingSection
               items={continueReadingData!.results}
+              isLoading={false}
+              isError={false}
+            />
+          )}
+
+          {isLoggedIn &&
+            !isContinueListeningLoading &&
+            !isContinueListeningError &&
+            (continueListeningData?.results.length || 0) > 0 && (
+            <ContinueListeningSection
+              items={continueListeningData!.results}
               isLoading={false}
               isError={false}
             />
