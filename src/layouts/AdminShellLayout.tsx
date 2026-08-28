@@ -47,7 +47,7 @@ export default function AdminShellLayout() {
   };
 
   const navLinks = (onNavigate?: () => void) => (
-    <nav className="flex-1 space-y-1">
+    <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto">
       {menuItems.map((item) => {
         const active = isActive(location.pathname, item.to, item.exact);
         const Icon = item.icon;
