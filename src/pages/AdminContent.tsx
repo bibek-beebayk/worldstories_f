@@ -137,6 +137,7 @@ const AdminContent = () => {
       source: "admin" | "submission";
       chapter_count: number;
       audio_count: number;
+      video_count: number;
       summary: string | null;
       retrospective: string | null;
     }>
@@ -212,6 +213,16 @@ const AdminContent = () => {
   const [creatingAudio, setCreatingAudio] = useState(false);
   const [pendingDeleteAudioId, setPendingDeleteAudioId] = useState<number | null>(null);
   const [deletingAudio, setDeletingAudio] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [editingVideoId, setEditingVideoId] = useState<number | null>(null);
+  const [newVideoTitle, setNewVideoTitle] = useState("");
+  const [newVideoSlug, setNewVideoSlug] = useState("");
+  const [newVideoOrder, setNewVideoOrder] = useState(1);
+  const [newVideoUrl, setNewVideoUrl] = useState("");
+  const [newVideoDuration, setNewVideoDuration] = useState("");
+  const [creatingVideo, setCreatingVideo] = useState(false);
+  const [pendingDeleteVideoId, setPendingDeleteVideoId] = useState<number | null>(null);
+  const [deletingVideo, setDeletingVideo] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState<string | null>(null);
   const [epubImportJob, setEpubImportJob] = useState<EpubImportJob | null>(null);
   const [summaryInputMode, setSummaryInputMode] = useState<"metadata" | "content">("content");
@@ -291,6 +302,12 @@ const AdminContent = () => {
   const { data: audiosData, isLoading: audiosLoading } = useQuery({
     queryKey: ["admin-audios", selectedStoryId],
     queryFn: () => storyApi.getAdminAudios(selectedStoryId!),
+    enabled: isAuthenticated && Boolean(me?.is_superuser) && selectedStoryId !== null,
+  });
+
+  const { data: videosData, isLoading: videosLoading } = useQuery({
+    queryKey: ["admin-videos", selectedStoryId],
+    queryFn: () => storyApi.getAdminVideos(selectedStoryId!),
     enabled: isAuthenticated && Boolean(me?.is_superuser) && selectedStoryId !== null,
   });
 
@@ -723,6 +740,106 @@ const AdminContent = () => {
       toast.error(error instanceof Error ? error.message : "Failed to delete audio.");
     } finally {
       setDeletingAudio(false);
+    }
+  };
+
+  const openCreateVideoModal = () => {
+    setEditingVideoId(null);
+    setNewVideoTitle("");
+    setNewVideoSlug("");
+    setNewVideoOrder((videosData?.results?.length || 0) + 1);
+    setNewVideoUrl("");
+    setNewVideoDuration("");
+    setShowVideoModal(true);
+  };
+
+  const openEditVideoModal = (video: {
+    id: number;
+    title: string;
+    slug: string;
+    order: number;
+    youtube_url: string;
+    duration_seconds: number | null;
+  }) => {
+    setEditingVideoId(video.id);
+    setNewVideoTitle(video.title || "");
+    setNewVideoSlug(video.slug || "");
+    setNewVideoOrder(video.order || 1);
+    setNewVideoUrl(video.youtube_url || "");
+    setNewVideoDuration(video.duration_seconds != null ? String(video.duration_seconds) : "");
+    setShowVideoModal(true);
+  };
+
+  const saveVideo = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!selectedStoryId || !newVideoTitle.trim()) return;
+    if (!newVideoUrl.trim()) {
+      toast.error("YouTube URL is required.");
+      return;
+    }
+    try {
+      setCreatingVideo(true);
+      const duration = newVideoDuration.trim() || null;
+      if (editingVideoId) {
+        await storyApi.updateAdminVideo(editingVideoId, {
+          title: newVideoTitle.trim(),
+          order: newVideoOrder,
+          slug: newVideoSlug.trim() || undefined,
+          youtube_url: newVideoUrl.trim(),
+          duration_seconds: duration,
+        });
+      } else {
+        await storyApi.createAdminVideo({
+          story: selectedStoryId,
+          title: newVideoTitle.trim(),
+          order: newVideoOrder,
+          slug: newVideoSlug.trim() || undefined,
+          youtube_url: newVideoUrl.trim(),
+          duration_seconds: duration,
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: ["admin-videos", selectedStoryId] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-story"] });
+      setShowVideoModal(false);
+      setEditingVideoId(null);
+      toast.success(editingVideoId ? "Video updated." : "Video added.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Failed to ${editingVideoId ? "update" : "add"} video.`);
+    } finally {
+      setCreatingVideo(false);
+    }
+  };
+
+  const deleteVideo = async (videoId: number) => {
+    if (!selectedStoryId) return;
+    try {
+      setDeletingVideo(true);
+      const deleteResponse = await storyApi.deleteAdminVideo(videoId);
+      queryClient.setQueryData(
+        ["admin-videos", selectedStoryId],
+        (current: { pagination?: { count?: number }; results?: Array<{ id: number }> } | undefined) => {
+          if (!current?.results) return current;
+          const nextResults = current.results.filter((video) => video.id !== videoId);
+          const nextCount = typeof current.pagination?.count === "number"
+            ? Math.max(0, current.pagination.count - 1)
+            : current.pagination?.count;
+          return {
+            ...current,
+            pagination: current.pagination ? { ...current.pagination, count: nextCount } : current.pagination,
+            results: nextResults,
+          };
+        }
+      );
+      await queryClient.invalidateQueries({ queryKey: ["admin-videos", selectedStoryId] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-story"] });
+      if (deleteResponse === undefined) {
+        toast.success("Video deleted.");
+      }
+      setPendingDeleteVideoId(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete video.");
+    } finally {
+      setDeletingVideo(false);
     }
   };
 
@@ -2677,6 +2794,44 @@ const AdminContent = () => {
           )}
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
+            <CollapsibleSection
+              title="Video List"
+              titleBadge={<CountBadge count={selectedStory?.video_count ?? 0} label="videos" />}
+              headerAction={
+                <Button size="sm" variant="outline" onClick={openCreateVideoModal}>
+                  Add New Video
+                </Button>
+              }
+            >
+              <CardContent>
+                <div className="space-y-2 rounded-md border p-2">
+                  {videosLoading && <p className="text-sm text-muted-foreground">Loading videos...</p>}
+                  {(videosData?.results || []).map((video) => (
+                    <div key={video.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">#{video.order} {video.title}</p>
+                        <p className="text-xs text-muted-foreground">/{video.slug}</p>
+                        <p className="truncate text-xs text-muted-foreground">{video.youtube_url}</p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEditVideoModal(video)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setPendingDeleteVideoId(video.id)}>
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {(videosData?.results?.length || 0) === 0 && !videosLoading && (
+                    <p className="text-sm text-muted-foreground">No videos added.</p>
+                  )}
+                </div>
+              </CardContent>
+            </CollapsibleSection>
+          )}
+
+          {!showStoryForm && !showChapterModal && selectedStoryId && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Files</CardTitle>
@@ -2928,6 +3083,86 @@ const AdminContent = () => {
                 </Button>
                 <Button type="button" variant="destructive" disabled={deletingAudio} onClick={() => deleteAudio(pendingDeleteAudioId)}>
                   {deletingAudio ? "Deleting..." : "Delete"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {showVideoModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowVideoModal(false)}>
+          <Card className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-base">{editingVideoId ? "Edit Video" : "Add New Video"}</CardTitle>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowVideoModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={saveVideo}>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="new-video-title">Title *</Label>
+                    <Input id="new-video-title" value={newVideoTitle} onChange={(e) => setNewVideoTitle(e.target.value)} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-video-order">Order *</Label>
+                    <Input id="new-video-order" type="number" min={1} value={newVideoOrder} onChange={(e) => setNewVideoOrder(Number(e.target.value || 1))} required />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="new-video-slug">Slug (optional)</Label>
+                  <Input id="new-video-slug" value={newVideoSlug} onChange={(e) => setNewVideoSlug(e.target.value)} placeholder="auto if blank" />
+                </div>
+                <div>
+                  <Label htmlFor="new-video-url">YouTube URL *</Label>
+                  <Input
+                    id="new-video-url"
+                    type="url"
+                    value={newVideoUrl}
+                    onChange={(e) => setNewVideoUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-video-duration">Duration (optional)</Label>
+                  <Input
+                    id="new-video-duration"
+                    value={newVideoDuration}
+                    onChange={(e) => setNewVideoDuration(e.target.value)}
+                    placeholder="seconds or mm:ss"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowVideoModal(false)}>Cancel</Button>
+                  <Button type="submit" disabled={creatingVideo || !newVideoTitle.trim()}>
+                    {creatingVideo ? (editingVideoId ? "Updating..." : "Adding...") : (editingVideoId ? "Update Video" : "Add Video")}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {pendingDeleteVideoId !== null && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setPendingDeleteVideoId(null)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle className="text-base">Delete Video</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this video? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setPendingDeleteVideoId(null)}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="destructive" disabled={deletingVideo} onClick={() => deleteVideo(pendingDeleteVideoId)}>
+                  {deletingVideo ? "Deleting..." : "Delete"}
                 </Button>
               </div>
             </CardContent>

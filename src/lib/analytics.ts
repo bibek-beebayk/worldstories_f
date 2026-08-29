@@ -5,6 +5,7 @@ export type AnalyticsEventType =
   | "ad_impression"
   | "reading_session"
   | "listening_session"
+  | "watching_session"
   | "completion"
   | "download";
 
@@ -66,7 +67,7 @@ export function trackAnalyticsEvent(input: AnalyticsEventInput): void {
   }).catch(() => undefined);
 }
 
-export type CompletionContentType = "chapter" | "audio" | "epub" | "pdf" | "story";
+export type CompletionContentType = "chapter" | "audio" | "video" | "epub" | "pdf" | "story";
 
 function completionKey(storySlug: string, contentType: CompletionContentType, itemSlug: string) {
   return `worldstories_completion:${storySlug}:${contentType}:${itemSlug}`;

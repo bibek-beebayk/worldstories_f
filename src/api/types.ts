@@ -30,6 +30,15 @@ export interface Audio {
   download_size_bytes?: number;
 }
 
+export interface Video {
+  id: string;
+  title: string;
+  slug: string;
+  youtube_id: string;
+  order: number;
+  duration_seconds: number | null;
+}
+
 export interface Genre{
   id: number;
   name: string;
@@ -100,6 +109,7 @@ export interface Story {
   genres?: string[];
   categories?: string[];
   has_audio?: boolean;
+  has_video?: boolean;
   reviews_count?: number;
   is_favorite?: boolean;
   favorites_count?: number;
@@ -186,9 +196,11 @@ export interface StoryDetail extends Story {
   chapters: Chapter[];
   tags: string[];
   audios: Audio[];
+  videos: Video[];
   reviews_count: number;
   reading_time_minutes: number | null;
   listening_time_minutes: number | null;
+  watch_time_minutes: number | null;
   similar_stories: Story[];
 }
 
@@ -239,6 +251,21 @@ export interface AudioReadingProgress {
   overall_progress: number;
   audio_progresses: Array<{
     audio_slug: string;
+    progress: number;
+    position_seconds: number;
+    duration_seconds: number;
+  }>;
+  updated_at: string;
+}
+
+export interface VideoWatchProgress {
+  video_slug: string | null;
+  progress: number;
+  position_seconds: number;
+  duration_seconds: number;
+  overall_progress: number;
+  video_progresses: Array<{
+    video_slug: string;
     progress: number;
     position_seconds: number;
     duration_seconds: number;
@@ -343,6 +370,7 @@ export interface UserProfile {
   reviews_count: number;
   reading_in_progress_count: number;
   listening_in_progress_count: number;
+  watching_in_progress_count: number;
   preferred_genres: Genre[];
 }
 
@@ -357,6 +385,7 @@ export interface ProfileInsightsResponse {
     date: string;
     reading: number;
     listening: number;
+    watching: number;
   }>;
   formats: Array<{
     name: string;
@@ -388,6 +417,15 @@ export interface ContinueListeningItem {
   audio_slug: string | null;
   audio_title: string | null;
   audio_progress: number;
+  overall_progress: number;
+  updated_at: string;
+}
+
+export interface ContinueWatchingItem {
+  story: Story;
+  video_slug: string | null;
+  video_title: string | null;
+  video_progress: number;
   overall_progress: number;
   updated_at: string;
 }
@@ -479,6 +517,7 @@ export interface AdminStory {
   source: "admin" | "submission";
   chapter_count: number;
   audio_count: number;
+  video_count: number;
 }
 
 export type AiGenerationModel = "claude-opus-5" | "claude-sonnet-5" | "claude-haiku-4-5";
@@ -591,6 +630,17 @@ export interface AdminAudio {
   order: number;
 }
 
+export interface AdminVideo {
+  id: number;
+  story: number;
+  title: string;
+  slug: string;
+  youtube_url: string;
+  youtube_id: string;
+  order: number;
+  duration_seconds: number | null;
+}
+
 export interface AdminSubmission {
   id: number;
   user: string;
@@ -621,6 +671,7 @@ export interface AdminOverviewSummary {
   stories: number;
   chapters: number;
   audios: number;
+  videos: number;
   users: number;
   submissions_pending: number;
   submissions_approved: number;
@@ -630,6 +681,7 @@ export interface AdminOverviewSummary {
   total_story_views: number;
   active_readers: number;
   active_listeners: number;
+  active_watchers: number;
 }
 
 export interface AdminMostReadStory {
@@ -653,6 +705,17 @@ export interface AdminMostListenedAudio {
   avg_progress: number;
 }
 
+export interface AdminMostWatchedVideo {
+  id: number;
+  title: string;
+  slug: string;
+  story_id: number;
+  story_title: string;
+  story_slug: string;
+  watchers_count: number;
+  avg_progress: number;
+}
+
 export interface AdminTopFavoritedStory {
   id: number;
   title: string;
@@ -672,6 +735,7 @@ export interface AdminOverviewResponse {
   summary: AdminOverviewSummary;
   most_read_stories: AdminMostReadStory[];
   most_listened_audios: AdminMostListenedAudio[];
+  most_watched_videos: AdminMostWatchedVideo[];
   top_favorited_stories: AdminTopFavoritedStory[];
   top_rated_stories: AdminTopRatedStory[];
 }
@@ -725,6 +789,7 @@ export interface AdminAnalyticsContentResponse {
   blog_posts_count: number;
   stories_count: number;
   audiobooks_count: number;
+  watchable_count: number;
   quick_read_count: number;
 }
 
@@ -755,6 +820,7 @@ export interface AdminAnalyticsEngagementResponse {
   reading_progress_buckets: AdminAnalyticsProgressBucket[];
   chapter_dropoff: AdminAnalyticsChapterDropoff[];
   audio_listen_through: { avg_progress: number; listeners: number };
+  video_watch_through: { avg_progress: number; watchers: number };
   favorites_over_time: AdminAnalyticsDayCount[];
   rating_distribution: AdminAnalyticsRatingCount[];
   rating_trend: AdminAnalyticsRatingTrendPoint[];
@@ -823,6 +889,7 @@ export interface AdminAnalyticsAudienceResponse {
     completion_rate: number;
     reading_minutes: number;
     listening_minutes: number;
+    watching_minutes: number;
     blog_reading_minutes: number;
     quick_read_reading_minutes: number;
     avg_session_minutes: number;
@@ -836,6 +903,7 @@ export interface AdminAnalyticsAudienceResponse {
     completions: number;
     reading_minutes: number;
     listening_minutes: number;
+    watching_minutes: number;
   }>;
   visitor_retention: Array<{
     day: string;
@@ -855,6 +923,13 @@ export interface AdminAnalyticsAudienceResponse {
     bytes: number;
   }>;
   top_listened: Array<{
+    story_id: number;
+    title: string;
+    slug: string;
+    sessions: number;
+    minutes: number;
+  }>;
+  top_watched: Array<{
     story_id: number;
     title: string;
     slug: string;
@@ -910,6 +985,8 @@ export interface AdminStoryDetailAnalyticsResponse {
   }>;
   has_audio: boolean;
   audio: { listeners: number; avg_progress: number; listening_minutes: number } | null;
+  has_video: boolean;
+  video: { watchers: number; avg_progress: number; watching_minutes: number } | null;
 }
 
 export interface AdminBlogDetailAnalyticsResponse {

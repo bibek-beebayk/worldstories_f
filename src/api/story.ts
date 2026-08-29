@@ -19,6 +19,7 @@ import {
   Review,
   ReadingProgress,
   AudioReadingProgress,
+  VideoWatchProgress,
   FileReadingProgress,
   FileReadingFormat,
   FavoriteStatusResponse,
@@ -27,6 +28,7 @@ import {
   AdminStory,
   AdminChapter,
   AdminAudio,
+  AdminVideo,
   AiGenerationInputField,
   EpubImportJob,
   BookFetchJob,
@@ -80,10 +82,11 @@ export const storyApi = {
     categories: number[] | [] = [],
     hasAudio: boolean = false,
     hasSummary: boolean = false,
-    country: string = "all"
+    country: string = "all",
+    hasVideo: boolean = false
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}`
     ),
 
   getStory: (slug: string) =>
@@ -171,6 +174,24 @@ export const storyApi = {
       method: "PUT",
       body: JSON.stringify({
         audio_slug,
+        progress,
+        position_seconds,
+        duration_seconds,
+      }),
+    }),
+  getVideoProgress: (story_slug: string) =>
+    apiClient<VideoWatchProgress>(`/video-progress/${story_slug}/`),
+  saveVideoProgress: (
+    story_slug: string,
+    video_slug: string,
+    progress: number,
+    position_seconds: number,
+    duration_seconds: number
+  ) =>
+    apiClient<VideoWatchProgress>(`/video-progress/${story_slug}/`, {
+      method: "PUT",
+      body: JSON.stringify({
+        video_slug,
         progress,
         position_seconds,
         duration_seconds,
@@ -562,6 +583,38 @@ export const storyApi = {
     }),
   deleteAdminAudio: (id: number) =>
     apiClient<void>(`/admin/audios/${id}/`, {
+      method: "DELETE",
+    }),
+  getAdminVideos: (storyId: number) =>
+    apiClient<PaginatedResponse<AdminVideo>>(`/admin/videos/?story=${storyId}`),
+  createAdminVideo: (payload: {
+    story: number;
+    title: string;
+    order: number;
+    slug?: string;
+    youtube_url: string;
+    duration_seconds?: string | number | null;
+  }) =>
+    apiClient<AdminVideo>("/admin/videos/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminVideo: (
+    id: number,
+    payload: Partial<{
+      title: string;
+      order: number;
+      slug: string;
+      youtube_url: string;
+      duration_seconds: string | number | null;
+    }>
+  ) =>
+    apiClient<AdminVideo>(`/admin/videos/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminVideo: (id: number) =>
+    apiClient<void>(`/admin/videos/${id}/`, {
       method: "DELETE",
     }),
   updateAdminSubmission: (

@@ -125,6 +125,16 @@ export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialog
                   />
                 </>
               )}
+              {storyQuery.data.has_video && storyQuery.data.video && (
+                <>
+                  <StatTile label="Watchers" value={formatNumber(storyQuery.data.video.watchers)} />
+                  <StatTile label="Avg. watch-through" value={formatPercent(storyQuery.data.video.avg_progress)} />
+                  <StatTile
+                    label="Watching time"
+                    value={`${formatNumber(Math.round(storyQuery.data.video.watching_minutes))}m`}
+                  />
+                </>
+              )}
             </div>
 
             <ChartCard

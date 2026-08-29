@@ -10,6 +10,7 @@ export default [
     route("discover", "pages/Discover.tsx"),
     route("story-map", "pages/StoryMap.tsx"),
     route("audiobooks", "pages/Audiobooks.tsx"),
+    route("watch", "pages/Watch.tsx"),
     route("quick-reads", "pages/QuickReads.tsx"),
     route("authors", "pages/Authors.tsx"),
     route("authors/:id", "pages/AuthorDetail.tsx"),

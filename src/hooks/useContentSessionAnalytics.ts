@@ -4,7 +4,7 @@ import { AnalyticsEventType, trackAnalyticsEvent } from "@/lib/analytics";
 export type ContentIdentity = { storySlug: string } | { blogSlug: string };
 
 export function useContentSessionAnalytics(
-  eventType: Extract<AnalyticsEventType, "reading_session" | "listening_session">,
+  eventType: Extract<AnalyticsEventType, "reading_session" | "listening_session" | "watching_session">,
   identity: ContentIdentity | undefined,
   enabled: boolean = true,
   metadata: Record<string, string | number | boolean | null> = {}

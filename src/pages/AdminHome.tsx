@@ -68,9 +68,11 @@ const AdminHome = () => {
     { label: "Stories", value: overview.summary.stories },
     { label: "Chapters", value: overview.summary.chapters },
     { label: "Audiobooks", value: overview.summary.audios },
+    { label: "Videos", value: overview.summary.videos },
     { label: "Users", value: overview.summary.users },
     { label: "Active Readers", value: overview.summary.active_readers },
     { label: "Active Listeners", value: overview.summary.active_listeners },
+    { label: "Active Watchers", value: overview.summary.active_watchers },
     { label: "Reviews", value: overview.summary.reviews },
     { label: "Favorites", value: overview.summary.favorites },
     { label: "Story Views", value: overview.summary.total_story_views },
@@ -166,6 +168,37 @@ const AdminHome = () => {
             ))}
             {overview.most_listened_audios.length === 0 && (
               <p className="text-sm text-muted-foreground">No audiobook listening data yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-t-4 border-t-indigo-500">
+          <CardHeader className="border-b bg-muted/20">
+            <CardTitle className="text-base">Most Watched Videos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-4">
+            {overview.most_watched_videos.map((video, idx) => (
+              <Link
+                key={video.id}
+                to={`/story/${video.story_slug}`}
+                className="group flex items-center justify-between rounded-md border px-3 py-2 transition-colors hover:bg-muted/40"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-xs font-semibold text-indigo-600">
+                    {idx + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium group-hover:text-primary">{video.story_title}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {video.title} | Watchers: {formatNumber(video.watchers_count)}
+                    </p>
+                  </div>
+                </div>
+                <span className="ml-2 text-xs text-muted-foreground">{formatPercent(video.avg_progress)}</span>
+              </Link>
+            ))}
+            {overview.most_watched_videos.length === 0 && (
+              <p className="text-sm text-muted-foreground">No video watching data yet.</p>
             )}
           </CardContent>
         </Card>

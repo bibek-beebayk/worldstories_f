@@ -43,6 +43,7 @@ import {
   Star,
   Trash2,
   Twitter,
+  Youtube,
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -58,6 +59,7 @@ import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
 import StoryCard from "@/components/StoryCard";
+import WatchModal from "@/components/WatchModal";
 import BlogCard from "@/components/BlogCard";
 
 // Fetched here purely to supply meta() with real data server-side — the
@@ -179,6 +181,8 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   // debugger;
 
   const [activeTab, setActiveTab] = useState("chapters");
+  const [watchOpen, setWatchOpen] = useState(false);
+  const [watchStartSlug, setWatchStartSlug] = useState<string | null>(null);
   const [bulkDownloadStage, setBulkDownloadStage] = useState<"choose" | "confirm" | null>(null);
   const [bulkDownloadKind, setBulkDownloadKind] = useState<BulkDownloadKind | null>(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
@@ -193,7 +197,9 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
     if (story.chapters.length > 0) return;
     setActiveTab((current) => {
       if (current !== "chapters") return current;
-      return story.audios.length > 0 ? "audios" : "about";
+      if (story.audios.length > 0) return "audios";
+      if (story.videos.length > 0) return "videos";
+      return "about";
     });
   }, [story]);
   const [reviewRating, setReviewRating] = useState(5);
@@ -231,6 +237,13 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const { data: audioProgress } = useQuery({
     queryKey: ["audio-progress", slug],
     queryFn: () => storyApi.getAudioProgress(slug!),
+    enabled: !!slug && !!isAuthenticated,
+    retry: false,
+  });
+
+  const { data: videoProgress } = useQuery({
+    queryKey: ["video-progress", slug],
+    queryFn: () => storyApi.getVideoProgress(slug!),
     enabled: !!slug && !!isAuthenticated,
     retry: false,
   });
@@ -343,6 +356,15 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
 
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
+  const firstVideoSlug = story.videos[0]?.slug;
+  const savedVideoSlug = videoProgress?.video_slug;
+  const hasSavedVideo =
+    !!savedVideoSlug && story.videos.some((video) => video.slug === savedVideoSlug);
+  const watchVideoSlug = hasSavedVideo ? savedVideoSlug : firstVideoSlug;
+  const videoProgressMap = Object.fromEntries(
+    (videoProgress?.video_progresses || []).map((item) => [item.video_slug, item.progress])
+  );
+  const videoCompletionPercentage = Math.round((videoProgress?.overall_progress || 0) * 100);
   // Best available reading format, in priority order: HTML chapters (the
   // default reading experience) → EPUB → PDF.
   const primaryReadHref =
@@ -625,6 +647,21 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                     </Link>
                   )}
 
+                  {story.videos.length > 0 && (
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="flex-1 min-w-[140px]"
+                      onClick={() => {
+                        setWatchStartSlug(watchVideoSlug || null);
+                        setWatchOpen(true);
+                      }}
+                    >
+                      <Youtube className="h-4 w-4 mr-2" />
+                      {hasSavedVideo ? "Continue Watching" : "Watch"}
+                    </Button>
+                  )}
+
                   {bulkChoices.length > 0 && (
                     <Button
                       size="lg"
@@ -689,6 +726,11 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                     Audio completion: {audioCompletionPercentage}%
                   </p>
                 )}
+                {isAuthenticated && story.videos.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Watch completion: {videoCompletionPercentage}%
+                  </p>
+                )}
                 {!isAuthenticated && (
                   <p className="text-sm text-muted-foreground">
                     <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
@@ -712,6 +754,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 <TabsList className="w-max">
                   {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
                   {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
+                  {story.videos.length > 0 && <TabsTrigger value="videos">Watch</TabsTrigger>}
                   <TabsTrigger value="about">About</TabsTrigger>
                   <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 </TabsList>
@@ -853,6 +896,58 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                       </Link>
                       );
                     })}</> : <p className="p-4 text-muted-foreground">No audio available.</p>}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="videos" className="mt-6">
+                <Card>
+                  <CardContent className="p-0">
+                    {story.videos.length > 0 ? (
+                      story.videos.map((video, index) => {
+                        const watchProgress = videoProgressMap[video.slug] || 0;
+                        const isVideoCompleted = watchProgress >= 0.995;
+                        return (
+                          <div key={video.slug}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWatchStartSlug(video.slug);
+                                setWatchOpen(true);
+                              }}
+                              className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 cursor-pointer transition-colors"
+                            >
+                              <div className="flex items-center gap-4">
+                                <span className="text-sm font-semibold text-muted-foreground w-8">
+                                  {video.order}
+                                </span>
+                                <div>
+                                  <h3 className="font-medium">{video.title}</h3>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                {isAuthenticated &&
+                                  (isVideoCompleted ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Watched
+                                    </span>
+                                  ) : watchProgress > 0 ? (
+                                    <>
+                                      <Eye className="h-3 w-3" />
+                                      <span>{Math.round(watchProgress * 100)}%</span>
+                                    </>
+                                  ) : null)}
+                                <Youtube className="h-4 w-4" />
+                              </div>
+                            </button>
+                            {index < story.videos.length - 1 && <Separator />}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="p-4 text-muted-foreground">No videos available.</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1026,6 +1121,21 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
           </section>
         )}
       </main>
+
+      {story.videos.length > 0 && (
+        <WatchModal
+          storySlug={story.slug}
+          storyTitle={story.title}
+          videos={story.videos}
+          initialVideoSlug={watchStartSlug || watchVideoSlug}
+          open={watchOpen}
+          onOpenChange={setWatchOpen}
+          isAuthenticated={!!isAuthenticated}
+          onProgressSaved={() =>
+            queryClient.invalidateQueries({ queryKey: ["video-progress", slug] })
+          }
+        />
+      )}
 
       {bulkDownloadStage && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">

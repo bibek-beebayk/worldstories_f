@@ -167,9 +167,10 @@ const AdminAnalytics = () => {
           )}
           {contentQuery.data && (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <StatTile label="Stories" value={formatNumber(contentQuery.data.stories_count)} />
                 <StatTile label="Audiobooks" value={formatNumber(contentQuery.data.audiobooks_count)} />
+                <StatTile label="Watchable Stories" value={formatNumber(contentQuery.data.watchable_count)} />
                 <StatTile label="Quick Reads" value={formatNumber(contentQuery.data.quick_read_count)} />
                 <StatTile label="Blog posts" value={formatNumber(contentQuery.data.blog_posts_count)} />
               </div>
@@ -279,6 +280,10 @@ const AdminAnalytics = () => {
                   label="Audio listen-through"
                   value={formatPercent(engagementQuery.data.audio_listen_through.avg_progress)}
                 />
+                <StatTile
+                  label="Video watch-through"
+                  value={formatPercent(engagementQuery.data.video_watch_through.avg_progress)}
+                />
               </div>
 
               <div className="grid gap-4 xl:grid-cols-2">
@@ -357,6 +362,7 @@ const AdminAnalytics = () => {
                 <StatTile label="Completion rate" value={formatPercent(audienceQuery.data.summary.completion_rate)} />
                 <StatTile label="Reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.reading_minutes))}m`} />
                 <StatTile label="Listening time" value={`${formatNumber(Math.round(audienceQuery.data.summary.listening_minutes))}m`} />
+                <StatTile label="Watching time" value={`${formatNumber(Math.round(audienceQuery.data.summary.watching_minutes))}m`} />
                 <StatTile label="Blog reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.blog_reading_minutes))}m`} />
                 <StatTile label="Quick Read time" value={`${formatNumber(Math.round(audienceQuery.data.summary.quick_read_reading_minutes))}m`} />
                 <StatTile label="Avg session" value={`${audienceQuery.data.summary.avg_session_minutes}m`} />
@@ -378,13 +384,14 @@ const AdminAnalytics = () => {
                     ]}
                   />
                 </ChartCard>
-                <ChartCard title="Reading and listening time" subtitle="Measured active session minutes">
+                <ChartCard title="Reading, listening & watching time" subtitle="Measured active session minutes">
                   <TrendLineChart
                     data={audienceQuery.data.daily_activity}
                     xKey="day"
                     series={[
                       { key: "reading_minutes", label: "Reading minutes" },
                       { key: "listening_minutes", label: "Listening minutes" },
+                      { key: "watching_minutes", label: "Watching minutes" },
                     ]}
                   />
                 </ChartCard>
@@ -471,6 +478,20 @@ const AdminAnalytics = () => {
                           <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
                         ))}
                         {audienceQuery.data.top_listened.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No listening sessions yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </ChartCard>
+
+                <ChartCard title="Top watching titles">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
+                      <tbody>
+                        {audienceQuery.data.top_watched.map((row) => (
+                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
+                        ))}
+                        {audienceQuery.data.top_watched.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No watching sessions yet.</td></tr>}
                       </tbody>
                     </table>
                   </div>

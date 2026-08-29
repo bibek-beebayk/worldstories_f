@@ -1,6 +1,7 @@
 import { apiClient, getRefreshToken } from "./client";
 import {
   ContinueListeningItem,
+  ContinueWatchingItem,
   ContinueReadingItem,
   FavoriteItem,
   MyReviewItem,
@@ -85,6 +86,10 @@ export const authApi = {
   getContinueListening: (page: number = 1) =>
     apiClient<PaginatedResponse<ContinueListeningItem>>(
       `/auth/library/continue-listening/?page=${page}`
+    ),
+  getContinueWatching: (page: number = 1) =>
+    apiClient<PaginatedResponse<ContinueWatchingItem>>(
+      `/auth/library/continue-watching/?page=${page}`
     ),
   getFavorites: (page: number = 1) =>
     apiClient<PaginatedResponse<FavoriteItem>>(`/auth/library/favorites/?page=${page}`),
