@@ -71,7 +71,7 @@ export function meta({ data: loaderData, params }: Route.MetaArgs) {
 type ReaderThemeKey = string;
 type ReaderFontKey = string;
 type TouchPointLike = { clientX: number; clientY: number };
-type ReaderThemeConfig = {
+export type ReaderThemeConfig = {
   label: string;
   cardClass: string;
   proseClass: string;
@@ -79,7 +79,7 @@ type ReaderThemeConfig = {
   proseStyle?: CSSProperties;
   isDark?: boolean;
 };
-type CustomReaderTheme = {
+export type CustomReaderTheme = {
   key: string;
   label: string;
   bgColor: string;
@@ -89,7 +89,7 @@ type CustomReaderTheme = {
   isDark: boolean;
 };
 
-const THEMES: Record<string, ReaderThemeConfig> = {
+export const THEMES: Record<string, ReaderThemeConfig> = {
   parchment: {
     label: "Parchment",
     cardClass: "bg-[#f4ede0] border-[#decfb8]",

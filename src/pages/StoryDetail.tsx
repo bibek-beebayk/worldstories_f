@@ -27,6 +27,7 @@ import { useStory } from "@/hooks/useStory";
 import {
   BookMarked,
   CalendarDays,
+  Captions,
   CheckCircle2,
   Clock,
   Download,
@@ -47,14 +48,14 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { data, Link, useParams } from "react-router";
+import { data, Link, useNavigate, useParams } from "react-router";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import type { Route } from "./+types/StoryDetail";
 import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
-import { formatBytes, formatDurationMinutes } from "@/lib/utils";
+import { cn, formatBytes, formatDurationMinutes } from "@/lib/utils";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
@@ -146,6 +147,7 @@ type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
 
 const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
   const [showFinishedRail, setShowFinishedRail] = useState(false);
   useEffect(() => {
@@ -356,6 +358,15 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
 
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
   const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
+  const readAlongTracks = story.audios
+    .filter((audio) => audio.read_along_available)
+    .sort((a, b) => a.order - b.order);
+  const hasReadAlong = readAlongTracks.length > 0;
+  const readAlongResumeSlug =
+    savedAudioSlug && readAlongTracks.some((audio) => audio.slug === savedAudioSlug)
+      ? savedAudioSlug
+      : null;
+  const readAlongStartSlug = readAlongResumeSlug ?? readAlongTracks[0]?.slug;
   const firstVideoSlug = story.videos[0]?.slug;
   const savedVideoSlug = videoProgress?.video_slug;
   const hasSavedVideo =
@@ -639,12 +650,31 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                   )}
 
                   {story.audios.length > 0 && listenAudioSlug && (
-                    <Link to={`/listen/${story.slug}/${listenAudioSlug}`} className="">
-                      <Button size="lg" variant="secondary" className="flex-1 min-w-[140px]">
-                        <Headphones className="h-4 w-4 mr-2" />
-                        {hasSavedAudio ? "Continue Listening" : "Listen to Audio"}
-                      </Button>
-                    </Link>
+                    <div className="flex min-w-[140px]">
+                      <Link to={`/listen/${story.slug}/${listenAudioSlug}`}>
+                        <Button
+                          size="lg"
+                          variant="secondary"
+                          className={cn("min-w-[140px]", hasReadAlong && "rounded-r-none")}
+                        >
+                          <Headphones className="h-4 w-4 mr-2" />
+                          {hasSavedAudio ? "Continue Listening" : "Listen to Audio"}
+                        </Button>
+                      </Link>
+                      {hasReadAlong && readAlongStartSlug && (
+                        <Link to={`/read-along/${story.slug}/${readAlongStartSlug}`}>
+                          <Button
+                            size="lg"
+                            variant="secondary"
+                            className="-ml-px rounded-l-none px-3"
+                            aria-label={readAlongResumeSlug ? "Continue Read Along" : "Read Along"}
+                            title="Read Along — follow the transcript while listening"
+                          >
+                            <Captions className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   )}
 
                   {story.videos.length > 0 && (
@@ -861,6 +891,21 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                                 {Math.round((getDownloadProgress(downloadId) || 0) * 100)}%
                               </span>
                             )}
+                            {chapter.read_along_available && (
+                              <button
+                                type="button"
+                                title="Read Along"
+                                aria-label={`Read Along: ${chapter.title}`}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  navigate(`/read-along/${slug}/${chapter.slug}`);
+                                }}
+                                className="rounded-full p-1.5 hover:bg-muted"
+                              >
+                                <Captions className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               type="button"
                               title={isDownloaded ? "Remove download" : "Download for offline listening"}
@@ -892,7 +937,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                             </button>
                           </div>
                         </div>
-                        {index < story.chapters.length - 1 && <Separator />}
+                        {index < story.audios.length - 1 && <Separator />}
                       </Link>
                       );
                     })}</> : <p className="p-4 text-muted-foreground">No audio available.</p>}

@@ -28,6 +28,44 @@ export interface Audio {
   order: number;
   slug: string;
   download_size_bytes?: number;
+  has_transcript: boolean;
+  read_along_available: boolean;
+  transcript_synchronized: boolean;
+}
+
+export interface ReadAlongResponse {
+  story: {
+    id: number;
+    title: string;
+    slug: string;
+    language: string;
+    story_type: string;
+    cover_image: string | null;
+    author: { id: number; name: string } | null;
+  };
+  audio: {
+    id: number;
+    title: string;
+    slug: string;
+    order: number;
+    audio_file: string | null;
+    stream_url: string;
+    duration_seconds: number | null;
+    download_size_bytes: number;
+    has_transcript: boolean;
+    read_along_available: boolean;
+    transcript_synchronized: boolean;
+  };
+  transcript: {
+    html: string;
+    state: "empty" | "unsynchronized" | "synchronized";
+    synchronized: boolean;
+    cues: Array<{ id: number; start_seconds: number; end_seconds: number; text: string }>;
+  };
+  navigation: {
+    previous_audio_slug: string | null;
+    next_audio_slug: string | null;
+  };
 }
 
 export interface Video {
@@ -627,6 +665,7 @@ export interface AdminAudio {
   title: string;
   slug: string;
   audio_file: string | null;
+  transcript: string;
   order: number;
 }
 

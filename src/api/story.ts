@@ -68,9 +68,14 @@ import {
   TaxonomyImportPreview,
   TaxonomyImportRow,
   StoryMapResponse,
+  ReadAlongResponse,
 } from "./types";
 
 export const storyApi = {
+  getReadAlong: (storySlug: string, audioSlug: string) =>
+    apiClient<ReadAlongResponse>(
+      `/stories/${encodeURIComponent(storySlug)}/read-along/${encodeURIComponent(audioSlug)}/`
+    ),
   getStories: (
     page: number,
     genres: number[] | [],

@@ -210,6 +210,8 @@ const AdminContent = () => {
   const [newAudioSlug, setNewAudioSlug] = useState("");
   const [newAudioOrder, setNewAudioOrder] = useState(1);
   const [newAudioFile, setNewAudioFile] = useState<File | null>(null);
+  const [newAudioTranscript, setNewAudioTranscript] = useState("");
+  const [copyTranscriptChapterId, setCopyTranscriptChapterId] = useState("");
   const [creatingAudio, setCreatingAudio] = useState(false);
   const [pendingDeleteAudioId, setPendingDeleteAudioId] = useState<number | null>(null);
   const [deletingAudio, setDeletingAudio] = useState(false);
@@ -230,6 +232,7 @@ const AdminContent = () => {
   const [summaryBannerDismissed, setSummaryBannerDismissed] = useState(false);
   const [retrospectiveBannerDismissed, setRetrospectiveBannerDismissed] = useState(false);
   const chapterEditorRef = useRef<HTMLDivElement | null>(null);
+  const audioTranscriptEditorRef = useRef<HTMLDivElement | null>(null);
   const summaryEditorRef = useRef<HTMLDivElement | null>(null);
   const retrospectiveEditorRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -660,6 +663,8 @@ const AdminContent = () => {
     setNewAudioSlug("");
     setNewAudioOrder((audiosData?.results?.length || 0) + 1);
     setNewAudioFile(null);
+    setNewAudioTranscript("");
+    setCopyTranscriptChapterId("");
     setShowAudioModal(true);
   };
 
@@ -668,12 +673,15 @@ const AdminContent = () => {
     title: string;
     slug: string;
     order: number;
+    transcript: string;
   }) => {
     setEditingAudioId(audio.id);
     setNewAudioTitle(audio.title || "");
     setNewAudioSlug(audio.slug || "");
     setNewAudioOrder(audio.order || 1);
     setNewAudioFile(null);
+    setNewAudioTranscript(audio.transcript || "");
+    setCopyTranscriptChapterId("");
     setShowAudioModal(true);
   };
 
@@ -692,6 +700,9 @@ const AdminContent = () => {
       formData.append("order", String(newAudioOrder));
       if (newAudioSlug.trim()) formData.append("slug", newAudioSlug.trim());
       if (newAudioFile) formData.append("audio_file", newAudioFile);
+      // Always send this field, including an empty string, so an existing
+      // transcript can be explicitly cleared from the edit form.
+      formData.append("transcript", newAudioTranscript);
 
       if (editingAudioId) {
         await storyApi.updateAdminAudio(editingAudioId, formData);
@@ -847,6 +858,54 @@ const AdminContent = () => {
     setNewChapterContent(chapterEditorRef.current?.innerHTML || "");
   };
 
+  const syncAudioTranscriptEditorContent = () => {
+    setNewAudioTranscript(audioTranscriptEditorRef.current?.innerHTML || "");
+  };
+
+  const runAudioTranscriptEditorCommand = (command: string, value?: string) => {
+    audioTranscriptEditorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncAudioTranscriptEditorContent();
+  };
+
+  const addAudioTranscriptLink = () => {
+    const url = window.prompt("Enter URL");
+    if (!url) return;
+    runAudioTranscriptEditorCommand("createLink", url);
+  };
+
+  const transcriptHasText = (html: string) => {
+    if (typeof document === "undefined") return html.trim().length > 0;
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    return (container.textContent || "").replace(/\u00a0/g, " ").trim().length > 0;
+  };
+
+  const copySelectedChapterToTranscript = () => {
+    const chapter = (chaptersData?.results || []).find(
+      (item) => String(item.id) === copyTranscriptChapterId
+    );
+    if (!chapter) {
+      toast.error("Select a chapter to copy.");
+      return;
+    }
+    if (
+      transcriptHasText(newAudioTranscript) &&
+      !window.confirm("Replace the current transcript with this chapter's content?")
+    ) {
+      return;
+    }
+
+    // This is deliberately a one-time HTML copy. No chapter id is submitted
+    // or stored, so later chapter edits cannot overwrite the transcript.
+    setNewAudioTranscript(chapter.content || "");
+    if (audioTranscriptEditorRef.current) {
+      audioTranscriptEditorRef.current.innerHTML = chapter.content || "";
+      audioTranscriptEditorRef.current.focus();
+    }
+    toast.success(`Copied ${chapter.title} into the transcript.`);
+  };
+
   const runChapterEditorCommand = (command: string, value?: string) => {
     chapterEditorRef.current?.focus();
     document.execCommand(command, false, value);
@@ -986,6 +1045,13 @@ const AdminContent = () => {
     // mirrored state would reset the caret after every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showChapterModal]);
+
+  useEffect(() => {
+    if (!showAudioModal || !audioTranscriptEditorRef.current) return;
+    audioTranscriptEditorRef.current.innerHTML = newAudioTranscript || "";
+    // Seed only when the modal opens so typing does not reset the caret.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAudioModal]);
 
   useEffect(() => {
     if (!showStoryForm || !summaryEditorRef.current) return;
@@ -3022,7 +3088,7 @@ const AdminContent = () => {
 
       {showAudioModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowAudioModal(false)}>
-          <Card className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+          <Card className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">{editingAudioId ? "Edit Audio" : "Add New Audio"}</CardTitle>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowAudioModal(false)}>
@@ -3054,6 +3120,60 @@ const AdminContent = () => {
                     onChange={(e) => setNewAudioFile(e.target.files?.[0] || null)}
                     required={!editingAudioId}
                   />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="min-w-52 flex-1">
+                      <Label htmlFor="copy-transcript-chapter">Copy from Chapter</Label>
+                      <Select value={copyTranscriptChapterId} onValueChange={setCopyTranscriptChapterId}>
+                        <SelectTrigger id="copy-transcript-chapter">
+                          <SelectValue placeholder="Select a chapter" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[80]">
+                          {(chaptersData?.results || []).map((chapter) => (
+                            <SelectItem key={chapter.id} value={String(chapter.id)}>
+                              {chapter.order}. {chapter.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!copyTranscriptChapterId}
+                      onClick={copySelectedChapterToTranscript}
+                    >
+                      Copy into Transcript
+                    </Button>
+                  </div>
+                  {(chaptersData?.results?.length || 0) === 0 && (
+                    <p className="text-xs text-muted-foreground">This story has no chapters to copy.</p>
+                  )}
+                  <Label htmlFor="new-audio-transcript">Transcript (optional)</Label>
+                  <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => runAudioTranscriptEditorCommand("bold")}><Bold className="h-4 w-4" /></Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => runAudioTranscriptEditorCommand("italic")}><Italic className="h-4 w-4" /></Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => runAudioTranscriptEditorCommand("underline")}><Underline className="h-4 w-4" /></Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => runAudioTranscriptEditorCommand("formatBlock", "h2")}><Heading2 className="h-4 w-4" /></Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => runAudioTranscriptEditorCommand("insertUnorderedList")}><List className="h-4 w-4" /></Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => runAudioTranscriptEditorCommand("insertOrderedList")}><ListOrdered className="h-4 w-4" /></Button>
+                    <Button type="button" variant="outline" size="sm" onClick={addAudioTranscriptLink}><Link2 className="h-4 w-4" /></Button>
+                  </div>
+                  <div
+                    id="new-audio-transcript"
+                    ref={audioTranscriptEditorRef}
+                    contentEditable
+                    dir="ltr"
+                    style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
+                    suppressContentEditableWarning
+                    onInput={syncAudioTranscriptEditorContent}
+                    onPaste={(event) => handleRichTextPaste(event, syncAudioTranscriptEditorContent)}
+                    className="prose prose-sm dark:prose-invert min-h-52 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This transcript belongs to the audio track. Copying a chapter creates an editable snapshot and does not keep it linked.
+                  </p>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setShowAudioModal(false)}>Cancel</Button>

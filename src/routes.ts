@@ -37,6 +37,7 @@ export default [
     route("story/:slug/epub", "pages/EpubReader.tsx"),
     route("read/:story_slug/:chapter_slug", "pages/StoryReader.tsx"),
     route("listen/:story_slug/:chapter_slug", "pages/AudiobookPlayer.tsx"),
+    route("read-along/:story_slug/:audio_slug", "pages/ReadAlongReader.tsx"),
     // Catch-all for unknown paths inside the default layout.
     route("*", "pages/NotFound.tsx", { id: "default-not-found" }),
   ]),

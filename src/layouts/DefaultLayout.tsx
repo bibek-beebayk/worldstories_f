@@ -23,6 +23,7 @@ import type { Route } from "./+types/DefaultLayout";
 export function meta({ location }: Route.MetaArgs) {
   const isPrivateUtilityRoute =
     location.pathname.startsWith("/read/") ||
+    location.pathname.startsWith("/read-along/") ||
     location.pathname.startsWith("/listen/") ||
     location.pathname.endsWith("/pdf") ||
     location.pathname.endsWith("/epub") ||
@@ -48,6 +49,7 @@ export default function DefaultLayout() {
   // Everything else depends on the API and would otherwise just dead-end.
   const isReaderOrListenerRoute =
     location.pathname.startsWith("/read/") ||
+    location.pathname.startsWith("/read-along/") ||
     location.pathname.startsWith("/listen/") ||
     location.pathname.endsWith("/pdf") ||
     location.pathname.endsWith("/epub");
