@@ -65,9 +65,6 @@ vi.mock("@/hooks/audio/useAudioPlayback", () => ({
     return state.player;
   },
 }));
-vi.mock("@/hooks/audio/useAutoplayPreference", () => ({
-  useAutoplayPreference: () => [true, vi.fn()],
-}));
 vi.mock("@/hooks/read-along/useReadAlongAutoScroll", () => ({
   useReadAlongAutoScroll: () => [true, vi.fn()],
 }));
@@ -205,6 +202,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  localStorage.clear();
   state.readAlongResult = { data: readAlong, isLoading: false, isError: false, refetch: vi.fn() };
   state.story = story;
   state.playbackOptions = null;
@@ -230,6 +228,54 @@ describe("ReadAlongReader integration", () => {
     );
     expect(screen.getByRole("slider", { name: "Playback position" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
+    expect(screen.getByText("10%")).toBeInTheDocument(); // 12s / 120s
+
+    // The stripped-down bar drops track transport and autoplay.
+    expect(screen.queryByRole("button", { name: /Previous track|Next track/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Rewind|Forward/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: /Autoplay/ })).not.toBeInTheDocument();
+  });
+
+  it("hides and restores the reader chrome from explicit controls", () => {
+    renderReader();
+    expect(screen.queryByRole("button", { name: "Show controls" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide controls" }));
+    const show = screen.getByRole("button", { name: "Show controls" });
+    fireEvent.click(show);
+    expect(screen.getByRole("button", { name: "Hide controls" })).toBeInTheDocument();
+  });
+
+  it("nudges the highlight-sync offset and compensates cue seeks", () => {
+    renderReader();
+    const control = screen.getByRole("group", { name: "Highlight sync" });
+    expect(control).toHaveTextContent("Sync 0s");
+
+    fireEvent.click(screen.getByRole("button", { name: "The first spoken line." }));
+    expect(state.player.seek).toHaveBeenLastCalledWith(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Highlight later" }));
+    fireEvent.click(screen.getByRole("button", { name: "Highlight later" }));
+    expect(control).toHaveTextContent("Sync +0.2s");
+    expect(localStorage.getItem("read_along_sync_offset")).toBe("0.2");
+
+    fireEvent.click(screen.getByRole("button", { name: "The first spoken line." }));
+    expect(state.player.seek).toHaveBeenLastCalledWith(0.2);
+  });
+
+  it("hides the highlight-sync control when the track has no cues", () => {
+    const unsynced = {
+      ...readAlong,
+      transcript: {
+        html: "<p>Plain text.</p>",
+        state: "unsynchronized" as const,
+        synchronized: false,
+        cues: [],
+      },
+    };
+    state.readAlongResult = { data: unsynced, isLoading: false, isError: false, refetch: vi.fn() };
+    renderReader(unsynced);
+    expect(screen.queryByRole("group", { name: "Highlight sync" })).not.toBeInTheDocument();
   });
 
   it("keeps global playback shortcuts away from focused controls", () => {

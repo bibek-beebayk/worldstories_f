@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { data, Link, useLocation, useNavigate, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDownToLine, ArrowLeft, Expand, List, Minimize } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowLeft,
+  Expand,
+  Eye,
+  EyeOff,
+  List,
+  Loader2,
+  Minimize,
+  Pause,
+  Play,
+} from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,18 +33,20 @@ import { READER_GLASS_PANEL_CLASS } from "@/components/reader/glassPanel";
 import { useAudioSource } from "@/hooks/audio/useAudioSource";
 import { useAudioProgress } from "@/hooks/audio/useAudioProgress";
 import { useAudioPlayback } from "@/hooks/audio/useAudioPlayback";
-import { useAutoplayPreference } from "@/hooks/audio/useAutoplayPreference";
-import { AudioTimeline } from "@/components/audio/AudioTimeline";
-import { AudioTransportControls } from "@/components/audio/AudioTransportControls";
+import { ReadAlongProgress } from "@/components/read-along/ReadAlongProgress";
+import { formatTime } from "@/components/audio/formatTime";
 import { PlaybackSpeedControl } from "@/components/audio/PlaybackSpeedControl";
 import { AutoplayToggle } from "@/components/audio/AutoplayToggle";
 import { AudioErrorMessage } from "@/components/audio/AudioErrorMessage";
 import { normalizeCues } from "@/lib/readAlongCues";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useReadAlongAutoScroll } from "@/hooks/read-along/useReadAlongAutoScroll";
+import { useReadAlongSyncOffset } from "@/hooks/read-along/useReadAlongSyncOffset";
 import { useActiveCue } from "@/hooks/read-along/useActiveCue";
 import { useCueAutoScroll } from "@/hooks/read-along/useCueAutoScroll";
 import { TranscriptCues } from "@/components/read-along/TranscriptCues";
+import { SyncOffsetControl } from "@/components/read-along/SyncOffsetControl";
+import { SYNC_OFFSET_MAX } from "@/lib/readAlongSyncOffset";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { isDownloaded } from "@/hooks/useOfflineDownload";
 import { listOfflineReadAlongTracks } from "@/lib/offlineReadAlong";
@@ -140,8 +153,8 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   const [hasMounted, setHasMounted] = useState(false);
   const isOnline = useOnlineStatus();
   const appearance = useReaderAppearance();
-  const [autoplayEnabled, setAutoplayEnabled] = useAutoplayPreference();
   const [autoScrollEnabled, setAutoScrollEnabled] = useReadAlongAutoScroll();
+  const sync = useReadAlongSyncOffset();
   const reducedMotion = usePrefersReducedMotion();
   const { data: offlineReadAlongTracks = [] } = useQuery({
     queryKey: ["offline-read-along-tracks", story_slug],
@@ -209,8 +222,10 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
     onTimeUpdate: progress.handleTimeUpdate,
     onEnded: (el) => {
       progress.handleEnded(el);
+      // No prev/next controls on this surface — a finished track always rolls
+      // straight into the next compatible one (last track just stops).
       const next = readAlong?.navigation.next_audio_slug;
-      if (autoplayEnabled && next) goToTrack(next);
+      if (next) goToTrack(next);
     },
     onMediaError: source.handleMediaError,
   });
@@ -218,7 +233,9 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   const playerRef = useRef(player);
   playerRef.current = player;
   const handleSeekToCue = useCallback((startSeconds: number, cueIndex: number) => {
-    playerRef.current.seek(startSeconds);
+    // Land on the audio the cue actually corresponds to under the current
+    // sync offset, so click-to-jump and the highlight agree.
+    playerRef.current.seek(Math.max(0, startSeconds + sync.offsetSeconds));
     playerRef.current.play();
     if (story_slug) {
       trackAnalyticsEvent({
@@ -232,7 +249,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
         },
       });
     }
-  }, [audio_slug, story_slug]);
+  }, [audio_slug, story_slug, sync.offsetSeconds]);
 
   const handleFollowToggle = () => {
     const enabled = !autoScrollEnabled;
@@ -251,6 +268,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
     audioRef: player.audioRef,
     isPlaying: player.isPlaying,
     currentTime: player.currentTime,
+    offsetSeconds: sync.offsetSeconds,
     enabled: hasMounted && cues.length > 0,
   });
 
@@ -258,6 +276,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
     cues,
     activeIndex: activeCueIndex,
     currentTime: player.currentTime,
+    offsetSeconds: sync.offsetSeconds,
     cueRefs,
     scrollContainerRef: scrollRef,
     enabled: hasMounted && autoScrollEnabled && cues.length > 0,
@@ -470,10 +489,14 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
     );
   }
 
-  const { story: readAlongStory, audio, transcript, navigation } = readAlong;
+  const { story: readAlongStory, audio, transcript } = readAlong;
   const audioUnavailable = !audio.stream_url && !audio.audio_file;
   const transcriptEmpty = transcript.state === "empty" || !transcript.html?.trim();
   const listenHref = `/listen/${story_slug}/${audio_slug}`;
+  const playbackPercent =
+    player.duration > 0
+      ? Math.min(100, Math.max(0, Math.round((player.currentTime / player.duration) * 100)))
+      : 0;
   // Background + inset bar only — never `color` — so it stays orthogonal to the
   // theme's `--tw-prose-*` cascade (and night mode's forced `!text-slate-300`).
   const activeCueClassName = appearance.isDarkReaderTheme
@@ -516,6 +539,16 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
             <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{audio.title}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-11 w-11 touch-manipulation px-0 motion-reduce:transition-none sm:h-9 sm:w-auto sm:px-3"
+              onClick={() => setIsChromeVisible(false)}
+              aria-label="Hide controls"
+            >
+              <EyeOff className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Hide</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -622,51 +655,78 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
           !isChromeVisible && "translate-y-full pointer-events-none"
         )}
       >
-        <div className="mx-auto max-w-3xl space-y-2 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-slate-100 shadow-2xl">
+        <div className="mx-auto max-w-3xl rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-slate-100 shadow-2xl sm:px-4">
           {audioUnavailable ? (
             <p className="py-2 text-center text-sm text-slate-300">
               Audio for this track isn't available right now. You can still read the transcript.
             </p>
           ) : (
             <>
-              <AudioTimeline
-                currentTime={player.currentTime}
-                duration={player.duration}
-                onSeek={player.seek}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <AudioTransportControls
-                  isPlaying={player.isPlaying}
-                  isLoading={player.isLoading}
-                  onTogglePlay={player.togglePlay}
-                  onSkip={player.skip}
-                  onPrev={() =>
-                    navigation.previous_audio_slug && goToTrack(navigation.previous_audio_slug)
-                  }
-                  onNext={() => navigation.next_audio_slug && goToTrack(navigation.next_audio_slug)}
-                  hasPrev={!!navigation.previous_audio_slug}
-                  hasNext={!!navigation.next_audio_slug}
-                  prevLabel="Previous track"
-                  nextLabel="Next track"
-                />
-                <div className="flex flex-wrap items-center gap-2">
-                  {hasMounted && cues.length > 0 && (
-                    <AutoplayToggle
-                      label="Follow"
-                      enabled={autoScrollEnabled}
-                      onToggle={handleFollowToggle}
-                    />
-                  )}
-                  {hasMounted && (
-                    <AutoplayToggle
-                      enabled={autoplayEnabled}
-                      onToggle={() => setAutoplayEnabled((value) => !value)}
-                    />
-                  )}
-                  <PlaybackSpeedControl rate={player.playbackRate} onCycle={player.cyclePlaybackRate} />
+              <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5">
+                <div className="col-start-2 row-start-1 flex justify-between text-[10px] font-medium leading-none tabular-nums text-slate-400">
+                  <span>{formatTime(player.currentTime)}</span>
+                  <span>{formatTime(player.duration)}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={player.togglePlay}
+                  aria-label={
+                    player.isLoading
+                      ? "Loading audio — tap to play"
+                      : player.isPlaying
+                      ? "Pause"
+                      : "Play"
+                  }
+                  aria-busy={player.isLoading}
+                  className="col-start-1 row-start-2 flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 motion-reduce:transition-none"
+                >
+                  {player.isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+                  ) : player.isPlaying ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                </button>
+                <ReadAlongProgress
+                  className="col-start-2 row-start-2"
+                  currentTime={player.currentTime}
+                  duration={player.duration}
+                  onSeek={player.seek}
+                />
+                <span
+                  className="col-start-3 row-start-2 w-8 text-right text-[11px] font-semibold tabular-nums text-cyan-300"
+                  aria-hidden="true"
+                >
+                  {playbackPercent}%
+                </span>
               </div>
-              <AudioErrorMessage message={player.error} />
+              <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
+                {hasMounted && cues.length > 0 && (
+                  <AutoplayToggle
+                    label="Follow"
+                    enabled={autoScrollEnabled}
+                    onToggle={handleFollowToggle}
+                    className="min-h-0 h-8 min-w-0 gap-1.5 px-2 text-[11px]"
+                  />
+                )}
+                {hasMounted && cues.length > 0 && (
+                  <SyncOffsetControl
+                    offsetSeconds={sync.offsetSeconds}
+                    onDecrease={sync.decrease}
+                    onIncrease={sync.increase}
+                    onReset={sync.reset}
+                    atMin={sync.offsetSeconds <= -SYNC_OFFSET_MAX}
+                    atMax={sync.offsetSeconds >= SYNC_OFFSET_MAX}
+                  />
+                )}
+                <PlaybackSpeedControl
+                  rate={player.playbackRate}
+                  onCycle={player.cyclePlaybackRate}
+                  className="min-h-0 h-8 min-w-0 px-2 text-[11px]"
+                />
+              </div>
+              <AudioErrorMessage message={player.error} className="mt-1.5" />
               {hasMounted && source.audioSrc && (
                 <audio
                   key={source.sourceKey}
@@ -679,6 +739,26 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
           )}
         </div>
       </div>
+
+      {/* Restore the reader chrome once it's been hidden. */}
+      {!isChromeVisible && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsChromeVisible(true);
+          }}
+          aria-label="Show controls"
+          className={cn(
+            "fixed right-3 top-3 z-[60] flex h-10 w-10 touch-manipulation items-center justify-center rounded-full border opacity-60 shadow-lg hover:opacity-100",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none",
+            READER_GLASS_PANEL_CLASS,
+            appearance.isDarkReaderTheme && "dark"
+          )}
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+      )}
 
       {/* Resume auto-scroll — appears after a manual scroll, above the docked player */}
       {hasMounted && autoScrollEnabled && cues.length > 0 && autoScroll.isSuspended && (

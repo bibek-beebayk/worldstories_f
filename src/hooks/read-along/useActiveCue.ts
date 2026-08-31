@@ -7,6 +7,11 @@ interface UseActiveCueOptions {
   isPlaying: boolean;
   /** `player.currentTime` — the recompute trigger for the paused/seek path. */
   currentTime: number;
+  /**
+   * Reader-set "highlight sync" offset in seconds. Cue lookup happens at
+   * `currentTime - offsetSeconds`, so a positive value delays the highlight.
+   */
+  offsetSeconds: number;
   enabled: boolean;
 }
 
@@ -25,10 +30,16 @@ export function useActiveCue({
   audioRef,
   isPlaying,
   currentTime,
+  offsetSeconds,
   enabled,
 }: UseActiveCueOptions): number {
   const [activeIndex, setActiveIndex] = useState(-1);
   const lastIndexRef = useRef(-1);
+
+  // Read live inside the rAF loop so nudging the offset doesn't tear down and
+  // restart the loop (same pattern as `playerRef` in ReadAlongReader).
+  const offsetRef = useRef(offsetSeconds);
+  offsetRef.current = offsetSeconds;
 
   const commit = (next: number) => {
     if (next !== lastIndexRef.current) {
@@ -50,7 +61,7 @@ export function useActiveCue({
     let frame = 0;
     const tick = () => {
       const el = audioRef.current;
-      if (el) commit(findActiveCueIndex(cues, el.currentTime));
+      if (el) commit(findActiveCueIndex(cues, el.currentTime - offsetRef.current));
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
@@ -62,9 +73,9 @@ export function useActiveCue({
   useEffect(() => {
     if (!enabled || isPlaying) return;
     const el = audioRef.current;
-    commit(findActiveCueIndex(cues, el ? el.currentTime : currentTime));
+    commit(findActiveCueIndex(cues, (el ? el.currentTime : currentTime) - offsetSeconds));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, isPlaying, currentTime, cues]);
+  }, [enabled, isPlaying, currentTime, offsetSeconds, cues]);
 
   return activeIndex;
 }

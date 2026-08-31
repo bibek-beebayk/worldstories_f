@@ -5,6 +5,8 @@ interface UseCueAutoScrollOptions {
   cues: NormalizedCue[];
   activeIndex: number;
   currentTime: number;
+  /** Reader-set "highlight sync" offset in seconds (see `useActiveCue`). */
+  offsetSeconds: number;
   cueRefs: MutableRefObject<(HTMLElement | null)[]>;
   scrollContainerRef: RefObject<HTMLElement | null>;
   enabled: boolean;
@@ -39,6 +41,7 @@ export function useCueAutoScroll({
   cues,
   activeIndex,
   currentTime,
+  offsetSeconds,
   cueRefs,
   scrollContainerRef,
   enabled,
@@ -72,7 +75,7 @@ export function useCueAutoScroll({
   }, [enabled, scrollContainerRef]);
 
   const target =
-    activeIndex >= 0 ? activeIndex : cueAtOrBefore(cues, currentTime);
+    activeIndex >= 0 ? activeIndex : cueAtOrBefore(cues, currentTime - offsetSeconds);
 
   useEffect(() => {
     if (!enabled || isSuspended || target < 0) return;
