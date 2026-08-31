@@ -145,6 +145,14 @@ export function meta({ data, params }: Route.MetaArgs) {
 
 type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
 
+// The action cluster (Read / Listen / Watch / Download / favorite / share)
+// otherwise renders as `size="lg"` pills that stack into three tall rows on a
+// phone. These keep the full-size look from `sm:` up but shrink the height,
+// padding and label on mobile so more fit per row and the block is shorter.
+const ACTION_BTN = "h-9 w-full min-w-0 px-2.5 text-[13px] sm:h-11 sm:px-8 sm:text-sm";
+const ACTION_ITEM = "flex-1 basis-32 min-w-0 sm:basis-auto sm:min-w-[150px]";
+const ACTION_ICON_BTN = "h-9 w-9 shrink-0 px-0 sm:h-11 sm:w-11";
+
 const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -518,6 +526,12 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
     }
   };
   const hasSavedPrimaryFileProgress = (primaryFileProgress?.progress || 0) > 0;
+  // Full labels on `sm`+, single-word labels on phones so two actions fit a row
+  // without the `whitespace-nowrap` text overflowing the viewport.
+  const hasSavedRead = story.chapters.length > 0 ? hasSavedChapter : hasSavedPrimaryFileProgress;
+  const readLabel = hasSavedRead ? "Continue Reading" : "Start Reading";
+  const listenLabel = hasSavedAudio ? "Continue Listening" : "Listen to Audio";
+  const watchLabel = hasSavedVideo ? "Continue Watching" : "Watch";
   // completionPercentage only ever reflects chapter-based progress (from the
   // chapter-specific reading-progress endpoint), which stays 0 for a
   // chapterless story regardless of real EPUB/PDF progress — this is what
@@ -660,32 +674,28 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                   ))}
                 </div>
 
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {primaryReadHref && (
-                    <Link to={primaryReadHref}>
-                      <Button size="lg" className="flex-1 min-w-[140px]">
-                        <BookMarked className="h-4 w-4 mr-2" />
-                        {story.chapters.length > 0
-                          ? hasSavedChapter
-                            ? "Continue Reading"
-                            : "Start Reading"
-                          : hasSavedPrimaryFileProgress
-                          ? "Continue Reading"
-                          : "Start Reading"}
+                    <Link to={primaryReadHref} className={ACTION_ITEM}>
+                      <Button size="lg" className={ACTION_BTN}>
+                        <BookMarked className="h-4 w-4 mr-2 shrink-0" />
+                        <span className="truncate sm:hidden">{hasSavedRead ? "Resume" : "Read"}</span>
+                        <span className="hidden truncate sm:inline">{readLabel}</span>
                       </Button>
                     </Link>
                   )}
 
                   {story.audios.length > 0 && listenAudioSlug && (
-                    <div className="flex min-w-[140px]">
-                      <Link to={`/listen/${story.slug}/${listenAudioSlug}`}>
+                    <div className={cn("flex", ACTION_ITEM)}>
+                      <Link to={`/listen/${story.slug}/${listenAudioSlug}`} className="flex min-w-0 flex-1">
                         <Button
                           size="lg"
                           variant="secondary"
-                          className={cn("min-w-[140px]", hasReadAlong && "rounded-r-none")}
+                          className={cn(ACTION_BTN, hasReadAlong && "rounded-r-none")}
                         >
-                          <Headphones className="h-4 w-4 mr-2" />
-                          {hasSavedAudio ? "Continue Listening" : "Listen to Audio"}
+                          <Headphones className="h-4 w-4 mr-2 shrink-0" />
+                          <span className="truncate sm:hidden">Listen</span>
+                          <span className="hidden truncate sm:inline">{listenLabel}</span>
                         </Button>
                       </Link>
                       {hasReadAlong && readAlongStartSlug && (
@@ -693,7 +703,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                           <Button
                             size="lg"
                             variant="secondary"
-                            className="-ml-px rounded-l-none px-3"
+                            className={cn(ACTION_ICON_BTN, "-ml-px rounded-l-none")}
                             aria-label={readAlongResumeSlug ? "Continue Read Along" : "Read Along"}
                             title="Read Along — follow the transcript while listening"
                           >
@@ -708,14 +718,15 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                     <Button
                       size="lg"
                       variant="secondary"
-                      className="flex-1 min-w-[140px]"
+                      className={cn(ACTION_BTN, ACTION_ITEM)}
                       onClick={() => {
                         setWatchStartSlug(watchVideoSlug || null);
                         setWatchOpen(true);
                       }}
                     >
-                      <Youtube className="h-4 w-4 mr-2" />
-                      {hasSavedVideo ? "Continue Watching" : "Watch"}
+                      <Youtube className="h-4 w-4 mr-2 shrink-0" />
+                      <span className="truncate sm:hidden">Watch</span>
+                      <span className="hidden truncate sm:inline">{watchLabel}</span>
                     </Button>
                   )}
 
@@ -723,18 +734,19 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="flex-1 min-w-[140px]"
+                      className={cn(ACTION_BTN, ACTION_ITEM)}
                       onClick={openBulkDownload}
                       disabled={isBulkDownloading}
                     >
-                      {isBulkDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                      Download
+                      {isBulkDownloading ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <Download className="mr-2 h-4 w-4 shrink-0" />}
+                      <span className="truncate">Download</span>
                     </Button>
                   )}
 
                   <Button
                     size="lg"
                     variant="outline"
+                    className={ACTION_ICON_BTN}
                     onClick={toggleFavorite}
                     disabled={favoriteLoading}
                     aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -743,7 +755,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="lg" variant="outline" aria-label="Share this story">
+                      <Button size="lg" variant="outline" className={ACTION_ICON_BTN} aria-label="Share this story">
                         <Share2 className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
