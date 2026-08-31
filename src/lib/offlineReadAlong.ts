@@ -43,6 +43,7 @@ export async function storeOfflineReadAlong(payload: ReadAlongResponse): Promise
     transcript_html: transcriptHtml,
     synchronized: payload.transcript.synchronized,
     cues: payload.transcript.cues,
+    default_offset_seconds: payload.transcript.default_offset_seconds,
   });
   return true;
 }
@@ -102,6 +103,7 @@ export async function getOfflineReadAlong(
       state: synchronized ? "synchronized" : "unsynchronized",
       synchronized,
       cues: synchronized ? record.cues : [],
+      default_offset_seconds: record.default_offset_seconds ?? 0,
     },
     navigation: {
       previous_audio_slug: currentIndex > 0 ? tracks[currentIndex - 1].slug : null,
@@ -150,6 +152,7 @@ export async function getOfflineAudioOnlyReadAlong(
       state: "empty",
       synchronized: false,
       cues: [],
+      default_offset_seconds: 0,
     },
     navigation: {
       previous_audio_slug: currentIndex > 0 ? downloads[currentIndex - 1].item_slug : null,

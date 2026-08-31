@@ -61,6 +61,8 @@ export interface ReadAlongResponse {
     state: "empty" | "unsynchronized" | "synchronized";
     synchronized: boolean;
     cues: Array<{ id: number; start_seconds: number; end_seconds: number; text: string }>;
+    /** Backend-set default highlight offset in seconds; positive delays the highlight. */
+    default_offset_seconds: number;
   };
   navigation: {
     previous_audio_slug: string | null;
@@ -669,6 +671,7 @@ export interface AdminAudio {
   transcript_synchronized: boolean;
   cue_count: number;
   order: number;
+  read_along_offset_ms: number;
 }
 
 export type AudioTranscriptState = "empty" | "unsynchronized" | "synchronized";

@@ -13,6 +13,8 @@ const state = vi.hoisted(() => ({
   navigate: vi.fn(),
   readAlongResult: {} as Record<string, unknown>,
   story: null as StoryDetail | null,
+  isLoggedIn: false,
+  me: null as { is_superuser: boolean } | null,
   playbackOptions: null as null | {
     onEnded?: (element: HTMLAudioElement) => void;
   },
@@ -47,7 +49,8 @@ vi.mock("react-router", async (importOriginal) => {
 });
 vi.mock("@/hooks/useReadAlong", () => ({ useReadAlong: () => state.readAlongResult }));
 vi.mock("@/hooks/useStory", () => ({ useStory: () => ({ data: state.story }) }));
-vi.mock("@/hooks/useIsLoggedIn", () => ({ useIsLoggedIn: () => false }));
+vi.mock("@/hooks/useIsLoggedIn", () => ({ useIsLoggedIn: () => state.isLoggedIn }));
+vi.mock("@/api/auth", () => ({ authApi: { getMe: () => Promise.resolve(state.me) } }));
 vi.mock("@/hooks/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
 vi.mock("@/hooks/usePrefersReducedMotion", () => ({ usePrefersReducedMotion: () => false }));
 vi.mock("@/hooks/useContentSessionAnalytics", () => ({ useContentSessionAnalytics: vi.fn() }));
@@ -98,7 +101,9 @@ vi.mock("@/hooks/useReaderAppearance", () => ({
   }),
 }));
 vi.mock("@/lib/analytics", () => ({ trackAnalyticsEvent: vi.fn() }));
+vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
+import { storyApi } from "@/api/story";
 import ReadAlongReader from "./ReadAlongReader";
 
 const readAlong: ReadAlongResponse = {
@@ -132,6 +137,7 @@ const readAlong: ReadAlongResponse = {
       { id: 1, start_seconds: 0, end_seconds: 2, text: "The first spoken line." },
       { id: 2, start_seconds: 2, end_seconds: 4, text: "The second spoken line." },
     ],
+    default_offset_seconds: 0,
   },
   navigation: { previous_audio_slug: null, next_audio_slug: "track-2" },
 };
@@ -206,6 +212,8 @@ beforeEach(() => {
   state.readAlongResult = { data: readAlong, isLoading: false, isError: false, refetch: vi.fn() };
   state.story = story;
   state.playbackOptions = null;
+  state.isLoggedIn = false;
+  state.me = null;
   state.navigate.mockReset();
   Object.values(state.player).forEach((value) => {
     if (typeof value === "function" && "mockReset" in value) value.mockReset();
@@ -257,10 +265,41 @@ describe("ReadAlongReader integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Highlight later" }));
     fireEvent.click(screen.getByRole("button", { name: "Highlight later" }));
     expect(control).toHaveTextContent("Sync +0.2s");
-    expect(localStorage.getItem("read_along_sync_offset")).toBe("0.2");
+    expect(localStorage.getItem("read_along_sync_offset:track-1")).toBe("0.2");
 
     fireEvent.click(screen.getByRole("button", { name: "The first spoken line." }));
     expect(state.player.seek).toHaveBeenLastCalledWith(0.2);
+
+    // "Reset" clears the per-track override and returns to the backend default (0).
+    fireEvent.click(screen.getByRole("button", { name: "Reset to default sync" }));
+    expect(control).toHaveTextContent("Sync 0s");
+    expect(localStorage.getItem("read_along_sync_offset:track-1")).toBeNull();
+  });
+
+  it("hides the superuser 'save as default' control from a normal reader", () => {
+    renderReader();
+    expect(
+      screen.queryByRole("button", { name: /Save as the default sync/ })
+    ).not.toBeInTheDocument();
+  });
+
+  it("lets a superuser save the current offset as the track default", async () => {
+    const setOffset = vi
+      .spyOn(storyApi, "setReadAlongOffset")
+      .mockResolvedValue({} as never);
+    state.isLoggedIn = true;
+    state.me = { is_superuser: true };
+    renderReader();
+
+    const save = await screen.findByRole("button", { name: /Save as the default sync/ });
+    expect(save).toBeDisabled(); // nothing to save at the default
+
+    fireEvent.click(screen.getByRole("button", { name: "Highlight later" }));
+    fireEvent.click(screen.getByRole("button", { name: "Highlight later" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Save as the default sync/ }));
+
+    await waitFor(() => expect(setOffset).toHaveBeenCalledWith(11, 200));
+    setOffset.mockRestore();
   });
 
   it("hides the highlight-sync control when the track has no cues", () => {
@@ -271,6 +310,7 @@ describe("ReadAlongReader integration", () => {
         state: "unsynchronized" as const,
         synchronized: false,
         cues: [],
+        default_offset_seconds: 0,
       },
     };
     state.readAlongResult = { data: unsynced, isLoading: false, isError: false, refetch: vi.fn() };
@@ -318,7 +358,7 @@ describe("ReadAlongReader integration", () => {
   it("shows the empty-transcript fallback without hiding playback", () => {
     const empty = {
       ...readAlong,
-      transcript: { html: "", state: "empty" as const, synchronized: false, cues: [] },
+      transcript: { html: "", state: "empty" as const, synchronized: false, cues: [], default_offset_seconds: 0 },
     };
     state.readAlongResult = { data: empty, isLoading: false, isError: false, refetch: vi.fn() };
     renderReader(empty);

@@ -72,6 +72,8 @@ export interface OfflineTranscriptRecord {
   transcript_html: string;
   synchronized: boolean;
   cues: OfflineTranscriptCue[];
+  /** Backend default highlight offset in seconds at download time. Absent on pre-v6 records → 0. */
+  default_offset_seconds?: number;
   downloaded_at: string;
 }
 
@@ -479,6 +481,7 @@ export async function claimAnonymousDownloads(): Promise<void> {
       transcript_html: record.transcript_html,
       synchronized: record.synchronized,
       cues: record.cues,
+      default_offset_seconds: record.default_offset_seconds,
     });
   }
 }

@@ -21,6 +21,8 @@ import { buildMeta } from "@/lib/buildMeta";
 import { cn } from "@/lib/utils";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { storyApi } from "@/api/story";
+import { authApi } from "@/api/auth";
+import { toast } from "@/components/ui/sonner";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
@@ -154,7 +156,14 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   const isOnline = useOnlineStatus();
   const appearance = useReaderAppearance();
   const [autoScrollEnabled, setAutoScrollEnabled] = useReadAlongAutoScroll();
-  const sync = useReadAlongSyncOffset();
+  const sync = useReadAlongSyncOffset(audio_slug, readAlong?.transcript.default_offset_seconds ?? 0);
+  const { data: me } = useQuery({
+    queryKey: ["profile-me"],
+    queryFn: authApi.getMe,
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  });
+  const isSuperuser = Boolean(me?.is_superuser);
   const reducedMotion = usePrefersReducedMotion();
   const { data: offlineReadAlongTracks = [] } = useQuery({
     queryKey: ["offline-read-along-tracks", story_slug],
@@ -260,6 +269,18 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
         story_slug,
         metadata: { format: "read_along", item_slug: audio_slug || "", enabled, action: "toggle" },
       });
+    }
+  };
+
+  const handleSaveDefaultOffset = async () => {
+    if (!readAlong) return;
+    try {
+      await storyApi.setReadAlongOffset(readAlong.audio.id, Math.round(sync.offsetSeconds * 1000));
+      sync.reset(); // drop the personal override so the control now shows the saved default
+      await queryClient.invalidateQueries({ queryKey: ["read-along", story_slug, audio_slug] });
+      toast.success("Saved as the default sync for all readers.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't save the default sync.");
     }
   };
 
@@ -716,8 +737,14 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
                     onDecrease={sync.decrease}
                     onIncrease={sync.increase}
                     onReset={sync.reset}
+                    resettable={sync.isOverridden}
                     atMin={sync.offsetSeconds <= -SYNC_OFFSET_MAX}
                     atMax={sync.offsetSeconds >= SYNC_OFFSET_MAX}
+                    onSaveDefault={isSuperuser ? handleSaveDefaultOffset : undefined}
+                    canSaveDefault={
+                      Math.round(sync.offsetSeconds * 1000) !==
+                      Math.round(sync.defaultOffsetSeconds * 1000)
+                    }
                   />
                 )}
                 <PlaybackSpeedControl

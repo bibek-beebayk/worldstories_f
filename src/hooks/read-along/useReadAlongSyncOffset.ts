@@ -6,44 +6,78 @@ import {
 } from "@/lib/readAlongSyncOffset";
 
 interface UseReadAlongSyncOffsetResult {
-  /** Seconds to shift cue highlighting by. Positive delays the highlight. */
+  /** Effective offset in seconds: the reader's per-track override, else the backend default. */
   offsetSeconds: number;
+  /** The backend-set default for this track (clamped), for "nothing to save" checks. */
+  defaultOffsetSeconds: number;
+  /** True when the reader has a personal per-track override layered on the default. */
+  isOverridden: boolean;
   increase: () => void;
   decrease: () => void;
+  /** Drop the personal override and follow the backend default again. */
   reset: () => void;
   setOffsetSeconds: (next: number) => void;
 }
 
 /**
- * Locally-persisted "highlight sync" offset for the Read Along page. Lets a
- * reader nudge cue highlighting earlier/later to correct timed cues that run
- * consistently ahead of or behind the audio. Defaults to 0 (and 0 on the
- * server / first client paint); mirrors `useReadAlongAutoScroll`.
+ * Read Along "highlight sync" offset for one track. The reader's manual
+ * adjustment is a **per-track** override kept in localStorage; a track with no
+ * override follows `defaultOffsetSeconds` (set on the backend by a superuser).
+ * SSR / no track slug → the backend default (0 on the server).
  */
-export function useReadAlongSyncOffset(): UseReadAlongSyncOffsetResult {
-  const [offsetSeconds, setOffsetState] = useState(() =>
-    typeof window === "undefined"
-      ? 0
-      : clampSyncOffset(localStorage.getItem(SYNC_OFFSET_STORAGE_KEY))
+export function useReadAlongSyncOffset(
+  audioSlug: string | undefined,
+  defaultOffsetSeconds: number
+): UseReadAlongSyncOffsetResult {
+  const storageKey = audioSlug ? `${SYNC_OFFSET_STORAGE_KEY}:${audioSlug}` : null;
+
+  const readOverride = useCallback((): number | null => {
+    if (typeof window === "undefined" || !storageKey) return null;
+    const raw = localStorage.getItem(storageKey);
+    return raw === null ? null : clampSyncOffset(raw);
+  }, [storageKey]);
+
+  const [override, setOverride] = useState<number | null>(readOverride);
+
+  // Switching tracks swaps the storage key — reload that track's override.
+  useEffect(() => {
+    setOverride(readOverride());
+  }, [readOverride]);
+
+  const clampedDefault = clampSyncOffset(defaultOffsetSeconds);
+  const offsetSeconds = override ?? clampedDefault;
+
+  const persist = useCallback(
+    (next: number | null) => {
+      setOverride(next);
+      if (!storageKey) return;
+      if (next === null) localStorage.removeItem(storageKey);
+      else localStorage.setItem(storageKey, String(next));
+    },
+    [storageKey]
   );
 
-  useEffect(() => {
-    localStorage.setItem(SYNC_OFFSET_STORAGE_KEY, String(offsetSeconds));
-  }, [offsetSeconds]);
+  const increase = useCallback(
+    () => persist(clampSyncOffset(offsetSeconds + SYNC_OFFSET_STEP)),
+    [offsetSeconds, persist]
+  );
+  const decrease = useCallback(
+    () => persist(clampSyncOffset(offsetSeconds - SYNC_OFFSET_STEP)),
+    [offsetSeconds, persist]
+  );
+  const reset = useCallback(() => persist(null), [persist]);
+  const setOffsetSeconds = useCallback(
+    (next: number) => persist(clampSyncOffset(next)),
+    [persist]
+  );
 
-  const setOffsetSeconds = useCallback((next: number) => {
-    setOffsetState(clampSyncOffset(next));
-  }, []);
-
-  const increase = useCallback(() => {
-    setOffsetState((current) => clampSyncOffset(current + SYNC_OFFSET_STEP));
-  }, []);
-
-  const decrease = useCallback(() => {
-    setOffsetState((current) => clampSyncOffset(current - SYNC_OFFSET_STEP));
-  }, []);
-
-  const reset = useCallback(() => setOffsetState(0), []);
-
-  return { offsetSeconds, increase, decrease, reset, setOffsetSeconds };
+  return {
+    offsetSeconds,
+    defaultOffsetSeconds: clampedDefault,
+    isOverridden: override !== null,
+    increase,
+    decrease,
+    reset,
+    setOffsetSeconds,
+  };
 }

@@ -108,7 +108,7 @@ describe("offline Read Along IndexedDB migration", () => {
       },
       transcript: {
         html: "<script>alert('no')</script><p>Safe transcript</p>",
-        state: "unsynchronized", synchronized: false, cues: [],
+        state: "unsynchronized", synchronized: false, cues: [], default_offset_seconds: 0,
       },
       navigation: { previous_audio_slug: "track-2", next_audio_slug: null },
     });

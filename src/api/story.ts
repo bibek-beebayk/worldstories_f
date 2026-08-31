@@ -592,6 +592,12 @@ export const storyApi = {
     apiClient<void>(`/admin/audios/${id}/`, {
       method: "DELETE",
     }),
+  /** Superuser-only: set a track's default Read Along highlight offset (milliseconds). */
+  setReadAlongOffset: (id: number, offsetMs: number) =>
+    apiClient<AdminAudio>(`/admin/audios/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ read_along_offset_ms: offsetMs }),
+    }),
   importAudioTranscript: (id: number, formData: FormData) =>
     apiClient<AudioTranscriptImportResult>(`/admin/audios/${id}/import-transcript/`, {
       method: "POST",

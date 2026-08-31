@@ -1,4 +1,4 @@
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatSyncOffset } from "@/lib/readAlongSyncOffset";
 
@@ -7,8 +7,13 @@ interface SyncOffsetControlProps {
   onDecrease: () => void;
   onIncrease: () => void;
   onReset: () => void;
+  /** Whether the centre segment acts as a "reset to default" button. */
+  resettable: boolean;
   atMin: boolean;
   atMax: boolean;
+  /** Superuser only: persist the current offset as the track default for all readers. */
+  onSaveDefault?: () => void;
+  canSaveDefault?: boolean;
   className?: string;
 }
 
@@ -18,19 +23,22 @@ const SEGMENT =
 /**
  * Segmented pill for the Read Along "highlight sync" offset: `[-] Sync ±Xs [+]`.
  * Positive values delay the highlight; the centre segment shows the current
- * value and doubles as a reset once it is non-zero.
+ * value and resets to the track default when the reader has nudged it. A
+ * superuser also gets a trailing save segment that writes the value as the
+ * default for everyone.
  */
 export function SyncOffsetControl({
   offsetSeconds,
   onDecrease,
   onIncrease,
   onReset,
+  resettable,
   atMin,
   atMax,
+  onSaveDefault,
+  canSaveDefault = false,
   className,
 }: SyncOffsetControlProps) {
-  const centred = offsetSeconds === 0;
-
   return (
     <div
       role="group"
@@ -52,8 +60,8 @@ export function SyncOffsetControl({
       <button
         type="button"
         onClick={onReset}
-        disabled={centred}
-        aria-label={centred ? "Highlight sync centred" : "Reset highlight sync"}
+        disabled={!resettable}
+        aria-label={resettable ? "Reset to default sync" : "Highlight sync"}
         className={cn(
           SEGMENT,
           "whitespace-nowrap border-x border-white/15 tabular-nums disabled:opacity-100"
@@ -66,10 +74,22 @@ export function SyncOffsetControl({
         onClick={onIncrease}
         disabled={atMax}
         aria-label="Highlight later"
-        className={cn(SEGMENT, "min-w-8 rounded-r-full")}
+        className={cn(SEGMENT, "min-w-8", !onSaveDefault && "rounded-r-full")}
       >
         <Plus className="h-3.5 w-3.5" />
       </button>
+      {onSaveDefault && (
+        <button
+          type="button"
+          onClick={onSaveDefault}
+          disabled={!canSaveDefault}
+          aria-label="Save as the default sync for all readers"
+          title="Save as the default for all readers"
+          className={cn(SEGMENT, "min-w-8 border-l border-white/15 rounded-r-full")}
+        >
+          <Save className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
