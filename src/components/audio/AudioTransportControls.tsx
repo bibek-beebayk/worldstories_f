@@ -44,7 +44,10 @@ export function AudioTransportControls({
   buttonClassName,
   playButtonClassName,
 }: AudioTransportControlsProps) {
-  const secondaryClass = cn("h-9 w-9 rounded-full bg-white/15 hover:bg-white/25", buttonClassName);
+  const secondaryClass = cn(
+    "h-11 w-11 touch-manipulation rounded-full bg-white/15 hover:bg-white/25 motion-reduce:transition-none",
+    buttonClassName
+  );
 
   return (
     <div className={cn("flex items-center justify-center gap-2 sm:justify-start sm:gap-3", className)}>
@@ -76,10 +79,11 @@ export function AudioTransportControls({
         onClick={onTogglePlay}
         size="icon"
         aria-label={isLoading ? "Loading audio — tap to play" : isPlaying ? "Pause" : "Play"}
-        className={cn("h-14 w-14 rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300", playButtonClassName)}
+        aria-busy={isLoading}
+        className={cn("h-14 w-14 touch-manipulation rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300 motion-reduce:transition-none", playButtonClassName)}
       >
         {isLoading ? (
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none" />
         ) : isPlaying ? (
           <Pause className="h-6 w-6" />
         ) : (

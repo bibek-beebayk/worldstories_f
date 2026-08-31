@@ -362,6 +362,7 @@ const AdminAnalytics = () => {
                 <StatTile label="Completion rate" value={formatPercent(audienceQuery.data.summary.completion_rate)} />
                 <StatTile label="Reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.reading_minutes))}m`} />
                 <StatTile label="Listening time" value={`${formatNumber(Math.round(audienceQuery.data.summary.listening_minutes))}m`} />
+                <StatTile label="Read Along time" value={`${formatNumber(Math.round(audienceQuery.data.summary.read_along_listening_minutes))}m`} />
                 <StatTile label="Watching time" value={`${formatNumber(Math.round(audienceQuery.data.summary.watching_minutes))}m`} />
                 <StatTile label="Blog reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.blog_reading_minutes))}m`} />
                 <StatTile label="Quick Read time" value={`${formatNumber(Math.round(audienceQuery.data.summary.quick_read_reading_minutes))}m`} />
@@ -478,6 +479,20 @@ const AdminAnalytics = () => {
                           <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
                         ))}
                         {audienceQuery.data.top_listened.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No listening sessions yet.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </ChartCard>
+
+                <ChartCard title="Top Read Along titles">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
+                      <tbody>
+                        {audienceQuery.data.top_read_along.map((row) => (
+                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
+                        ))}
+                        {audienceQuery.data.top_read_along.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No Read Along sessions yet.</td></tr>}
                       </tbody>
                     </table>
                   </div>

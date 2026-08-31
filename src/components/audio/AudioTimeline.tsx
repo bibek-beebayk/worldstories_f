@@ -27,13 +27,19 @@ export function AudioTimeline({
     <div className={cn("space-y-1.5", className)}>
       <input
         type="range"
+        aria-label="Playback position"
+        aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
         min={0}
         max={duration || 0}
         step={0.1}
         value={Math.min(currentTime, duration || 0)}
         onChange={(event) => onSeek(Number(event.target.value))}
         className={cn(
-          "h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-cyan-300",
+          "h-11 w-full cursor-pointer touch-manipulation appearance-none rounded-full bg-transparent accent-cyan-300",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900",
+          "[&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/20",
+          "[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/20",
+          "motion-reduce:transition-none",
           trackClassName
         )}
       />

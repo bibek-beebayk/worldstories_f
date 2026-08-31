@@ -71,7 +71,7 @@ export function useAudioSource({
         return;
       }
 
-      if (!navigator.onLine) {
+      if (!navigator.onLine || !directUrl) {
         const buffer = await getDecryptedBinary(
           makeDownloadId(storySlug, "audio", audioSlug)
         ).catch(() => null);
@@ -94,7 +94,7 @@ export function useAudioSource({
     return () => {
       cancelled = true;
     };
-  }, [audioSlug, storySlug]);
+  }, [audioSlug, directUrl, storySlug]);
 
   useEffect(() => {
     return () => {
@@ -112,7 +112,7 @@ export function useAudioSource({
 
   return {
     audioSrc,
-    sourceKey: `${audioSlug ?? ""}:${useProxiedAudio ? "proxy" : "direct"}`,
+    sourceKey: `${audioSlug ?? ""}:${offlineAudioSrc ? "offline" : useProxiedAudio ? "proxy" : "direct"}`,
     usingProxy: useProxiedAudio,
     isOfflineSource: !!offlineAudioSrc,
     handleMediaError,

@@ -91,6 +91,22 @@ export default defineConfig(({ mode }) => ({
         ],
         runtimeCaching: [
           {
+            // Exact Read Along pages are warmed when a compatible audio track
+            // is downloaded. NetworkFirst preserves SSR freshness online and
+            // uses that route-specific HTML only for an offline hard launch.
+            urlPattern: ({ url, request }) =>
+              request.mode === "navigate" &&
+              url.origin === self.location.origin &&
+              url.pathname.startsWith("/read-along/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "offline-reader-pages-v1",
+              networkTimeoutSeconds: 4,
+              cacheableResponse: { statuses: [200] },
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
             // Story/chapter/auth data etc — always prefer a fresh network
             // response so readers and admins never act on stale content;
             // the cached copy is only a fallback for brief offline blips.

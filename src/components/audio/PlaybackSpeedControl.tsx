@@ -12,8 +12,10 @@ export function PlaybackSpeedControl({ rate, onCycle, className }: PlaybackSpeed
     <button
       type="button"
       onClick={onCycle}
+      aria-label={`Playback speed ${rate} times. Activate to change speed`}
       className={cn(
-        "rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-white/20",
+        "min-h-11 min-w-11 touch-manipulation rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-white/20",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 motion-reduce:transition-none",
         className
       )}
     >

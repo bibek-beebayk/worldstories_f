@@ -28,6 +28,8 @@ import {
   AdminStory,
   AdminChapter,
   AdminAudio,
+  AudioTranscriptImportResult,
+  AudioTranscriptCuesResponse,
   AdminVideo,
   AiGenerationInputField,
   EpubImportJob,
@@ -589,6 +591,25 @@ export const storyApi = {
   deleteAdminAudio: (id: number) =>
     apiClient<void>(`/admin/audios/${id}/`, {
       method: "DELETE",
+    }),
+  importAudioTranscript: (id: number, formData: FormData) =>
+    apiClient<AudioTranscriptImportResult>(`/admin/audios/${id}/import-transcript/`, {
+      method: "POST",
+      body: formData,
+    }),
+  clearAudioTranscript: (id: number) =>
+    apiClient<AudioTranscriptImportResult>(`/admin/audios/${id}/clear-transcript/`, {
+      method: "POST",
+    }),
+  getAudioTranscriptCues: (id: number) =>
+    apiClient<AudioTranscriptCuesResponse>(`/admin/audios/${id}/transcript-cues/`),
+  replaceAudioTranscriptCues: (
+    id: number,
+    cues: Array<{ order: number; start_ms: number; end_ms: number; text: string }>
+  ) =>
+    apiClient<AudioTranscriptImportResult>(`/admin/audios/${id}/transcript-cues/`, {
+      method: "PUT",
+      body: JSON.stringify({ cues }),
     }),
   getAdminVideos: (storyId: number) =>
     apiClient<PaginatedResponse<AdminVideo>>(`/admin/videos/?story=${storyId}`),

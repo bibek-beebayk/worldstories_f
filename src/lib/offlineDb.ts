@@ -1,15 +1,16 @@
 // Thin native IndexedDB wrapper for offline downloads. No external
-// dependency — the surface here (two stores, get/put/delete/getAll) is small
+// dependency — the surface here (a handful of stores and basic operations) is small
 // enough that pulling in a library like `idb` would be pure overhead.
 
 const DB_NAME = "worldstories-offline";
 import { getOfflineOwnerId } from "./offlineIdentity";
 
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const KEYS_STORE = "keys";
 const DOWNLOADS_STORE = "downloads";
 const PENDING_SAVES_STORE = "pending-saves";
 const PROGRESS_STORE = "progress";
+const TRANSCRIPTS_STORE = "transcripts";
 const MASTER_KEY_ID = "master";
 
 export type DownloadType = "chapter" | "audio" | "epub" | "pdf";
@@ -39,8 +40,56 @@ export interface DownloadRecord {
   wrapIv: ArrayBuffer;
 }
 
+export interface OfflineTranscriptCue {
+  id: number;
+  start_seconds: number;
+  end_seconds: number;
+  text: string;
+}
+
+export interface OfflineTranscriptRecord {
+  key: string;
+  owner_id: string;
+  story_slug: string;
+  audio_slug: string;
+  story: {
+    id: number;
+    title: string;
+    slug: string;
+    language: string;
+    story_type: string;
+    cover_image: string | null;
+    author: { id: number; name: string } | null;
+  };
+  audio: {
+    id: number;
+    title: string;
+    slug: string;
+    order: number;
+    duration_seconds: number | null;
+    download_size_bytes: number;
+  };
+  transcript_html: string;
+  synchronized: boolean;
+  cues: OfflineTranscriptCue[];
+  downloaded_at: string;
+}
+
+type OfflineTranscriptInput = Omit<
+  OfflineTranscriptRecord,
+  "key" | "owner_id" | "downloaded_at"
+>;
+
 export function makeDownloadId(story_slug: string, type: DownloadType, item_slug?: string): string {
   return `${getOfflineOwnerId()}:${story_slug}:${type}:${item_slug || FILE_ITEM_SLUG}`;
+}
+
+function transcriptKey(ownerId: string, storySlug: string, audioSlug: string): string {
+  return `${ownerId}:${storySlug}:transcript:${audioSlug}`;
+}
+
+export function makeOfflineTranscriptKey(storySlug: string, audioSlug: string): string {
+  return transcriptKey(getOfflineOwnerId(), storySlug, audioSlug);
 }
 
 // A progress save that failed (almost always because the device was offline)
@@ -98,6 +147,9 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(PROGRESS_STORE)) {
         db.createObjectStore(PROGRESS_STORE, { keyPath: "key" });
       }
+      if (!db.objectStoreNames.contains(TRANSCRIPTS_STORE)) {
+        db.createObjectStore(TRANSCRIPTS_STORE, { keyPath: "key" });
+      }
       // Records written before v3 were not associated with an account. They
       // cannot be assigned safely, so remove them during the upgrade.
       if ((event as IDBVersionChangeEvent).oldVersion < 3) {
@@ -114,8 +166,15 @@ function openDb(): Promise<IDBDatabase> {
         }
       }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      // Let a future schema upgrade proceed cleanly when another tab/PWA
+      // window still holds one of this version's connections.
+      request.result.onversionchange = () => request.result.close();
+      resolve(request.result);
+    };
     request.onerror = () => reject(request.error);
+    request.onblocked = () =>
+      reject(new Error("Offline storage upgrade is blocked. Close other WorldStories tabs and try again."));
   });
 }
 
@@ -151,7 +210,23 @@ export async function getDownload(id: string): Promise<DownloadRecord | undefine
 }
 
 export async function deleteDownload(id: string): Promise<void> {
-  await withStore<undefined>(DOWNLOADS_STORE, "readwrite", (store) => store.delete(id));
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([DOWNLOADS_STORE, TRANSCRIPTS_STORE], "readwrite");
+    const downloads = tx.objectStore(DOWNLOADS_STORE);
+    const transcripts = tx.objectStore(TRANSCRIPTS_STORE);
+    const request = downloads.get(id);
+    request.onsuccess = () => {
+      const record = request.result as DownloadRecord | undefined;
+      downloads.delete(id);
+      if (record?.type === "audio") {
+        transcripts.delete(transcriptKey(record.owner_id, record.story_slug, record.item_slug));
+      }
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error("Could not delete the download."));
+    tx.onabort = () => reject(tx.error || new Error("Could not delete the download."));
+  });
 }
 
 export async function deleteDownloadsForStory(storySlug: string): Promise<void> {
@@ -159,8 +234,9 @@ export async function deleteDownloadsForStory(storySlug: string): Promise<void> 
   const ownerId = getOfflineOwnerId();
 
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(DOWNLOADS_STORE, "readwrite");
+    const tx = db.transaction([DOWNLOADS_STORE, TRANSCRIPTS_STORE], "readwrite");
     const store = tx.objectStore(DOWNLOADS_STORE);
+    const transcripts = tx.objectStore(TRANSCRIPTS_STORE);
     const request = store.openCursor();
 
     request.onsuccess = () => {
@@ -170,6 +246,14 @@ export async function deleteDownloadsForStory(storySlug: string): Promise<void> 
       if (record.owner_id === ownerId && record.story_slug === storySlug) {
         cursor.delete();
       }
+      cursor.continue();
+    };
+    const transcriptRequest = transcripts.openCursor();
+    transcriptRequest.onsuccess = () => {
+      const cursor = transcriptRequest.result;
+      if (!cursor) return;
+      const record = cursor.value as OfflineTranscriptRecord;
+      if (record.owner_id === ownerId && record.story_slug === storySlug) cursor.delete();
       cursor.continue();
     };
     tx.oncomplete = () => resolve();
@@ -182,6 +266,42 @@ export async function listDownloads(): Promise<DownloadRecord[]> {
   const ownerId = getOfflineOwnerId();
   const records = await withStore<DownloadRecord[]>(DOWNLOADS_STORE, "readonly", (store) => store.getAll());
   return records.filter((record) => record.owner_id === ownerId);
+}
+
+export async function saveOfflineTranscript(record: OfflineTranscriptInput): Promise<void> {
+  const ownerId = getOfflineOwnerId();
+  const saved: OfflineTranscriptRecord = {
+    ...record,
+    key: transcriptKey(ownerId, record.story_slug, record.audio_slug),
+    owner_id: ownerId,
+    downloaded_at: new Date().toISOString(),
+  };
+  await withStore<IDBValidKey>(TRANSCRIPTS_STORE, "readwrite", (store) => store.put(saved));
+}
+
+export async function getOfflineTranscript(
+  storySlug: string,
+  audioSlug: string
+): Promise<OfflineTranscriptRecord | undefined> {
+  return withStore<OfflineTranscriptRecord | undefined>(TRANSCRIPTS_STORE, "readonly", (store) =>
+    store.get(makeOfflineTranscriptKey(storySlug, audioSlug))
+  );
+}
+
+export async function listOfflineTranscripts(storySlug?: string): Promise<OfflineTranscriptRecord[]> {
+  const ownerId = getOfflineOwnerId();
+  const records = await withStore<OfflineTranscriptRecord[]>(TRANSCRIPTS_STORE, "readonly", (store) =>
+    store.getAll()
+  );
+  return records.filter(
+    (record) => record.owner_id === ownerId && (!storySlug || record.story_slug === storySlug)
+  );
+}
+
+export async function deleteOfflineTranscript(storySlug: string, audioSlug: string): Promise<void> {
+  await withStore<undefined>(TRANSCRIPTS_STORE, "readwrite", (store) =>
+    store.delete(makeOfflineTranscriptKey(storySlug, audioSlug))
+  );
 }
 
 export async function getTotalDownloadedBytes(): Promise<number> {
@@ -335,5 +455,30 @@ export async function claimAnonymousDownloads(): Promise<void> {
     const id = makeDownloadId(record.story_slug, record.type, record.item_slug);
     const existing = records.find((item) => item.id === id);
     if (!existing) await saveDownload({ ...record, id, owner_id: currentOwner });
+  }
+
+  const transcripts = await withStore<OfflineTranscriptRecord[]>(
+    TRANSCRIPTS_STORE,
+    "readonly",
+    (store) => store.getAll()
+  );
+  const currentTranscripts = new Set(
+    transcripts
+      .filter((record) => record.owner_id === currentOwner)
+      .map((record) => `${record.story_slug}:${record.audio_slug}`)
+  );
+  for (const record of transcripts.filter((item) => item.owner_id === "anonymous")) {
+    const identity = `${record.story_slug}:${record.audio_slug}`;
+    const claimedAudioId = makeDownloadId(record.story_slug, "audio", record.audio_slug);
+    if (currentTranscripts.has(identity) || !(await getDownload(claimedAudioId))) continue;
+    await saveOfflineTranscript({
+      story_slug: record.story_slug,
+      audio_slug: record.audio_slug,
+      story: record.story,
+      audio: record.audio,
+      transcript_html: record.transcript_html,
+      synchronized: record.synchronized,
+      cues: record.cues,
+    });
   }
 }

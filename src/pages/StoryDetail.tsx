@@ -53,7 +53,7 @@ import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import type { Route } from "./+types/StoryDetail";
 import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
-import { makeDownloadId } from "@/lib/offlineDb";
+import { listLocalProgress, makeDownloadId } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
 import { cn, formatBytes, formatDurationMinutes } from "@/lib/utils";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
@@ -243,6 +243,13 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
     retry: false,
   });
 
+  const { data: guestAudioProgress } = useQuery({
+    queryKey: ["local-audio-progress", slug],
+    queryFn: () => listLocalProgress(slug),
+    enabled: !!slug && !isAuthenticated && typeof window !== "undefined",
+    retry: false,
+  });
+
   const { data: videoProgress } = useQuery({
     queryKey: ["video-progress", slug],
     queryFn: () => storyApi.getVideoProgress(slug!),
@@ -353,11 +360,25 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   );
   const completionPercentage = Math.round((readingProgress?.overall_progress || 0) * 100);
   const firstAudioSlug = story.audios[0]?.slug;
-  const savedAudioSlug = audioProgress?.audio_slug;
+  const latestGuestAudio = (guestAudioProgress || [])
+    .filter((item) => item.kind === "audio")
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+  const savedAudioSlug = audioProgress?.audio_slug ?? latestGuestAudio?.item_slug;
   const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
 
   const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
-  const audioCompletionPercentage = Math.round((audioProgress?.overall_progress || 0) * 100);
+  const guestAudioProgressBySlug = Object.fromEntries(
+    (guestAudioProgress || [])
+      .filter((item) => item.kind === "audio")
+      .map((item) => [item.item_slug, item.progress])
+  );
+  const guestAudioOverall = story.audios.length
+    ? story.audios.reduce((total, audio) => total + (guestAudioProgressBySlug[audio.slug] || 0), 0) /
+      story.audios.length
+    : 0;
+  const audioCompletionPercentage = Math.round(
+    (audioProgress?.overall_progress ?? guestAudioOverall) * 100
+  );
   const readAlongTracks = story.audios
     .filter((audio) => audio.read_along_available)
     .sort((a, b) => a.order - b.order);
@@ -464,7 +485,13 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
       } else if (bulkDownloadKind === "audios") {
         for (const audio of story.audios) {
           if (downloadedIds.has(makeDownloadId(story.slug, "audio", audio.slug))) continue;
-          const downloaded = await downloadAudio(storyDownloadMetadata, audio.slug, audio.title, audio.order);
+          const downloaded = await downloadAudio(
+            storyDownloadMetadata,
+            audio.slug,
+            audio.title,
+            audio.order,
+            audio.read_along_available
+          );
           if (downloaded === false) {
             completed = false;
             break;
@@ -839,7 +866,8 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                                     { slug: story.slug, title: story.title, cover_image: story.cover_image, author: story.author?.name, genres: story.genres.map((genre) => genre.name), story_type: story.story_type },
                                     chapter.slug,
                                     chapter.title,
-                                    chapter.order
+                                    chapter.order,
+                                    chapter.read_along_available
                                   );
                                 }
                                 refreshDownloadedIds();

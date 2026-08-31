@@ -7,7 +7,9 @@ export type AnalyticsEventType =
   | "listening_session"
   | "watching_session"
   | "completion"
-  | "download";
+  | "download"
+  | "read_along_cue_seek"
+  | "read_along_follow_toggle";
 
 interface AnalyticsEventInput {
   event_type: AnalyticsEventType;
@@ -67,7 +69,14 @@ export function trackAnalyticsEvent(input: AnalyticsEventInput): void {
   }).catch(() => undefined);
 }
 
-export type CompletionContentType = "chapter" | "audio" | "video" | "epub" | "pdf" | "story";
+export type CompletionContentType =
+  | "chapter"
+  | "audio"
+  | "read_along"
+  | "video"
+  | "epub"
+  | "pdf"
+  | "story";
 
 function completionKey(storySlug: string, contentType: CompletionContentType, itemSlug: string) {
   return `worldstories_completion:${storySlug}:${contentType}:${itemSlug}`;

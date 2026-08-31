@@ -51,10 +51,11 @@ export async function saveAudioProgressLocally(
   audio_slug: string,
   progress: number,
   position_seconds: number,
-  duration_seconds: number
+  duration_seconds: number,
+  completionContentType: "audio" | "read_along" = "audio"
 ): Promise<void> {
   await saveLocalProgress({ kind: "audio", story_slug, item_slug: audio_slug, progress, position_seconds, duration_seconds });
-  if (progress >= 0.995) trackCompletionOnce(story_slug, "audio", audio_slug);
+  if (progress >= 0.995) trackCompletionOnce(story_slug, completionContentType, audio_slug);
   window.dispatchEvent(new Event(PENDING_PROGRESS_EVENT));
 }
 

@@ -123,6 +123,10 @@ export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialog
                     label="Listening time"
                     value={`${formatNumber(Math.round(storyQuery.data.audio.listening_minutes))}m`}
                   />
+                  <StatTile
+                    label="Read Along time"
+                    value={`${formatNumber(Math.round(storyQuery.data.audio.read_along_listening_minutes))}m`}
+                  />
                 </>
               )}
               {storyQuery.data.has_video && storyQuery.data.video && (

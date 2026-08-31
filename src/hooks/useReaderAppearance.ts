@@ -6,6 +6,7 @@ import {
   type CustomReaderTheme,
   type ReaderThemeConfig,
 } from "@/pages/StoryReader";
+import { ensureAccessibleTextColor } from "@/lib/readerContrast";
 
 export const FONT_SIZE_MIN = 14;
 export const FONT_SIZE_MAX = 30;
@@ -117,6 +118,8 @@ export function useReaderAppearance() {
     const customThemeMap: Record<string, ReaderThemeConfig> = {};
 
     for (const item of customThemes) {
+      const textColor = ensureAccessibleTextColor(item.textColor, item.bgColor);
+      const linkColor = ensureAccessibleTextColor(item.linkColor, item.bgColor);
       customThemeMap[item.key] = {
         label: item.label,
         cardClass: "border",
@@ -124,16 +127,16 @@ export function useReaderAppearance() {
         cardStyle: {
           backgroundColor: item.bgColor,
           borderColor: item.borderColor,
-          color: item.textColor,
+          color: textColor,
         },
         proseStyle: {
-          color: item.textColor,
-          "--tw-prose-body": item.textColor,
-          "--tw-prose-headings": item.textColor,
-          "--tw-prose-links": item.linkColor,
-          "--tw-prose-bold": item.textColor,
-          "--tw-prose-counters": item.textColor,
-          "--tw-prose-bullets": item.textColor,
+          color: textColor,
+          "--tw-prose-body": textColor,
+          "--tw-prose-headings": textColor,
+          "--tw-prose-links": linkColor,
+          "--tw-prose-bold": textColor,
+          "--tw-prose-counters": textColor,
+          "--tw-prose-bullets": textColor,
         } as CSSProperties,
         isDark: item.isDark,
       };

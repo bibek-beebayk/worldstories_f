@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FONTS } from "@/pages/StoryReader";
 import type { useReaderAppearance } from "@/hooks/useReaderAppearance";
+import { hasAccessibleTextContrast } from "@/lib/readerContrast";
 
 interface ReaderSettingsPanelProps {
   appearance: ReturnType<typeof useReaderAppearance>;
@@ -48,7 +49,7 @@ export function ReaderSettingsPanel({
   } = appearance;
 
   const handleCreateTheme = () => {
-    if (!newThemeName.trim()) return;
+    if (!newThemeName.trim() || !customThemeHasAccessibleContrast) return;
     createCustomTheme({
       name: newThemeName,
       bgColor: newThemeBgColor,
@@ -60,13 +61,24 @@ export function ReaderSettingsPanel({
     setNewThemeName("");
   };
 
+  const customTextHasAccessibleContrast = hasAccessibleTextContrast(
+    newThemeTextColor,
+    newThemeBgColor
+  );
+  const customLinkHasAccessibleContrast = hasAccessibleTextContrast(
+    newThemeLinkColor,
+    newThemeBgColor
+  );
+  const customThemeHasAccessibleContrast =
+    customTextHasAccessibleContrast && customLinkHasAccessibleContrast;
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           size="sm"
-          className="h-8 px-2 sm:h-9 sm:px-3"
+          className="h-11 w-11 touch-manipulation px-0 motion-reduce:transition-none sm:h-9 sm:w-auto sm:px-3"
           aria-label="Reader settings"
         >
           <SlidersHorizontal className="h-4 w-4 sm:mr-2" />
@@ -75,17 +87,29 @@ export function ReaderSettingsPanel({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="max-h-[calc(100vh-6rem)] w-80 space-y-4 overflow-y-auto"
+        className="max-h-[calc(100vh-6rem)] w-80 space-y-4 overflow-y-auto motion-reduce:animate-none motion-reduce:transition-none"
         container={isFullscreen ? containerRef.current ?? undefined : undefined}
       >
         <div>
           <div className="mb-2 text-xs font-medium text-muted-foreground">Text Size</div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setFontSize((s) => s - 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11 min-w-11 touch-manipulation"
+              aria-label="Decrease text size"
+              onClick={() => setFontSize((s) => s - 1)}
+            >
               A-
             </Button>
             <span className="w-12 text-center text-xs">{fontSize}px</span>
-            <Button variant="outline" size="sm" onClick={() => setFontSize((s) => s + 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11 min-w-11 touch-manipulation"
+              aria-label="Increase text size"
+              onClick={() => setFontSize((s) => s + 1)}
+            >
               A+
             </Button>
           </div>
@@ -93,11 +117,23 @@ export function ReaderSettingsPanel({
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-muted-foreground">Line Height</span>
-          <Button variant="outline" size="sm" onClick={() => setLineHeight((v) => v - 0.1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 min-w-11 touch-manipulation"
+            aria-label="Decrease line height"
+            onClick={() => setLineHeight((v) => v - 0.1)}
+          >
             -
           </Button>
           <span className="w-10 text-center text-xs">{lineHeight.toFixed(1)}</span>
-          <Button variant="outline" size="sm" onClick={() => setLineHeight((v) => v + 0.1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 min-w-11 touch-manipulation"
+            aria-label="Increase line height"
+            onClick={() => setLineHeight((v) => v + 0.1)}
+          >
             +
           </Button>
         </div>
@@ -111,7 +147,7 @@ export function ReaderSettingsPanel({
                 size="sm"
                 variant={theme === key ? "default" : "outline"}
                 onClick={() => setTheme(key)}
-                className="gap-1"
+                className="min-h-11 touch-manipulation gap-1"
               >
                 {key === "night" || themeOptions[key].isDark ? (
                   <Moon className="h-3.5 w-3.5" />
@@ -133,7 +169,7 @@ export function ReaderSettingsPanel({
             maxLength={24}
           />
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <label className="flex items-center justify-between rounded border px-2 py-1">
+            <label className="flex min-h-11 items-center justify-between rounded border px-2 py-1">
               <span>Background</span>
               <input
                 type="color"
@@ -141,7 +177,7 @@ export function ReaderSettingsPanel({
                 onChange={(event) => setNewThemeBgColor(event.target.value)}
               />
             </label>
-            <label className="flex items-center justify-between rounded border px-2 py-1">
+            <label className="flex min-h-11 items-center justify-between rounded border px-2 py-1">
               <span>Border</span>
               <input
                 type="color"
@@ -149,7 +185,7 @@ export function ReaderSettingsPanel({
                 onChange={(event) => setNewThemeBorderColor(event.target.value)}
               />
             </label>
-            <label className="flex items-center justify-between rounded border px-2 py-1">
+            <label className="flex min-h-11 items-center justify-between rounded border px-2 py-1">
               <span>Text</span>
               <input
                 type="color"
@@ -157,7 +193,7 @@ export function ReaderSettingsPanel({
                 onChange={(event) => setNewThemeTextColor(event.target.value)}
               />
             </label>
-            <label className="flex items-center justify-between rounded border px-2 py-1">
+            <label className="flex min-h-11 items-center justify-between rounded border px-2 py-1">
               <span>Links</span>
               <input
                 type="color"
@@ -166,7 +202,12 @@ export function ReaderSettingsPanel({
               />
             </label>
           </div>
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          {!customThemeHasAccessibleContrast && (
+            <p role="alert" className="text-xs text-destructive">
+              Choose text and link colors with stronger contrast against the background.
+            </p>
+          )}
+          <label className="flex min-h-11 items-center gap-2 text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={newThemeIsDark}
@@ -174,7 +215,12 @@ export function ReaderSettingsPanel({
             />
             Treat as dark theme
           </label>
-          <Button size="sm" onClick={handleCreateTheme} disabled={!newThemeName.trim()}>
+          <Button
+            size="sm"
+            className="min-h-11 touch-manipulation"
+            onClick={handleCreateTheme}
+            disabled={!newThemeName.trim() || !customThemeHasAccessibleContrast}
+          >
             Save Theme
           </Button>
         </div>
@@ -189,7 +235,7 @@ export function ReaderSettingsPanel({
                 variant={fontFamily === key ? "default" : "outline"}
                 onClick={() => setFontFamily(key)}
                 style={{ fontFamily: FONTS[key].value }}
-                className="h-8"
+                className="min-h-11 touch-manipulation"
               >
                 {FONTS[key].label}
               </Button>

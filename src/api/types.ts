@@ -49,7 +49,7 @@ export interface ReadAlongResponse {
     slug: string;
     order: number;
     audio_file: string | null;
-    stream_url: string;
+    stream_url: string | null;
     duration_seconds: number | null;
     download_size_bytes: number;
     has_transcript: boolean;
@@ -666,7 +666,31 @@ export interface AdminAudio {
   slug: string;
   audio_file: string | null;
   transcript: string;
+  transcript_synchronized: boolean;
+  cue_count: number;
   order: number;
+}
+
+export type AudioTranscriptState = "empty" | "unsynchronized" | "synchronized";
+
+export interface AdminAudioTranscriptCue {
+  id: number;
+  order: number;
+  start_ms: number;
+  end_ms: number;
+  text: string;
+}
+
+export interface AudioTranscriptImportResult {
+  transcript_state: AudioTranscriptState;
+  cue_count: number;
+  transcript: string;
+}
+
+export interface AudioTranscriptCuesResponse {
+  cues: AdminAudioTranscriptCue[];
+  cue_count: number;
+  transcript_state: AudioTranscriptState;
 }
 
 export interface AdminVideo {
@@ -931,6 +955,8 @@ export interface AdminAnalyticsAudienceResponse {
     watching_minutes: number;
     blog_reading_minutes: number;
     quick_read_reading_minutes: number;
+    read_along_listening_minutes: number;
+    read_along_sessions: number;
     avg_session_minutes: number;
     total_page_views: number;
     median_browsing_session_minutes: number;
@@ -943,6 +969,7 @@ export interface AdminAnalyticsAudienceResponse {
     reading_minutes: number;
     listening_minutes: number;
     watching_minutes: number;
+    read_along_minutes: number;
   }>;
   visitor_retention: Array<{
     day: string;
@@ -977,6 +1004,13 @@ export interface AdminAnalyticsAudienceResponse {
   }>;
   top_blogs_read: Array<{
     blog_id: number;
+    title: string;
+    slug: string;
+    sessions: number;
+    minutes: number;
+  }>;
+  top_read_along: Array<{
+    story_id: number;
     title: string;
     slug: string;
     sessions: number;
@@ -1023,7 +1057,12 @@ export interface AdminStoryDetailAnalyticsResponse {
     completed: number;
   }>;
   has_audio: boolean;
-  audio: { listeners: number; avg_progress: number; listening_minutes: number } | null;
+  audio: {
+    listeners: number;
+    avg_progress: number;
+    listening_minutes: number;
+    read_along_listening_minutes: number;
+  } | null;
   has_video: boolean;
   video: { watchers: number; avg_progress: number; watching_minutes: number } | null;
 }

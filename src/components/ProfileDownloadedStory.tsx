@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router";
-import { ArrowLeft, BookOpenText, CirclePlay, FileText, HardDrive, Headphones, Loader2, Trash2 } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { ArrowLeft, BookOpenText, Captions, CirclePlay, FileText, HardDrive, Headphones, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import { formatBytes } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
 import { usePendingProgress } from "@/hooks/usePendingProgress";
 import { toast } from "@/components/ui/sonner";
+import { listOfflineReadAlongTracks } from "@/lib/offlineReadAlong";
+import { removeOfflineReadAlongPage, removeOfflineReadAlongPagesForStory } from "@/lib/preloadOfflineReadAlong";
 
 interface ProfileDownloadedStoryProps {
   storySlug: string;
@@ -28,6 +30,7 @@ export default function ProfileDownloadedStory({
   onBack,
   onChange,
 }: ProfileDownloadedStoryProps) {
+  const navigate = useNavigate();
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
@@ -43,6 +46,12 @@ export default function ProfileDownloadedStory({
     queryFn: () => storyApi.getStory(storySlug),
     retry: false,
   });
+  const { data: offlineReadAlongTracks = [] } = useQuery({
+    queryKey: ["offline-read-along-tracks", storySlug],
+    queryFn: () => listOfflineReadAlongTracks(storySlug),
+    enabled: audios.length > 0 && typeof window !== "undefined",
+  });
+  const offlineReadAlongSlugs = new Set(offlineReadAlongTracks.map((track) => track.slug));
   const authorName =
     downloads[0]?.story_author ||
     storyDetails?.author?.name ||
@@ -85,7 +94,11 @@ export default function ProfileDownloadedStory({
   const handleRemove = async (id: string) => {
     setRemovingId(id);
     try {
+      const record = downloads.find((item) => item.id === id);
       await deleteDownload(id);
+      if (record?.type === "audio") {
+        await removeOfflineReadAlongPage(record.story_slug, record.item_slug).catch(() => undefined);
+      }
       onChange();
     } finally {
       setRemovingId(null);
@@ -96,6 +109,7 @@ export default function ProfileDownloadedStory({
     setIsDeletingAll(true);
     try {
       await deleteDownloadsForStory(storySlug);
+      await removeOfflineReadAlongPagesForStory(storySlug).catch(() => undefined);
       onChange();
       toast.success("Downloaded title deleted.");
       onBack();
@@ -152,6 +166,22 @@ export default function ProfileDownloadedStory({
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{formatBytes(item.size_bytes)}</p>
       </div>
+      {item.type === "audio" && offlineReadAlongSlugs.has(item.item_slug) && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 shrink-0"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            navigate(`/read-along/${storySlug}/${item.item_slug}`, { state: { backTo } });
+          }}
+          aria-label={`Read Along: ${item.title}`}
+          title="Read Along offline"
+        >
+          <Captions className="h-4 w-4 text-primary" />
+        </Button>
+      )}
       <Button
         size="icon"
         variant="ghost"

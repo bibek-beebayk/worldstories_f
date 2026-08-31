@@ -22,6 +22,7 @@ import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 import { AiGenerationHeaderControls, AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
 import BulkTaxonomyImportModal from "@/components/admin/BulkTaxonomyImportModal";
+import { AudioTranscriptImportPanel } from "@/components/admin/AudioTranscriptImportPanel";
 
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
 // timezone suffix) — the backend gives back a UTC ISO string, so this
@@ -3175,6 +3176,32 @@ const AdminContent = () => {
                     This transcript belongs to the audio track. Copying a chapter creates an editable snapshot and does not keep it linked.
                   </p>
                 </div>
+                {editingAudioId && selectedStory && (() => {
+                  const editingAudio = audiosData?.results.find((a) => a.id === editingAudioId);
+                  if (!editingAudio) return null;
+                  return (
+                    <AudioTranscriptImportPanel
+                      audioId={editingAudioId}
+                      storyId={selectedStoryId!}
+                      storySlug={selectedStory.slug}
+                      audioSlug={editingAudio.slug}
+                      transcriptState={
+                        editingAudio.transcript_synchronized
+                          ? "synchronized"
+                          : transcriptHasText(newAudioTranscript)
+                          ? "unsynchronized"
+                          : "empty"
+                      }
+                      cueCount={editingAudio.cue_count}
+                      onTranscriptChange={(result) => {
+                        setNewAudioTranscript(result.transcript);
+                        if (audioTranscriptEditorRef.current) {
+                          audioTranscriptEditorRef.current.innerHTML = result.transcript;
+                        }
+                      }}
+                    />
+                  );
+                })()}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setShowAudioModal(false)}>Cancel</Button>
                   <Button type="submit" disabled={creatingAudio || !newAudioTitle.trim()}>

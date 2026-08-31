@@ -6,11 +6,14 @@ import { decryptFromStorage, encryptForStorage } from "@/lib/offlineCrypto";
 import {
   DownloadType,
   deleteDownload,
+  deleteOfflineTranscript,
   getDownload,
   listDownloads,
   makeDownloadId,
   saveDownload,
 } from "@/lib/offlineDb";
+import { storeOfflineReadAlong } from "@/lib/offlineReadAlong";
+import { preloadOfflineReadAlong, removeOfflineReadAlongPage } from "@/lib/preloadOfflineReadAlong";
 import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 import { preloadOfflineReader } from "@/lib/preloadOfflineReader";
 import { toast } from "@/components/ui/sonner";
@@ -187,7 +190,13 @@ export function useOfflineDownload() {
   );
 
   const downloadAudio = useCallback(
-    async (story: DownloadableStory, audio_slug: string, title: string, order: number) => {
+    async (
+      story: DownloadableStory,
+      audio_slug: string,
+      title: string,
+      order: number,
+      readAlongAvailable: boolean = false
+    ) => {
       if (!requireAuth()) return false;
       if (!(await reserveDownloadTitle(story.slug))) return false;
       const id = makeDownloadId(story.slug, "audio", audio_slug);
@@ -200,11 +209,35 @@ export function useOfflineDownload() {
       setProgressById((prev) => ({ ...prev, [id]: 0 }));
       try {
         await withPending(id, async () => {
-          const plaintext = await fetchAuthenticatedBinary(
-            `/stories/${story.slug}/audios/${audio_slug}/stream/`,
-            (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
-          );
+          const [plaintext, readAlong] = await Promise.all([
+            fetchAuthenticatedBinary(
+              `/stories/${story.slug}/audios/${audio_slug}/stream/`,
+              (fraction) => setProgressById((prev) => ({ ...prev, [id]: fraction }))
+            ),
+            readAlongAvailable
+              ? storyApi.getReadAlong(story.slug, audio_slug).catch(() => null)
+              : Promise.resolve(null),
+          ]);
           await storePlaintext(id, story, "audio", audio_slug, title, order, plaintext);
+
+          if (readAlongAvailable && readAlong?.audio.read_along_available) {
+            try {
+              const stored = await storeOfflineReadAlong(readAlong);
+              if (stored) {
+                await preloadOfflineReadAlong(story.slug, audio_slug).catch(() => {
+                  toast.warning("Transcript saved, but the offline Read Along page could not be preloaded.");
+                });
+              }
+            } catch {
+              toast.warning("Audio downloaded, but its Read Along transcript could not be saved.");
+            }
+          } else if (readAlong) {
+            // The server is authoritative when it explicitly reports that a
+            // previously compatible transcript was cleared.
+            await deleteOfflineTranscript(story.slug, audio_slug);
+          } else if (readAlongAvailable) {
+            toast.warning("Audio downloaded, but its Read Along transcript could not be fetched.");
+          }
         });
         return true;
       } finally {
@@ -237,7 +270,13 @@ export function useOfflineDownload() {
     [requireAuth, withPending]
   );
 
-  const removeDownloadItem = useCallback((id: string) => deleteDownload(id), []);
+  const removeDownloadItem = useCallback(async (id: string) => {
+    const record = await getDownload(id);
+    await deleteDownload(id);
+    if (record?.type === "audio") {
+      await removeOfflineReadAlongPage(record.story_slug, record.item_slug).catch(() => undefined);
+    }
+  }, []);
 
   return {
     downloadChapter,
