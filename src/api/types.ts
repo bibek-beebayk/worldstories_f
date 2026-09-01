@@ -146,6 +146,7 @@ export interface Story {
   rating: number;
   views: number;
   is_completed: boolean;
+  is_original?: boolean;
   genres?: string[];
   categories?: string[];
   has_audio?: boolean;
@@ -215,6 +216,7 @@ export interface StoryTranslation {
 }
 
 export interface StoryDetail extends Story {
+  is_original: boolean;
   story_type: string;
   about: string;
   summary: string | null;
@@ -354,6 +356,7 @@ export interface HomeDataResponse {
   new_trending: Story[];
   more_to_explore: Story[];
   quick_reads: Story[];
+  originals: Story[];
   tabs: HomeTabs;
   sidebar: HomeSidebar;
 }
@@ -363,10 +366,6 @@ export interface TrendingDataResponse {
   highest_rated: Story[];
   most_favorited: Story[];
   most_discussed: Story[];
-}
-
-export interface OriginalsDataResponse {
-  stories: Story[];
 }
 
 export interface DiscoverFacet {
@@ -546,6 +545,7 @@ export interface AdminStory {
   epub_file: string | null;
   epub_file_url: string | null;
   is_completed: boolean;
+  is_original: boolean;
   is_published: boolean;
   publish_at: string | null;
   genres: number[];

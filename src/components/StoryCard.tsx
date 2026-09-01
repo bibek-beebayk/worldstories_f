@@ -1,4 +1,4 @@
-import { Eye, Star, Headphones } from "lucide-react";
+import { Eye, Star, Headphones, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router";
 import { formatViews } from "@/lib/utils";
@@ -16,10 +16,11 @@ interface StoryCardProps {
   story_type?: string;
   language?: string;
   has_audio?: boolean;
+  is_original?: boolean;
   compact?: boolean;
 }
 
-const StoryCard = ({ title, author, cover_image, rating, views, story_type, language, slug, has_audio, compact = false }: StoryCardProps) => {
+const StoryCard = ({ title, author, cover_image, rating, views, story_type, language, slug, has_audio, is_original, compact = false }: StoryCardProps) => {
   return (
     <Link to={`/story/${slug}`} className="group cursor-pointer block">
       <div className={`relative overflow-hidden rounded-lg ${compact ? "mb-2 aspect-[4/5] shadow-sm" : "mb-3 aspect-[3/4] shadow-md"}`}>
@@ -51,6 +52,11 @@ const StoryCard = ({ title, author, cover_image, rating, views, story_type, lang
           >
             {getLanguageLabel(language)}
           </Badge>
+        )}
+        {is_original && (
+          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
+            <Sparkles className="h-3 w-3" /> Original
+          </span>
         )}
       </div>
       

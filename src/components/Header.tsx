@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, Earth, FileText, Menu, Search, UsersRound, X } from "lucide-react";
+import { BookOpen, Earth, FileText, Menu, Search, Sparkles, UsersRound, X } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
@@ -147,6 +147,9 @@ const Header = () => {
           <nav className="hidden md:flex items-center gap-4 xl:gap-6">
             <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Library
+            </Link>
+            <Link to="/originals" className="flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-700">
+              <Sparkles className="h-3 w-3" /> Originals
             </Link>
             <Link to="/authors" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Authors
@@ -523,6 +526,12 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Library
+                  </Link>
+                </SheetClose>
+
+                <SheetClose asChild>
+                  <Link to="/originals" className="flex w-fit items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                    <Sparkles className="h-4 w-4" /> Originals
                   </Link>
                 </SheetClose>
 

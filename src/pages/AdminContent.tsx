@@ -159,6 +159,7 @@ const AdminContent = () => {
   const [originalPublishedDay, setOriginalPublishedDay] = useState("");
   const [sitePublishedDate, setSitePublishedDate] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isOriginal, setIsOriginal] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [publishAt, setPublishAt] = useState("");
   const [coverImage, setCoverImage] = useState("");
@@ -366,6 +367,7 @@ const AdminContent = () => {
     setOriginalPublishedDay("");
     setSitePublishedDate("");
     setIsCompleted(false);
+    setIsOriginal(false);
     setIsPublished(false);
     setPublishAt("");
     setCoverImage("");
@@ -408,6 +410,7 @@ const AdminContent = () => {
     setOriginalPublishedMonth(numToStr(selectedStory.original_published_month));
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
     setIsCompleted(Boolean(selectedStory.is_completed));
+    setIsOriginal(Boolean(selectedStory.is_original));
     setCoverImage(selectedStory.cover_image || "");
     setRemoveCoverImage(false);
     setSelectedGenreNames(
@@ -969,6 +972,7 @@ const AdminContent = () => {
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
     setSitePublishedDate(selectedStory.site_published_date || "");
     setIsCompleted(Boolean(selectedStory.is_completed));
+    setIsOriginal(Boolean(selectedStory.is_original));
     setIsPublished(Boolean(selectedStory.is_published));
     setPublishAt(toDatetimeLocalValue(selectedStory.publish_at));
     setCoverImage(selectedStory.cover_image || "");
@@ -1265,6 +1269,7 @@ const AdminContent = () => {
       formData.append("author", "");
     }
     formData.append("is_completed", String(isCompleted));
+    formData.append("is_original", String(isOriginal));
     const publishValue = forceDraft ? false : forcePublish ? true : isPublished;
     formData.append("is_published", String(publishValue));
     if (originalPublishedYear) {
@@ -1971,6 +1976,12 @@ const AdminContent = () => {
                     <label className="flex items-center gap-2 text-sm">
                       <Checkbox checked={isPublished} onCheckedChange={(value) => setIsPublished(Boolean(value))} />
                       Published
+                    </label>
+                  </div>
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={isOriginal} onCheckedChange={(value) => setIsOriginal(Boolean(value))} />
+                      WorldStories Original
                     </label>
                   </div>
                 </div>

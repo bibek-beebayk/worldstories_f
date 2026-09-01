@@ -6,6 +6,7 @@ export default [
     route("login", "components/OpenLoginModalRedirect.tsx", { id: "login-redirect" }),
     route("register", "components/OpenLoginModalRedirect.tsx", { id: "register-redirect" }),
     route("library", "pages/Library.tsx"),
+    route("originals", "pages/Originals.tsx"),
     route("trending", "routes/trending-redirect.tsx"),
     route("discover", "pages/Discover.tsx"),
     route("story-map", "pages/StoryMap.tsx"),

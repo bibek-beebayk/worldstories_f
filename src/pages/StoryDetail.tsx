@@ -279,6 +279,16 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
     retry: false,
   });
 
+  const { data: originalsRail } = useQuery({
+    queryKey: ["originals-rail"],
+    queryFn: () => storyApi.getOriginals(1),
+    enabled: !!story?.is_original,
+    staleTime: 5 * 60_000,
+  });
+  const moreOriginals = (originalsRail?.results ?? [])
+    .filter((item) => item.slug !== slug)
+    .slice(0, 6);
+
   useEffect(() => {
     if (myReview) {
       setReviewRating(myReview.rating);
@@ -564,9 +574,17 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
 
               <div className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <Badge>{story.story_type}</Badge>
                     <Badge variant="outline">{story.is_completed ? "Complete" : "Ongoing"}</Badge>
+                    {story.is_original && (
+                      <Link
+                        to="/originals"
+                        className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
+                      >
+                        <Sparkles className="h-3 w-3" /> WorldStories Original
+                      </Link>
+                    )}
                   </div>
                   {story.translations.length > 0 && (
                     <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -1201,6 +1219,26 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
             <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {story.similar_stories.map((similarStory) => (
                 <StoryCard key={similarStory.id} {...similarStory} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {story.is_original && moreOriginals.length > 0 && (
+          <section className="mt-12 border-t pt-8" aria-labelledby="more-originals-heading">
+            <div className="mb-5 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-indigo-600" />
+              <div>
+                <h2 id="more-originals-heading" className="text-xl font-bold sm:text-2xl">More WorldStories Originals</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Other stories published in-house by WorldStories.{" "}
+                  <Link to="/originals" className="font-medium text-indigo-600 hover:underline">See all</Link>
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {moreOriginals.map((item) => (
+                <StoryCard key={item.id} {...item} />
               ))}
             </div>
           </section>

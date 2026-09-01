@@ -129,6 +129,27 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
 
           {!isLoading && data && (
             <>
+          {data.originals?.length > 0 && (
+            <section className="rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-blue-50 p-4 sm:p-6">
+              <SectionTitle
+                icon={Sparkles}
+                title="WorldStories Originals"
+                subtitle="Exclusive stories created for the WorldStories community."
+                seeAllHref="/originals"
+              />
+              <Carousel opts={{ align: "start", loop: data.originals.length > 4 }} className="w-full">
+                <CarouselContent className="-ml-3">
+                  {data.originals.map((story) => (
+                    <CarouselItem key={story.id} className="basis-1/2 pl-3 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
+                      <StoryCard {...story} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-2 hidden sm:flex" />
+                <CarouselNext className="right-2 hidden sm:flex" />
+              </Carousel>
+            </section>
+          )}
           {isLoggedIn &&
             !isContinueReadingLoading &&
             !isContinueReadingError &&

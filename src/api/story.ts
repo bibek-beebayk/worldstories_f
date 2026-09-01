@@ -13,7 +13,6 @@ import {
   Theme,
   ThemeDetail,
   HomeDataResponse,
-  OriginalsDataResponse,
   DiscoverDataResponse,
   ReviewListResponse,
   Review,
@@ -123,7 +122,8 @@ export const storyApi = {
   getLibraryShelves: (page: number) =>
     apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
   getHomeData: () => apiClient<HomeDataResponse>("/home/"),
-  getOriginalsData: () => apiClient<OriginalsDataResponse>("/originals/"),
+  getOriginals: (page: number = 1) =>
+    apiClient<StoryListResponse>(`/stories/?is_original=true&page=${page}&sort=recent`),
   getDiscoverData: () => apiClient<DiscoverDataResponse>("/discover/"),
   getStoryMap: () => apiClient<StoryMapResponse>("/story-map/"),
   searchStories: (
@@ -255,6 +255,7 @@ export const storyApi = {
     filters: {
       is_published?: boolean;
       is_completed?: boolean;
+      is_original?: boolean;
       has_summary?: boolean;
       has_retrospective?: boolean;
     } = {}
@@ -271,6 +272,7 @@ export const storyApi = {
     filters: {
       is_published?: boolean;
       is_completed?: boolean;
+      is_original?: boolean;
       has_summary?: boolean;
       has_retrospective?: boolean;
     } = {},

@@ -45,6 +45,7 @@ const AdminStoryReport = () => {
   const [search, setSearch] = useState("");
   const [publicationFilter, setPublicationFilter] = useState<TriStateFilter>("all");
   const [completionFilter, setCompletionFilter] = useState<TriStateFilter>("all");
+  const [originalFilter, setOriginalFilter] = useState<TriStateFilter>("all");
   const [summaryFilter, setSummaryFilter] = useState<TriStateFilter>("all");
   const [retrospectiveFilter, setRetrospectiveFilter] = useState<TriStateFilter>("all");
   const [exporting, setExporting] = useState(false);
@@ -63,11 +64,12 @@ const AdminStoryReport = () => {
   );
 
   const { data: storiesData, isLoading: storiesLoading } = useQuery({
-    queryKey: ["admin-story-report", page, search, publicationFilter, completionFilter, summaryFilter, retrospectiveFilter],
+    queryKey: ["admin-story-report", page, search, publicationFilter, completionFilter, originalFilter, summaryFilter, retrospectiveFilter],
     queryFn: () =>
       storyApi.getAdminStories(page, search, {
         is_published: publicationFilter === "all" ? undefined : publicationFilter === "true",
         is_completed: completionFilter === "all" ? undefined : completionFilter === "true",
+        is_original: originalFilter === "all" ? undefined : originalFilter === "true",
         has_summary: summaryFilter === "all" ? undefined : summaryFilter === "true",
         has_retrospective: retrospectiveFilter === "all" ? undefined : retrospectiveFilter === "true",
       }),
@@ -88,6 +90,7 @@ const AdminStoryReport = () => {
         {
           is_published: publicationFilter === "all" ? undefined : publicationFilter === "true",
           is_completed: completionFilter === "all" ? undefined : completionFilter === "true",
+          is_original: originalFilter === "all" ? undefined : originalFilter === "true",
           has_summary: summaryFilter === "all" ? undefined : summaryFilter === "true",
           has_retrospective: retrospectiveFilter === "all" ? undefined : retrospectiveFilter === "true",
         },
@@ -196,6 +199,16 @@ const AdminStoryReport = () => {
                     <SelectItem value="false">Ongoing</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={originalFilter} onValueChange={resetToFirstPage(setOriginalFilter)}>
+                  <SelectTrigger className="h-9 w-[150px] text-xs">
+                    <SelectValue placeholder="Originals" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stories</SelectItem>
+                    <SelectItem value="true">Originals</SelectItem>
+                    <SelectItem value="false">Not originals</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={summaryFilter} onValueChange={resetToFirstPage(setSummaryFilter)}>
                   <SelectTrigger className="h-9 w-[150px] text-xs">
                     <SelectValue placeholder="Summary" />
@@ -264,7 +277,7 @@ const AdminStoryReport = () => {
                 <p className="text-sm text-muted-foreground">No stories match your filters.</p>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full min-w-[720px] text-sm">
+                  <table className="w-full min-w-[820px] text-sm">
                     <thead>
                       <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                         <th className="px-3 py-2">#</th>
@@ -273,6 +286,7 @@ const AdminStoryReport = () => {
                         <th className="px-3 py-2">Summary</th>
                         <th className="px-3 py-2">Retrospective</th>
                         <th className="px-3 py-2">Completion</th>
+                        <th className="px-3 py-2">Original</th>
                         <th className="px-3 py-2">Publication</th>
                         <th className="px-3 py-2">Analytics</th>
                       </tr>
@@ -300,6 +314,15 @@ const AdminStoryReport = () => {
                           </td>
                           <td className="px-3 py-2">
                             <StatusBadge present={story.is_completed} presentLabel="Completed" missingLabel="Ongoing" />
+                          </td>
+                          <td className="px-3 py-2">
+                            {story.is_original ? (
+                              <span className="inline-flex rounded-full border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                                Original
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">—</span>
+                            )}
                           </td>
                           <td className="px-3 py-2">
                             <StatusBadge present={story.is_published} presentLabel="Published" missingLabel="Draft" />
