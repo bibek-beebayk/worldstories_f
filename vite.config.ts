@@ -68,6 +68,10 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         skipWaiting: false,
         clientsClaim: false,
+        // Drop precaches from previous builds when a new worker activates —
+        // otherwise stale hashed chunks linger and can be served against a
+        // newer SSR shell that references different hashes.
+        cleanupOutdatedCaches: true,
         // vite-plugin-pwa defaults navigateFallback to "index.html", which
         // registers a Workbox NavigationRoute that unconditionally serves
         // the cached homepage shell for every navigation request (online or
