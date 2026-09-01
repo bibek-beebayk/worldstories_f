@@ -49,6 +49,8 @@ import {
   LibraryShelvesResponse,
   AdminAnalyticsRangeDays,
   AdminAnalyticsContentResponse,
+  AdminContentPerformanceResponse,
+  AdminContentPerformanceSort,
   AdminAnalyticsEngagementResponse,
   AdminAnalyticsUsersResponse,
   AdminAnalyticsSubmissionsResponse,
@@ -441,6 +443,15 @@ export const storyApi = {
     apiClient<AdminOverviewResponse>("/admin/overview/"),
   getAdminAnalyticsContent: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsContentResponse>(`/admin/analytics/content/?days=${days}`),
+  getAdminContentPerformance: (
+    kind: "story" | "audiobook" | "blog",
+    days: AdminAnalyticsRangeDays,
+    page: number,
+    sort: AdminContentPerformanceSort
+  ) =>
+    apiClient<AdminContentPerformanceResponse>(
+      `/admin/analytics/content-rankings/?kind=${kind}&days=${days}&page=${page}&sort=${sort}`
+    ),
   getAdminAnalyticsEngagement: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsEngagementResponse>(`/admin/analytics/engagement/?days=${days}`),
   getAdminAnalyticsUsers: (days: AdminAnalyticsRangeDays) =>

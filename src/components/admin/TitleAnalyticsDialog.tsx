@@ -18,12 +18,81 @@ import {
 import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
 import { storyApi } from "@/api/story";
-import type { AdminAnalyticsRangeDays } from "@/api/types";
+import type { AdminAnalyticsRangeDays, AdminTitleAnalyticsTimeSeries } from "@/api/types";
 
 const formatNumber = (value: number) => value.toLocaleString();
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
 
+const formatPeriod = (value: string, interval: "hour" | "day") => {
+  const date = new Date(value);
+  return interval === "hour"
+    ? date.toLocaleTimeString([], { hour: "numeric" })
+    : date.toLocaleDateString([], { month: "short", day: "numeric" });
+};
+
+const METRIC_CHARTS = [
+  { key: "views", title: "Views", label: "Views" },
+  { key: "reads", title: "Reads", label: "Reading sessions" },
+  { key: "reading_minutes", title: "Reading time", label: "Minutes" },
+  { key: "interactions", title: "Interactions", label: "Interactions" },
+] as const;
+
+function MetricBarCharts({ timeSeries }: { timeSeries: AdminTitleAnalyticsTimeSeries }) {
+  return (
+    <div className="grid gap-4">
+      {METRIC_CHARTS.map((metric) => (
+        <ChartCard
+          key={metric.key}
+          title={`${metric.title} by ${timeSeries.interval}`}
+          subtitle={`Recorded during the selected ${timeSeries.interval === "hour" ? "24-hour" : "date"} range`}
+        >
+          <BreakdownBarChart
+            data={timeSeries.points}
+            xKey="period"
+            series={[{ key: metric.key, label: metric.label }]}
+            formatX={(value) => formatPeriod(value, timeSeries.interval)}
+            formatY={metric.key === "reading_minutes" ? (value) => `${value}m` : undefined}
+            height={240}
+          />
+        </ChartCard>
+      ))}
+    </div>
+  );
+}
+
+const AUDIO_METRIC_CHARTS = [
+  { key: "listens", title: "Listens", label: "Listening sessions" },
+  { key: "listening_minutes", title: "Listening time", label: "Minutes" },
+  { key: "read_along_listens", title: "Read Along sessions", label: "Sessions" },
+  { key: "read_along_minutes", title: "Read Along time", label: "Minutes" },
+] as const;
+
+function AudioMetricBarCharts({ timeSeries }: { timeSeries: AdminTitleAnalyticsTimeSeries }) {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-semibold">Audiobook performance</h3>
+      {AUDIO_METRIC_CHARTS.map((metric) => (
+        <ChartCard
+          key={metric.key}
+          title={`${metric.title} by ${timeSeries.interval}`}
+          subtitle="Listening activity during the selected range"
+        >
+          <BreakdownBarChart
+            data={timeSeries.points}
+            xKey="period"
+            series={[{ key: metric.key, label: metric.label }]}
+            formatX={(value) => formatPeriod(value, timeSeries.interval)}
+            formatY={metric.key.includes("minutes") ? (value) => `${value}m` : undefined}
+            height={240}
+          />
+        </ChartCard>
+      ))}
+    </div>
+  );
+}
+
 const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
+  { value: 1, label: "Last 24 hours" },
   { value: 7, label: "Last 7 days" },
   { value: 30, label: "Last 30 days" },
   { value: 90, label: "Last 90 days" },
@@ -34,15 +103,21 @@ interface TitleAnalyticsDialogProps {
   kind: "story" | "blog";
   slug: string;
   title: string;
+  initialDays?: AdminAnalyticsRangeDays;
 }
 
 // One dialog handles both stories and blogs since the shell (trigger,
 // header, time-range picker) is identical — only the stat tiles and the
 // breakdown table underneath differ enough to warrant branching rather
 // than two near-duplicate components.
-export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialogProps) {
+export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: TitleAnalyticsDialogProps) {
   const [open, setOpen] = useState(false);
-  const [days, setDays] = useState<AdminAnalyticsRangeDays>(30);
+  const [days, setDays] = useState<AdminAnalyticsRangeDays>(initialDays);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) setDays(initialDays);
+    setOpen(nextOpen);
+  };
 
   const storyQuery = useQuery({
     queryKey: ["admin-analytics", "story-detail", slug, days],
@@ -59,7 +134,7 @@ export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialog
   const isError = kind === "story" ? storyQuery.isError : blogQuery.isError;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <Button
         variant="ghost"
         size="icon"
@@ -141,6 +216,12 @@ export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialog
               )}
             </div>
 
+            <MetricBarCharts timeSeries={storyQuery.data.time_series} />
+
+            {storyQuery.data.has_audio && (
+              <AudioMetricBarCharts timeSeries={storyQuery.data.time_series} />
+            )}
+
             <ChartCard
               title="Chapter breakdown"
               subtitle="Readers and average progress per chapter — where the reader count drops off is where readers are stopping"
@@ -193,6 +274,8 @@ export function TitleAnalyticsDialog({ kind, slug, title }: TitleAnalyticsDialog
                 value={formatNumber(blogQuery.data.signed_in_readers_with_depth_tracked)}
               />
             </div>
+
+            <MetricBarCharts timeSeries={blogQuery.data.time_series} />
 
             <ChartCard
               title="Reading depth (signed-in readers)"

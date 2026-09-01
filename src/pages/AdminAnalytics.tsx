@@ -18,6 +18,7 @@ import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
 import { CountryHeatmapMap } from "@/components/admin/charts/CountryHeatmapMap";
 import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog";
+import { ContentPerformanceTable } from "@/components/admin/ContentPerformanceTable";
 import type { AdminAnalyticsRangeDays } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
 const formatPercentPoints = (value: number) => `${Math.round(value)}%`;
 
 const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
+  { value: 1, label: "Last 24 hours" },
   { value: 7, label: "Last 7 days" },
   { value: 30, label: "Last 30 days" },
   { value: 90, label: "Last 90 days" },
@@ -174,6 +176,30 @@ const AdminAnalytics = () => {
                 <StatTile label="Quick Reads" value={formatNumber(contentQuery.data.quick_read_count)} />
                 <StatTile label="Blog posts" value={formatNumber(contentQuery.data.blog_posts_count)} />
               </div>
+
+              <ContentPerformanceTable
+                title="Top performing content"
+                rows={contentQuery.data.top_stories}
+                kind="story"
+                days={days}
+                viewAllHref={`/admin/analytics/content-performance?kind=story&days=${days}`}
+              />
+
+              <ContentPerformanceTable
+                title="Top performing audiobooks"
+                rows={contentQuery.data.top_audiobooks}
+                kind="audiobook"
+                days={days}
+                viewAllHref={`/admin/analytics/content-performance?kind=audiobook&days=${days}`}
+              />
+
+              <ContentPerformanceTable
+                title="Top performing blogs"
+                rows={contentQuery.data.top_blogs}
+                kind="blog"
+                days={days}
+                viewAllHref={`/admin/analytics/content-performance?kind=blog&days=${days}`}
+              />
 
               <div className="grid gap-4 xl:grid-cols-2">
                 <ChartCard title="Views over time" subtitle="Real, de-duplicated story views">

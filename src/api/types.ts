@@ -817,7 +817,7 @@ export interface AdminOverviewResponse {
   top_rated_stories: AdminTopRatedStory[];
 }
 
-export type AdminAnalyticsRangeDays = 7 | 30 | 90 | 365;
+export type AdminAnalyticsRangeDays = 1 | 7 | 30 | 90 | 365;
 export type AdminAnalyticsExportSection =
   | "content"
   | "engagement"
@@ -868,6 +868,54 @@ export interface AdminAnalyticsContentResponse {
   audiobooks_count: number;
   watchable_count: number;
   quick_read_count: number;
+  top_stories: AdminContentPerformanceRow[];
+  top_audiobooks: AdminContentPerformanceRow[];
+  top_blogs: AdminContentPerformanceRow[];
+}
+
+export type AdminContentPerformanceSort =
+  | "performance_score"
+  | "views"
+  | "reads"
+  | "unique_readers"
+  | "listens"
+  | "unique_listeners"
+  | "reading_minutes"
+  | "listening_minutes"
+  | "engagement_minutes"
+  | "interactions"
+  | "completions";
+
+export interface AdminContentPerformanceRow {
+  id: number;
+  title: string;
+  slug: string;
+  content_type: "story" | "audiobook" | "blog";
+  views: number;
+  reads: number;
+  unique_readers: number;
+  listens: number;
+  unique_listeners: number;
+  reading_minutes: number;
+  listening_minutes: number;
+  watching_minutes: number;
+  engagement_minutes: number;
+  interactions: number;
+  completions: number;
+  downloads: number;
+  favorites: number;
+  reviews: number;
+  performance_score: number;
+}
+
+export interface AdminContentPerformanceResponse {
+  range_days: AdminAnalyticsRangeDays;
+  content_type: "story" | "audiobook" | "blog";
+  sort: AdminContentPerformanceSort;
+  count: number;
+  page: number;
+  page_size: number;
+  results: AdminContentPerformanceRow[];
 }
 
 export interface AdminAnalyticsProgressBucket {
@@ -965,6 +1013,10 @@ export interface AdminAnalyticsAudienceResponse {
     completions: number;
     completion_rate: number;
     reading_minutes: number;
+    listens: number;
+    listening_minutes: number;
+    read_along_listens: number;
+    read_along_minutes: number;
     listening_minutes: number;
     watching_minutes: number;
     blog_reading_minutes: number;
@@ -1053,6 +1105,7 @@ export interface AdminAnalyticsGeographyResponse {
 export interface AdminStoryDetailAnalyticsResponse {
   range_days: AdminAnalyticsRangeDays;
   story: { id: number; title: string; slug: string };
+  time_series: AdminTitleAnalyticsTimeSeries;
   page_opens: number;
   started_reading: number;
   completed_reading: number;
@@ -1084,6 +1137,7 @@ export interface AdminStoryDetailAnalyticsResponse {
 export interface AdminBlogDetailAnalyticsResponse {
   range_days: AdminAnalyticsRangeDays;
   blog: { id: number; title: string; slug: string };
+  time_series: AdminTitleAnalyticsTimeSeries;
   page_opens: number;
   started_reading: number;
   reading_minutes: number;
@@ -1091,6 +1145,17 @@ export interface AdminBlogDetailAnalyticsResponse {
   avg_progress_signed_in: number;
   completed_signed_in: number;
   progress_distribution_signed_in: Array<{ bucket: string; count: number }>;
+}
+
+export interface AdminTitleAnalyticsTimeSeries {
+  interval: "hour" | "day";
+  points: Array<{
+    period: string;
+    views: number;
+    reads: number;
+    reading_minutes: number;
+    interactions: number;
+  }>;
 }
 
 export interface BlogReadingProgress {

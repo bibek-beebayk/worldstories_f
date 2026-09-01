@@ -29,6 +29,7 @@ const SECTION_OPTIONS: Array<{ value: AdminAnalyticsExportSection; label: string
 ];
 
 const RANGE_LABELS: Record<AdminAnalyticsRangeDays, string> = {
+  1: "the last 24 hours",
   7: "the last 7 days",
   30: "the last 30 days",
   90: "the last 90 days",
