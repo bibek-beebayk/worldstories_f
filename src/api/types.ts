@@ -350,6 +350,17 @@ export interface FeaturedStory extends Story {
   about?: string;
 }
 
+/** Admin picker/list row for the Featured Stories screen — not the heavy AdminStory shape. */
+export interface AdminFeaturedStory {
+  id: number;
+  title: string;
+  slug: string;
+  cover_image: string | null;
+  author: string | null;
+  is_published: boolean;
+  featured_rank: number;
+}
+
 export interface HomeDataResponse {
   featured_stories: FeaturedStory[];
   weekly_spotlight: Story[];

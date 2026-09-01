@@ -25,6 +25,7 @@ import {
   PaginatedResponse,
   Submission,
   AdminStory,
+  AdminFeaturedStory,
   AdminChapter,
   AdminAudio,
   AudioTranscriptImportResult,
@@ -290,6 +291,13 @@ export const storyApi = {
     ),
   getAdminStory: (id: number) =>
     apiClient<AdminStory>(`/admin/stories/${id}/`),
+  getFeaturedStories: () =>
+    apiClient<AdminFeaturedStory[]>("/admin/stories/featured/"),
+  setFeaturedStories: (storyIds: number[]) =>
+    apiClient<AdminFeaturedStory[]>("/admin/stories/featured/", {
+      method: "PUT",
+      body: JSON.stringify({ story_ids: storyIds }),
+    }),
   createAdminStory: (formData: FormData) =>
     apiClient<AdminStory>("/admin/stories/", {
       method: "POST",

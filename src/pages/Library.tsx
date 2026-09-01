@@ -1,5 +1,6 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import StoryCard from "@/components/StoryCard";
+import { OriginalsRail } from "@/components/OriginalsRail";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -818,6 +819,7 @@ const Library = () => {
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         {isBrowsing ? (
           <>
+            <OriginalsRail className="mb-10" />
             <div className="space-y-10">
               {shelves.map((shelf) => (
                 <section key={shelf.id}>

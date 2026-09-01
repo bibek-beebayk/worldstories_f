@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import AdSpace from "@/components/AdSpace";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import { OriginalsRail } from "@/components/OriginalsRail";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscoverData } from "@/hooks/useDiscoverData";
 import { storyApi } from "@/api/story";
@@ -171,6 +172,8 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
             Browse by genre, story type, or language, catch what's fresh, and dig up stories most readers miss.
           </p>
         </div>
+
+        <OriginalsRail className="mb-8" />
 
         {/* Genre browsing — the primary entry point into this page. Clicking a genre hands
             off to the Library's full filtering experience rather than duplicating it here. */}

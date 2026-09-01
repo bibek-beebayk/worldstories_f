@@ -17,7 +17,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, Earth, FileText, Menu, Search, Sparkles, UsersRound, X } from "lucide-react";
+import { BookOpen, ChevronDown, Earth, FileText, Menu, Search, Sparkles, UsersRound, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Link, useNavigate } from "react-router";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
@@ -145,33 +151,34 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-4 xl:gap-6">
-            <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Library
-            </Link>
             <Link to="/originals" className="flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-700">
               <Sparkles className="h-3 w-3" /> Originals
             </Link>
-            <Link to="/authors" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Authors
-            </Link>
-            <Link to="/discover" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Discover
-            </Link>
-            <Link to="/story-map" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Story Map
-            </Link>
-            <Link to="/audiobooks" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Audiobooks
-            </Link>
-            <Link to="/watch" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Watch
+            <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Library
             </Link>
             <Link to="/blog" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Blog
             </Link>
-            <Link to="/downloads" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Downloads
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-foreground outline-none transition-colors hover:text-primary data-[state=open]:text-primary">
+                More <ChevronDown className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-44">
+                {[
+                  { to: "/discover", label: "Discover" },
+                  { to: "/authors", label: "Authors" },
+                  { to: "/story-map", label: "Story Map" },
+                  { to: "/audiobooks", label: "Audiobooks" },
+                  { to: "/watch", label: "Watch" },
+                  { to: "/downloads", label: "Downloads" },
+                ].map((item) => (
+                  <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
+                    <Link to={item.to}>{item.label}</Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Link to="/contest" className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 hover:bg-amber-500 transition-colors">
               <span className="text-xs font-semibold text-amber-900">⭐</span>
               <span className="text-xs font-semibold text-amber-900">Contest</span>
@@ -521,17 +528,17 @@ const Header = () => {
 
               <nav className="flex flex-col gap-4 mt-4">
                 <SheetClose asChild>
+                  <Link to="/originals" className="flex w-fit items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                    <Sparkles className="h-4 w-4" /> Originals
+                  </Link>
+                </SheetClose>
+
+                <SheetClose asChild>
                   <Link
                     to="/library"
                     className="text-lg font-medium hover:text-primary"
                   >
                     Library
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link to="/originals" className="flex w-fit items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
-                    <Sparkles className="h-4 w-4" /> Originals
                   </Link>
                 </SheetClose>
 

@@ -171,31 +171,23 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
             </Button>
           </div>
 
-          <div className="relative mx-auto hidden w-full max-w-md lg:block">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/20 shadow-2xl">
-              <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              {story ? (
-                <CoverImage
-                  key={`desktop-cover-${story.id}`}
-                  src={story.cover_image}
-                  alt={story.title}
-                  author={story.author}
-                  loading="eager"
-                  decoding="async"
-                  fetchpriority="high"
-                  className="h-full w-full animate-in fade-in-0 object-cover duration-500"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-white/10 to-transparent">
-                  <BookOpen className="h-16 w-16 text-white/30" />
-                </div>
-              )}
-              <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-20 rounded-lg bg-black/45 px-3 py-2 backdrop-blur-sm">
-                <p className="line-clamp-1 text-sm font-medium text-white">
-                  {story?.title || "Welcome to WorldStories!"}
-                </p>
+          <div className="relative mx-auto hidden w-fit max-w-md lg:block">
+            {story ? (
+              <CoverImage
+                key={`desktop-cover-${story.id}`}
+                src={story.cover_image}
+                alt={story.title}
+                author={story.author}
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+                className="mx-auto h-[440px] w-auto max-w-full animate-in fade-in-0 rounded-2xl object-contain duration-500 xl:h-[480px]"
+              />
+            ) : (
+              <div className="flex h-[440px] w-64 items-center justify-center rounded-2xl bg-white/5 xl:h-[480px]">
+                <BookOpen className="h-16 w-16 text-white/30" />
               </div>
-            </div>
+            )}
 
             {hasStories && featuredStories.length > 1 && (
               <>
