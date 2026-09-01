@@ -19,12 +19,20 @@ import { CountryHeatmapMap } from "@/components/admin/charts/CountryHeatmapMap";
 import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog";
 import { ContentPerformanceTable } from "@/components/admin/ContentPerformanceTable";
-import type { AdminAnalyticsRangeDays } from "@/api/types";
+import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
 
 const formatNumber = (value: number) => value.toLocaleString();
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
 const formatPercentPoints = (value: number) => `${Math.round(value)}%`;
+const formatAnalyticsPeriod = (interval: AdminAnalyticsTimeInterval) => (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  if (interval === "hour") return date.toLocaleTimeString([], { hour: "numeric" });
+  if (interval === "month") return date.toLocaleDateString([], { month: "short", year: "numeric" });
+  const label = date.toLocaleDateString([], { month: "short", day: "numeric" });
+  return interval === "week" ? `Week of ${label}` : label;
+};
 
 const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 1, label: "Last 24 hours" },
@@ -207,20 +215,23 @@ const AdminAnalytics = () => {
                     data={contentQuery.data.views_over_time}
                     xKey="day"
                     series={[{ key: "count", label: "Views" }]}
+                    formatX={formatAnalyticsPeriod(contentQuery.data.time_interval)}
                   />
                 </ChartCard>
-                <ChartCard title="Publishing velocity" subtitle="Stories added to the site per day">
+                <ChartCard title="Publishing velocity" subtitle={`Stories added per ${contentQuery.data.publishing_interval}`}>
                   <TrendLineChart
                     data={contentQuery.data.publishing_over_time}
                     xKey="day"
                     series={[{ key: "count", label: "Stories published" }]}
+                    formatX={formatAnalyticsPeriod(contentQuery.data.publishing_interval)}
                   />
                 </ChartCard>
-                <ChartCard title="Blog publishing velocity" subtitle="Blog posts published per day">
+                <ChartCard title="Blog publishing velocity" subtitle={`Blog posts published per ${contentQuery.data.time_interval}`}>
                   <TrendLineChart
                     data={contentQuery.data.blog_publishing_over_time}
                     xKey="day"
                     series={[{ key: "count", label: "Posts published" }]}
+                    formatX={formatAnalyticsPeriod(contentQuery.data.time_interval)}
                   />
                 </ChartCard>
               </div>
@@ -342,13 +353,15 @@ const AdminAnalytics = () => {
                     data={engagementQuery.data.favorites_over_time}
                     xKey="day"
                     series={[{ key: "count", label: "Favorites" }]}
+                    formatX={formatAnalyticsPeriod(engagementQuery.data.time_interval)}
                   />
                 </ChartCard>
-                <ChartCard title="Rating trend" subtitle="Average rating of reviews submitted per day">
+                <ChartCard title="Rating trend" subtitle={`Average rating of reviews submitted per ${engagementQuery.data.time_interval}`}>
                   <TrendLineChart
                     data={engagementQuery.data.rating_trend}
                     xKey="day"
                     series={[{ key: "avg_rating", label: "Avg rating" }]}
+                    formatX={formatAnalyticsPeriod(engagementQuery.data.time_interval)}
                   />
                 </ChartCard>
               </div>
@@ -409,6 +422,7 @@ const AdminAnalytics = () => {
                       { key: "new_visitors", label: "New" },
                       { key: "returning_visitors", label: "Returning" },
                     ]}
+                    formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
                   />
                 </ChartCard>
                 <ChartCard title="Reading, listening & watching time" subtitle="Measured active session minutes">
@@ -420,6 +434,7 @@ const AdminAnalytics = () => {
                       { key: "listening_minutes", label: "Listening minutes" },
                       { key: "watching_minutes", label: "Watching minutes" },
                     ]}
+                    formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
                   />
                 </ChartCard>
               </div>
@@ -433,6 +448,7 @@ const AdminAnalytics = () => {
                     { key: "downloads", label: "Downloads" },
                     { key: "completions", label: "Completions" },
                   ]}
+                  formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
                 />
               </ChartCard>
 
@@ -608,11 +624,12 @@ const AdminAnalytics = () => {
               </div>
 
               <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="New signups" subtitle="Daily new accounts">
+                <ChartCard title="New signups" subtitle={`New accounts per ${usersQuery.data.time_interval}`}>
                   <TrendLineChart
                     data={usersQuery.data.signups_over_time}
                     xKey="day"
                     series={[{ key: "count", label: "Signups" }]}
+                    formatX={formatAnalyticsPeriod(usersQuery.data.time_interval)}
                   />
                 </ChartCard>
                 <ChartCard title="Cumulative user growth">
@@ -620,6 +637,7 @@ const AdminAnalytics = () => {
                     data={cumulativeSignups}
                     xKey="day"
                     series={[{ key: "cumulative", label: "Total users" }]}
+                    formatX={formatAnalyticsPeriod(usersQuery.data.time_interval)}
                   />
                 </ChartCard>
               </div>
@@ -670,6 +688,7 @@ const AdminAnalytics = () => {
                     { key: "count", label: "Sign-ins" },
                     { key: "users", label: "Unique users" },
                   ]}
+                  formatX={formatAnalyticsPeriod(geographyQuery.data.time_interval)}
                 />
               </ChartCard>
 
@@ -734,6 +753,7 @@ const AdminAnalytics = () => {
                   data={submissionsByDay.rows}
                   xKey="day"
                   series={submissionsByDay.statuses.map((status) => ({ key: status, label: status }))}
+                  formatX={formatAnalyticsPeriod(submissionsQuery.data.time_interval)}
                 />
               </ChartCard>
 

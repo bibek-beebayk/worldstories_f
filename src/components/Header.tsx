@@ -28,12 +28,15 @@ import { Link, useNavigate } from "react-router";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
 import AuthorPortrait from "@/components/AuthorPortrait";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
+import PwaInstallDialog from "@/components/PwaInstallDialog";
 
 const Header = () => {
   const navigate = useNavigate();
   const isLoggedIn = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopQuery, setDesktopQuery] = useState("");
   const [mobileQuery, setMobileQuery] = useState("");
@@ -43,6 +46,7 @@ const Header = () => {
   const isScrolled = useIsHeaderScrolled();
   const blurTimerRef = useRef<number | null>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const { isInstalled: isPwaInstalled } = usePwaInstall();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -177,6 +181,11 @@ const Header = () => {
                     <Link to={item.to}>{item.label}</Link>
                   </DropdownMenuItem>
                 ))}
+                {!isPwaInstalled && (
+                  <DropdownMenuItem className="cursor-pointer" onSelect={() => setInstallModalOpen(true)}>
+                    Install app
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <Link to="/contest" className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 hover:bg-amber-500 transition-colors">
@@ -596,6 +605,18 @@ const Header = () => {
                   </Link>
                 </SheetClose>
 
+                {!isPwaInstalled && (
+                  <SheetClose asChild>
+                    <button
+                      type="button"
+                      onClick={() => setInstallModalOpen(true)}
+                      className="text-left text-lg font-medium hover:text-primary"
+                    >
+                      Install app
+                    </button>
+                  </SheetClose>
+                )}
+
                 <SheetClose asChild>
                   <Link
                     to="/contest"
@@ -676,6 +697,7 @@ const Header = () => {
           </Card>
         </div>
       )}
+      <PwaInstallDialog open={installModalOpen} onOpenChange={setInstallModalOpen} />
     </header>
   );
 };

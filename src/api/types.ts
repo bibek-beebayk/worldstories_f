@@ -832,6 +832,8 @@ export interface AdminAnalyticsDayCount {
   count: number;
 }
 
+export type AdminAnalyticsTimeInterval = "hour" | "day" | "week" | "month";
+
 export interface AdminAnalyticsGenrePerformance {
   id: number;
   name: string;
@@ -857,6 +859,8 @@ export interface AdminAnalyticsCompletionSplit {
 
 export interface AdminAnalyticsContentResponse {
   range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
+  publishing_interval: AdminAnalyticsTimeInterval;
   views_over_time: AdminAnalyticsDayCount[];
   genre_performance: AdminAnalyticsGenrePerformance[];
   story_type_breakdown: AdminAnalyticsStoryTypeBreakdown[];
@@ -942,6 +946,7 @@ export interface AdminAnalyticsRatingTrendPoint {
 
 export interface AdminAnalyticsEngagementResponse {
   range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
   reading_progress_buckets: AdminAnalyticsProgressBucket[];
   chapter_dropoff: AdminAnalyticsChapterDropoff[];
   audio_listen_through: { avg_progress: number; listeners: number };
@@ -959,6 +964,7 @@ export interface AdminAnalyticsLoginBucket {
 
 export interface AdminAnalyticsUsersResponse {
   range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
   signups_over_time: AdminAnalyticsDayCount[];
   total_users: number;
   active_users: number;
@@ -991,6 +997,7 @@ export interface AdminAnalyticsGenreCount {
 
 export interface AdminAnalyticsSubmissionsResponse {
   range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
   submissions_over_time: AdminAnalyticsSubmissionsOverTimePoint[];
   funnel: AdminAnalyticsFunnelRow[];
   avg_time_to_review_hours: number;
@@ -1000,6 +1007,7 @@ export interface AdminAnalyticsSubmissionsResponse {
 
 export interface AdminAnalyticsAudienceResponse {
   range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
   summary: {
     visitors: number;
     returning_visitors: number;
@@ -1013,10 +1021,6 @@ export interface AdminAnalyticsAudienceResponse {
     completions: number;
     completion_rate: number;
     reading_minutes: number;
-    listens: number;
-    listening_minutes: number;
-    read_along_listens: number;
-    read_along_minutes: number;
     listening_minutes: number;
     watching_minutes: number;
     blog_reading_minutes: number;
@@ -1094,6 +1098,7 @@ export interface AdminAnalyticsCountryRow {
 
 export interface AdminAnalyticsGeographyResponse {
   range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
   total_logins: number;
   unresolved_logins: number;
   countries_reached: number;
