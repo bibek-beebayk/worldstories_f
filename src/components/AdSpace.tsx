@@ -12,10 +12,16 @@ interface AdSpaceProps {
   contentType?: string;
 }
 
+// Ads are turned off site-wide for now: every <AdSpace/> renders nothing and
+// no ad_impression events fire. Every call site is left in place — flip this
+// one flag back to true to re-enable all ad placeholders at once.
+const ADS_ENABLED = false;
+
 const AdSpace = ({ size, className = "", contentType }: AdSpaceProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (!ADS_ENABLED) return;
     const element = containerRef.current;
     if (!element) return;
     let timer: number | null = null;
@@ -49,6 +55,8 @@ const AdSpace = ({ size, className = "", contentType }: AdSpaceProps) => {
       observer.disconnect();
     };
   }, [size, contentType]);
+
+  if (!ADS_ENABLED) return null;
 
   const sizeClasses = {
     banner: "h-24 md:h-32",

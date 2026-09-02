@@ -65,6 +65,10 @@ export function meta({ data: loaderData, params }: Route.MetaArgs) {
     title: `${chapter.title}${story?.title ? ` — ${story.title}` : ""} | WorldStories`,
     description: `Read ${chapter.title}${story?.title ? ` from ${story.title}` : ""} on WorldStories.`,
     path: `/read/${params.story_slug}/${params.chapter_slug}`,
+    // Only WorldStories Originals chapters are indexable — a public-domain
+    // title's chapter pages are thin/duplicate content available elsewhere.
+    // Story-level pages stay indexed regardless (see StoryDetail's meta()).
+    noIndex: !story?.is_original,
   });
 }
 

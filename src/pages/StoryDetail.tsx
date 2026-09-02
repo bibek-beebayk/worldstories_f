@@ -692,6 +692,46 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                   ))}
                 </div>
 
+                {(story.tags?.length > 0 || story.themes?.length > 0) && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Explore
+                    </span>
+                    {story.tags?.map((tag) =>
+                      // stories_count includes the current story, so > 1 means
+                      // there's at least one other published story to land on.
+                      tag.stories_count > 1 ? (
+                        <Link key={`tag-${tag.id}`} to={`/tag/${tag.slug}`}>
+                          <Badge variant="secondary">{tag.name}</Badge>
+                        </Link>
+                      ) : (
+                        <Badge
+                          key={`tag-${tag.id}`}
+                          variant="secondary"
+                          className="cursor-default opacity-70"
+                        >
+                          {tag.name}
+                        </Badge>
+                      ),
+                    )}
+                    {story.themes?.map((theme) =>
+                      theme.stories_count > 1 ? (
+                        <Link key={`theme-${theme.id}`} to={`/theme/${theme.slug}`}>
+                          <Badge variant="secondary">{theme.name}</Badge>
+                        </Link>
+                      ) : (
+                        <Badge
+                          key={`theme-${theme.id}`}
+                          variant="secondary"
+                          className="cursor-default opacity-70"
+                        >
+                          {theme.name}
+                        </Badge>
+                      ),
+                    )}
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-1.5">
                   {primaryReadHref && (
                     <Link to={primaryReadHref} className={ACTION_ITEM}>

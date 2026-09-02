@@ -236,7 +236,8 @@ export interface StoryDetail extends Story {
   epub_size_bytes?: number;
   chapter_count: number;
   chapters: Chapter[];
-  tags: string[];
+  tags: Tag[];
+  themes: Theme[];
   audios: Audio[];
   videos: Video[];
   reviews_count: number;

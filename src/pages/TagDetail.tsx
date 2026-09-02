@@ -39,6 +39,9 @@ export function meta({ data: tag, params }: Route.MetaArgs) {
     title: `${tag.name} — WorldStories`,
     description: description.slice(0, 160),
     path: `/tag/${tag.slug}`,
+    // Thin collections stay reachable but out of the index until they hold a
+    // real set of stories (matches the sitemap threshold in core/urls.py).
+    noIndex: (tag.stories_count ?? 0) < 10,
     structuredData: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
