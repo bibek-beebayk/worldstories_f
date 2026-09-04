@@ -42,7 +42,14 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 365, label: "Last year" },
 ];
 
-type TabKey = "content" | "engagement" | "audience" | "users" | "geography" | "submissions";
+type TabKey =
+  | "content"
+  | "engagement"
+  | "metrics"
+  | "audience"
+  | "users"
+  | "geography"
+  | "submissions";
 
 const AdminAnalytics = () => {
   const isAuthenticated = Boolean(getAccessToken());
@@ -86,6 +93,12 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "geography", days],
     queryFn: () => storyApi.getAdminAnalyticsGeography(days),
     enabled: canFetch && activeTab === "geography",
+  });
+
+  const metricsQuery = useQuery({
+    queryKey: ["admin-analytics-engagement-metrics", days],
+    queryFn: () => storyApi.getAdminAnalyticsEngagementMetrics(days),
+    enabled: canFetch && activeTab === "metrics",
   });
 
   const cumulativeSignups = useMemo(() => {
@@ -163,6 +176,7 @@ const AdminAnalytics = () => {
           <TabsList className="w-max">
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="engagement">Engagement</TabsTrigger>
+            <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="audience">Audience</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="geography">Geography</TabsTrigger>
@@ -721,6 +735,91 @@ const AdminAnalytics = () => {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </ChartCard>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="metrics" className="space-y-4">
+          {metricsQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {metricsQuery.isError && (
+            <p className="text-sm text-muted-foreground">Could not load these metrics.</p>
+          )}
+          {metricsQuery.data && (
+            <>
+              <ChartCard
+                title="Engagement funnel"
+                subtitle="Rates over the events the reading lifecycle emits."
+              >
+                <div className="space-y-3">
+                  {metricsQuery.data.funnel.map((row) => (
+                    <div key={row.key} className="rounded-lg border p-3">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium">{row.label}</p>
+                        {/* A dash, not 0% — an empty denominator means "no data
+                            yet", which is not the same as a bad rate. */}
+                        <p className="text-lg font-semibold">
+                          {row.rate === null ? "—" : `${Math.round(row.rate * 100)}%`}
+                        </p>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{row.help}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {row.numerator} of {row.denominator}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </ChartCard>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <ChartCard title="Per reader" subtitle="Averages across the selected range.">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    {[
+                      ["Stories / session", metricsQuery.data.averages.stories_per_session],
+                      ["Avg session (min)", metricsQuery.data.averages.average_session_minutes],
+                      ["Countries / reader", metricsQuery.data.averages.countries_per_reader],
+                    ].map(([label, value]) => (
+                      <div key={String(label)} className="rounded-lg border bg-muted/30 p-3">
+                        <p className="text-lg font-semibold">{value ?? "—"}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ChartCard>
+
+                <ChartCard
+                  title="Retention"
+                  subtitle="Readers who came back, of those old enough to have had the chance."
+                >
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    {(["d1", "d7", "d30"] as const).map((key) => {
+                      const bucket = metricsQuery.data!.retention[key];
+                      return (
+                        <div key={key} className="rounded-lg border bg-muted/30 p-3">
+                          <p className="text-lg font-semibold">
+                            {bucket.rate === null ? "—" : `${Math.round(bucket.rate * 100)}%`}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {key.toUpperCase()} · {bucket.returned}/{bucket.eligible}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ChartCard>
+              </div>
+
+              <ChartCard title="Discovery and progression" subtitle="Raw counts in this range.">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {Object.entries(metricsQuery.data.discovery).map(([key, value]) => (
+                    <div key={key} className="rounded-lg border bg-muted/30 p-3 text-center">
+                      <p className="text-lg font-semibold">{value}</p>
+                      <p className="mt-1 text-[11px] leading-tight text-muted-foreground">
+                        {key.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </ChartCard>
             </>

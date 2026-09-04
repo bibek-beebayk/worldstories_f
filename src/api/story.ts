@@ -65,6 +65,7 @@ import {
   AdminAnalyticsEngagementResponse,
   AdminAnalyticsUsersResponse,
   AdminAnalyticsSubmissionsResponse,
+  EngagementMetricsResponse,
   AdminAnalyticsAudienceResponse,
   AdminAnalyticsGeographyResponse,
   AdminAnalyticsExportSection,
@@ -525,6 +526,11 @@ export const storyApi = {
     apiClient<AdminAnalyticsEngagementResponse>(`/admin/analytics/engagement/?days=${days}`),
   getAdminAnalyticsUsers: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsUsersResponse>(`/admin/analytics/users/?days=${days}`),
+  getAdminAnalyticsEngagementMetrics: (days: AdminAnalyticsRangeDays) =>
+    apiClient<EngagementMetricsResponse>(
+      `/admin/analytics/engagement-metrics/?days=${days}`
+    ),
+
   getAdminAnalyticsSubmissions: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsSubmissionsResponse>(`/admin/analytics/submissions/?days=${days}`),
   getAdminAnalyticsAudience: (days: AdminAnalyticsRangeDays) =>

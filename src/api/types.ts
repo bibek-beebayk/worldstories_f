@@ -1792,3 +1792,33 @@ export interface WeeklyRecapResponse {
    *  nothing, so the card renders nothing at all in that case. */
   has_activity: boolean;
 }
+
+
+export interface EngagementFunnelRow {
+  key: string;
+  label: string;
+  help: string;
+  numerator: number;
+  denominator: number;
+  /** Null when the denominator is empty — "no data yet" and "0%" mean
+   *  opposite things and must not look identical. */
+  rate: number | null;
+}
+
+export interface RetentionBucket {
+  eligible: number;
+  returned: number;
+  rate: number | null;
+}
+
+export interface EngagementMetricsResponse {
+  range_days: number;
+  funnel: EngagementFunnelRow[];
+  averages: {
+    stories_per_session: number | null;
+    average_session_minutes: number | null;
+    countries_per_reader: number | null;
+  };
+  retention: { d1: RetentionBucket; d7: RetentionBucket; d30: RetentionBucket };
+  discovery: Record<string, number>;
+}
