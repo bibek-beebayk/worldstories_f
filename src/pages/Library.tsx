@@ -80,6 +80,13 @@ const Library = () => {
     getInitialCategoryFromUrl(searchParams)
   );
   const [status, setStatus] = useState("all");
+  // Mood arrives only from a link (the MoodPicker), so it is read from the URL
+  // and not offered as another filter control — the mood layer is a way *in*,
+  // not a fifth facet competing with genre and category.
+  const selectedMoods = useMemo(() => {
+    const raw = searchParams.get("moods") || "";
+    return raw.split(",").map((slug) => slug.trim()).filter(Boolean);
+  }, [searchParams]);
   const [language, setLanguage] = useState(() => searchParams.get("language") || "all");
   const [storyType, setStoryType] = useState(() => searchParams.get("story_type") || "all");
   const [sort, setSort] = useState("popular");
@@ -164,7 +171,11 @@ const Library = () => {
     language,
     storyType,
     !isBrowsing,
-    selectedCategories
+    selectedCategories,
+    false,
+    false,
+    false,
+    selectedMoods
   );
 
   const {

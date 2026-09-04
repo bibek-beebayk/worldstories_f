@@ -3,6 +3,8 @@ import { Link, useLocation } from "react-router";
 import AdSpace from "@/components/AdSpace";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { OriginalsRail } from "@/components/OriginalsRail";
+import SurpriseMeCard from "@/components/SurpriseMeCard";
+import MoodPicker from "@/components/MoodPicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDiscoverData } from "@/hooks/useDiscoverData";
 import { storyApi } from "@/api/story";
@@ -174,6 +176,13 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
         </div>
 
         <OriginalsRail className="mb-8" />
+
+        {/* Two ways past the filters, for a reader who does not want to browse:
+            one picks for them, the other asks how they want to feel. */}
+        <div className="mb-8 grid gap-4 lg:grid-cols-2">
+          <SurpriseMeCard />
+          <MoodPicker />
+        </div>
 
         {/* Genre browsing — the primary entry point into this page. Clicking a genre hands
             off to the Library's full filtering experience rather than duplicating it here. */}

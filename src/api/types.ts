@@ -1639,3 +1639,59 @@ export interface AchievementsResponse {
   total: number;
   results: AchievementProgress[];
 }
+
+
+export interface Mood {
+  id: number;
+  slug: string;
+  name: string;
+  icon: string;
+  description: string;
+  /** Counts only assignments readers may see, so a mood offered here always
+   *  has stories behind it. */
+  stories_count: number;
+}
+
+export interface MoodListResponse {
+  moods: Mood[];
+}
+
+export interface SurpriseResponse {
+  /** Null when nothing matches — notably when a time budget cannot be met,
+   *  which is answered honestly rather than with something longer. */
+  story: Story | null;
+}
+
+
+export interface AdminMood {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  icon: string;
+  active: boolean;
+  order: number;
+  /** Assignments readers can actually see — matches the public mood list, so
+   *  the two surfaces can never appear to disagree. */
+  stories_count: number;
+  /** AI suggestions waiting on a person. */
+  pending_review_count: number;
+}
+
+export interface AdminStoryMood {
+  id: number;
+  story: number;
+  story_title: string;
+  story_slug: string;
+  mood: number;
+  mood_name: string;
+  mood_slug: string;
+  mood_icon: string;
+  source: "admin" | "ai";
+  reviewed: boolean;
+  note: string;
+  /** False for an unreviewed AI suggestion — stored, but never shown to
+   *  readers. See StoryMood.is_public. */
+  is_public: boolean;
+  created_at: string;
+}

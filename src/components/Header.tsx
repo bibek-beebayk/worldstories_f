@@ -161,6 +161,9 @@ const Header = () => {
             <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Library
             </Link>
+            <Link to="/discover" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Discover
+            </Link>
             <Link to="/blog" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Blog
             </Link>
@@ -170,7 +173,6 @@ const Header = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-44">
                 {[
-                  { to: "/discover", label: "Discover" },
                   { to: "/authors", label: "Authors" },
                   { to: "/story-map", label: "Story Map" },
                   // Beside the Story Map, which is the catalogue by country —

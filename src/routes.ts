@@ -61,6 +61,7 @@ export default [
         route("genres", "pages/AdminGenres.tsx"),
         route("tags", "pages/AdminTags.tsx"),
         route("themes", "pages/AdminThemes.tsx"),
+        route("moods", "pages/AdminMoods.tsx"),
         route("story-types", "pages/AdminStoryTypes.tsx"),
         route("authors", "pages/AdminAuthors.tsx"),
         route("users", "pages/AdminUsers.tsx"),

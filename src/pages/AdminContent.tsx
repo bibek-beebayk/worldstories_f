@@ -1,5 +1,6 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { storyApi } from "@/api/story";
+import StoryMoodPicker from "@/components/admin/StoryMoodPicker";
 import { authApi } from "@/api/auth";
 import { getAccessToken } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -2285,6 +2286,8 @@ const AdminContent = () => {
                     </p>
                   </div>
                 </div>
+
+                {selectedStoryId !== null && <StoryMoodPicker storyId={selectedStoryId} />}
 
                 <div>
                   <div className="flex items-center justify-between">

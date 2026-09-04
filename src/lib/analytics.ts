@@ -29,7 +29,10 @@ export type AnalyticsEventType =
   | "passport_viewed"
   | "daily_story_viewed"
   | "daily_story_started"
-  | "daily_story_completed";
+  | "daily_story_completed"
+  // Advanced discovery (§8).
+  | "surprise_me_clicked"
+  | "mood_selected";
 
 interface AnalyticsEventInput {
   event_type: AnalyticsEventType;

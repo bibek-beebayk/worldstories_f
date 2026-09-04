@@ -2,8 +2,10 @@ import { apiClient, fetchAuthenticatedBinary, fetchAuthenticatedFile } from "./c
 import {
   StoryListResponse,
   Chapter,
+  MoodListResponse,
   Story,
   StoryCompletionResponse,
+  SurpriseResponse,
   StoryDetail,
   Genre,
   GenreDetail,
@@ -46,6 +48,8 @@ import {
   AdminGenre,
   AdminCategory,
   AdminTag,
+  AdminMood,
+  AdminStoryMood,
   AdminTheme,
   StoryType,
   LibraryShelvesResponse,
@@ -94,10 +98,14 @@ export const storyApi = {
     hasAudio: boolean = false,
     hasSummary: boolean = false,
     country: string = "all",
-    hasVideo: boolean = false
+    hasVideo: boolean = false,
+    // Mood slugs. Appended rather than slotted in: this signature is already
+    // long and positional, so a new parameter anywhere but the end would
+    // silently shift every existing call.
+    moods: string[] = []
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}`
     ),
 
   getStory: (slug: string) =>
@@ -112,6 +120,16 @@ export const storyApi = {
       method: "POST",
       body: "{}",
     }),
+
+  // One story, at random from a shortlist the existing ranking produced.
+  getSurpriseStory: (options: { exclude?: string; maxMinutes?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (options.exclude) params.set("exclude", options.exclude);
+    if (options.maxMinutes) params.set("max_minutes", String(options.maxMinutes));
+    return apiClient<SurpriseResponse>(`/stories/surprise/?${params.toString()}`);
+  },
+
+  getMoods: () => apiClient<MoodListResponse>("/moods/"),
 
   getBecauseFinished: (slug: string) =>
     apiClient<Story[]>(`/stories/${slug}/because-finished/`),
@@ -566,6 +584,39 @@ export const storyApi = {
     }),
   deleteAdminTag: (id: number) =>
     apiClient<void>(`/admin/tags/${id}/`, { method: "DELETE" }),
+  getAdminMoods: () => apiClient<AdminMood[]>("/admin/moods/"),
+  createAdminMood: (payload: { name: string; icon?: string; description?: string }) =>
+    apiClient<AdminMood>("/admin/moods/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminMood: (
+    id: number,
+    payload: Partial<{ name: string; icon: string; description: string; active: boolean; order: number }>
+  ) =>
+    apiClient<AdminMood>(`/admin/moods/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminMood: (id: number) =>
+    apiClient<void>(`/admin/moods/${id}/`, { method: "DELETE" }),
+  // Machine suggestions nobody has looked at yet — the queue that makes
+  // "allow admin review" a workflow rather than a database column.
+  getPendingMoodReviews: () =>
+    apiClient<AdminStoryMood[]>("/admin/moods/pending-review/"),
+  reviewMoodAssignment: (assignmentId: number, approved: boolean, note?: string) =>
+    apiClient<AdminStoryMood | void>(`/admin/moods/assignments/${assignmentId}/review/`, {
+      method: "POST",
+      body: JSON.stringify({ approved, ...(note ? { note } : {}) }),
+    }),
+  getStoryMoods: (storyId: number) =>
+    apiClient<AdminStoryMood[]>(`/admin/moods/assignments/${storyId}/`),
+  setStoryMoods: (storyId: number, moodIds: number[]) =>
+    apiClient<AdminStoryMood[]>(`/admin/moods/assignments/${storyId}/`, {
+      method: "POST",
+      body: JSON.stringify({ moods: moodIds }),
+    }),
+
   getAdminThemes: () =>
     apiClient<AdminTheme[]>("/admin/themes/"),
   createAdminTheme: (name: string) =>

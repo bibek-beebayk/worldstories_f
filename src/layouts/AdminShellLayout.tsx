@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { useState } from "react";
-import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star } from "lucide-react";
+import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
@@ -19,6 +19,7 @@ const menuItems = [
   { to: "/admin/genres", label: "Genres", icon: BookMarked, exact: false },
   { to: "/admin/tags", label: "Tags", icon: Tags, exact: false },
   { to: "/admin/themes", label: "Themes", icon: Palette, exact: false },
+  { to: "/admin/moods", label: "Moods", icon: Smile, exact: false },
   { to: "/admin/story-types", label: "Story Types", icon: BookOpenText, exact: false },
   { to: "/admin/authors", label: "Authors", icon: Users, exact: false },
   { to: "/admin/users", label: "Users", icon: UserCog, exact: false },
