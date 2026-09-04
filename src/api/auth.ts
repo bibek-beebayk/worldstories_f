@@ -12,6 +12,7 @@ import {
   ReadingHistoryResponse,
   ReadingStreakResponse,
   StoryPassportResponse,
+  WeeklyRecapResponse,
   Story,
   UserProfile,
 } from "./types";
@@ -80,6 +81,9 @@ export const authApi = {
   // A pure read: it reports the progress the triggers already recorded and
   // never recalculates (§6.3).
   getAchievements: () => apiClient<AchievementsResponse>("/auth/achievements/"),
+  // A rolling seven days: a Monday-to-Sunday recap is empty every Monday
+  // morning, which is exactly when someone might look at it.
+  getWeeklyRecap: () => apiClient<WeeklyRecapResponse>("/auth/weekly-recap/"),
   getPassportCountry: (code: string) =>
     apiClient<PassportCountryDetail>(
       `/auth/story-passport/${encodeURIComponent(code)}/`

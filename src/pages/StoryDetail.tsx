@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/sonner";
 import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
 import { consumeJustFinishedFlag } from "@/lib/storyCompletion";
 import StoryCompletionScreen from "@/components/StoryCompletionScreen";
+import StoryReactions from "@/components/StoryReactions";
 import { storyApi } from "@/api/story";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
@@ -1261,6 +1262,12 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
             <StoryCompletionScreen storySlug={story.slug} storyTitle={story.title} />
           </div>
         )}
+
+        {/* Also on story detail, where a reader who finished on another device
+            can still say how it felt. */}
+        <div className="mt-12">
+          <StoryReactions storySlug={story.slug} />
+        </div>
 
         {story.similar_stories.length > 0 && (
           <section className="mt-12 border-t pt-8" aria-labelledby="similar-titles-heading">

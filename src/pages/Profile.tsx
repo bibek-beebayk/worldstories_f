@@ -55,6 +55,7 @@ export function meta() {
 }
 import ProfileInsights from "@/components/ProfileInsights";
 import ReadingJourneyPanel from "@/components/ReadingJourneyPanel";
+import WeeklyRecapCard from "@/components/WeeklyRecapCard";
 import AchievementsSection from "@/components/AchievementsSection";
 import GenreChipPicker from "@/components/GenreChipPicker";
 
@@ -810,6 +811,11 @@ const Profile = () => {
                     );
                   })}
                 </div>
+
+                {/* Above the all-time journey panel: the recent week is the
+                    more actionable of the two, and the one worth coming back
+                    for. */}
+                <WeeklyRecapCard enabled={isAuthenticated && isOverviewSection} />
 
                 <ReadingJourneyPanel
                   insights={profileInsights}

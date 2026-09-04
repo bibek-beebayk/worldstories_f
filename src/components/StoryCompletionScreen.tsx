@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import CoverImage from "@/components/CoverImage";
 import StoryCard from "@/components/StoryCard";
 import { formatReadingMinutes } from "@/lib/readingTime";
+import StoryReactions from "@/components/StoryReactions";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { authApi } from "@/api/auth";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
@@ -162,6 +163,13 @@ const StoryCompletionScreen = ({
           </div>
         </article>
       )}
+
+      {/* Asked before the onward suggestions: the reaction is about the story
+          just finished, and burying it under "read next" would answer a
+          different question. */}
+      <div className="mt-6">
+        <StoryReactions storySlug={storySlug} />
+      </div>
 
       {data?.sections.map((section) => (
         <div key={section.key} className="mt-6">

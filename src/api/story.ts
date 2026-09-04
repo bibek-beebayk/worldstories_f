@@ -7,6 +7,7 @@ import {
   MoodListResponse,
   Story,
   StoryCompletionResponse,
+  StoryReactionsResponse,
   SurpriseResponse,
   StoryDetail,
   Genre,
@@ -134,6 +135,16 @@ export const storyApi = {
   },
 
   getMoods: () => apiClient<MoodListResponse>("/moods/"),
+
+  // Totals are public; setting one needs an account. Posting the reaction you
+  // already have removes it.
+  getStoryReactions: (slug: string) =>
+    apiClient<StoryReactionsResponse>(`/stories/${encodeURIComponent(slug)}/reactions/`),
+  setStoryReaction: (slug: string, reactionType: string) =>
+    apiClient<StoryReactionsResponse>(`/stories/${encodeURIComponent(slug)}/reactions/`, {
+      method: "POST",
+      body: JSON.stringify({ reaction_type: reactionType }),
+    }),
 
   // Progress comes back derived from the reader's completions, so there is no
   // enrolment step and nothing to sync.

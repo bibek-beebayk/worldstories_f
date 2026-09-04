@@ -1755,3 +1755,40 @@ export interface AdminJourney {
   required_count: number;
   created_at: string;
 }
+
+
+export type ReactionType =
+  | "loved"
+  | "funny"
+  | "surprising"
+  | "emotional"
+  | "thought_provoking";
+
+export interface ReactionCount {
+  type: ReactionType;
+  label: string;
+  count: number;
+}
+
+export interface StoryReactionsResponse {
+  /** Every type, including those at zero — a story should not offer fewer
+   *  ways to answer the longer it goes unreacted-to. */
+  reactions: ReactionCount[];
+  total: number;
+  /** Null for a signed-out reader, or one who has not reacted. */
+  my_reaction: ReactionType | null;
+}
+
+
+export interface WeeklyRecapResponse {
+  days: number;
+  stories_completed: number;
+  minutes_read: number;
+  countries_explored: number;
+  journeys_completed: number;
+  current_streak: number;
+  favourite_genre: string | null;
+  /** False for a quiet week. Five zeroes tell a reader only that they did
+   *  nothing, so the card renders nothing at all in that case. */
+  has_activity: boolean;
+}
