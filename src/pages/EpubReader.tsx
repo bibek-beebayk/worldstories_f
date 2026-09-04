@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { API_BASE_URL } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
+import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
@@ -175,6 +176,15 @@ const EpubReader = ({ loaderData }: Route.ComponentProps) => {
   const [isTocOpen, setIsTocOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [progressPercent, setProgressPercent] = useState(0);
+  // Waits for a non-zero percentage: epub.js reports 0 until it has generated
+  // locations, and treating that as the reader's position would log every
+  // resumed book as a fresh start.
+  useStoryReadingEvents({
+    storySlug: story?.slug,
+    format: "epub",
+    progress: progressPercent / 100,
+    ready: Boolean(story?.slug) && progressPercent > 0,
+  });
   const [fontSizePercent, setFontSizePercent] = useState(100);
   const [fontFamily, setFontFamily] = useState<EpubFontKey>("literata");
   const [theme, setTheme] = useState<EpubThemeKey>("light");

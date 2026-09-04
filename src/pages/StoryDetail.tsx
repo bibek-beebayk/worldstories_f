@@ -17,7 +17,7 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
 import { consumeJustFinishedFlag } from "@/lib/storyCompletion";
-import BecauseYouFinishedRail from "@/components/BecauseYouFinishedRail";
+import StoryCompletionScreen from "@/components/StoryCompletionScreen";
 import { storyApi } from "@/api/story";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
@@ -1258,7 +1258,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
 
         {showFinishedRail && (
           <div className="mt-12">
-            <BecauseYouFinishedRail storySlug={story.slug} storyTitle={story.title} />
+            <StoryCompletionScreen storySlug={story.slug} storyTitle={story.title} />
           </div>
         )}
 

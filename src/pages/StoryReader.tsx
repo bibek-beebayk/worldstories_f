@@ -11,9 +11,11 @@ import {
   measureBlockOffsets,
   offsetForBlockIndex,
 } from "@/lib/readerPosition";
-import { markStoryFinishedIfComplete } from "@/lib/storyCompletion";
+import { markStoryFinishedIfComplete, noteServerConfirmedCompletion } from "@/lib/storyCompletion";
 import { usePendingProgress } from "@/hooks/usePendingProgress";
-import BecauseYouFinishedRail from "@/components/BecauseYouFinishedRail";
+import StoryCompletionScreen from "@/components/StoryCompletionScreen";
+import { ReadingProgressBar } from "@/components/reader/ReadingProgressBar";
+import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -313,6 +315,15 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     return Math.min(1, Math.max(0, (completedChapters + liveProgress) / totalChapters));
   }, [story?.chapter_count, chapter, liveProgress]);
 
+  // `ready` waits for the chapter to exist: until then overallProgress is 0
+  // for every story, and a resumed session would be logged as a fresh start.
+  useStoryReadingEvents({
+    storySlug: story_slug,
+    format: "chapter",
+    progress: overallProgress,
+    ready: Boolean(story_slug && chapter),
+  });
+
   const scrollContentRef = useRef<HTMLDivElement>(null);
   const readerContainerRef = useRef<HTMLDivElement>(null);
   const settingsModalRef = useRef<HTMLDivElement>(null);
@@ -500,9 +511,23 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
       if (isAuthenticated) {
         storyApi
           .saveReadingProgress(story_slug, chapter_slug, normalized, savedAnchor)
+          .then((response) => {
+            // The server decides completion on the write itself, across every
+            // chapter rather than just this one, so it is right on a second
+            // device and after the browser store is cleared — neither of which
+            // the local check below can see.
+            if (response?.story_completed) {
+              noteServerConfirmedCompletion(story_slug);
+              setJustFinishedStory(true);
+            }
+          })
           .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized, savedAnchor));
-      }
-      if (isLastChapter && normalized >= 0.995 && markStoryFinishedIfComplete(story_slug, true)) {
+      } else if (
+        isLastChapter &&
+        normalized >= 0.995 &&
+        markStoryFinishedIfComplete(story_slug, true)
+      ) {
+        // Signed out, so there is no server record to ask.
         setJustFinishedStory(true);
       }
     }, 400);
@@ -737,6 +762,10 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
       ref={readerContainerRef}
       className="flex h-[100dvh] min-h-screen flex-col overflow-y-auto bg-background"
     >
+      {/* Stays put in distraction-free mode: two pixels is not chrome, and
+          losing your place is more distracting than a hairline. The precise
+          numbers live in the bottom bar and the floating pill. */}
+      <ReadingProgressBar fraction={overallProgress} label="Story" />
       <main className="mx-auto w-full max-w-none px-0 py-0">
           <div
             className={`${activeTheme.cardClass} min-h-screen rounded-none border-0 p-0`}
@@ -758,7 +787,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
               />
               {justFinishedStory && story && (
                 <div className="mt-10">
-                  <BecauseYouFinishedRail storySlug={story.slug} storyTitle={story.title} />
+                  <StoryCompletionScreen storySlug={story.slug} storyTitle={story.title} />
                 </div>
               )}
             </div>

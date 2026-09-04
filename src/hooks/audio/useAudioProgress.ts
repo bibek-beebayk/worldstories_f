@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { storyApi } from "@/api/story";
 import { queueAudioProgress, saveAudioProgressLocally } from "@/lib/progressSync";
-import { markStoryFinishedIfComplete } from "@/lib/storyCompletion";
+import { markStoryFinishedIfComplete, noteServerConfirmedCompletion } from "@/lib/storyCompletion";
 import { listLocalProgress } from "@/lib/offlineDb";
 
 export type AudioProgressEntry = {
@@ -28,6 +28,13 @@ interface UseAudioProgressOptions {
 interface UseAudioProgressResult {
   /** Per-track progress, seeded from the server and updated live as audio plays. */
   liveProgressMap: Record<string, AudioProgressEntry>;
+  /**
+   * Whether the saved positions have loaded. Before this is true every track
+   * reads as 0%, which is indistinguishable from a story nobody has opened —
+   * so callers that care about the difference between starting and resuming
+   * must wait for it.
+   */
+  progressDataReady: boolean;
   /** Restores the saved playback position. Call from `<audio onLoadedMetadata>`. */
   handleLoadedMetadata: (el: HTMLAudioElement) => void;
   /** Updates live progress and schedules a debounced save. Call from `<audio onTimeUpdate>`. */
@@ -150,11 +157,17 @@ export function useAudioProgress({
     if (isAuthenticated) {
       storyApi
         .saveAudioProgress(storySlug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)
+        .then((response) => {
+          // The server settles completion on the write itself, so it is right
+          // about "finished just now" even on a device that has never seen
+          // this story before.
+          if (response?.story_completed) noteServerConfirmedCompletion(storySlug);
+        })
         .catch(() =>
           queueAudioProgress(storySlug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)
         );
-    }
-    if (normalizedProgress >= 0.995 && audios && audios.length > 0) {
+    } else if (normalizedProgress >= 0.995 && audios && audios.length > 0) {
+      // Signed-out readers have no server record, so the local check stands.
       const allTracksFinished = audios.every(
         (audio) =>
           (audio.slug === audioSlug ? normalizedProgress : liveAudioProgressMap[audio.slug]?.progress || 0) >= 0.995
@@ -263,6 +276,9 @@ export function useAudioProgress({
 
   return {
     liveProgressMap: liveAudioProgressMap,
+    // Whether the saved positions have loaded. Exposed so callers can tell a
+    // genuinely fresh start from the momentary zero before restore.
+    progressDataReady,
     handleLoadedMetadata,
     handleTimeUpdate,
     handleEnded,

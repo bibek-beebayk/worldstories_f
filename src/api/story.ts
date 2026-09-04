@@ -3,6 +3,7 @@ import {
   StoryListResponse,
   Chapter,
   Story,
+  StoryCompletionResponse,
   StoryDetail,
   Genre,
   GenreDetail,
@@ -113,6 +114,15 @@ export const storyApi = {
 
   getBecauseFinished: (slug: string) =>
     apiClient<Story[]>(`/stories/${slug}/because-finished/`),
+
+  // The end-of-story screen's payload — one primary "read next" pick plus the
+  // themed sections. Composed from the same recommendation path as
+  // because-finished above; open to anonymous readers, who get the generic
+  // similarity ranking rather than a personalized one.
+  getStoryCompletion: (slug: string) =>
+    apiClient<StoryCompletionResponse>(
+      `/stories/${encodeURIComponent(slug)}/completion/`
+    ),
 
   getChapter: (story_slug: string, chapter_slug: string, type: string) =>
     apiClient<Chapter>(`/stories/${story_slug}/chapters/${chapter_slug}/?type=${type}`),

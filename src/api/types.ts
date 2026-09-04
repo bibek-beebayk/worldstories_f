@@ -290,6 +290,15 @@ export interface ReadingProgress {
   }>;
   last_element_id: string | null;
   updated_at: string;
+  /**
+   * True only on the response to the save that *finished* the story, and only
+   * for a signed-in reader. The server decides this on the write itself
+   * (apps/stats/completion.py), so a second device, or the same device with
+   * its storage cleared, gets `false` — which the old localStorage-keyed
+   * mechanism could not do. Use it as the one-shot "just finished now" trigger
+   * for the completion screen and, later, first country unlocks.
+   */
+  story_completed?: boolean;
 }
 
 export interface AudioReadingProgress {
@@ -305,6 +314,15 @@ export interface AudioReadingProgress {
     duration_seconds: number;
   }>;
   updated_at: string;
+  /**
+   * True only on the response to the save that *finished* the story, and only
+   * for a signed-in reader. The server decides this on the write itself
+   * (apps/stats/completion.py), so a second device, or the same device with
+   * its storage cleared, gets `false` — which the old localStorage-keyed
+   * mechanism could not do. Use it as the one-shot "just finished now" trigger
+   * for the completion screen and, later, first country unlocks.
+   */
+  story_completed?: boolean;
 }
 
 export interface VideoWatchProgress {
@@ -320,6 +338,15 @@ export interface VideoWatchProgress {
     duration_seconds: number;
   }>;
   updated_at: string;
+  /**
+   * True only on the response to the save that *finished* the story, and only
+   * for a signed-in reader. The server decides this on the write itself
+   * (apps/stats/completion.py), so a second device, or the same device with
+   * its storage cleared, gets `false` — which the old localStorage-keyed
+   * mechanism could not do. Use it as the one-shot "just finished now" trigger
+   * for the completion screen and, later, first country unlocks.
+   */
+  story_completed?: boolean;
 }
 
 export type FileReadingFormat = "epub" | "pdf";
@@ -329,6 +356,15 @@ export interface FileReadingProgress {
   progress: number;
   position: string | null;
   updated_at: string;
+  /**
+   * True only on the response to the save that *finished* the story, and only
+   * for a signed-in reader. The server decides this on the write itself
+   * (apps/stats/completion.py), so a second device, or the same device with
+   * its storage cleared, gets `false` — which the old localStorage-keyed
+   * mechanism could not do. Use it as the one-shot "just finished now" trigger
+   * for the completion screen and, later, first country unlocks.
+   */
+  story_completed?: boolean;
 }
 
 export interface FavoriteStatusResponse {
@@ -1427,4 +1463,27 @@ export interface TaxonomyImportPreview {
   not_found_count: number;
   errors: string[];
   total_rows: number;
+}
+
+
+export interface StoryCompletionSection {
+  key: "more_like_this" | "more_from_country" | "similar_length";
+  title: string;
+  stories: Story[];
+}
+
+export interface StoryCompletionResponse {
+  story_slug: string;
+  story_title: string;
+  /** ISO 3166-1 alpha-2, or null when the story has no country of origin. */
+  country: string | null;
+  country_name: string | null;
+  /**
+   * The single "read next" pick. Null when there is genuinely nothing to
+   * suggest — a small catalogue, or a reader who has already engaged with
+   * everything similar. Render the screen without it rather than padding.
+   */
+  primary: Story | null;
+  /** Only non-empty sections are returned. */
+  sections: StoryCompletionSection[];
 }

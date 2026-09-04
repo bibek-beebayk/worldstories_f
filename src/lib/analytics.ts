@@ -9,7 +9,20 @@ export type AnalyticsEventType =
   | "completion"
   | "download"
   | "read_along_cue_seek"
-  | "read_along_follow_toggle";
+  | "read_along_follow_toggle"
+  // The Quick Read funnel. Each fires at most once per visit to a summary, so
+  // the three counts form a real funnel rather than a count of interactions.
+  | "quick_read_opened"
+  | "quick_read_completed"
+  | "quick_read_full_story_clicked"
+  // The reading lifecycle. `story_completed` is absent on purpose: the server
+  // raises it inside the same transaction that records the completion, so it
+  // inherits that uniqueness constraint instead of a localStorage key.
+  // See apps/stats/completion.py.
+  | "story_started"
+  | "story_resumed"
+  | "story_progressed"
+  | "next_story_clicked";
 
 interface AnalyticsEventInput {
   event_type: AnalyticsEventType;

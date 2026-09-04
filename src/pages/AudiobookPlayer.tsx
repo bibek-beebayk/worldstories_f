@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { data, useParams, Link, useLocation, useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export function meta({ data: story, params }: Route.MetaArgs) {
 }
 import CoverImage from "@/components/CoverImage";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
+import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
 import { useAudioSource } from "@/hooks/audio/useAudioSource";
 import { useAudioProgress } from "@/hooks/audio/useAudioProgress";
 import { useAudioPlayback } from "@/hooks/audio/useAudioPlayback";
@@ -144,6 +145,26 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   });
 
   const liveAudioProgressMap = progress.liveProgressMap;
+
+  // Story-level position for the lifecycle events: every track weighted
+  // equally, the same approximation the library endpoints use for a story's
+  // overall listening progress.
+  const overallListeningProgress = useMemo(() => {
+    const tracks = story?.audios ?? [];
+    if (tracks.length === 0) return 0;
+    const total = tracks.reduce(
+      (sum, audio) => sum + Math.min(1, Math.max(0, liveAudioProgressMap[audio.slug]?.progress || 0)),
+      0
+    );
+    return total / tracks.length;
+  }, [story?.audios, liveAudioProgressMap]);
+
+  useStoryReadingEvents({
+    storySlug: story_slug,
+    format: "audio",
+    progress: overallListeningProgress,
+    ready: progress.progressDataReady && (story?.audios?.length ?? 0) > 0,
+  });
 
   useContentSessionAnalytics("listening_session", story_slug ? { storySlug: story_slug } : undefined, player.isPlaying, {
     format: "audio",

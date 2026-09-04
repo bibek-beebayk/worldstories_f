@@ -9,6 +9,9 @@ import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useQuickReadRecommendations } from "@/hooks/useQuickReadRecommendations";
+import { useQuickReadFunnel } from "@/hooks/useQuickReadFunnel";
+import { useContentScrollProgress } from "@/hooks/useContentScrollProgress";
+import { ReadingProgressBar } from "@/components/reader/ReadingProgressBar";
 import RecommendedQuickReadsSection from "@/components/RecommendedQuickReadsSection";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
@@ -80,6 +83,12 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
     true,
     { format: "quick_read" }
   );
+
+  const { endOfSummaryRef, trackFullStoryClick } = useQuickReadFunnel(story?.slug);
+  // Measurement only, so it runs for every reader — this is the one reading
+  // surface that gave no sense of position at all.
+  const { contentRef: summaryRef, fraction: summaryProgress } =
+    useContentScrollProgress<HTMLElement>(Boolean(story?.summary));
 
   const quickReadMinutes = useMemo(() => estimateSummaryReadingMinutes(story?.summary), [story?.summary]);
   const { data: recommendedQuickReads } = useQuickReadRecommendations(isAuthenticated && Boolean(story), story?.slug);
@@ -166,6 +175,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
 
   return (
     <div className="min-h-screen bg-background">
+      <ReadingProgressBar fraction={summaryProgress} label="Summary" />
 
       <main className="mx-auto max-w-[760px] px-4 py-6 sm:py-10">
         <Link
@@ -218,23 +228,34 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
         </p>
 
         <article
+          ref={summaryRef}
           className="prose prose-lg mt-6 max-w-none leading-relaxed dark:prose-invert"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
         />
 
+        {/* Marks the end of the summary. Seeing this is what counts as having
+            read it — see useQuickReadFunnel. */}
+        <div ref={endOfSummaryRef} aria-hidden="true" />
+
         <div className="mt-8 flex flex-col items-center gap-3 rounded-xl border border-border bg-muted/30 p-4 text-center sm:flex-row sm:justify-between sm:p-5 sm:text-left">
           <div>
-            <p className="text-sm font-semibold">Enjoyed the story?</p>
-            {!primaryReadHref && (
+            {/* "the summary", not "the story" — that is what they just read,
+                and the whole point of this panel is to offer them the story. */}
+            <p className="text-sm font-semibold">Enjoyed the summary?</p>
+            {primaryReadHref ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Read it in full, the way it was written.
+              </p>
+            ) : (
               <p className="mt-0.5 text-xs text-muted-foreground">The full story isn't available yet.</p>
             )}
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
             {primaryReadHref && (
-              <Link to={primaryReadHref}>
+              <Link to={primaryReadHref} onClick={trackFullStoryClick}>
                 <Button size="sm">
-                  Read Full Story
+                  Read the Full Story
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
               </Link>

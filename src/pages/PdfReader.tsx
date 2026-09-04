@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { API_BASE_URL } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
+import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
 import { makeDownloadId } from "@/lib/offlineDb";
@@ -643,6 +644,16 @@ const PdfReader = ({ loaderData }: Route.ComponentProps) => {
       // best available experience on platforms without real fullscreen.
     }
   };
+
+  // Above the early returns: hooks must run in the same order on every render.
+  // numPages is 0 until the document is parsed, and the saved page is restored
+  // in the same pass — so waiting on it also avoids logging a resume as a start.
+  useStoryReadingEvents({
+    storySlug: story?.slug,
+    format: "pdf",
+    progress: numPages > 0 ? pageNumber / numPages : 0,
+    ready: numPages > 0 && Boolean(story?.slug),
+  });
 
   if (isLoading) {
     return <FullScreenLoader />;
