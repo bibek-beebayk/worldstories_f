@@ -1,7 +1,8 @@
-import { Eye, Star, Headphones, Sparkles } from "lucide-react";
+import { Clock3, Eye, Star, Headphones, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router";
 import { formatViews } from "@/lib/utils";
+import { formatMinutes } from "@/lib/readingTime";
 import { getLanguageLabel } from "@/lib/languages";
 import CoverImage from "@/components/CoverImage";
 
@@ -17,10 +18,13 @@ interface StoryCardProps {
   language?: string;
   has_audio?: boolean;
   is_original?: boolean;
+  reading_time_minutes?: number | null;
   compact?: boolean;
 }
 
-const StoryCard = ({ title, author, cover_image, rating, views, story_type, language, slug, has_audio, is_original, compact = false }: StoryCardProps) => {
+const StoryCard = ({ title, author, cover_image, rating, views, story_type, language, slug, has_audio, is_original, reading_time_minutes, compact = false }: StoryCardProps) => {
+  const readingTime = formatMinutes(reading_time_minutes);
+
   return (
     <Link to={`/story/${slug}`} className="group cursor-pointer block">
       <div className={`relative overflow-hidden rounded-lg ${compact ? "mb-2 aspect-[4/5] shadow-sm" : "mb-3 aspect-[3/4] shadow-md"}`}>
@@ -79,6 +83,14 @@ const StoryCard = ({ title, author, cover_image, rating, views, story_type, lang
           <Eye className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
           <span suppressHydrationWarning>{formatViews(views)}</span>
         </div>
+        {/* Omitted entirely when the story has no estimate, rather than
+            rendering a placeholder — see lib/readingTime.ts. */}
+        {readingTime && (
+          <div className="flex items-center gap-1">
+            <Clock3 className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
+            <span>{readingTime}</span>
+          </div>
+        )}
       </div>
     </Link>
   );

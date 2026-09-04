@@ -8,15 +8,23 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { ArrowRight, BookOpenText, Clock3, Headphones } from "lucide-react";
+import { ArrowRight, BookOpenText, Clock3, Headphones, Timer } from "lucide-react";
 import { Link } from "react-router";
 import CoverImage from "@/components/CoverImage";
+import { formatRemainingMinutes } from "@/lib/readingTime";
 
 interface ContinueReadingSectionProps {
   items: ContinueReadingItem[];
   isLoading: boolean;
   isError: boolean;
+  /** How many cards to show before deferring to the "Show All" card. The
+   *  homepage keeps this small on purpose: the rail competes with every other
+   *  section above the fold, and a reader who wants the rest has the full
+   *  queue one click away. */
+  limit?: number;
 }
+
+const HOMEPAGE_LIMIT = 5;
 
 const getCompletionPercentage = (progress: number) =>
   Math.round(Math.max(0, Math.min(1, progress)) * 100);
@@ -32,8 +40,9 @@ const ContinueReadingSection = ({
   items,
   isLoading,
   isError,
+  limit = HOMEPAGE_LIMIT,
 }: ContinueReadingSectionProps) => {
-  const visibleItems = items.slice(0, 10);
+  const visibleItems = items.slice(0, limit);
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:rounded-2xl sm:p-5">
@@ -90,6 +99,7 @@ const ContinueReadingSection = ({
           <CarouselContent>
             {visibleItems.map((item) => {
               const progress = getCompletionPercentage(item.overall_progress);
+              const remaining = formatRemainingMinutes(item.remaining_minutes);
               const continueHref = item.chapter_slug
                 ? `/read/${item.story.slug}/${item.chapter_slug}`
                 : `/story/${item.story.slug}`;
@@ -153,9 +163,19 @@ const ContinueReadingSection = ({
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Clock3 className="h-3 w-3" />
-                      <span>Last read {formatLastRead(item.updated_at)}</span>
+                    <div className="space-y-1 text-[11px] text-muted-foreground">
+                      {/* Rendered only when the story has a length estimate —
+                          see lib/readingTime.ts. */}
+                      {remaining && (
+                        <div className="flex items-center gap-1 font-medium text-foreground/80">
+                          <Timer className="h-3 w-3" />
+                          <span>{remaining}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Clock3 className="h-3 w-3" />
+                        <span>Last read {formatLastRead(item.updated_at)}</span>
+                      </div>
                     </div>
                   </div>
 

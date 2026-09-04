@@ -158,6 +158,12 @@ export interface Story {
   // StoryListSerializer.get_summary_reading_minutes. Present (non-null) is
   // what gates whether a story is eligible for Quick Read in list views.
   summary_reading_minutes?: number | null;
+  // Whole-story reading estimate, matching the detail page's number but read
+  // from the denormalized columns so a card list doesn't pay for it — see
+  // reading_time.story_reading_minutes_cached. Null when the story's length
+  // is genuinely unknown (no chapters and no cached file estimate), which is
+  // the signal to omit the label rather than render "0 min read".
+  reading_time_minutes?: number | null;
 }
 
 export interface StoryListResponse {
@@ -461,6 +467,9 @@ export interface ContinueReadingItem {
   overall_progress: number;
   updated_at: string;
   excerpt: string;
+  // Null when the story has no length estimate at all — omit the label
+  // rather than claim "~0 min remaining".
+  remaining_minutes: number | null;
 }
 
 export interface ContinueListeningItem {
@@ -470,6 +479,9 @@ export interface ContinueListeningItem {
   audio_progress: number;
   overall_progress: number;
   updated_at: string;
+  // Null when the story has no length estimate at all — omit the label
+  // rather than claim "~0 min remaining".
+  remaining_minutes: number | null;
 }
 
 export interface ContinueWatchingItem {
@@ -479,6 +491,9 @@ export interface ContinueWatchingItem {
   video_progress: number;
   overall_progress: number;
   updated_at: string;
+  // Null when the story has no length estimate at all — omit the label
+  // rather than claim "~0 min remaining".
+  remaining_minutes: number | null;
 }
 
 export interface FavoriteItem {

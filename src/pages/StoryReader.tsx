@@ -4,6 +4,13 @@ import { useAuthModal } from "@/context/AuthModalContext";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { storyApi } from "@/api/story";
 import { queueChapterProgress, saveChapterProgressLocally } from "@/lib/progressSync";
+import {
+  blockIndexAtOffset,
+  decodeBlockAnchor,
+  encodeBlockAnchor,
+  measureBlockOffsets,
+  offsetForBlockIndex,
+} from "@/lib/readerPosition";
 import { markStoryFinishedIfComplete } from "@/lib/storyCompletion";
 import { usePendingProgress } from "@/hooks/usePendingProgress";
 import BecauseYouFinishedRail from "@/components/BecauseYouFinishedRail";
@@ -314,6 +321,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   const liveProgressRef = useRef(0);
   const saveTimerRef = useRef<number | null>(null);
   const latestProgressRef = useRef<number | null>(null);
+  const latestAnchorRef = useRef<string | null>(null);
   const pinchStartDistanceRef = useRef<number | null>(null);
   const pinchStartFontSizeRef = useRef<number | null>(null);
 
@@ -328,6 +336,14 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     ? localProgress.chapterProgress[chapter_slug] ??
       (readingProgress?.chapter_slug === chapter_slug ? readingProgress.progress : 0)
     : 0;
+  // The content anchor for the same chapter, local first (a guest, or a save
+  // that hasn't reached the server yet, is the most recent truth) then the
+  // server's. Empty/absent means this position predates anchored resume and
+  // only the percentage is available.
+  const savedChapterAnchor = chapter_slug
+    ? localProgress.chapterPosition[chapter_slug] ??
+      (readingProgress?.chapter_slug === chapter_slug ? readingProgress.last_element_id : null)
+    : null;
 
   const currentChapterIndex = useMemo(() => {
     if (!story?.chapters?.length || !chapter_slug) return -1;
@@ -465,24 +481,26 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     }
   };
 
-  const queueSaveProgress = useCallback((progress: number) => {
+  const queueSaveProgress = useCallback((progress: number, anchor?: string | null) => {
     if (!story_slug || !chapter_slug) return;
     const normalized = Math.min(1, Math.max(0, progress));
     liveProgressRef.current = normalized;
     setLiveProgress(normalized);
     latestProgressRef.current = normalized;
+    latestAnchorRef.current = anchor ?? null;
 
     if (saveTimerRef.current) {
       window.clearTimeout(saveTimerRef.current);
     }
 
     saveTimerRef.current = window.setTimeout(() => {
-      saveChapterProgressLocally(story_slug, chapter_slug, normalized);
+      const savedAnchor = latestAnchorRef.current ?? "";
+      saveChapterProgressLocally(story_slug, chapter_slug, normalized, savedAnchor);
       latestProgressRef.current = null;
       if (isAuthenticated) {
         storyApi
-          .saveReadingProgress(story_slug, chapter_slug, normalized)
-          .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized));
+          .saveReadingProgress(story_slug, chapter_slug, normalized, savedAnchor)
+          .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized, savedAnchor));
       }
       if (isLastChapter && normalized >= 0.995 && markStoryFinishedIfComplete(story_slug, true)) {
         setJustFinishedStory(true);
@@ -490,19 +508,33 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     }, 400);
   }, [chapter_slug, isAuthenticated, isLastChapter, story_slug]);
 
-  const scrollToProgress = (progress: number) => {
+  // Restores to the saved paragraph when there is one, and to the saved
+  // percentage otherwise. The anchor is preferred because it survives a
+  // change of font size, line height, theme, viewport or device — all of
+  // which move the same percentage to a different sentence. See
+  // lib/readerPosition.ts.
+  const scrollToSavedPosition = (progress: number, anchor: string | null) => {
     const content = scrollContentRef.current;
     if (!content) return;
 
-    const normalized = Math.min(1, Math.max(0, progress));
     const container = readerContainerRef.current;
     if (!container) return;
     const containerRect = container.getBoundingClientRect();
     const contentRect = content.getBoundingClientRect();
     const contentTop = contentRect.top - containerRect.top + container.scrollTop;
+
+    const anchorOffset = offsetForBlockIndex(
+      measureBlockOffsets(content),
+      decodeBlockAnchor(anchor)
+    );
+    if (anchorOffset !== null) {
+      container.scrollTo({ top: contentTop + anchorOffset, behavior: "auto" });
+      return;
+    }
+
+    const normalized = Math.min(1, Math.max(0, progress));
     const maxScrollable = Math.max(1, content.scrollHeight - container.clientHeight);
-    const targetY = contentTop + normalized * maxScrollable;
-    container.scrollTo({ top: targetY, behavior: "auto" });
+    container.scrollTo({ top: contentTop + normalized * maxScrollable, behavior: "auto" });
   };
 
   useEffect(() => {
@@ -511,7 +543,12 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
         window.clearTimeout(saveTimerRef.current);
       }
       if (latestProgressRef.current !== null && story_slug && chapter_slug) {
-        saveChapterProgressLocally(story_slug, chapter_slug, latestProgressRef.current);
+        saveChapterProgressLocally(
+          story_slug,
+          chapter_slug,
+          latestProgressRef.current,
+          latestAnchorRef.current ?? ""
+        );
         if (isLastChapter && latestProgressRef.current >= 0.995) {
           markStoryFinishedIfComplete(story_slug, true);
         }
@@ -525,13 +562,17 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
 
     const timer = window.setTimeout(() => {
       const progress = Math.max(savedChapterProgress, liveProgressRef.current);
-      scrollToProgress(progress);
+      // The anchor is only trustworthy for the position it was saved with. If
+      // live progress has already moved past the saved percentage (the reader
+      // scrolled before this ran), the anchor describes an older spot.
+      const anchor = progress > savedChapterProgress ? null : savedChapterAnchor;
+      scrollToSavedPosition(progress, anchor ?? null);
       // Goes through queueSaveProgress (not just the local refs) so this
       // initial position is actually persisted even if the chapter is short
       // enough that the user never scrolls at all — otherwise "continue
       // reading" on another device would never advance past the previous
       // chapter for a chapter like that.
-      queueSaveProgress(progress);
+      queueSaveProgress(progress, anchor ?? null);
       // Marks initial positioning as done regardless of whether saved
       // progress was 0 — handleScroll below is gated on this so it can't
       // read the *previous* chapter's leftover scrollTop (nothing resets
@@ -541,7 +582,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [savedChapterProgress, chapter_slug, chapter?.content, queueSaveProgress]);
+  }, [savedChapterProgress, savedChapterAnchor, chapter_slug, chapter?.content, queueSaveProgress]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -569,7 +610,8 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
       const maxScrollable = Math.max(1, content.scrollHeight - viewportHeight);
       const scrolled = Math.min(Math.max(scrollY - contentTop, 0), maxScrollable);
       const progress = maxScrollable === 0 ? 0 : scrolled / maxScrollable;
-      queueSaveProgress(progress);
+      const blockIndex = blockIndexAtOffset(measureBlockOffsets(content), scrollY - contentTop);
+      queueSaveProgress(progress, blockIndex === null ? null : encodeBlockAnchor(blockIndex));
     };
 
     const container = readerContainerRef.current;
