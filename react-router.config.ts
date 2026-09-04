@@ -6,12 +6,8 @@ export default {
   // a fresh scaffold, so there's no reason to relocate everything.
   appDirectory: "src",
   ssr: true,
-  // Prerenders "/" to a real build/client/index.html — framework mode has no
-  // static index.html by default (it's server-rendered per request like
-  // everything else). Kept as a static file for fast edge-cached delivery of
-  // the homepage; no longer tied to PWA offline fallback (see vite.config.ts
-  // — navigateFallback is disabled since it broke per-route SSR).
-  async prerender() {
-    return ["/"];
-  },
+  // The homepage is request-time SSR. It used to be pre-rendered at build
+  // time, but that would freeze the UTC-dated Daily Story until the next
+  // deployment. The home API still carries its short public cache, so this
+  // preserves the fast path without serving yesterday's editorial choice.
 } satisfies Config;

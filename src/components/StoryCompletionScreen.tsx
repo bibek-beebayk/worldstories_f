@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CheckCircle2, Clock3 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock3, Flame } from "lucide-react";
 import { Link } from "react-router";
 import { storyApi } from "@/api/story";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import CoverImage from "@/components/CoverImage";
 import StoryCard from "@/components/StoryCard";
 import { formatReadingMinutes } from "@/lib/readingTime";
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { authApi } from "@/api/auth";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 
 /**
  * What a reader sees at the end of a story.
@@ -27,10 +29,16 @@ const StoryCompletionScreen = ({
   storySlug: string;
   storyTitle: string;
 }) => {
+  const isLoggedIn = useIsLoggedIn();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["story-completion", storySlug],
     queryFn: () => storyApi.getStoryCompletion(storySlug),
     enabled: Boolean(storySlug),
+  });
+  const { data: streak } = useQuery({
+    queryKey: ["reading-streak"],
+    queryFn: authApi.getReadingStreak,
+    enabled: isLoggedIn,
   });
 
   const primary = data?.primary ?? null;
@@ -60,6 +68,12 @@ const StoryCompletionScreen = ({
       <p className="mt-1 text-sm text-muted-foreground">
         You finished <span className="font-medium text-foreground">{storyTitle}</span>.
       </p>
+      {streak && streak.current_streak > 0 && (
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-medium text-orange-700">
+          <Flame className="h-4 w-4" aria-hidden="true" />
+          {streak.current_streak}-day reading streak
+        </p>
+      )}
 
       {isLoading && (
         <div className="mt-5 animate-pulse rounded-xl border border-border/60 bg-background/70 p-4">

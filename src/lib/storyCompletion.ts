@@ -1,4 +1,4 @@
-import { hasTrackedCompletion, trackCompletionOnce } from "./analytics";
+import { hasTrackedCompletion, trackCompletionOnce, trackGuestDailyStoryCompletion } from "./analytics";
 
 const JUST_FINISHED_SESSION_KEY = "worldstories_just_finished_story";
 
@@ -20,6 +20,8 @@ export function markStoryFinishedIfComplete(storySlug: string, allItemsFinished:
   const alreadyFinished = hasTrackedCompletion(storySlug, "story", storySlug);
   trackCompletionOnce(storySlug, "story", storySlug);
   if (alreadyFinished) return false;
+
+  trackGuestDailyStoryCompletion(storySlug);
 
   flagJustFinished(storySlug);
   return true;

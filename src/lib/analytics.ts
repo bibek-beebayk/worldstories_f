@@ -26,7 +26,10 @@ export type AnalyticsEventType =
   // Story Passport. `country_unlocked` is absent on purpose: the server raises
   // it beside the completion that caused it, so it is exactly-once per reader
   // per country. See apps/stats/completion.py.
-  | "passport_viewed";
+  | "passport_viewed"
+  | "daily_story_viewed"
+  | "daily_story_started"
+  | "daily_story_completed";
 
 interface AnalyticsEventInput {
   event_type: AnalyticsEventType;
@@ -84,6 +87,47 @@ export function trackAnalyticsEvent(input: AnalyticsEventInput): void {
     },
     body: JSON.stringify(payload),
   }).catch(() => undefined);
+}
+
+const DAILY_STORY_SESSION_KEY = "worldstories_daily_story";
+
+/** Preserve Daily Story attribution across navigation into any reader. */
+export function markDailyStoryStarted(storySlug: string, date: string, action: "read_story" | "quick_read") {
+  try {
+    window.sessionStorage.setItem(DAILY_STORY_SESSION_KEY, JSON.stringify({ storySlug, date }));
+  } catch {
+    // Analytics attribution is best-effort when browser storage is blocked.
+  }
+  trackAnalyticsEvent({
+    event_type: "daily_story_started",
+    story_slug: storySlug,
+    metadata: { date, action },
+  });
+}
+
+/**
+ * The server owns authenticated Daily Story completions. Guests have no
+ * durable completion row, so their browser emits the equivalent event once
+ * when the whole story completion helper runs.
+ */
+export function trackGuestDailyStoryCompletion(storySlug: string) {
+  if (getAccessToken()) return;
+  try {
+    const raw = window.sessionStorage.getItem(DAILY_STORY_SESSION_KEY);
+    if (!raw) return;
+    const started = JSON.parse(raw) as { storySlug?: string; date?: string };
+    if (started.storySlug !== storySlug || !started.date) return;
+    const completedKey = `worldstories_daily_story_completed:${started.date}:${storySlug}`;
+    if (window.localStorage.getItem(completedKey)) return;
+    window.localStorage.setItem(completedKey, "1");
+    trackAnalyticsEvent({
+      event_type: "daily_story_completed",
+      story_slug: storySlug,
+      metadata: { date: started.date },
+    });
+  } catch {
+    // Malformed/blocked storage must never interfere with finishing a story.
+  }
 }
 
 export type CompletionContentType =

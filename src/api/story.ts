@@ -27,6 +27,7 @@ import {
   Submission,
   AdminStory,
   AdminFeaturedStory,
+  AdminDailyStory,
   AdminChapter,
   AdminAudio,
   AudioTranscriptImportResult,
@@ -320,6 +321,15 @@ export const storyApi = {
       method: "PUT",
       body: JSON.stringify({ story_ids: storyIds }),
     }),
+  getDailyStory: (date: string) =>
+    apiClient<AdminDailyStory | null>(`/admin/stories/daily/?date=${encodeURIComponent(date)}`),
+  setDailyStory: (payload: { date: string; story: number; featured_reason: string; active: boolean }) =>
+    apiClient<AdminDailyStory>("/admin/stories/daily/", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  deleteDailyStory: (date: string) =>
+    apiClient<void>(`/admin/stories/daily/?date=${encodeURIComponent(date)}`, { method: "DELETE" }),
   createAdminStory: (formData: FormData) =>
     apiClient<AdminStory>("/admin/stories/", {
       method: "POST",

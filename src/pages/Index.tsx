@@ -131,7 +131,7 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
       {/* Renders immediately with its own "Welcome to WorldStories" fallback copy —
           never blocked behind the home-data fetch, so the page's purpose is visible
           the instant it loads instead of hiding behind a full-screen spinner. */}
-      <HeroSection featuredStories={data?.featured_stories ?? []} />
+      <HeroSection featuredStories={data?.featured_stories ?? []} dailyStory={data?.daily_story} />
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
         <main className="space-y-8 md:space-y-10">

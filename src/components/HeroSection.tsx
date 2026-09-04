@@ -1,31 +1,42 @@
-import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, Eye, Star } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
+import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock3, Eye, Globe2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router";
-import { FeaturedStory } from "@/api/types";
+import type { DailyStory, FeaturedStory } from "@/api/types";
 import { formatViews } from "@/lib/utils";
+import { getCountryLabel } from "@/lib/countries";
+import { formatReadingMinutes } from "@/lib/readingTime";
+import { markDailyStoryStarted, trackAnalyticsEvent } from "@/lib/analytics";
 import CoverImage from "@/components/CoverImage";
 
 interface HeroSectionProps {
   featuredStories?: FeaturedStory[];
+  dailyStory?: DailyStory | null;
 }
 
 const AUTOPLAY_INTERVAL = 6000;
 
-const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
+const HeroSection = ({ featuredStories = [], dailyStory }: HeroSectionProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const hasStories = featuredStories.length > 0;
-  const story = hasStories ? featuredStories[activeIndex] : undefined;
+  const configuredDaily = dailyStory?.configured ? dailyStory : null;
+  const displayStories = useMemo(
+    () => configuredDaily ? [configuredDaily.story] : featuredStories,
+    [configuredDaily, featuredStories]
+  );
+  const hasStories = displayStories.length > 0;
+  const story = hasStories ? displayStories[activeIndex] : undefined;
+  const countryLabel = story?.country ? getCountryLabel(story.country) : null;
+  const readingTime = formatReadingMinutes(story?.reading_time_minutes);
 
   const goTo = useCallback(
     (index: number) => {
       if (!hasStories) return;
-      const total = featuredStories.length;
+      const total = displayStories.length;
       setActiveIndex(((index % total) + total) % total);
     },
-    [featuredStories.length, hasStories]
+    [displayStories.length, hasStories]
   );
 
   const goNext = useCallback(() => goTo(activeIndex + 1), [goTo, activeIndex]);
@@ -51,22 +62,36 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
   };
 
   useEffect(() => {
-    if (!hasStories || featuredStories.length < 2 || isPaused) return;
+    if (!hasStories || displayStories.length < 2 || isPaused) return;
     const timer = window.setInterval(goNext, AUTOPLAY_INTERVAL);
     return () => window.clearInterval(timer);
-  }, [hasStories, featuredStories.length, isPaused, goNext]);
+  }, [hasStories, displayStories.length, isPaused, goNext]);
 
   useEffect(() => {
-    if (activeIndex >= featuredStories.length) setActiveIndex(0);
-  }, [featuredStories.length, activeIndex]);
+    if (activeIndex >= displayStories.length) setActiveIndex(0);
+  }, [displayStories.length, activeIndex]);
 
   useEffect(() => {
-    if (featuredStories.length < 2) return;
-    const nextStory = featuredStories[(activeIndex + 1) % featuredStories.length];
+    if (displayStories.length < 2) return;
+    const nextStory = displayStories[(activeIndex + 1) % displayStories.length];
     if (!nextStory?.cover_image) return;
     const preloadImage = new Image();
     preloadImage.src = nextStory.cover_image;
-  }, [activeIndex, featuredStories]);
+  }, [activeIndex, displayStories]);
+
+  useEffect(() => {
+    if (!configuredDaily) return;
+    trackAnalyticsEvent({
+      event_type: "daily_story_viewed",
+      story_slug: configuredDaily.story.slug,
+      metadata: { date: configuredDaily.date },
+    });
+  }, [configuredDaily]);
+
+  const trackDailyStart = (action: "read_story" | "quick_read") => {
+    if (!configuredDaily) return;
+    markDailyStoryStarted(configuredDaily.story.slug, configuredDaily.date, action);
+  };
 
   return (
     <>
@@ -83,8 +108,8 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
         className="relative isolate overflow-hidden bg-gradient-to-br from-hero-gradient-start via-hero-dark to-hero-gradient-end"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={hasStories && featuredStories.length > 1 ? handleTouchStart : undefined}
-        onTouchEnd={hasStories && featuredStories.length > 1 ? handleTouchEnd : undefined}
+        onTouchStart={hasStories && displayStories.length > 1 ? handleTouchStart : undefined}
+        onTouchEnd={hasStories && displayStories.length > 1 ? handleTouchEnd : undefined}
       >
         {/* Background: the featured story's cover image, full-bleed */}
         <div className="absolute inset-0 lg:hidden">
@@ -114,11 +139,11 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
           <div key={`text-${story?.id ?? "empty"}`} className="max-w-2xl animate-in fade-in-0 space-y-4 duration-500">
             <div className="flex items-center gap-3">
               <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/90">
-                Featured Story
+                {configuredDaily ? "Daily Story" : "Featured Story"}
               </span>
-              {hasStories && featuredStories.length > 1 && (
+              {hasStories && displayStories.length > 1 && (
                 <span className="text-xs font-medium tabular-nums text-white/50">
-                  {String(activeIndex + 1).padStart(2, "0")} / {String(featuredStories.length).padStart(2, "0")}
+                  {String(activeIndex + 1).padStart(2, "0")} / {String(displayStories.length).padStart(2, "0")}
                 </span>
               )}
             </div>
@@ -130,6 +155,19 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
             <h1 className="max-w-3xl text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
               {story?.title || "Welcome to WorldStories!"}
             </h1>
+
+            {configuredDaily && (
+              <>
+                {configuredDaily.featured_reason && (
+                  <p className="text-sm font-medium text-white/90">{configuredDaily.featured_reason}</p>
+                )}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/75 sm:text-sm">
+                  <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> Today</span>
+                  {countryLabel && <span className="inline-flex items-center gap-1.5"><Globe2 className="h-3.5 w-3.5" /> {countryLabel}</span>}
+                  {readingTime && <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" /> {readingTime}</span>}
+                </div>
+              </>
+            )}
 
             {hasStories && (story?.genres?.length ?? 0) > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -164,11 +202,18 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               </div>
             )}
 
-            <Button size="lg" className="px-7 text-sm md:text-base" asChild>
-              <Link to={story ? `/story/${story.slug}` : "/library"}>
-                {story ? "Read Featured Story" : "Explore"}
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button size="lg" className="px-7 text-sm md:text-base" asChild>
+                <Link to={story ? `/story/${story.slug}` : "/library"} onClick={() => trackDailyStart("read_story")}>
+                  {story ? (configuredDaily ? "Read Story" : "Read Featured Story") : "Explore"}
+                </Link>
+              </Button>
+              {configuredDaily && story?.summary_reading_minutes && (
+                <Button size="lg" variant="outline" className="border-white/40 bg-white/10 px-7 text-sm text-white hover:bg-white/20 hover:text-white md:text-base" asChild>
+                  <Link to={`/quick-read/${story.slug}`} onClick={() => trackDailyStart("quick_read")}>Quick Read</Link>
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="relative mx-auto hidden w-fit max-w-md lg:block">
@@ -189,7 +234,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
               </div>
             )}
 
-            {hasStories && featuredStories.length > 1 && (
+            {hasStories && displayStories.length > 1 && (
               <>
                 <button
                   type="button"
@@ -208,7 +253,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
                   <ChevronRight className="h-6 w-6" />
                 </button>
                 <div className="mt-4 flex items-center justify-center gap-2">
-                  {featuredStories.map((featuredStory, index) => (
+                  {displayStories.map((featuredStory, index) => (
                     <button
                       key={featuredStory.id}
                       type="button"
@@ -232,7 +277,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
           </div>
         )}
 
-        {hasStories && featuredStories.length > 1 && (
+        {hasStories && displayStories.length > 1 && (
           <>
             <button
               type="button"
@@ -253,7 +298,7 @@ const HeroSection = ({ featuredStories = [] }: HeroSectionProps) => {
             </button>
 
             <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 lg:hidden">
-              {featuredStories.map((s, index) => (
+              {displayStories.map((s, index) => (
                 <button
                   key={s.id}
                   type="button"

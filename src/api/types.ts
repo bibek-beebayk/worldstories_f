@@ -140,6 +140,7 @@ export interface Story {
   author?: string | null;
   story_type: string;
   language: string;
+  country?: string;
   description: string;
   cover_image: string;
   site_published_date?: string | null;
@@ -456,8 +457,24 @@ export interface AdminFeaturedStory {
   featured_rank: number;
 }
 
+export interface DailyStory {
+  date: string;
+  story: FeaturedStory;
+  featured_reason: string;
+  configured: boolean;
+}
+
+export interface AdminDailyStory {
+  date: string;
+  story: number;
+  story_detail: AdminFeaturedStory;
+  featured_reason: string;
+  active: boolean;
+}
+
 export interface HomeDataResponse {
   featured_stories: FeaturedStory[];
+  daily_story: DailyStory | null;
   weekly_spotlight: Story[];
   new_trending: Story[];
   more_to_explore: Story[];

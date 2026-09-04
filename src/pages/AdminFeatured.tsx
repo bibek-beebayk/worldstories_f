@@ -3,11 +3,14 @@ import { authApi } from "@/api/auth";
 import { getAccessToken } from "@/api/client";
 import { storyApi } from "@/api/story";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { ArrowDown, ArrowUp, Star, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, CalendarDays, Star, Trash2, X } from "lucide-react";
 import CoverImage from "@/components/CoverImage";
 import { FeaturedStoryPickerModal } from "@/components/admin/FeaturedStoryPickerModal";
 import type { AdminStory } from "@/api/types";
@@ -35,6 +38,22 @@ const AdminFeatured = () => {
   // The slot a click opened the picker for — an existing slot (0..featured.length-1)
   // to swap it, or the next empty one (featured.length..MAX_FEATURED-1) to fill it.
   const [pickerSlotIndex, setPickerSlotIndex] = useState<number | null>(null);
+  const [dailyPickerOpen, setDailyPickerOpen] = useState(false);
+  const [dailyDate, setDailyDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dailyReason, setDailyReason] = useState("");
+  const [dailyActive, setDailyActive] = useState(true);
+  const [dailyPending, setDailyPending] = useState(false);
+
+  const { data: dailyStory, isLoading: dailyLoading } = useQuery({
+    queryKey: ["admin-daily-story", dailyDate],
+    queryFn: () => storyApi.getDailyStory(dailyDate),
+    enabled: isAuthenticated && isSuperuser && Boolean(dailyDate),
+  });
+
+  useEffect(() => {
+    setDailyReason(dailyStory?.featured_reason ?? "");
+    setDailyActive(dailyStory?.active ?? true);
+  }, [dailyStory]);
 
   const persist = async (storyIds: number[], successMessage: string) => {
     try {
@@ -83,6 +102,41 @@ const AdminFeatured = () => {
     );
   };
 
+  const saveDailyStory = async (storyId = dailyStory?.story) => {
+    if (!storyId) return;
+    try {
+      setDailyPending(true);
+      await storyApi.setDailyStory({
+        date: dailyDate,
+        story: storyId,
+        featured_reason: dailyReason.trim(),
+        active: dailyActive,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["admin-daily-story", dailyDate] });
+      await queryClient.invalidateQueries({ queryKey: ["home-data"] });
+      setDailyPickerOpen(false);
+      toast.success("Daily Story saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save the Daily Story.");
+    } finally {
+      setDailyPending(false);
+    }
+  };
+
+  const deleteDailyStory = async () => {
+    try {
+      setDailyPending(true);
+      await storyApi.deleteDailyStory(dailyDate);
+      await queryClient.invalidateQueries({ queryKey: ["admin-daily-story", dailyDate] });
+      await queryClient.invalidateQueries({ queryKey: ["home-data"] });
+      toast.success("Daily Story removed for this date.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove the Daily Story.");
+    } finally {
+      setDailyPending(false);
+    }
+  };
+
   if (meLoading) {
     return <FullScreenLoader />;
   }
@@ -102,6 +156,59 @@ const AdminFeatured = () => {
 
   return (
     <div className="h-full overflow-y-auto space-y-4 pr-1">
+      <Card>
+        <CardHeader className="space-y-0">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CalendarDays className="h-5 w-5 text-primary" /> Daily Story
+          </CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose one published story for a UTC calendar date. Everyone sees the same selection;
+            when a date has none, the homepage keeps its existing Featured Story hero.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+            <div>
+              <Label htmlFor="daily-story-date">Date (UTC)</Label>
+              <Input id="daily-story-date" type="date" value={dailyDate} onChange={(event) => setDailyDate(event.target.value)} className="mt-2" />
+            </div>
+            <div>
+              <Label htmlFor="daily-story-reason">Featured reason</Label>
+              <Input id="daily-story-reason" value={dailyReason} maxLength={280} onChange={(event) => setDailyReason(event.target.value)} placeholder="Why readers should discover this story today" className="mt-2" />
+            </div>
+          </div>
+
+          {dailyLoading ? (
+            <p className="text-sm text-muted-foreground">Loading Daily Story…</p>
+          ) : dailyStory ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+              <div className="h-20 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                <CoverImage src={dailyStory.story_detail.cover_image || ""} alt={dailyStory.story_detail.title} author={dailyStory.story_detail.author} className="h-full w-full object-cover" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{dailyStory.story_detail.title}</p>
+                <p className="truncate text-sm text-muted-foreground">{dailyStory.story_detail.author || "No author"}</p>
+                <button type="button" className="mt-2 text-sm font-medium text-primary hover:underline" onClick={() => setDailyPickerOpen(true)}>Change story</button>
+              </div>
+              <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={dailyPending} onClick={deleteDailyStory} aria-label="Remove Daily Story for this date">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <button type="button" disabled={dailyPending} onClick={() => setDailyPickerOpen(true)} className="flex min-h-20 w-full items-center justify-center rounded-lg border border-dashed p-4 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+              No Daily Story configured — choose a story
+            </button>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={dailyActive} onCheckedChange={(checked) => setDailyActive(checked === true)} /> Active
+            </label>
+            <Button disabled={!dailyStory || dailyPending} onClick={() => saveDailyStory()}>{dailyPending ? "Saving…" : "Save Daily Story"}</Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="space-y-0">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -215,6 +322,12 @@ const AdminFeatured = () => {
         onClose={() => setPickerSlotIndex(null)}
         excludeIds={featured.map((s) => s.id)}
         onSelect={handlePick}
+      />
+      <FeaturedStoryPickerModal
+        open={dailyPickerOpen}
+        onClose={() => setDailyPickerOpen(false)}
+        excludeIds={[]}
+        onSelect={(story) => void saveDailyStory(story.id)}
       />
     </div>
   );
