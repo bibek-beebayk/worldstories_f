@@ -328,7 +328,12 @@ const AdminStoryReport = () => {
                             <StatusBadge present={story.is_published} presentLabel="Published" missingLabel="Draft" />
                           </td>
                           <td className="px-3 py-2">
-                            <TitleAnalyticsDialog kind="story" slug={story.slug} title={story.title} />
+                            <div className="flex items-center gap-1">
+                              <TitleAnalyticsDialog kind="story" slug={story.slug} title={story.title} />
+                              {Boolean(story.summary?.trim()) && (
+                                <TitleAnalyticsDialog kind="quick_read" slug={story.slug} title={story.title} />
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}

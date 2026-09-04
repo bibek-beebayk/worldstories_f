@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -91,6 +91,13 @@ function AudioMetricBarCharts({ timeSeries }: { timeSeries: AdminTitleAnalyticsT
   );
 }
 
+const QUICK_READ_METRIC_CHARTS = [
+  { key: "opens", title: "Opens", label: "Opens" },
+  { key: "completions", title: "Completions", label: "Completions" },
+  { key: "full_story_clicks", title: "Full-story clicks", label: "Clicks" },
+  { key: "reading_minutes", title: "Reading time", label: "Minutes" },
+] as const;
+
 const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 1, label: "Last 24 hours" },
   { value: 7, label: "Last 7 days" },
@@ -100,7 +107,7 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
 ];
 
 interface TitleAnalyticsDialogProps {
-  kind: "story" | "blog";
+  kind: "story" | "blog" | "quick_read";
   slug: string;
   title: string;
   initialDays?: AdminAnalyticsRangeDays;
@@ -129,9 +136,15 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
     queryFn: () => storyApi.getAdminBlogDetailAnalytics(slug, days),
     enabled: open && kind === "blog",
   });
+  const quickReadQuery = useQuery({
+    queryKey: ["admin-analytics", "quick-read-detail", slug, days],
+    queryFn: () => storyApi.getAdminQuickReadDetailAnalytics(slug, days),
+    enabled: open && kind === "quick_read",
+  });
 
-  const isLoading = kind === "story" ? storyQuery.isLoading : blogQuery.isLoading;
-  const isError = kind === "story" ? storyQuery.isError : blogQuery.isError;
+  const activeQuery = kind === "story" ? storyQuery : kind === "blog" ? blogQuery : quickReadQuery;
+  const isLoading = activeQuery.isLoading;
+  const isError = activeQuery.isError;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -140,10 +153,10 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
         size="icon"
         className="h-8 w-8"
         onClick={() => setOpen(true)}
-        aria-label={`View analytics for ${title}`}
-        title="View analytics"
+        aria-label={`View ${kind === "quick_read" ? "Quick Read " : ""}analytics for ${title}`}
+        title={kind === "quick_read" ? "View Quick Read analytics" : "View analytics"}
       >
-        <BarChart3 className="h-4 w-4" />
+        {kind === "quick_read" ? <Zap className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
       </Button>
       {/* overflow-auto (not overflow-x-hidden) is deliberate: it's a safety
           net, not the actual fix — if anything below ever still ends up
@@ -158,7 +171,9 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
               truncate: a long title wraps to multiple lines instead of
               being cut off, while the range filter stays put on the right
               (shrink-0, so it never gets squeezed by the wrapped title). */}
-          <DialogTitle className="min-w-0 flex-1 leading-snug">{title}</DialogTitle>
+          <DialogTitle className="min-w-0 flex-1 leading-snug">
+            {title}{kind === "quick_read" ? " — Quick Read" : ""}
+          </DialogTitle>
           <Select value={String(days)} onValueChange={(value) => setDays(Number(value) as AdminAnalyticsRangeDays)}>
             <SelectTrigger className="w-[150px] shrink-0">
               <SelectValue />
@@ -286,6 +301,62 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
                 xKey="bucket"
                 series={[{ key: "count", label: "Readers" }]}
                 emptyLabel="No signed-in reading activity in this range yet."
+              />
+            </ChartCard>
+          </div>
+        )}
+
+        {kind === "quick_read" && quickReadQuery.data && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatTile label="Opens" value={formatNumber(quickReadQuery.data.opens)} />
+              <StatTile label="Unique readers" value={formatNumber(quickReadQuery.data.unique_readers)} />
+              <StatTile label="Completed" value={formatNumber(quickReadQuery.data.completions)} />
+              <StatTile label="Completion rate" value={formatPercent(quickReadQuery.data.completion_rate)} />
+              <StatTile label="Full-story clicks" value={formatNumber(quickReadQuery.data.full_story_clicks)} />
+              <StatTile
+                label="Completed → full story"
+                value={formatPercent(quickReadQuery.data.full_story_conversion_rate)}
+              />
+              <StatTile
+                label="Clicks after completion"
+                value={formatNumber(quickReadQuery.data.clicks_after_completion)}
+              />
+              <StatTile
+                label="Reading time"
+                value={`${formatNumber(Math.round(quickReadQuery.data.reading_minutes))}m`}
+              />
+              <StatTile label="Avg. reading depth" value={formatPercent(quickReadQuery.data.avg_progress)} />
+            </div>
+
+            <div className="grid gap-4">
+              {QUICK_READ_METRIC_CHARTS.map((metric) => (
+                <ChartCard
+                  key={metric.key}
+                  title={`${metric.title} by ${quickReadQuery.data.time_series.interval}`}
+                  subtitle="Quick Read activity during the selected range"
+                >
+                  <BreakdownBarChart
+                    data={quickReadQuery.data.time_series.points}
+                    xKey="period"
+                    series={[{ key: metric.key, label: metric.label }]}
+                    formatX={(value) => formatPeriod(value, quickReadQuery.data.time_series.interval)}
+                    formatY={metric.key === "reading_minutes" ? (value) => `${value}m` : undefined}
+                    height={240}
+                  />
+                </ChartCard>
+              ))}
+            </div>
+
+            <ChartCard
+              title="Reading depth"
+              subtitle={`${formatNumber(quickReadQuery.data.readers_with_depth_tracked)} signed-in readers had scroll depth recorded`}
+            >
+              <BreakdownBarChart
+                data={quickReadQuery.data.progress_distribution}
+                xKey="bucket"
+                series={[{ key: "count", label: "Readers" }]}
+                emptyLabel="No Quick Read depth activity in this range yet."
               />
             </ChartCard>
           </div>

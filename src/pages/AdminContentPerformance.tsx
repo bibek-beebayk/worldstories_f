@@ -39,7 +39,7 @@ const allowedSorts = new Set(SORTS.map((item) => item.value));
 export default function AdminContentPerformance() {
   const [params, setParams] = useSearchParams();
   const kindParam = params.get("kind");
-  const kind = kindParam === "blog" || kindParam === "audiobook" ? kindParam : "story";
+  const kind = kindParam === "blog" || kindParam === "audiobook" || kindParam === "quick_read" ? kindParam : "story";
   const rawDays = Number(params.get("days"));
   const days = (allowedDays.has(rawDays) ? rawDays : 30) as AdminAnalyticsRangeDays;
   const rawSort = params.get("sort") as AdminContentPerformanceSort | null;
@@ -82,7 +82,7 @@ export default function AdminContentPerformance() {
             <Link to="/admin/analytics"><ArrowLeft />Back to analytics</Link>
           </Button>
           <h2 className="text-base font-semibold">
-            {kind === "story" ? "Story performance" : kind === "audiobook" ? "Audiobook performance" : "Blog performance"}
+            {kind === "story" ? "Story performance" : kind === "audiobook" ? "Audiobook performance" : kind === "quick_read" ? "Quick Read performance" : "Blog performance"}
           </h2>
           <p className="text-xs text-muted-foreground">
             Score = views + 2× {kind === "audiobook" ? "listens" : "reads"} + 3× interactions + {kind === "audiobook" ? "listening" : "engaged"} minutes.
@@ -94,6 +94,7 @@ export default function AdminContentPerformance() {
             <SelectContent>
               <SelectItem value="story">Stories</SelectItem>
               <SelectItem value="audiobook">Audiobooks</SelectItem>
+              <SelectItem value="quick_read">Quick Reads</SelectItem>
               <SelectItem value="blog">Blogs</SelectItem>
             </SelectContent>
           </Select>

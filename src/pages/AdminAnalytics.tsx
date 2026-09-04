@@ -216,6 +216,14 @@ const AdminAnalytics = () => {
               />
 
               <ContentPerformanceTable
+                title="Top performing Quick Reads"
+                rows={contentQuery.data.top_quick_reads}
+                kind="quick_read"
+                days={days}
+                viewAllHref={`/admin/analytics/content-performance?kind=quick_read&days=${days}`}
+              />
+
+              <ContentPerformanceTable
                 title="Top performing blogs"
                 rows={contentQuery.data.top_blogs}
                 kind="blog"

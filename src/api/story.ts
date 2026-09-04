@@ -72,7 +72,9 @@ import {
   AdminAnalyticsExportFileFormat,
   AdminStoryDetailAnalyticsResponse,
   AdminBlogDetailAnalyticsResponse,
+  AdminQuickReadDetailAnalyticsResponse,
   BlogReadingProgress,
+  QuickReadProgress,
   Author,
   AuthorDetail,
   SearchResponse,
@@ -284,6 +286,13 @@ export const storyApi = {
     apiClient<BlogReadingProgress>(`/blog-reading-progress/${blog_slug}/`),
   saveBlogReadingProgress: (blog_slug: string, progress: number) =>
     apiClient<BlogReadingProgress>(`/blog-reading-progress/${blog_slug}/`, {
+      method: "PUT",
+      body: JSON.stringify({ progress }),
+    }),
+  getQuickReadProgress: (story_slug: string) =>
+    apiClient<QuickReadProgress>(`/quick-read-progress/${story_slug}/`),
+  saveQuickReadProgress: (story_slug: string, progress: number) =>
+    apiClient<QuickReadProgress>(`/quick-read-progress/${story_slug}/`, {
       method: "PUT",
       body: JSON.stringify({ progress }),
     }),
@@ -514,7 +523,7 @@ export const storyApi = {
   getAdminAnalyticsContent: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsContentResponse>(`/admin/analytics/content/?days=${days}`),
   getAdminContentPerformance: (
-    kind: "story" | "audiobook" | "blog",
+    kind: "story" | "audiobook" | "quick_read" | "blog",
     days: AdminAnalyticsRangeDays,
     page: number,
     sort: AdminContentPerformanceSort
@@ -541,6 +550,10 @@ export const storyApi = {
     apiClient<AdminStoryDetailAnalyticsResponse>(`/admin/analytics/stories/${storySlug}/?days=${days}`),
   getAdminBlogDetailAnalytics: (blogSlug: string, days: AdminAnalyticsRangeDays) =>
     apiClient<AdminBlogDetailAnalyticsResponse>(`/admin/analytics/blog/${blogSlug}/?days=${days}`),
+  getAdminQuickReadDetailAnalytics: (storySlug: string, days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminQuickReadDetailAnalyticsResponse>(
+      `/admin/analytics/quick-reads/${storySlug}/?days=${days}`
+    ),
   exportAdminAnalytics: (
     sections: AdminAnalyticsExportSection[],
     days: AdminAnalyticsRangeDays,

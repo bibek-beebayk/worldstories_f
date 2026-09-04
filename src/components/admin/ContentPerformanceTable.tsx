@@ -10,7 +10,7 @@ const minutes = (value: number) => `${number(Math.round(value))}m`;
 interface ContentPerformanceTableProps {
   title?: string;
   rows: AdminContentPerformanceRow[];
-  kind: "story" | "audiobook" | "blog";
+  kind: "story" | "audiobook" | "quick_read" | "blog";
   days: AdminAnalyticsRangeDays;
   viewAllHref?: string;
   emptyMessage?: string;
@@ -25,6 +25,7 @@ export function ContentPerformanceTable({
   emptyMessage = "No activity was recorded in this interval.",
 }: ContentPerformanceTableProps) {
   const isAudiobook = kind === "audiobook";
+  const isQuickRead = kind === "quick_read";
   const table = (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[940px] text-sm">
@@ -32,7 +33,7 @@ export function ContentPerformanceTable({
           <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
             <th className="py-2 pr-4">Content</th>
             <th className="py-2 pr-4 text-right">Score</th>
-            <th className="py-2 pr-4 text-right">Views</th>
+            <th className="py-2 pr-4 text-right">{isQuickRead ? "Opens" : "Views"}</th>
             <th className="py-2 pr-4 text-right">{isAudiobook ? "Listens" : "Reads"}</th>
             <th className="py-2 pr-4 text-right">{isAudiobook ? "Listeners" : "Readers"}</th>
             <th className="py-2 pr-4 text-right">{isAudiobook ? "Listening" : "Reading"}</th>
@@ -58,7 +59,7 @@ export function ContentPerformanceTable({
               <td className="py-3 pr-4 text-right">{number(row.interactions)}</td>
               <td className="py-3 text-right">
                 <TitleAnalyticsDialog
-                  kind={kind === "blog" ? "blog" : "story"}
+                  kind={kind === "blog" ? "blog" : isQuickRead ? "quick_read" : "story"}
                   slug={row.slug}
                   title={row.title}
                   initialDays={days}

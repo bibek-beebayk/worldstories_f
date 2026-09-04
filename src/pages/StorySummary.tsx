@@ -18,7 +18,7 @@ import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { buildMeta } from "@/lib/buildMeta";
 import { ArrowLeft, ArrowRight, Clock, Headphones, Heart, Info, Zap } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { data, Link, useParams } from "react-router";
 import type { Route } from "./+types/StorySummary";
 
@@ -89,6 +89,18 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
   // surface that gave no sense of position at all.
   const { contentRef: summaryRef, fraction: summaryProgress } =
     useContentScrollProgress<HTMLElement>(Boolean(story?.summary));
+  const progressSaveTimerRef = useRef<number | null>(null);
+
+  // Quick Read is its own reading surface, so its depth is saved separately
+  // from chapter/EPUB/PDF progress. This mirrors blog scroll-depth tracking
+  // and only runs for authenticated readers (Quick Read is login-gated).
+  useEffect(() => {
+    if (!isAuthenticated || !story?.slug || !story.summary) return;
+    if (progressSaveTimerRef.current) window.clearTimeout(progressSaveTimerRef.current);
+    progressSaveTimerRef.current = window.setTimeout(() => {
+      storyApi.saveQuickReadProgress(story.slug, summaryProgress).catch(() => undefined);
+    }, 800);
+  }, [isAuthenticated, story?.slug, story?.summary, summaryProgress]);
 
   const quickReadMinutes = useMemo(() => estimateSummaryReadingMinutes(story?.summary), [story?.summary]);
   const { data: recommendedQuickReads } = useQuickReadRecommendations(isAuthenticated && Boolean(story), story?.slug);

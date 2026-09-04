@@ -164,7 +164,7 @@ export default function AdminShellLayout() {
 
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <SheetContent side="left" className="flex w-72 flex-col">
-          <SheetHeader>
+          <SheetHeader className="shrink-0">
             <SheetTitle>Admin Menu</SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex min-h-0 flex-1 flex-col">

@@ -1008,6 +1008,7 @@ export interface AdminAnalyticsContentResponse {
   quick_read_count: number;
   top_stories: AdminContentPerformanceRow[];
   top_audiobooks: AdminContentPerformanceRow[];
+  top_quick_reads: AdminContentPerformanceRow[];
   top_blogs: AdminContentPerformanceRow[];
 }
 
@@ -1028,7 +1029,7 @@ export interface AdminContentPerformanceRow {
   id: number;
   title: string;
   slug: string;
-  content_type: "story" | "audiobook" | "blog";
+  content_type: "story" | "audiobook" | "quick_read" | "blog";
   views: number;
   reads: number;
   unique_readers: number;
@@ -1048,7 +1049,7 @@ export interface AdminContentPerformanceRow {
 
 export interface AdminContentPerformanceResponse {
   range_days: AdminAnalyticsRangeDays;
-  content_type: "story" | "audiobook" | "blog";
+  content_type: "story" | "audiobook" | "quick_read" | "blog";
   sort: AdminContentPerformanceSort;
   count: number;
   page: number;
@@ -1288,6 +1289,32 @@ export interface AdminBlogDetailAnalyticsResponse {
   progress_distribution_signed_in: Array<{ bucket: string; count: number }>;
 }
 
+export interface AdminQuickReadDetailAnalyticsResponse {
+  range_days: AdminAnalyticsRangeDays;
+  story: { id: number; title: string; slug: string };
+  time_series: {
+    interval: "hour" | "day";
+    points: Array<{
+      period: string;
+      opens: number;
+      completions: number;
+      full_story_clicks: number;
+      reading_minutes: number;
+    }>;
+  };
+  opens: number;
+  unique_readers: number;
+  completions: number;
+  completion_rate: number;
+  full_story_clicks: number;
+  full_story_conversion_rate: number;
+  clicks_after_completion: number;
+  reading_minutes: number;
+  readers_with_depth_tracked: number;
+  avg_progress: number;
+  progress_distribution: Array<{ bucket: string; count: number }>;
+}
+
 export interface AdminTitleAnalyticsTimeSeries {
   interval: "hour" | "day";
   points: Array<{
@@ -1300,6 +1327,11 @@ export interface AdminTitleAnalyticsTimeSeries {
 }
 
 export interface BlogReadingProgress {
+  progress: number;
+  updated_at: string;
+}
+
+export interface QuickReadProgress {
   progress: number;
   updated_at: string;
 }
