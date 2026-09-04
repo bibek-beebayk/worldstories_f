@@ -4,6 +4,7 @@ import ContinueListeningSection from "@/components/ContinueListeningSection";
 import RecommendedForYouSection from "@/components/RecommendedForYouSection";
 import QuickReadSection from "@/components/QuickReadSection";
 import RecentBlogsSection from "@/components/RecentBlogsSection";
+import ReadingJourneyCard from "@/components/ReadingJourneyCard";
 import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
 import TrendingList from "@/components/TrendingList";
@@ -24,9 +25,10 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useContinueReading } from "@/hooks/useContinueReading";
 import { useContinueListening } from "@/hooks/useContinueListening";
 import { useRecommendations } from "@/hooks/useRecommendations";
-import { ArrowRight, BookOpenText, Compass, Flame, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpenText, Compass, Flame, Globe2, Sparkles, Users } from "lucide-react";
 import { ComponentType } from "react";
 import { formatViews } from "@/lib/utils";
+import { createRailDeduplicator } from "@/lib/railDeduplication";
 import { buildMeta } from "@/lib/buildMeta";
 import type { Route } from "./+types/Index";
 
@@ -104,6 +106,26 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
     isError: isRecommendationsError,
   } = useRecommendations(isLoggedIn);
 
+  // Claimed top-down in the page's own order, so the highest-priority rail
+  // keeps a story and the ones below substitute something else (§3.5). Built
+  // fresh each render; the rails it feeds are all derived from the same data.
+  const rails = createRailDeduplicator();
+  // The reader's own queue is claimed first and in full, including the part
+  // the homepage does not show — a story sitting sixth in Continue Reading is
+  // still theirs, not a fresh suggestion for Trending to make.
+  rails.reserve(continueReadingData?.results.map((item) => item.story));
+  rails.reserve(continueListeningData?.results.map((item) => item.story));
+  const recommendedStories = rails.claim(recommendationsData);
+  const quickReadStories = rails.claim(data?.quick_reads);
+  const moreToExplore = rails.claim(data?.more_to_explore);
+  const forYouTab = rails.claim(data?.tabs.recommended, 12);
+  const popularTab = rails.claim(data?.tabs.popular, 12);
+  const newTab = rails.claim(data?.tabs.new, 12);
+  const newTrending = rails.claim(data?.new_trending, 8);
+  const editorialPicks = rails.claim(data?.sidebar.recommended, 6);
+  const weeklySpotlight = rails.claim(data?.weekly_spotlight, 6);
+  const originalStories = rails.claim(data?.originals);
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
       {/* Renders immediately with its own "Welcome to WorldStories" fallback copy —
@@ -130,27 +152,37 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
 
           {!isLoading && data && (
             <>
-          <OriginalsRail stories={data.originals} />
-          {isLoggedIn &&
-            !isContinueReadingLoading &&
-            !isContinueReadingError &&
-            (continueReadingData?.results.length || 0) > 0 && (
-            <ContinueReadingSection
-              items={continueReadingData!.results}
-              isLoading={false}
-              isError={false}
-            />
-          )}
+          {/* Reader intent first *within the page body*: a signed-in reader
+              picks up where they left off before anything else here. The
+              featured hero deliberately stays above it — §3.1 lists Continue
+              Reading first, but the hero is the page's identity and the
+              project owner's call is that it leads. `useIsLoggedIn` starts
+              false to match the server, so this block appears just after
+              hydration rather than during it. */}
+          {isLoggedIn && (
+            <div className="space-y-6">
+              {!isContinueReadingLoading &&
+                !isContinueReadingError &&
+                (continueReadingData?.results.length || 0) > 0 && (
+                <ContinueReadingSection
+                  items={continueReadingData!.results}
+                  isLoading={false}
+                  isError={false}
+                />
+              )}
 
-          {isLoggedIn &&
-            !isContinueListeningLoading &&
-            !isContinueListeningError &&
-            (continueListeningData?.results.length || 0) > 0 && (
-            <ContinueListeningSection
-              items={continueListeningData!.results}
-              isLoading={false}
-              isError={false}
-            />
+              {!isContinueListeningLoading &&
+                !isContinueListeningError &&
+                (continueListeningData?.results.length || 0) > 0 && (
+                <ContinueListeningSection
+                  items={continueListeningData!.results}
+                  isLoading={false}
+                  isError={false}
+                />
+              )}
+
+              <ReadingJourneyCard enabled />
+            </div>
           )}
 
           {/* Renders only once recommendations actually come back — a user
@@ -160,17 +192,148 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
           {isLoggedIn &&
             !isRecommendationsLoading &&
             !isRecommendationsError &&
-            (recommendationsData?.length || 0) > 0 && (
+            recommendedStories.length > 0 && (
             <RecommendedForYouSection
-              stories={recommendationsData!}
+              stories={recommendedStories}
               isLoading={false}
               isError={false}
             />
           )}
 
-          <QuickReadSection stories={data.quick_reads} />
+          <QuickReadSection stories={quickReadStories} />
 
-          <RecentBlogsSection />
+          <section className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-primary">Continue Discovering</p>
+                <h2 className="text-lg font-semibold sm:text-xl">More stories for your reading queue</h2>
+              </div>
+            </div>
+            <Carousel opts={{ align: "start" }} className="px-1">
+              <CarouselContent>
+                {moreToExplore.map((story) => (
+                  <CarouselItem key={story.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                    <StoryCard {...story} compact />
+                  </CarouselItem>
+                ))}
+                <CarouselItem className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                  <Link
+                    to="/library"
+                    className="flex aspect-[4/5] flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 transition-colors hover:border-primary/50 hover:bg-primary/10"
+                  >
+                    <div>
+                      <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
+                        Show All
+                      </div>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        Explore the full library
+                      </h3>
+                      <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                        Browse every available story and find your next favorite read.
+                      </p>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 text-xs font-medium text-primary">
+                      <span>Open library</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </div>
+                  </Link>
+                </CarouselItem>
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </section>
+
+          {/* The Story Map already existed as its own page but had no entry
+              point on the homepage at all — the one place the brief asks for
+              it. Country is the site's most distinctive way in. */}
+          <section className="overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4 sm:rounded-2xl sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/70 px-3 py-1 text-xs font-medium text-primary">
+                  <Globe2 className="h-3.5 w-3.5" />
+                  <span>Explore by Country</span>
+                </div>
+                <p className="text-sm text-muted-foreground sm:text-base">
+                  Follow a story back to where it comes from.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="shrink-0">
+                <Link to="/story-map">
+                  Open the Story Map
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
+            <SectionTitle
+              icon={Compass}
+              title="Discover Your Next Read"
+              subtitle="Switch tabs to browse by intent."
+              seeAllHref="/discover"
+            />
+            <Tabs defaultValue="recommended" className="w-full">
+              <TabsList className="mb-5 grid h-auto w-full grid-cols-3 gap-1 rounded-xl p-1">
+                <TabsTrigger value="recommended" className="text-xs sm:text-sm">For You</TabsTrigger>
+                <TabsTrigger value="popular" className="text-xs sm:text-sm">Popular</TabsTrigger>
+                <TabsTrigger value="new" className="text-xs sm:text-sm">New</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="recommended">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+                  {forYouTab.map((story) => (
+                    <StoryCard key={story.id} {...story} />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="popular">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+                  {popularTab.map((story) => (
+                    <StoryCard key={story.id} {...story} />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="new">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+                  {newTab.map((story) => (
+                    <StoryCard key={story.id} {...story} />
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </section>
+
+          <AdSpace size="banner" contentType="home" />
+
+          <section className="grid gap-4 sm:gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
+              <SectionTitle
+                icon={Flame}
+                title="New & Trending"
+                subtitle="Stories readers are actively sharing."
+                seeAllHref="/discover#trending"
+              />
+              <TrendingList stories={newTrending} />
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
+              <SectionTitle
+                icon={BookOpenText}
+                title="From The Editorial Desk"
+                subtitle="Fresh picks from the team."
+              />
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+                {editorialPicks.map((story) => (
+                  <StoryCard key={story.id} {...story} />
+                ))}
+              </div>
+            </div>
+          </section>
 
           <section className="grid gap-4 sm:gap-6 lg:grid-cols-[1.35fr_0.65fr]">
             <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
@@ -181,7 +344,7 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
               />
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-                {data.weekly_spotlight.slice(0, 6).map((story) => (
+                {weeklySpotlight.map((story) => (
                   <StoryCard key={story.id} {...story} compact />
                 ))}
               </div>
@@ -225,115 +388,9 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
-            <SectionTitle
-              icon={Compass}
-              title="Discover Your Next Read"
-              subtitle="Switch tabs to browse by intent."
-              seeAllHref="/discover"
-            />
-            <Tabs defaultValue="recommended" className="w-full">
-              <TabsList className="mb-5 grid h-auto w-full grid-cols-3 gap-1 rounded-xl p-1">
-                <TabsTrigger value="recommended" className="text-xs sm:text-sm">For You</TabsTrigger>
-                <TabsTrigger value="popular" className="text-xs sm:text-sm">Popular</TabsTrigger>
-                <TabsTrigger value="new" className="text-xs sm:text-sm">New</TabsTrigger>
-              </TabsList>
+          <RecentBlogsSection />
 
-              <TabsContent value="recommended">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
-                  {data.tabs.recommended.slice(0, 12).map((story) => (
-                    <StoryCard key={story.id} {...story} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="popular">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
-                  {data.tabs.popular.slice(0, 12).map((story) => (
-                    <StoryCard key={story.id} {...story} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="new">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
-                  {data.tabs.new.slice(0, 12).map((story) => (
-                    <StoryCard key={story.id} {...story} />
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </section>
-
-          <AdSpace size="banner" contentType="home" />
-
-          <section className="grid gap-4 sm:gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
-              <SectionTitle
-                icon={Flame}
-                title="New & Trending"
-                subtitle="Stories readers are actively sharing."
-                seeAllHref="/discover#trending"
-              />
-              <TrendingList stories={data.new_trending.slice(0, 8)} />
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
-              <SectionTitle
-                icon={BookOpenText}
-                title="From The Editorial Desk"
-                subtitle="Fresh picks from the team."
-              />
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-                {data.sidebar.recommended.slice(0, 6).map((story) => (
-                  <StoryCard key={story.id} {...story} />
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-primary">Continue Discovering</p>
-                <h2 className="text-lg font-semibold sm:text-xl">More stories for your reading queue</h2>
-              </div>
-            </div>
-            <Carousel opts={{ align: "start" }} className="px-1">
-              <CarouselContent>
-                {data.more_to_explore.map((story) => (
-                  <CarouselItem key={story.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-                    <StoryCard {...story} compact />
-                  </CarouselItem>
-                ))}
-                <CarouselItem className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-                  <Link
-                    to="/library"
-                    className="flex aspect-[4/5] flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 transition-colors hover:border-primary/50 hover:bg-primary/10"
-                  >
-                    <div>
-                      <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
-                        Show All
-                      </div>
-                      <h3 className="text-sm font-semibold text-foreground">
-                        Explore the full library
-                      </h3>
-                      <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                        Browse every available story and find your next favorite read.
-                      </p>
-                    </div>
-
-                    <div className="inline-flex items-center gap-2 text-xs font-medium text-primary">
-                      <span>Open library</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </div>
-                  </Link>
-                </CarouselItem>
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          </section>
+          <OriginalsRail stories={originalStories} />
             </>
           )}
         </main>

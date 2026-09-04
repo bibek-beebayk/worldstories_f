@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Story } from "@/api/types";
 import {
   Carousel,
@@ -9,6 +10,7 @@ import {
 import { ArrowRight, Clock3, Headphones, Zap } from "lucide-react";
 import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
+import { availableTimeBuckets, filterByTimeBucket } from "@/lib/quickReadTime";
 
 interface QuickReadSectionProps {
   stories: Story[];
@@ -19,6 +21,13 @@ interface QuickReadSectionProps {
 // summary is eligible, so (unlike Continue Reading) this renders nothing at
 // all rather than an empty-state message when there's nothing to show yet.
 const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
+  const [timeBucket, setTimeBucket] = useState<string | null>(null);
+  const buckets = useMemo(() => availableTimeBuckets(stories), [stories]);
+  const visibleStories = useMemo(
+    () => filterByTimeBucket(stories, timeBucket),
+    [stories, timeBucket]
+  );
+
   if (stories.length === 0) return null;
 
   return (
@@ -35,9 +44,41 @@ const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
         </div>
       </div>
 
+      {/* Time-intent navigation (§3.4), filtering the rail already on the page
+          rather than fetching again — every card carries its own
+          summary_reading_minutes. Buckets with nothing behind them are not
+          offered at all. */}
+      {buckets.length > 1 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            How much time do you have?
+          </span>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by reading time">
+            {buckets.map((bucket) => {
+              const isActive = timeBucket === bucket.key;
+              return (
+                <button
+                  key={bucket.key}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => setTimeBucket(isActive ? null : bucket.key)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isActive
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  {bucket.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <Carousel opts={{ align: "start" }} className="px-1">
         <CarouselContent>
-          {stories.map((story) => (
+          {visibleStories.map((story) => (
             <CarouselItem key={story.id} className="basis-[170px] sm:basis-[185px]">
               <article className="h-full rounded-lg border border-border/70 bg-background/70 p-3">
                 <AuthGatedLink to={`/quick-read/${story.slug}`} className="group block w-full text-left">
