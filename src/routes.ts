@@ -10,6 +10,9 @@ export default [
     route("trending", "routes/trending-redirect.tsx"),
     route("discover", "pages/Discover.tsx"),
     route("story-map", "pages/StoryMap.tsx"),
+    // The reader's own country progress. Deliberately a separate route from
+    // /story-map, which is the catalogue and stays public — see §5.1.
+    route("story-passport", "pages/StoryPassport.tsx"),
     route("audiobooks", "pages/Audiobooks.tsx"),
     route("watch", "pages/Watch.tsx"),
     route("quick-reads", "pages/QuickReads.tsx"),

@@ -22,7 +22,11 @@ export type AnalyticsEventType =
   | "story_started"
   | "story_resumed"
   | "story_progressed"
-  | "next_story_clicked";
+  | "next_story_clicked"
+  // Story Passport. `country_unlocked` is absent on purpose: the server raises
+  // it beside the completion that caused it, so it is exactly-once per reader
+  // per country. See apps/stats/completion.py.
+  | "passport_viewed";
 
 interface AnalyticsEventInput {
   event_type: AnalyticsEventType;

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { storyApi } from "@/api/story";
 import { queueAudioProgress, saveAudioProgressLocally } from "@/lib/progressSync";
 import { markStoryFinishedIfComplete, noteServerConfirmedCompletion } from "@/lib/storyCompletion";
+import { announceCountryUnlocked } from "@/lib/countryUnlock";
 import { listLocalProgress } from "@/lib/offlineDb";
 
 export type AudioProgressEntry = {
@@ -161,7 +162,10 @@ export function useAudioProgress({
           // The server settles completion on the write itself, so it is right
           // about "finished just now" even on a device that has never seen
           // this story before.
-          if (response?.story_completed) noteServerConfirmedCompletion(storySlug);
+          if (response?.story_completed) {
+            noteServerConfirmedCompletion(storySlug);
+            announceCountryUnlocked(response.unlocked_country);
+          }
         })
         .catch(() =>
           queueAudioProgress(storySlug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)

@@ -7,8 +7,10 @@ import {
   MyReviewItem,
   PaginatedResponse,
   ProfileInsightsResponse,
+  PassportCountryDetail,
   ReadingHistoryResponse,
   ReadingStreakResponse,
+  StoryPassportResponse,
   Story,
   UserProfile,
 } from "./types";
@@ -71,6 +73,13 @@ export const authApi = {
   // Reading (only unfinished) and Completed (only finished).
   getReadingHistory: (page = 1) =>
     apiClient<ReadingHistoryResponse>(`/auth/library/reading-history/?page=${page}`),
+  // The reader's own country progress. Distinct from getStoryMap(), which is
+  // the catalogue grouped by country and identical for everyone.
+  getStoryPassport: () => apiClient<StoryPassportResponse>("/auth/story-passport/"),
+  getPassportCountry: (code: string) =>
+    apiClient<PassportCountryDetail>(
+      `/auth/story-passport/${encodeURIComponent(code)}/`
+    ),
   updateMe: (payload: ProfileUpdatePayload) =>
     apiClient<UserProfile>("/auth/me/", {
       method: "PATCH",

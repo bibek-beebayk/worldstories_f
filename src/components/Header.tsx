@@ -173,6 +173,10 @@ const Header = () => {
                   { to: "/discover", label: "Discover" },
                   { to: "/authors", label: "Authors" },
                   { to: "/story-map", label: "Story Map" },
+                  // Beside the Story Map, which is the catalogue by country —
+                  // this is the reader's own progress through it. Signed-in
+                  // only: the page has nothing to say to a signed-out visitor.
+                  ...(isLoggedIn ? [{ to: "/story-passport", label: "My Passport" }] : []),
                   { to: "/audiobooks", label: "Audiobooks" },
                   { to: "/watch", label: "Watch" },
                   { to: "/downloads", label: "Downloads" },
@@ -604,6 +608,17 @@ const Header = () => {
                     Downloads
                   </Link>
                 </SheetClose>
+
+                {isLoggedIn && (
+                  <SheetClose asChild>
+                    <Link
+                      to="/story-passport"
+                      className="text-lg font-medium hover:text-primary"
+                    >
+                      My Passport
+                    </Link>
+                  </SheetClose>
+                )}
 
                 {!isPwaInstalled && (
                   <SheetClose asChild>

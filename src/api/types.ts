@@ -299,6 +299,13 @@ export interface ReadingProgress {
    * for the completion screen and, later, first country unlocks.
    */
   story_completed?: boolean;
+  /**
+   * The ISO country code this completion just added to the reader's Story
+   * Passport, or null. Set only on the write that first reached that country,
+   * so it is the one-shot cue for the unlock toast. See
+   * apps/stats/passport.py::newly_unlocked_country.
+   */
+  unlocked_country?: string | null;
 }
 
 export interface AudioReadingProgress {
@@ -323,6 +330,13 @@ export interface AudioReadingProgress {
    * for the completion screen and, later, first country unlocks.
    */
   story_completed?: boolean;
+  /**
+   * The ISO country code this completion just added to the reader's Story
+   * Passport, or null. Set only on the write that first reached that country,
+   * so it is the one-shot cue for the unlock toast. See
+   * apps/stats/passport.py::newly_unlocked_country.
+   */
+  unlocked_country?: string | null;
 }
 
 export interface VideoWatchProgress {
@@ -347,6 +361,13 @@ export interface VideoWatchProgress {
    * for the completion screen and, later, first country unlocks.
    */
   story_completed?: boolean;
+  /**
+   * The ISO country code this completion just added to the reader's Story
+   * Passport, or null. Set only on the write that first reached that country,
+   * so it is the one-shot cue for the unlock toast. See
+   * apps/stats/passport.py::newly_unlocked_country.
+   */
+  unlocked_country?: string | null;
 }
 
 export type FileReadingFormat = "epub" | "pdf";
@@ -365,6 +386,13 @@ export interface FileReadingProgress {
    * for the completion screen and, later, first country unlocks.
    */
   story_completed?: boolean;
+  /**
+   * The ISO country code this completion just added to the reader's Story
+   * Passport, or null. Set only on the write that first reached that country,
+   * so it is the one-shot cue for the unlock toast. See
+   * apps/stats/passport.py::newly_unlocked_country.
+   */
+  unlocked_country?: string | null;
 }
 
 export interface FavoriteStatusResponse {
@@ -1512,4 +1540,35 @@ export interface ReadingHistoryItem {
 export interface ReadingHistoryResponse {
   pagination: Pagination;
   results: ReadingHistoryItem[];
+}
+
+
+export interface PassportCountry {
+  code: string;
+  name: string;
+  stories_available: number;
+  stories_completed: number;
+  explored: boolean;
+  /** When the reader first completed a story from here; null if never. */
+  unlocked_at: string | null;
+}
+
+export interface StoryPassportResponse {
+  countries_explored: number;
+  /** Countries that actually have published stories — not the 196-entry ISO
+   *  list, which would measure the reader against a catalogue that does not
+   *  exist. */
+  countries_available: number;
+  stories_completed: number;
+  countries: PassportCountry[];
+}
+
+export interface PassportCountryDetail {
+  code: string;
+  name: string;
+  explored: boolean;
+  stories_available: number;
+  stories_completed: number;
+  completed: Story[];
+  continue_exploring: Story[];
 }

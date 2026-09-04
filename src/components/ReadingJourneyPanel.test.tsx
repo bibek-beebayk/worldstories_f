@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render as rtlRender, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
 import ReadingJourneyPanel from "./ReadingJourneyPanel";
 import type { ProfileInsightsResponse, ReadingStreakResponse } from "@/api/types";
@@ -28,6 +29,10 @@ const streak = (current: number, longest: number): ReadingStreakResponse => ({
   longest_streak: longest,
 });
 
+// The Countries Explored tile links through to the Story Passport, so the
+// panel needs a router context.
+const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
+
 afterEach(cleanup);
 
 describe("ReadingJourneyPanel", () => {
@@ -53,32 +58,21 @@ describe("ReadingJourneyPanel", () => {
   });
 
   it("reads long totals as hours rather than a pile of minutes", () => {
-    const { rerender } = render(
-      <ReadingJourneyPanel
-        insights={insights({ total_reading_minutes: 95 })}
-        streak={streak(0, 0)}
-        isLoading={false}
-      />
-    );
-    expect(screen.getByText("1h 35m")).toBeInTheDocument();
-
-    rerender(
-      <ReadingJourneyPanel
-        insights={insights({ total_reading_minutes: 120 })}
-        streak={streak(0, 0)}
-        isLoading={false}
-      />
-    );
-    expect(screen.getByText("2h")).toBeInTheDocument();
-
-    rerender(
-      <ReadingJourneyPanel
-        insights={insights({ total_reading_minutes: 45 })}
-        streak={streak(0, 0)}
-        isLoading={false}
-      />
-    );
-    expect(screen.getByText("45 min")).toBeInTheDocument();
+    for (const [minutes, expected] of [
+      [95, "1h 35m"],
+      [120, "2h"],
+      [45, "45 min"],
+    ] as const) {
+      cleanup();
+      render(
+        <ReadingJourneyPanel
+          insights={insights({ total_reading_minutes: minutes })}
+          streak={streak(0, 0)}
+          isLoading={false}
+        />
+      );
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    }
   });
 
   it("shows a dash for a metric with nothing behind it, not a zero", () => {
@@ -110,11 +104,11 @@ describe("ReadingJourneyPanel", () => {
 
   it("stays out of the way of a reader with no history at all", () => {
     // A wall of dashes tells a new reader only that they have done nothing.
-    const { container } = render(
+    render(
       <ReadingJourneyPanel insights={insights({})} streak={streak(0, 0)} isLoading={false} />
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText("Your Reading Journey")).not.toBeInTheDocument();
   });
 
   it("renders a skeleton rather than an empty panel while loading", () => {

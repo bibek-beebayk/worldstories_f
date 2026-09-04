@@ -1,4 +1,5 @@
 import { BookOpenCheck, Clock3, Flame, Globe2, Sparkles, Trophy } from "lucide-react";
+import { Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProfileInsightsResponse, ReadingStreakResponse } from "@/api/types";
 
@@ -50,7 +51,13 @@ const ReadingJourneyPanel = ({ insights, streak, isLoading }: ReadingJourneyPane
   if (!insights) return null;
 
   const { summary } = insights;
-  const metrics = [
+  const metrics: Array<{
+    key: string;
+    icon: typeof Globe2;
+    label: string;
+    value: string;
+    href?: string;
+  }> = [
     {
       key: "completed",
       icon: BookOpenCheck,
@@ -89,6 +96,7 @@ const ReadingJourneyPanel = ({ insights, streak, isLoading }: ReadingJourneyPane
       icon: Globe2,
       label: "Countries Explored",
       value: summary.countries_explored > 0 ? String(summary.countries_explored) : "—",
+      href: "/story-passport",
     },
   ];
 
@@ -103,13 +111,30 @@ const ReadingJourneyPanel = ({ insights, streak, isLoading }: ReadingJourneyPane
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {metrics.map(({ key, icon: Icon, label, value }) => (
-            <div key={key} className="rounded-lg border bg-muted/30 p-3 text-center">
-              <Icon className="mx-auto mb-1.5 h-4 w-4 text-primary" aria-hidden="true" />
-              <p className="text-base font-semibold leading-tight sm:text-lg">{value}</p>
-              <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{label}</p>
-            </div>
-          ))}
+          {metrics.map(({ key, icon: Icon, label, value, href }) => {
+            const tile = (
+              <>
+                <Icon className="mx-auto mb-1.5 h-4 w-4 text-primary" aria-hidden="true" />
+                <p className="text-base font-semibold leading-tight sm:text-lg">{value}</p>
+                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{label}</p>
+              </>
+            );
+            // Countries Explored is the only metric with somewhere to go — the
+            // Story Passport is built on exactly this number.
+            return href ? (
+              <Link
+                key={key}
+                to={href}
+                className="rounded-lg border bg-muted/30 p-3 text-center transition-colors hover:border-primary/40 hover:bg-primary/5"
+              >
+                {tile}
+              </Link>
+            ) : (
+              <div key={key} className="rounded-lg border bg-muted/30 p-3 text-center">
+                {tile}
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

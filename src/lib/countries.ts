@@ -206,3 +206,28 @@ const COUNTRY_LABEL_BY_CODE = new Map(COUNTRY_OPTIONS.map((option) => [option.co
 export function getCountryLabel(code: string): string {
   return COUNTRY_LABEL_BY_CODE.get(code) || code;
 }
+
+
+/**
+ * The flag emoji for an ISO 3166-1 alpha-2 code.
+ *
+ * Flag emoji are just the two letters shifted into the regional-indicator
+ * block, so this covers every country the backend can store without a lookup
+ * table or an image per flag.
+ *
+ * Returns "" for anything that is not two letters, so callers can render the
+ * name alone rather than a broken glyph. Note that platforms without flag
+ * glyphs (Windows, mainly) draw the two regional-indicator letters instead —
+ * "JP" rather than a Japanese flag — which is a legible fallback rather than
+ * a missing character, so it needs no special handling.
+ */
+export function getCountryFlag(code: string | null | undefined): string {
+  if (!code || !/^[A-Za-z]{2}$/.test(code)) return "";
+  const REGIONAL_INDICATOR_OFFSET = 0x1f1e6 - "A".charCodeAt(0);
+  return String.fromCodePoint(
+    ...code
+      .toUpperCase()
+      .split("")
+      .map((letter) => letter.charCodeAt(0) + REGIONAL_INDICATOR_OFFSET)
+  );
+}
