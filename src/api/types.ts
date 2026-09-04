@@ -306,6 +306,12 @@ export interface ReadingProgress {
    * apps/stats/passport.py::newly_unlocked_country.
    */
   unlocked_country?: string | null;
+  /**
+   * Achievements earned by *this* write, for a one-shot notification. Awarded
+   * server-side by a conditional update, so a re-run or a second device gets
+   * an empty list. See apps/stats/achievements.py.
+   */
+  unlocked_achievements?: EarnedAchievement[];
 }
 
 export interface AudioReadingProgress {
@@ -337,6 +343,12 @@ export interface AudioReadingProgress {
    * apps/stats/passport.py::newly_unlocked_country.
    */
   unlocked_country?: string | null;
+  /**
+   * Achievements earned by *this* write, for a one-shot notification. Awarded
+   * server-side by a conditional update, so a re-run or a second device gets
+   * an empty list. See apps/stats/achievements.py.
+   */
+  unlocked_achievements?: EarnedAchievement[];
 }
 
 export interface VideoWatchProgress {
@@ -368,6 +380,12 @@ export interface VideoWatchProgress {
    * apps/stats/passport.py::newly_unlocked_country.
    */
   unlocked_country?: string | null;
+  /**
+   * Achievements earned by *this* write, for a one-shot notification. Awarded
+   * server-side by a conditional update, so a re-run or a second device gets
+   * an empty list. See apps/stats/achievements.py.
+   */
+  unlocked_achievements?: EarnedAchievement[];
 }
 
 export type FileReadingFormat = "epub" | "pdf";
@@ -393,6 +411,12 @@ export interface FileReadingProgress {
    * apps/stats/passport.py::newly_unlocked_country.
    */
   unlocked_country?: string | null;
+  /**
+   * Achievements earned by *this* write, for a one-shot notification. Awarded
+   * server-side by a conditional update, so a re-run or a second device gets
+   * an empty list. See apps/stats/achievements.py.
+   */
+  unlocked_achievements?: EarnedAchievement[];
 }
 
 export interface FavoriteStatusResponse {
@@ -531,6 +555,9 @@ export interface ProfileInsightsResponse {
 export interface ReadingStreakResponse {
   current_streak: number;
   longest_streak: number;
+  /** Streak achievements earned by this check — a streak grows because a day
+   *  passed, so this is the only place that measure can change. */
+  unlocked_achievements?: EarnedAchievement[];
 }
 
 export interface ContinueReadingItem {
@@ -1571,4 +1598,27 @@ export interface PassportCountryDetail {
   stories_completed: number;
   completed: Story[];
   continue_exploring: Story[];
+}
+
+
+export interface EarnedAchievement {
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+}
+
+export interface AchievementProgress extends EarnedAchievement {
+  target_value: number;
+  /** Capped at target_value by the API, so a bar can use it directly. */
+  progress: number;
+  completed: boolean;
+  completed_at: string | null;
+}
+
+export interface AchievementsResponse {
+  earned: number;
+  total: number;
+  results: AchievementProgress[];
 }

@@ -7,6 +7,7 @@ import {
   MyReviewItem,
   PaginatedResponse,
   ProfileInsightsResponse,
+  AchievementsResponse,
   PassportCountryDetail,
   ReadingHistoryResponse,
   ReadingStreakResponse,
@@ -76,6 +77,9 @@ export const authApi = {
   // The reader's own country progress. Distinct from getStoryMap(), which is
   // the catalogue grouped by country and identical for everyone.
   getStoryPassport: () => apiClient<StoryPassportResponse>("/auth/story-passport/"),
+  // A pure read: it reports the progress the triggers already recorded and
+  // never recalculates (§6.3).
+  getAchievements: () => apiClient<AchievementsResponse>("/auth/achievements/"),
   getPassportCountry: (code: string) =>
     apiClient<PassportCountryDetail>(
       `/auth/story-passport/${encodeURIComponent(code)}/`

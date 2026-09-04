@@ -13,6 +13,7 @@ import {
 } from "@/lib/readerPosition";
 import { markStoryFinishedIfComplete, noteServerConfirmedCompletion } from "@/lib/storyCompletion";
 import { announceCountryUnlocked } from "@/lib/countryUnlock";
+import { announceAchievements } from "@/lib/achievementUnlock";
 import { usePendingProgress } from "@/hooks/usePendingProgress";
 import StoryCompletionScreen from "@/components/StoryCompletionScreen";
 import { ReadingProgressBar } from "@/components/reader/ReadingProgressBar";
@@ -521,6 +522,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
               noteServerConfirmedCompletion(story_slug);
               setJustFinishedStory(true);
               announceCountryUnlocked(response.unlocked_country);
+              announceAchievements(response.unlocked_achievements);
             }
           })
           .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized, savedAnchor));

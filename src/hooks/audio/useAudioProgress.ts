@@ -4,6 +4,7 @@ import { storyApi } from "@/api/story";
 import { queueAudioProgress, saveAudioProgressLocally } from "@/lib/progressSync";
 import { markStoryFinishedIfComplete, noteServerConfirmedCompletion } from "@/lib/storyCompletion";
 import { announceCountryUnlocked } from "@/lib/countryUnlock";
+import { announceAchievements } from "@/lib/achievementUnlock";
 import { listLocalProgress } from "@/lib/offlineDb";
 
 export type AudioProgressEntry = {
@@ -165,6 +166,7 @@ export function useAudioProgress({
           if (response?.story_completed) {
             noteServerConfirmedCompletion(storySlug);
             announceCountryUnlocked(response.unlocked_country);
+            announceAchievements(response.unlocked_achievements);
           }
         })
         .catch(() =>

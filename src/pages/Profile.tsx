@@ -55,13 +55,29 @@ export function meta() {
 }
 import ProfileInsights from "@/components/ProfileInsights";
 import ReadingJourneyPanel from "@/components/ReadingJourneyPanel";
+import AchievementsSection from "@/components/AchievementsSection";
 import GenreChipPicker from "@/components/GenreChipPicker";
 
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
-type ReaderView = "reading" | "completed" | "history" | "listening" | "favorites" | "reviews";
+type ReaderView =
+  | "reading"
+  | "completed"
+  | "history"
+  | "achievements"
+  | "listening"
+  | "favorites"
+  | "reviews";
 
 const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings"];
-const readerViews: ReaderView[] = ["reading", "completed", "history", "listening", "favorites", "reviews"];
+const readerViews: ReaderView[] = [
+  "reading",
+  "completed",
+  "history",
+  "achievements",
+  "listening",
+  "favorites",
+  "reviews",
+];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -128,6 +144,7 @@ const Profile = () => {
   const shouldLoadReading = isOverviewSection || (isReaderSection && activeReaderView === "reading");
   const shouldLoadCompleted = isOverviewSection || (isReaderSection && activeReaderView === "completed");
   const shouldLoadHistory = isReaderSection && activeReaderView === "history";
+  const shouldLoadAchievements = isReaderSection && activeReaderView === "achievements";
   const shouldLoadListening = isOverviewSection || (isReaderSection && activeReaderView === "listening");
   const shouldLoadFavorites = isOverviewSection || (isReaderSection && activeReaderView === "favorites");
   const shouldLoadReviews = isOverviewSection || (isReaderSection && activeReaderView === "reviews");
@@ -176,6 +193,12 @@ const Profile = () => {
     queryKey: ["profile-reading-history", historyPage],
     queryFn: () => authApi.getReadingHistory(historyPage),
     enabled: isAuthenticated && shouldLoadHistory,
+  });
+
+  const { data: achievementsData, isLoading: achievementsLoading } = useQuery({
+    queryKey: ["profile-achievements"],
+    queryFn: authApi.getAchievements,
+    enabled: isAuthenticated && shouldLoadAchievements,
   });
 
   const { data: favoritesData } = useQuery({
@@ -562,6 +585,7 @@ const Profile = () => {
     { key: "reading", label: "Continue Reading" },
     { key: "completed", label: "Completed" },
     { key: "history", label: "Reading History" },
+    { key: "achievements", label: "Achievements" },
     { key: "listening", label: "Continue Listening" },
     { key: "favorites", label: "Favorites" },
     { key: "reviews", label: "Reviews" },
@@ -1012,6 +1036,13 @@ const Profile = () => {
                       )}
                     </CardContent>
                   </Card>
+                )}
+
+                {activeReaderView === "achievements" && (
+                  <AchievementsSection
+                    data={achievementsData}
+                    isLoading={achievementsLoading}
+                  />
                 )}
 
                 {activeReaderView === "listening" && (
