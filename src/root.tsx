@@ -1,4 +1,4 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation } from "react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -50,12 +50,36 @@ const ORGANIZATION_JSON_LD = {
 };
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim();
+
+// The admin panel is staff tooling, not audience behaviour, so GA must not
+// measure it. This tag lives above the route split (it has to — it belongs in
+// <head>), so the exclusion is done with GA's own `ga-disable-<ID>` opt-out
+// flag instead: it's read at send time, so flipping it stops every hit,
+// including the page_views GA4 enhanced measurement fires by itself on
+// history changes. Set here for a direct load of an admin URL, and kept in
+// sync across client-side navigation by <AnalyticsRouteGate /> below.
+const gaDisableFlag = (id: string) => `ga-disable-${id}`;
+const isAdminPath = (pathname: string) => pathname === "/admin" || pathname.startsWith("/admin/");
+
 const GA_BOOTSTRAP_SCRIPT = GA_MEASUREMENT_ID
   ? `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
+window[${JSON.stringify(gaDisableFlag(GA_MEASUREMENT_ID))}] = location.pathname === '/admin' || location.pathname.indexOf('/admin/') === 0;
 gtag('js', new Date());
 gtag('config', ${JSON.stringify(GA_MEASUREMENT_ID)});`
   : null;
+
+function AnalyticsRouteGate() {
+  const { pathname } = useLocation();
+  // Assigned during render rather than in an effect: GA's history-change
+  // listener can fire as soon as the URL is pushed, which is before effects
+  // flush — an effect would let the first admin page_view through.
+  if (GA_MEASUREMENT_ID && typeof window !== "undefined") {
+    (window as unknown as Record<string, boolean>)[gaDisableFlag(GA_MEASUREMENT_ID)] =
+      isAdminPath(pathname);
+  }
+  return null;
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -133,6 +157,7 @@ export default function Root() {
       <TooltipProvider>
         <AuthModalProvider>
           <ImmersiveReaderProvider>
+            <AnalyticsRouteGate />
             <NavigationProgress />
             <Toaster />
             <Sonner />

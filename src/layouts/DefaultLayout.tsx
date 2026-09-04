@@ -76,8 +76,15 @@ export default function DefaultLayout() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     const ref = new URLSearchParams(location.search).get("ref");
+    // Blog visits carry the slug so the event links to the Blog row. Without
+    // it, blog "views" in the admin content rankings were structurally always
+    // zero: the ranking counts visit events joined to a blog, and nothing ever
+    // set blog_slug, so the join never matched and every blog's performance
+    // score was missing its views term entirely.
+    const blogSlug = location.pathname.match(/^\/blog\/([^/]+)\/?$/)?.[1];
     trackAnalyticsEvent({
       event_type: "visit",
+      blog_slug: blogSlug ? decodeURIComponent(blogSlug) : undefined,
       metadata: { path: location.pathname, referral_source: normalizeReferralSource(ref) },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

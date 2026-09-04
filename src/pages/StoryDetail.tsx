@@ -169,6 +169,21 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.slug]);
+
+  // Registers the story view from the browser rather than letting the detail
+  // GET count it: under SSR that GET comes from the render server, which both
+  // hid the visitor's User-Agent from the bot filter and made every visitor
+  // share the render host's IP (so the backend's 24h per-IP dedupe was
+  // discarding almost every real view). Firing it here also means a view
+  // requires a browser that actually ran the page, which no non-JS crawler does.
+  const viewedSlugRef = useRef<string | null>(null);
+  useEffect(() => {
+    const viewedSlug = story?.slug;
+    if (!viewedSlug || viewedSlugRef.current === viewedSlug) return;
+    viewedSlugRef.current = viewedSlug;
+    storyApi.registerStoryView(viewedSlug).catch(() => undefined);
+  }, [story?.slug]);
+
   const { data: relatedBlogsData } = useQuery({
     queryKey: ["related-blogs", slug],
     queryFn: () => storyApi.getBlogsForStory(slug!),

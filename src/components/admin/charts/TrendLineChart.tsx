@@ -85,7 +85,11 @@ export function TrendLineChart<T extends Record<string, unknown>>({
             name={s.label}
             stroke={CHART_PALETTE[idx % CHART_PALETTE.length]}
             strokeWidth={2}
-            dot={data.length <= 30}
+            // 32 covers every filled range the dashboard asks for (25 hourly
+            // buckets for 24h, 31 daily for 30d, 14 weekly, 13 monthly), so
+            // series no longer lose their dots just because empty buckets are
+            // now included in the row count.
+            dot={data.length <= 32}
             activeDot={{ r: 4 }}
           />
         ))}

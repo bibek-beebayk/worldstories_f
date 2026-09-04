@@ -941,7 +941,9 @@ export interface AdminAnalyticsRatingCount {
 
 export interface AdminAnalyticsRatingTrendPoint {
   day: string;
-  avg_rating: number;
+  // null for a bucket with no reviews — an average has no zero, so the chart
+  // draws a break there rather than a dip to the axis.
+  avg_rating: number | null;
   count: number;
 }
 

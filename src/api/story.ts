@@ -101,6 +101,16 @@ export const storyApi = {
   getStory: (slug: string) =>
     apiClient<StoryDetail>(`/stories/${slug}/`),
 
+  // Explicit view beacon. The story detail GET above is issued by the SSR
+  // render server, so counting a view there recorded the render host's IP and
+  // User-Agent instead of the visitor's — see _register_view in the backend.
+  // This fires from the browser only, so the backend sees the real visitor.
+  registerStoryView: (slug: string) =>
+    apiClient<void>(`/stories/${encodeURIComponent(slug)}/view/`, {
+      method: "POST",
+      body: "{}",
+    }),
+
   getBecauseFinished: (slug: string) =>
     apiClient<Story[]>(`/stories/${slug}/because-finished/`),
 
