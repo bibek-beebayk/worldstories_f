@@ -54,13 +54,14 @@ export function meta() {
   });
 }
 import ProfileInsights from "@/components/ProfileInsights";
+import ReadingJourneyPanel from "@/components/ReadingJourneyPanel";
 import GenreChipPicker from "@/components/GenreChipPicker";
 
 type ProfileSection = "overview" | "reader" | "creator" | "settings";
-type ReaderView = "reading" | "completed" | "listening" | "favorites" | "reviews";
+type ReaderView = "reading" | "completed" | "history" | "listening" | "favorites" | "reviews";
 
 const profileSections: ProfileSection[] = ["overview", "reader", "creator", "settings"];
-const readerViews: ReaderView[] = ["reading", "completed", "listening", "favorites", "reviews"];
+const readerViews: ReaderView[] = ["reading", "completed", "history", "listening", "favorites", "reviews"];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -75,6 +76,7 @@ const Profile = () => {
 
   const [readingPage, setReadingPage] = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
   const [listeningPage, setListeningPage] = useState(1);
   const [favoritesPage, setFavoritesPage] = useState(1);
   const [reviewsPage, setReviewsPage] = useState(1);
@@ -125,6 +127,7 @@ const Profile = () => {
   const isReaderSection = activeSection === "reader";
   const shouldLoadReading = isOverviewSection || (isReaderSection && activeReaderView === "reading");
   const shouldLoadCompleted = isOverviewSection || (isReaderSection && activeReaderView === "completed");
+  const shouldLoadHistory = isReaderSection && activeReaderView === "history";
   const shouldLoadListening = isOverviewSection || (isReaderSection && activeReaderView === "listening");
   const shouldLoadFavorites = isOverviewSection || (isReaderSection && activeReaderView === "favorites");
   const shouldLoadReviews = isOverviewSection || (isReaderSection && activeReaderView === "reviews");
@@ -167,6 +170,12 @@ const Profile = () => {
     queryKey: ["profile-completed-reading", completedPage],
     queryFn: () => authApi.getCompletedReading(completedPage),
     enabled: isAuthenticated && shouldLoadCompleted,
+  });
+
+  const { data: historyData } = useQuery({
+    queryKey: ["profile-reading-history", historyPage],
+    queryFn: () => authApi.getReadingHistory(historyPage),
+    enabled: isAuthenticated && shouldLoadHistory,
   });
 
   const { data: favoritesData } = useQuery({
@@ -552,6 +561,7 @@ const Profile = () => {
   const readerNavItems: Array<{ key: ReaderView; label: string }> = [
     { key: "reading", label: "Continue Reading" },
     { key: "completed", label: "Completed" },
+    { key: "history", label: "Reading History" },
     { key: "listening", label: "Continue Listening" },
     { key: "favorites", label: "Favorites" },
     { key: "reviews", label: "Reviews" },
@@ -777,6 +787,12 @@ const Profile = () => {
                   })}
                 </div>
 
+                <ReadingJourneyPanel
+                  insights={profileInsights}
+                  streak={readingStreak}
+                  isLoading={profileInsightsLoading}
+                />
+
                 <ProfileInsights
                   data={profileInsights}
                   isLoading={profileInsightsLoading}
@@ -951,6 +967,48 @@ const Profile = () => {
                         completedData?.pagination?.page || 1,
                         completedData?.pagination?.pages || 1,
                         setCompletedPage
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {activeReaderView === "history" && (
+                  <Card className="shadow-sm">
+                    <CardContent className="space-y-4 p-5">
+                      <p className="text-sm text-muted-foreground">
+                        Everything you have opened, most recently first — finished or not.
+                      </p>
+                      {(historyData?.results || []).map((item) => (
+                        <div key={item.story.id} className="rounded-md border p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="font-medium">{item.story.title}</p>
+                            {item.completed ? (
+                              <p className="shrink-0 text-sm text-emerald-600">Completed</p>
+                            ) : (
+                              <p className="shrink-0 text-sm text-muted-foreground">
+                                {Math.round(Math.max(0, Math.min(1, item.progress)) * 100)}%
+                              </p>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Last read {new Date(item.last_read_at).toLocaleDateString()}
+                          </p>
+                          <Link to={`/story/${item.story.slug}`}>
+                            <Button size="sm" className="mt-3" variant="outline">
+                              View Story
+                            </Button>
+                          </Link>
+                        </div>
+                      ))}
+                      {(historyData?.results?.length || 0) === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          You haven't opened any stories yet.
+                        </p>
+                      )}
+                      {renderPagination(
+                        historyData?.pagination?.page || 1,
+                        historyData?.pagination?.pages || 1,
+                        setHistoryPage
                       )}
                     </CardContent>
                   </Card>

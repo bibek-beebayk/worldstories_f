@@ -7,6 +7,7 @@ import {
   MyReviewItem,
   PaginatedResponse,
   ProfileInsightsResponse,
+  ReadingHistoryResponse,
   ReadingStreakResponse,
   Story,
   UserProfile,
@@ -66,6 +67,10 @@ export const authApi = {
     apiClient<ProfileInsightsResponse>("/auth/profile-insights/"),
   getReadingStreak: () =>
     apiClient<ReadingStreakResponse>("/auth/reading-streak/"),
+  // Everything the reader has opened, newest first — distinct from Continue
+  // Reading (only unfinished) and Completed (only finished).
+  getReadingHistory: (page = 1) =>
+    apiClient<ReadingHistoryResponse>(`/auth/library/reading-history/?page=${page}`),
   updateMe: (payload: ProfileUpdatePayload) =>
     apiClient<UserProfile>("/auth/me/", {
       method: "PATCH",

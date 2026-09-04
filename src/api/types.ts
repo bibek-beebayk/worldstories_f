@@ -470,9 +470,19 @@ export interface UserProfile {
 export interface ProfileInsightsResponse {
   summary: {
     titles_started: number;
+    /** From the durable StoryCompletion record, not inferred from progress. */
     titles_completed: number;
     active_days_30: number;
     favorite_genre: string | null;
+    /**
+     * Measured from actual reading/listening/watching session durations, not
+     * summed from the stories' estimated lengths — a reader who abandoned a
+     * long book on page two has not read it. See §4.4.
+     */
+    total_reading_minutes: number;
+    /** Distinct countries of finished stories. The Story Passport
+     *  (Milestone 5) builds its page around this same fact. */
+    countries_explored: number;
   };
   activity: Array<{
     date: string;
@@ -1486,4 +1496,20 @@ export interface StoryCompletionResponse {
   primary: Story | null;
   /** Only non-empty sections are returned. */
   sections: StoryCompletionSection[];
+}
+
+
+export interface ReadingHistoryItem {
+  story: Story;
+  last_read_at: string;
+  /** The furthest any surface of this story reached, 0–1. */
+  progress: number;
+  /** From the completion record — a story can be complete while no single
+   *  surface reads 100%, e.g. finished as an audiobook. */
+  completed: boolean;
+}
+
+export interface ReadingHistoryResponse {
+  pagination: Pagination;
+  results: ReadingHistoryItem[];
 }
