@@ -175,14 +175,16 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
           </p>
         </div>
 
-        <OriginalsRail className="mb-8" />
-
         {/* Two ways past the filters, for a reader who does not want to browse:
-            one picks for them, the other asks how they want to feel. */}
+            one picks for them, the other asks how they want to feel. Ahead of
+            the Originals rail because they answer "I don't know what I want",
+            which is the state someone opening Discover is usually in. */}
         <div className="mb-8 grid gap-4 lg:grid-cols-2">
           <SurpriseMeCard />
           <MoodPicker />
         </div>
+
+        <OriginalsRail className="mb-8" />
 
         {/* Genre browsing — the primary entry point into this page. Clicking a genre hands
             off to the Library's full filtering experience rather than duplicating it here. */}

@@ -19,6 +19,8 @@ import { useCategories } from "@/hooks/useCategories";
 import { useStoryTypes } from "@/hooks/useStoryTypes";
 import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+import { useQuery } from "@tanstack/react-query";
+import { storyApi } from "@/api/story";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
 import { useInfiniteLibraryShelves } from "@/hooks/useInfiniteLibraryShelves";
 import { formatViews } from "@/lib/utils";
@@ -83,6 +85,17 @@ const Library = () => {
   // Mood arrives only from a link (the MoodPicker), so it is read from the URL
   // and not offered as another filter control — the mood layer is a way *in*,
   // not a fifth facet competing with genre and category.
+  // Only to label the filter chip — a raw slug in the UI would read as a bug.
+  const { data: moodData } = useQuery({
+    queryKey: ["moods"],
+    queryFn: storyApi.getMoods,
+    staleTime: 5 * 60 * 1000,
+  });
+  const moodNameBySlug = useMemo(
+    () => new Map((moodData?.moods || []).map((mood) => [mood.slug, mood.name])),
+    [moodData]
+  );
+
   const selectedMoods = useMemo(() => {
     const raw = searchParams.get("moods") || "";
     return raw.split(",").map((slug) => slug.trim()).filter(Boolean);
@@ -122,6 +135,7 @@ const Library = () => {
   const hasActiveFilters =
     selectedGenreNames.length > 0 ||
     selectedCategoryNames.length > 0 ||
+    selectedMoods.length > 0 ||
     status !== "all" ||
     language !== "all" ||
     storyType !== "all" ||
@@ -234,7 +248,23 @@ const Library = () => {
     setTempCategories(selectedCategories);
   }, [selectedCategories, openCategories, openMobileFilters]);
 
+  const removeMood = (slug: string) => {
+    const next = new URLSearchParams(searchParams);
+    const remaining = selectedMoods.filter((value) => value !== slug);
+    if (remaining.length) next.set("moods", remaining.join(","));
+    else next.delete("moods");
+    setSearchParams(next);
+  };
+
   const clearAllFilters = () => {
+    // Mood is the one filter held in the URL rather than in state, so clearing
+    // it has to touch the query string — otherwise "Clear all" would leave the
+    // results narrowed with nothing on screen explaining why.
+    if (selectedMoods.length) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("moods");
+      setSearchParams(next);
+    }
     setStatus("all");
     setLanguage("all");
     setStoryType("all");
@@ -794,6 +824,18 @@ const Library = () => {
                   </button>
                 </Badge>
               )}
+              {selectedMoods.map((slug) => (
+                <Badge key={slug} variant="outline" className="gap-1">
+                  {moodNameBySlug.get(slug) || slug}
+                  <button
+                    type="button"
+                    aria-label={`Remove ${moodNameBySlug.get(slug) || slug} filter`}
+                    onClick={() => removeMood(slug)}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
               {selectedGenreNames.map((genre) => (
                 <Badge key={genre.id} variant="outline" className="gap-1">
                   {genre.name}
