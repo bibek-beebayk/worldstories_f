@@ -175,6 +175,7 @@ const Header = () => {
                 {[
                   { to: "/authors", label: "Authors" },
                   { to: "/story-map", label: "Story Map" },
+                  { to: "/journeys", label: "Story Journeys" },
                   // Beside the Story Map, which is the catalogue by country —
                   // this is the reader's own progress through it. Signed-in
                   // only: the page has nothing to say to a signed-out visitor.
@@ -608,6 +609,15 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Downloads
+                  </Link>
+                </SheetClose>
+
+                <SheetClose asChild>
+                  <Link
+                    to="/journeys"
+                    className="text-lg font-medium hover:text-primary"
+                  >
+                    Story Journeys
                   </Link>
                 </SheetClose>
 

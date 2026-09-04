@@ -1695,3 +1695,63 @@ export interface AdminStoryMood {
   is_public: boolean;
   created_at: string;
 }
+
+
+export interface JourneySummary {
+  slug: string;
+  title: string;
+  description: string;
+  type: string;
+  /** The journey's own artwork, or the first story's cover. */
+  cover_image: string;
+  /** Required stories finished, out of the total required. */
+  completed: number;
+  total: number;
+  is_complete: boolean;
+}
+
+export interface JourneyListResponse {
+  journeys: JourneySummary[];
+}
+
+export interface JourneyItem {
+  position: number;
+  /** Optional items do not hold a journey open — an editor can add a bonus
+   *  story without moving the finish line. */
+  required: boolean;
+  completed: boolean;
+  story: Story;
+}
+
+export interface JourneyDetail extends JourneySummary {
+  items: JourneyItem[];
+}
+
+
+export interface AdminJourneyItem {
+  id: number;
+  story: number;
+  story_title: string;
+  story_slug: string;
+  story_cover: string;
+  story_published: boolean;
+  position: number;
+  required: boolean;
+}
+
+export interface AdminJourney {
+  id: number;
+  title: string;
+  slug: string;
+  description: string;
+  cover_image: string;
+  type: string;
+  active: boolean;
+  order: number;
+  items: AdminJourneyItem[];
+  item_count: number;
+  /** Completion is judged on required items only, so an editor needs this
+   *  separately from the total. */
+  required_count: number;
+  created_at: string;
+}

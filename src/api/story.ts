@@ -2,6 +2,8 @@ import { apiClient, fetchAuthenticatedBinary, fetchAuthenticatedFile } from "./c
 import {
   StoryListResponse,
   Chapter,
+  JourneyDetail,
+  JourneyListResponse,
   MoodListResponse,
   Story,
   StoryCompletionResponse,
@@ -48,6 +50,8 @@ import {
   AdminGenre,
   AdminCategory,
   AdminTag,
+  AdminJourney,
+  AdminJourneyItem,
   AdminMood,
   AdminStoryMood,
   AdminTheme,
@@ -130,6 +134,12 @@ export const storyApi = {
   },
 
   getMoods: () => apiClient<MoodListResponse>("/moods/"),
+
+  // Progress comes back derived from the reader's completions, so there is no
+  // enrolment step and nothing to sync.
+  getJourneys: () => apiClient<JourneyListResponse>("/journeys/"),
+  getJourney: (slug: string) =>
+    apiClient<JourneyDetail>(`/journeys/${encodeURIComponent(slug)}/`),
 
   getBecauseFinished: (slug: string) =>
     apiClient<Story[]>(`/stories/${slug}/because-finished/`),
@@ -584,6 +594,33 @@ export const storyApi = {
     }),
   deleteAdminTag: (id: number) =>
     apiClient<void>(`/admin/tags/${id}/`, { method: "DELETE" }),
+  getAdminJourneys: () => apiClient<AdminJourney[]>("/admin/journeys/"),
+  createAdminJourney: (payload: { title: string; description?: string; type?: string }) =>
+    apiClient<AdminJourney>("/admin/journeys/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminJourney: (
+    id: number,
+    payload: Partial<{ title: string; description: string; type: string; active: boolean; order: number; cover_image: string }>
+  ) =>
+    apiClient<AdminJourney>(`/admin/journeys/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminJourney: (id: number) =>
+    apiClient<void>(`/admin/journeys/${id}/`, { method: "DELETE" }),
+  // Replaces the whole ordered set; position comes from the order sent, so
+  // reordering needs no separate call.
+  setAdminJourneyItems: (
+    id: number,
+    items: Array<{ story: number; required: boolean }>
+  ) =>
+    apiClient<AdminJourneyItem[]>(`/admin/journeys/${id}/items/`, {
+      method: "PUT",
+      body: JSON.stringify({ items }),
+    }),
+
   getAdminMoods: () => apiClient<AdminMood[]>("/admin/moods/"),
   createAdminMood: (payload: { name: string; icon?: string; description?: string }) =>
     apiClient<AdminMood>("/admin/moods/", {

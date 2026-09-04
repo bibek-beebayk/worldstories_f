@@ -13,6 +13,8 @@ export default [
     // The reader's own country progress. Deliberately a separate route from
     // /story-map, which is the catalogue and stays public — see §5.1.
     route("story-passport", "pages/StoryPassport.tsx"),
+    route("journeys", "pages/StoryJourneys.tsx"),
+    route("journeys/:slug", "pages/StoryJourneyDetail.tsx"),
     route("audiobooks", "pages/Audiobooks.tsx"),
     route("watch", "pages/Watch.tsx"),
     route("quick-reads", "pages/QuickReads.tsx"),
@@ -62,6 +64,7 @@ export default [
         route("tags", "pages/AdminTags.tsx"),
         route("themes", "pages/AdminThemes.tsx"),
         route("moods", "pages/AdminMoods.tsx"),
+        route("journeys", "pages/AdminJourneys.tsx"),
         route("story-types", "pages/AdminStoryTypes.tsx"),
         route("authors", "pages/AdminAuthors.tsx"),
         route("users", "pages/AdminUsers.tsx"),
