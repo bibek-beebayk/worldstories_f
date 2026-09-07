@@ -161,6 +161,7 @@ const AdminContent = () => {
   const [sitePublishedDate, setSitePublishedDate] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [isOriginal, setIsOriginal] = useState(false);
+  const [showInNepaliSite, setShowInNepaliSite] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [publishAt, setPublishAt] = useState("");
   const [coverImage, setCoverImage] = useState("");
@@ -369,6 +370,9 @@ const AdminContent = () => {
     setSitePublishedDate("");
     setIsCompleted(false);
     setIsOriginal(false);
+    // Cleared like the other flags: without this, opening "New story" straight
+    // after editing a flagged one would silently carry the flag over.
+    setShowInNepaliSite(false);
     setIsPublished(false);
     setPublishAt("");
     setCoverImage("");
@@ -412,6 +416,7 @@ const AdminContent = () => {
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
     setIsCompleted(Boolean(selectedStory.is_completed));
     setIsOriginal(Boolean(selectedStory.is_original));
+    setShowInNepaliSite(Boolean(selectedStory.show_in_nepali_site));
     setCoverImage(selectedStory.cover_image || "");
     setRemoveCoverImage(false);
     setSelectedGenreNames(
@@ -974,6 +979,7 @@ const AdminContent = () => {
     setSitePublishedDate(selectedStory.site_published_date || "");
     setIsCompleted(Boolean(selectedStory.is_completed));
     setIsOriginal(Boolean(selectedStory.is_original));
+    setShowInNepaliSite(Boolean(selectedStory.show_in_nepali_site));
     setIsPublished(Boolean(selectedStory.is_published));
     setPublishAt(toDatetimeLocalValue(selectedStory.publish_at));
     setCoverImage(selectedStory.cover_image || "");
@@ -1271,6 +1277,7 @@ const AdminContent = () => {
     }
     formData.append("is_completed", String(isCompleted));
     formData.append("is_original", String(isOriginal));
+    formData.append("show_in_nepali_site", String(showInNepaliSite));
     const publishValue = forceDraft ? false : forcePublish ? true : isPublished;
     formData.append("is_published", String(publishValue));
     if (originalPublishedYear) {
@@ -1985,7 +1992,20 @@ const AdminContent = () => {
                       WorldStories Original
                     </label>
                   </div>
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={showInNepaliSite}
+                        onCheckedChange={(value) => setShowInNepaliSite(Boolean(value))}
+                      />
+                      Show on Nepali site
+                    </label>
+                  </div>
                 </div>
+                <p className="-mt-2 text-xs text-muted-foreground">
+                  "Show on Nepali site" is a curated choice, not a language rule — a Nepali story is
+                  not listed there unless this is ticked.
+                </p>
 
                 <div>
                   <Label htmlFor="admin-cover-url">Cover Image URL</Label>

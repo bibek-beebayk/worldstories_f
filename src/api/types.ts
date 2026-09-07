@@ -691,6 +691,8 @@ export interface AdminStory {
   epub_file_url: string | null;
   is_completed: boolean;
   is_original: boolean;
+  /** Curated opt-in for the standalone Nepali site. Independent of `language`. */
+  show_in_nepali_site: boolean;
   is_published: boolean;
   publish_at: string | null;
   genres: number[];
