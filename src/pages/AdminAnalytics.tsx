@@ -1,3 +1,4 @@
+import NepalikathaAnalytics from "@/components/admin/NepalikathaAnalytics";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import FullScreenLoader from "@/components/FullScreenLoader";
@@ -49,7 +50,8 @@ type TabKey =
   | "audience"
   | "users"
   | "geography"
-  | "submissions";
+  | "submissions"
+  | "nepalikatha";
 
 const AdminAnalytics = () => {
   const isAuthenticated = Boolean(getAccessToken());
@@ -167,7 +169,7 @@ const AdminAnalytics = () => {
               ))}
             </SelectContent>
           </Select>
-          <AnalyticsExportDialog days={days} />
+          {activeTab !== "nepalikatha" && <AnalyticsExportDialog days={days} />}
         </div>
       </div>
 
@@ -181,8 +183,11 @@ const AdminAnalytics = () => {
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="geography">Geography</TabsTrigger>
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
+            <TabsTrigger value="nepalikatha">Nepalikatha</TabsTrigger>
           </TabsList>
         </div>
+
+        <TabsContent value="nepalikatha"><NepalikathaAnalytics days={days} /></TabsContent>
 
         <TabsContent value="content" className="space-y-4">
           {contentQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}

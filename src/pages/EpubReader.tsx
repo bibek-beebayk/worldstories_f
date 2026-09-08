@@ -85,7 +85,7 @@ type EpubFontKey = (typeof READER_FONT_KEYS)[number];
 // generic serif/sans-serif fallback. Kept in sync with index.html's Google Fonts
 // <link>, which covers the same families for the non-iframe chapter reader.
 const READER_FONTS_STYLESHEET_URL =
-  "https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Gelasio:ital,wght@0,400;0,700;1,400&family=Tinos:ital,wght@0,400;0,700;1,400&family=Arimo:ital,wght@0,400;0,700;1,400&display=swap";
+  "https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Gelasio:ital,wght@0,400;0,700;1,400&family=Tinos:ital,wght@0,400;0,700;1,400&family=Arimo:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Serif+Devanagari:wght@400;700&display=swap";
 
 // Selectors are scoped to "body.<key>" (not a bare "body") because epub.js never
 // removes or reorders a theme's injected <style> tag once created — it only

@@ -1,5 +1,6 @@
 import { apiClient, fetchAuthenticatedBinary, fetchAuthenticatedFile } from "./client";
 import {
+  NepalikathaAnalytics,
   StoryListResponse,
   Chapter,
   JourneyDetail,
@@ -90,6 +91,8 @@ import {
 } from "./types";
 
 export const storyApi = {
+  getAdminNepalikathaAnalytics: (days: number) =>
+    apiClient<NepalikathaAnalytics>(`/admin/analytics/nepalikatha/?days=${days}`),
   getReadAlong: (storySlug: string, audioSlug: string) =>
     apiClient<ReadAlongResponse>(
       `/stories/${encodeURIComponent(storySlug)}/read-along/${encodeURIComponent(audioSlug)}/`

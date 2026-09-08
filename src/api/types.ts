@@ -1856,3 +1856,17 @@ export interface EngagementMetricsResponse {
   retention: { d1: RetentionBucket; d7: RetentionBucket; d30: RetentionBucket };
   discovery: Record<string, number>;
 }
+
+export interface NepalikathaAnalytics {
+  range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
+  visitors: number;
+  page_views: number;
+  readers: number;
+  stories_read: number;
+  reading_sessions: number;
+  reading_seconds: number;
+  average_reading_seconds: number | null;
+  over_time: { day: string; visitors: number; page_views: number; reading_seconds: number }[];
+  top_stories: { slug: string; title: string; readers: number; reads: number; reading_seconds: number }[];
+}

@@ -134,95 +134,95 @@ const READER_GLASS_PANEL_CLASS =
 export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
   literata: {
     label: "Literata",
-    value: "\"Literata\", \"Palatino Linotype\", \"Book Antiqua\", Palatino, serif",
+    value: "\"Literata\", \"Palatino Linotype\", \"Book Antiqua\", Palatino, \"Noto Serif Devanagari\", serif",
   },
   georgia: {
     label: "Georgia",
-    value: "Georgia, \"Gelasio\", serif",
+    value: "Georgia, \"Gelasio\", \"Noto Serif Devanagari\", serif",
   },
   times: {
     label: "Times",
-    value: "\"Times New Roman\", Times, \"Tinos\", serif",
+    value: "\"Times New Roman\", Times, \"Tinos\", \"Noto Serif Devanagari\", serif",
   },
   garamond: {
     label: "Garamond",
-    value: "\"EB Garamond\", Garamond, \"Times New Roman\", serif",
+    value: "\"EB Garamond\", Garamond, \"Times New Roman\", \"Noto Serif Devanagari\", serif",
   },
   palatino: {
     label: "Palatino",
-    value: "Palatino, \"Palatino Linotype\", \"Book Antiqua\", serif",
+    value: "Palatino, \"Palatino Linotype\", \"Book Antiqua\", \"Noto Serif Devanagari\", serif",
   },
   merriweather: {
     label: "Merriweather",
-    value: "\"Merriweather\", Georgia, serif",
+    value: "\"Merriweather\", Georgia, \"Noto Serif Devanagari\", serif",
   },
   baskerville: {
     label: "Baskerville",
-    value: "Baskerville, \"Times New Roman\", serif",
+    value: "Baskerville, \"Times New Roman\", \"Noto Serif Devanagari\", serif",
   },
   charter: {
     label: "Charter",
-    value: "Charter, Cambria, serif",
+    value: "Charter, Cambria, \"Noto Serif Devanagari\", serif",
   },
   cambria: {
     label: "Cambria",
-    value: "Cambria, \"Times New Roman\", serif",
+    value: "Cambria, \"Times New Roman\", \"Noto Serif Devanagari\", serif",
   },
   helvetica: {
     label: "Helvetica",
-    value: "\"Helvetica Neue\", Helvetica, \"Arimo\", Arial, sans-serif",
+    value: "\"Helvetica Neue\", Helvetica, \"Arimo\", Arial, \"Noto Sans Devanagari\", sans-serif",
   },
   caveat: {
     label: "Caveat",
-    value: "\"Caveat\", \"Comic Sans MS\", cursive",
+    value: "\"Caveat\", \"Comic Sans MS\", \"Noto Sans Devanagari\", cursive",
   },
   dancing_script: {
     label: "Dancing Script",
-    value: "\"Dancing Script\", \"Brush Script MT\", cursive",
+    value: "\"Dancing Script\", \"Brush Script MT\", \"Noto Sans Devanagari\", cursive",
   },
   patrick_hand: {
     label: "Patrick Hand",
-    value: "\"Patrick Hand\", \"Segoe Print\", cursive",
+    value: "\"Patrick Hand\", \"Segoe Print\", \"Noto Sans Devanagari\", cursive",
   },
   indie_flower: {
     label: "Indie Flower",
-    value: "\"Indie Flower\", \"Comic Sans MS\", cursive",
+    value: "\"Indie Flower\", \"Comic Sans MS\", \"Noto Sans Devanagari\", cursive",
   },
   shadows_into_light: {
     label: "Shadows Into Light",
-    value: "\"Shadows Into Light\", \"Segoe Print\", cursive",
+    value: "\"Shadows Into Light\", \"Segoe Print\", \"Noto Sans Devanagari\", cursive",
   },
   trebuchet: {
     label: "Trebuchet",
-    value: "\"Trebuchet MS\", Tahoma, sans-serif",
+    value: "\"Trebuchet MS\", Tahoma, \"Noto Sans Devanagari\", sans-serif",
   },
   open_dyslexic: {
     label: "OpenDyslexic",
-    value: "\"OpenDyslexic\", \"Comic Sans MS\", sans-serif",
+    value: "\"OpenDyslexic\", \"Comic Sans MS\", \"Noto Sans Devanagari\", sans-serif",
   },
   system: {
     label: "Sans",
-    value: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+    value: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Noto Sans Devanagari\", sans-serif",
   },
   verdana: {
     label: "Verdana",
-    value: "Verdana, Geneva, sans-serif",
+    value: "Verdana, Geneva, \"Noto Sans Devanagari\", sans-serif",
   },
   tahoma: {
     label: "Tahoma",
-    value: "Tahoma, \"Trebuchet MS\", sans-serif",
+    value: "Tahoma, \"Trebuchet MS\", \"Noto Sans Devanagari\", sans-serif",
   },
   mono: {
     label: "Mono",
-    value: "\"IBM Plex Mono\", \"Cascadia Code\", Menlo, monospace",
+    value: "\"IBM Plex Mono\", \"Cascadia Code\", Menlo, \"Noto Sans Devanagari\", monospace",
   },
   jetbrains_mono: {
     label: "JetBrains Mono",
-    value: "\"JetBrains Mono\", \"IBM Plex Mono\", Menlo, monospace",
+    value: "\"JetBrains Mono\", \"IBM Plex Mono\", Menlo, \"Noto Sans Devanagari\", monospace",
   },
   source_code_pro: {
     label: "Source Code Pro",
-    value: "\"Source Code Pro\", \"IBM Plex Mono\", Menlo, monospace",
+    value: "\"Source Code Pro\", \"IBM Plex Mono\", Menlo, \"Noto Sans Devanagari\", monospace",
   },
 };
 
