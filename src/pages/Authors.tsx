@@ -18,6 +18,7 @@ export function meta() {
     title: "Authors — Discover Writers | WorldStories",
     description: "Meet the authors behind WorldStories and explore every story available from each writer.",
     path: "/authors",
+    noIndex: true,
   });
 }
 

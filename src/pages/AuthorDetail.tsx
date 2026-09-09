@@ -40,6 +40,7 @@ export function meta({ data: author, params }: Route.MetaArgs) {
     description: description.slice(0, 160),
     path: `/authors/${author.id}`,
     image: author.image,
+    noIndex: true,
     structuredData: {
       "@context": "https://schema.org",
       "@type": "Person",
