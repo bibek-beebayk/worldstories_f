@@ -23,7 +23,14 @@ export default [
     route("contest", "pages/Contest.tsx"),
     route("search", "pages/Search.tsx"),
     route("publish", "pages/Publish.tsx"),
-    route("profile", "pages/Profile.tsx"),
+    // Sidebar+pages shell (mirrors the admin panel's layout pattern) instead
+    // of the old single-page tab-switcher — each module is its own route.
+    route("profile", "layouts/ProfileShellLayout.tsx", [
+      index("pages/ProfileOverview.tsx"),
+      route("reader", "pages/ProfileReader.tsx"),
+      route("creator", "pages/ProfileCreator.tsx"),
+      route("settings", "pages/ProfileSettings.tsx"),
+    ]),
     route("downloads", "pages/Downloads.tsx"),
     route("about", "pages/About.tsx"),
     route("contact", "pages/Contact.tsx"),

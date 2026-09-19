@@ -193,7 +193,7 @@ const ContinueReadingSection = ({
 
             <CarouselItem className="basis-[170px] sm:basis-[185px]">
               <Link
-                to="/profile?section=reader&view=reading"
+                to="/profile/reader?view=reading"
                 className="flex h-full min-h-[360px] flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/50 hover:bg-primary/10"
               >
                 <div>

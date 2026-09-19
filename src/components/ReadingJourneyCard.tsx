@@ -58,7 +58,7 @@ const ReadingJourneyCard = ({ enabled }: { enabled: boolean }) => {
         </div>
 
         <Link
-          to="/profile?section=reader"
+          to="/profile/reader"
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline sm:text-sm"
         >
           Your reading

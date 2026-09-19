@@ -21,7 +21,7 @@ export function announceAchievements(achievements: EarnedAchievement[] | undefin
       action: {
         label: "View",
         onClick: () => {
-          window.location.href = "/profile?section=reader&view=achievements";
+          window.location.href = "/profile/reader?view=achievements";
         },
       },
     });

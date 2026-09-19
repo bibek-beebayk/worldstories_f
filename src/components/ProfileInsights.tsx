@@ -71,7 +71,7 @@ export default function ProfileInsights({ data, isLoading, isError }: ProfileIns
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {summaryItems.map((item) => {
           const Icon = item.icon;
           return (
