@@ -335,14 +335,14 @@ const Library = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100">
+      <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100 dark:border-violet-800/40 dark:from-violet-950/30 dark:via-background dark:to-background">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700 dark:border-violet-800/50 dark:text-violet-300">
             <LibraryIcon className="h-3.5 w-3.5" />
             The Full Library
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Library</h1>
-          <p className="mt-2 text-sm text-slate-700 sm:text-base">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Library</h1>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             {isBrowsing
               ? "Every story on WorldStories, organized by how you want to experience it."
               : "Filtered results from across the library."}

@@ -183,8 +183,8 @@ export default function StoryMap({ loaderData }: Route.ComponentProps) {
             <Globe2 className="h-3.5 w-3.5" />
             Stories without borders
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Story Map</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-700 sm:text-base">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Story Map</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
             Travel through the collection by country. More intensely colored regions have more stories waiting to be discovered.
           </p>
         </div>
@@ -213,15 +213,15 @@ export default function StoryMap({ loaderData }: Route.ComponentProps) {
             </section>
 
             <section>
-              <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+              <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
                   <div>
-                    <h2 className="font-semibold text-slate-900">Stories by country</h2>
-                    <p className="text-xs text-slate-500">
+                    <h2 className="font-semibold text-foreground">Stories by country</h2>
+                    <p className="text-xs text-muted-foreground">
                       Story counts appear inside represented countries. Drag to pan, scroll or pinch to zoom, and tap a country to explore its titles.
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500" aria-label="Map color scale">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground" aria-label="Map color scale">
                     <span>Fewer</span>
                     {HEAT_COLORS.map((color) => (
                       <span key={color} className="h-3.5 w-5 rounded-sm" style={{ backgroundColor: color }} />
@@ -330,7 +330,7 @@ export default function StoryMap({ loaderData }: Route.ComponentProps) {
                   </ComposableMap>
 
                   <div
-                    className="absolute bottom-3 right-3 z-20 flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur sm:bottom-5 sm:right-5"
+                    className="absolute bottom-3 right-3 z-20 flex flex-col overflow-hidden rounded-xl border border-border bg-card/95 shadow-lg backdrop-blur sm:bottom-5 sm:right-5"
                     role="group"
                     aria-label="Map zoom controls"
                   >
@@ -369,11 +369,11 @@ export default function StoryMap({ loaderData }: Route.ComponentProps) {
 
                   {tooltip && (
                     <div
-                      className="pointer-events-none absolute z-10 min-w-32 -translate-x-1/2 -translate-y-[calc(100%+10px)] rounded-lg border bg-slate-950/95 px-3 py-2 text-center text-white shadow-xl"
+                      className="pointer-events-none absolute z-10 min-w-32 -translate-x-1/2 -translate-y-[calc(100%+10px)] rounded-lg border bg-popover/95 px-3 py-2 text-center text-popover-foreground shadow-xl"
                       style={{ left: tooltip.x, top: tooltip.y }}
                     >
                       <p className="text-xs font-semibold">{tooltip.country?.name || tooltip.fallbackName}</p>
-                      <p className="text-[11px] text-slate-300">
+                      <p className="text-[11px] text-muted-foreground">
                         {tooltip.country?.stories_count || 0} {(tooltip.country?.stories_count || 0) === 1 ? "story" : "stories"}
                       </p>
                     </div>

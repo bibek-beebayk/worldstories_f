@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, ChevronDown, Earth, FileText, Menu, Search, Sparkles, UsersRound, X } from "lucide-react";
+import { BookOpen, ChevronDown, Earth, FileText, Menu, Moon, Search, Sparkles, Sun, UsersRound, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,39 @@ import CoverImage from "@/components/CoverImage";
 import AuthorPortrait from "@/components/AuthorPortrait";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import PwaInstallDialog from "@/components/PwaInstallDialog";
+import ThemeToggle from "@/components/ThemeToggle";
+import { useTheme } from "@/context/ThemeContext";
+
+// A labelled row (icon + text + switch) for the mobile drawer, where the
+// icon-only <ThemeToggle/> used in the desktop/shared bar wouldn't read as
+// clearly among a list of text nav links.
+function MobileThemeToggleRow() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted && resolvedTheme === "dark";
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="flex items-center justify-between text-lg font-medium hover:text-primary"
+    >
+      <span className="flex items-center gap-2">
+        {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+        Dark Mode
+      </span>
+      <span
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${isDark ? "bg-primary" : "bg-muted"}`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            isDark ? "translate-x-5" : "translate-x-0.5"
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
 
 const Header = () => {
   const navigate = useNavigate();
@@ -333,6 +366,8 @@ const Header = () => {
               )}
             </div>
           </div>
+
+          <ThemeToggle />
 
           {isLoggedIn ? (
             <>
@@ -670,6 +705,8 @@ const Header = () => {
                     <span className="text-xs font-semibold text-amber-900">Contest</span>
                   </Link>
                 </SheetClose>
+
+                <MobileThemeToggleRow />
 
                 <Separator className="my-2" />
 

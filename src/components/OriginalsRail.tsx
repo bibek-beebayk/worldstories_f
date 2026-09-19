@@ -70,7 +70,7 @@ export function OriginalsRail({ stories, className, compact = false }: Originals
                   : "basis-1/2 pl-3 sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
               }
             >
-              <StoryCard {...story} compact={compact} />
+              <StoryCard {...story} compact={compact} linkTo={`/read/${story.slug}`} />
             </CarouselItem>
           ))}
         </CarouselContent>

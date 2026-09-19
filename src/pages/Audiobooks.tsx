@@ -64,14 +64,14 @@ const Audiobooks = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-rose-200/60 bg-gradient-to-br from-rose-50 via-pink-50 to-fuchsia-100">
+      <div className="border-b border-rose-200/60 bg-gradient-to-br from-rose-50 via-pink-50 to-fuchsia-100 dark:border-rose-800/40 dark:from-rose-950/30 dark:via-background dark:to-background">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700 dark:border-rose-800/50 dark:text-rose-300">
             <Headphones className="h-3.5 w-3.5" />
             Listen
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Audiobooks</h1>
-          <p className="mt-2 text-sm text-slate-700 sm:text-base">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Audiobooks</h1>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Every story on WorldStories with narration — listen on the go, wherever you are.
           </p>
         </div>

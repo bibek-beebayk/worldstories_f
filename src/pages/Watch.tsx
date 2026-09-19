@@ -72,14 +72,14 @@ const Watch = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-violet-50 to-fuchsia-100">
+      <div className="border-b border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-violet-50 to-fuchsia-100 dark:border-indigo-800/40 dark:from-indigo-950/30 dark:via-background dark:to-background">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-300 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:border-indigo-800/50 dark:text-indigo-300">
             <Youtube className="h-3.5 w-3.5" />
             Watch
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Watch</h1>
-          <p className="mt-2 text-sm text-slate-700 sm:text-base">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Watch</h1>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Every story on WorldStories with an animated video narration — sit back and watch.
           </p>
         </div>

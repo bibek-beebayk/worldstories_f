@@ -70,7 +70,7 @@ export default function Originals() {
           <ArrowLeft className="h-4 w-4" /> Back to library
         </Link>
 
-        <section className="rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-blue-50 p-5 shadow-sm sm:p-8">
+        <section className="rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-blue-50 dark:from-indigo-950/30 dark:via-card dark:to-background p-5 shadow-sm sm:p-8">
           <p className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
             <Sparkles className="h-3.5 w-3.5" /> WorldStories Originals
           </p>
@@ -89,7 +89,7 @@ export default function Originals() {
           ) : stories.length ? (
             <>
               <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {stories.map((story) => <StoryCard key={story.id} {...story} />)}
+                {stories.map((story) => <StoryCard key={story.id} {...story} linkTo={`/read/${story.slug}`} />)}
               </div>
               <div ref={sentinelRef} className="flex h-20 items-center justify-center">
                 {isFetchingNextPage && <div className="h-7 w-7 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />}
