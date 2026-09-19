@@ -48,29 +48,53 @@ const makeId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-function storedId(storage: Storage, key: string) {
+// Fallback for browsers where storage throws (blocked cookies/site data,
+// some private modes). Without it every call minted a fresh id, so each event
+// looked like a brand-new visitor and session. Held in module scope, so the id
+// is stable for the life of the page and is dropped with it.
+const memoryIds = new Map<string, string>();
+
+function memoryId(key: string) {
+  let id = memoryIds.get(key);
+  if (!id) {
+    id = makeId();
+    memoryIds.set(key, id);
+  }
+  return id;
+}
+
+// Takes a getter rather than the Storage itself: with site data blocked some
+// browsers throw on the `window.localStorage` property access, which would
+// otherwise happen while evaluating the argument, before the try below.
+function storedId(getStorage: () => Storage, key: string) {
   try {
+    const storage = getStorage();
     const existing = storage.getItem(key);
     if (existing) return existing;
     const created = makeId();
     storage.setItem(key, created);
     return created;
   } catch {
-    return makeId();
+    return memoryId(key);
   }
 }
 
 export function getAnalyticsVisitorId() {
-  return storedId(window.localStorage, "worldstories_analytics_visitor");
+  return storedId(() => window.localStorage, "worldstories_analytics_visitor");
 }
 
 export function getAnalyticsSessionId() {
-  return storedId(window.sessionStorage, "worldstories_analytics_session");
+  return storedId(() => window.sessionStorage, "worldstories_analytics_session");
 }
 
 export function trackAnalyticsEvent(input: AnalyticsEventInput): void {
   if (typeof window === "undefined" || !navigator.onLine) return;
-  const token = getAccessToken();
+  let token: string | null = null;
+  try {
+    token = getAccessToken();
+  } catch {
+    // Blocked storage throws here; an anonymous event is still worth sending.
+  }
   const payload = {
     event_id: makeId(),
     visitor_id: getAnalyticsVisitorId(),

@@ -28,25 +28,39 @@ export function useContentSessionAnalytics(
     const start = () => {
       if (startedAt === null && document.visibilityState === "visible") startedAt = Date.now();
     };
+
+    // Sends what has accumulated so far, then zeroes it so the unmount cleanup
+    // (or a later flush) can never count the same seconds twice. Under the
+    // threshold nothing is sent and the time keeps accumulating. A tab close or
+    // navigation away never runs the effect cleanup, so pagehide and
+    // visibilitychange→hidden are the only places that time can be saved.
+    const flush = () => {
+      stop();
+      const seconds = Math.round(accumulatedMs / 1000);
+      if (seconds < 2) return;
+      accumulatedMs = 0;
+      trackAnalyticsEvent({
+        event_type: eventType,
+        story_slug: storySlug,
+        blog_slug: blogSlug,
+        duration_seconds: seconds,
+        metadata: metadataRef.current,
+      });
+    };
     const visibilityChanged = () => {
       if (document.visibilityState === "visible") start();
-      else stop();
+      else flush();
     };
 
     document.addEventListener("visibilitychange", visibilityChanged);
+    window.addEventListener("pagehide", flush);
+    // A page restored from the back/forward cache resumes without remounting.
+    window.addEventListener("pageshow", start);
     return () => {
-      stop();
       document.removeEventListener("visibilitychange", visibilityChanged);
-      const seconds = Math.round(accumulatedMs / 1000);
-      if (seconds >= 2) {
-        trackAnalyticsEvent({
-          event_type: eventType,
-          story_slug: storySlug,
-          blog_slug: blogSlug,
-          duration_seconds: seconds,
-          metadata: metadataRef.current,
-        });
-      }
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("pageshow", start);
+      flush();
     };
   }, [enabled, eventType, storySlug, blogSlug]);
 }

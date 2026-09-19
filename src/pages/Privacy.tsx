@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { buildMeta } from "@/lib/buildMeta";
 
 const CONTACT_EMAIL = "worldstoriesnet@gmail.com";
-const LAST_UPDATED = "July 30, 2026";
+const LAST_UPDATED = "September 19, 2026";
 
 export function meta() {
   return buildMeta({
@@ -47,7 +47,9 @@ const Privacy = () => {
             To power features like "Continue Reading" and to show accurate view counts, we record your
             reading progress, favorites, and ratings against your account, and we log story views
             (associated with an IP address and timestamp, kept only long enough to avoid counting
-            repeat views from the same visitor) even when you are not signed in.
+            repeat views from the same visitor) even when you are not signed in. Our analytics also
+            record a coarse country, a non-reversible hash of your IP address, and the website that
+            referred you, so we can understand our audience and detect automated traffic.
           </p>
           <h3>Cookies and similar technologies</h3>
           <p>
