@@ -113,10 +113,12 @@ export const storyApi = {
     // Mood slugs. Appended rather than slotted in: this signature is already
     // long and positional, so a new parameter anywhere but the end would
     // silently shift every existing call.
-    moods: string[] = []
+    moods: string[] = [],
+    // Also appended at the end for the same reason as `moods` above.
+    hasReadAlong: boolean = false
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}${hasReadAlong ? "&has_read_along=true" : ""}`
     ),
 
   getStory: (slug: string) =>

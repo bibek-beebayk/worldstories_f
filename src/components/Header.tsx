@@ -182,6 +182,7 @@ const Header = () => {
                   ...(isLoggedIn ? [{ to: "/story-passport", label: "My Passport" }] : []),
                   { to: "/audiobooks", label: "Audiobooks" },
                   { to: "/watch", label: "Watch" },
+                  { to: "/quick-reads", label: "Quick Reads" },
                   { to: "/downloads", label: "Downloads" },
                 ].map((item) => (
                   <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
@@ -598,6 +599,15 @@ const Header = () => {
                     className="text-lg font-medium hover:text-primary"
                   >
                     Watch
+                  </Link>
+                </SheetClose>
+
+                <SheetClose asChild>
+                  <Link
+                    to="/quick-reads"
+                    className="text-lg font-medium hover:text-primary"
+                  >
+                    Quick Reads
                   </Link>
                 </SheetClose>
 

@@ -152,6 +152,7 @@ export interface Story {
   categories?: string[];
   has_audio?: boolean;
   has_video?: boolean;
+  has_read_along?: boolean;
   reviews_count?: number;
   is_favorite?: boolean;
   favorites_count?: number;

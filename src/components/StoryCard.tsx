@@ -1,4 +1,4 @@
-import { Clock3, Eye, Star, Headphones, Sparkles } from "lucide-react";
+import { Captions, Clock3, Eye, Star, Headphones, Sparkles, Youtube, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router";
 import { formatViews } from "@/lib/utils";
@@ -17,16 +17,48 @@ interface StoryCardProps {
   story_type?: string;
   language?: string;
   has_audio?: boolean;
+  has_video?: boolean;
+  has_read_along?: boolean;
+  summary_reading_minutes?: number | null;
   is_original?: boolean;
   reading_time_minutes?: number | null;
   compact?: boolean;
+  /** Overrides the default `/story/:slug` destination — used by mode-scoped
+   * sections (e.g. Library's Listen rail) so the card leads to the isolated
+   * detail page for that content type instead of the all-modes hub. */
+  linkTo?: string;
 }
 
-const StoryCard = ({ title, author, cover_image, rating, views, story_type, language, slug, has_audio, is_original, reading_time_minutes, compact = false }: StoryCardProps) => {
+// One badge per format the title is actually available in — mirrors the
+// color coding used for these same content types elsewhere (Library/
+// Discover sections, StoryDetailShell's primary action buttons).
+const FORMAT_BADGES = [
+  { key: "audio", check: (p: StoryCardProps) => !!p.has_audio, icon: Headphones, color: "bg-rose-600" },
+  { key: "read_along", check: (p: StoryCardProps) => !!p.has_read_along, icon: Captions, color: "bg-sky-600" },
+  { key: "video", check: (p: StoryCardProps) => !!p.has_video, icon: Youtube, color: "bg-indigo-600" },
+  { key: "quick_read", check: (p: StoryCardProps) => p.summary_reading_minutes != null, icon: Zap, color: "bg-amber-600" },
+] as const;
+
+const StoryCard = (props: StoryCardProps) => {
+  const {
+    title,
+    author,
+    cover_image,
+    rating,
+    views,
+    story_type,
+    language,
+    slug,
+    is_original,
+    reading_time_minutes,
+    compact = false,
+    linkTo,
+  } = props;
   const readingTime = formatMinutes(reading_time_minutes);
+  const activeBadges = FORMAT_BADGES.filter((badge) => badge.check(props));
 
   return (
-    <Link to={`/story/${slug}`} className="group cursor-pointer block">
+    <Link to={linkTo || `/story/${slug}`} className="group cursor-pointer block">
       <div className={`relative overflow-hidden rounded-lg ${compact ? "mb-2 aspect-[4/5] shadow-sm" : "mb-3 aspect-[3/4] shadow-md"}`}>
         <CoverImage
           src={cover_image}
@@ -41,12 +73,16 @@ const StoryCard = ({ title, author, cover_image, rating, views, story_type, lang
             {story_type}
           </Badge>
         )}
-        {has_audio && (
-          // <Badge className="absolute top-2 right-2 bg-black/70 text-white border-0">
-          //   {story_type}
-          // </Badge>
-          <div className={`absolute rounded-full bg-red-600 opacity-80 ${compact ? "right-1.5 top-1.5 h-4 w-4 p-[3px]" : "right-2 top-2 h-5 w-5 p-1"}`}>
-            <Headphones className={`text-white ${compact ? "h-2.5 w-2.5" : "h-3 w-3"}`} />
+        {activeBadges.length > 0 && (
+          <div className={`absolute right-2 top-2 flex flex-col gap-1 ${compact ? "right-1.5 top-1.5 gap-0.5" : ""}`}>
+            {activeBadges.map(({ key, icon: Icon, color }) => (
+              <div
+                key={key}
+                className={`flex items-center justify-center rounded-full opacity-90 ${color} ${compact ? "h-4 w-4 p-[3px]" : "h-5 w-5 p-1"}`}
+              >
+                <Icon className={`text-white ${compact ? "h-2.5 w-2.5" : "h-3 w-3"}`} />
+              </div>
+            ))}
           </div>
         )}
         {language && language !== "en" && (

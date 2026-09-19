@@ -14,12 +14,13 @@ export function useInfiniteStories(
   hasAudio: boolean = false,
   hasSummary: boolean = false,
   hasVideo: boolean = false,
-  moods: string[] = []
+  moods: string[] = [],
+  hasReadAlong: boolean = false
 ) {
   return useInfiniteQuery<StoryListResponse>({
     queryKey: [
       "infinite-stories", genres, sort, status, q, language, storyType, categories,
-      hasAudio, hasSummary, hasVideo, moods,
+      hasAudio, hasSummary, hasVideo, moods, hasReadAlong,
     ],
     queryFn: ({ pageParam }) =>
       storyApi.getStories(
@@ -35,7 +36,8 @@ export function useInfiniteStories(
         hasSummary,
         "all",
         hasVideo,
-        moods
+        moods,
+        hasReadAlong
       ),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>

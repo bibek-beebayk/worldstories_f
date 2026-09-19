@@ -26,17 +26,17 @@ const RecommendedForYouSection = ({ stories, isLoading, isError }: RecommendedFo
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 md:grid-cols-5 lg:grid-cols-6">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="animate-pulse rounded-lg border border-border/60 bg-background/70 p-3">
-              <div className="mb-3 aspect-[3/4] rounded-lg bg-muted" />
-              <div className="mb-2 h-3 rounded bg-muted" />
-              <div className="h-3 w-2/3 rounded bg-muted" />
+            <div key={index} className="animate-pulse rounded-lg border border-border/60 bg-background/70 p-2">
+              <div className="mb-2 aspect-[4/5] rounded-lg bg-muted" />
+              <div className="mb-1.5 h-2.5 rounded bg-muted" />
+              <div className="h-2.5 w-2/3 rounded bg-muted" />
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 md:grid-cols-5 lg:grid-cols-6">
           {stories.map((story) => (
             <StoryCard key={story.id} {...story} compact />
           ))}

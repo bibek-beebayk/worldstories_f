@@ -120,7 +120,7 @@ const Audiobooks = () => {
 
         <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {stories.map((story) => (
-            <StoryCard key={story.id} {...story} />
+            <StoryCard key={story.id} {...story} linkTo={`/listen/${story.slug}`} />
           ))}
         </section>
 

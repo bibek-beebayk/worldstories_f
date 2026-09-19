@@ -32,6 +32,15 @@ export default [
     route("blog", "pages/BlogList.tsx"),
     route("blog/:slug", "pages/BlogDetail.tsx"),
     route("story/:slug", "pages/StoryDetail.tsx"),
+    // Isolated, mode-scoped detail pages linked from the Library's 6
+    // sections — each shows only the actions/content for that one content
+    // type, unlike the all-modes hub above. Single path segment, so these
+    // don't collide with the two-segment reader routes below
+    // (read/:story_slug/:chapter_slug etc.).
+    route("read/:slug", "pages/ReadDetail.tsx"),
+    route("listen/:slug", "pages/ListenDetail.tsx"),
+    route("read-along/:slug", "pages/ReadAlongDetail.tsx"),
+    route("watch/:slug", "pages/WatchDetail.tsx"),
     route("tags", "pages/TagsIndex.tsx"),
     route("tag/:slug", "pages/TagDetail.tsx"),
     route("themes", "pages/ThemesIndex.tsx"),

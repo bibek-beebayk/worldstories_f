@@ -1,5 +1,7 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import StoryCard from "@/components/StoryCard";
+import BlogCard from "@/components/BlogCard";
+import { ContentTypeSection, SECTION_THEMES } from "@/components/ContentTypeSection";
 import { OriginalsRail } from "@/components/OriginalsRail";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,17 +24,23 @@ import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { useQuery } from "@tanstack/react-query";
 import { storyApi } from "@/api/story";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
-import { useInfiniteLibraryShelves } from "@/hooks/useInfiniteLibraryShelves";
 import { formatViews } from "@/lib/utils";
+import type { Story } from "@/api/types";
 import {
   ArrowLeft,
   ArrowRight,
+  BookMarked,
+  Captions,
   ExternalLink,
+  Headphones,
   Library as LibraryIcon,
   Loader2,
+  Newspaper,
   Search,
   SlidersHorizontal,
   X,
+  Youtube,
+  Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -132,6 +140,13 @@ const Library = () => {
       .filter((item): item is { id: number; name: string } => Boolean(item.name));
   }, [selectedCategories, categories]);
 
+  // Set only via a section's "See all" link (Read / Read Along have no
+  // dedicated full list page the way Listen/Watch/Quick Read/Blog do), so
+  // it's read straight from the URL rather than tracked in local state.
+  const modeParam = searchParams.get("mode");
+  const isReadMode = modeParam === "read";
+  const isReadAlongMode = modeParam === "read-along";
+
   const hasActiveFilters =
     selectedGenreNames.length > 0 ||
     selectedCategoryNames.length > 0 ||
@@ -140,7 +155,9 @@ const Library = () => {
     language !== "all" ||
     storyType !== "all" ||
     sort !== "popular" ||
-    searchQuery.length > 0;
+    searchQuery.length > 0 ||
+    isReadMode ||
+    isReadAlongMode;
   const isBrowsing = !hasActiveFilters;
 
   // A genre picked from a shelf's "See all" link (or a deep link like /library?genre=4)
@@ -189,22 +206,58 @@ const Library = () => {
     false,
     false,
     false,
-    selectedMoods
+    selectedMoods,
+    isReadAlongMode
   );
-
-  const {
-    data: shelvesData,
-    isLoading: isShelvesLoading,
-    fetchNextPage: fetchNextShelvesPage,
-    hasNextPage: hasNextShelvesPage,
-    isFetchingNextPage: isFetchingNextShelvesPage,
-  } = useInfiniteLibraryShelves(isBrowsing);
 
   const stories = useMemo(() => storiesData?.pages.flatMap((page) => page.results) || [], [storiesData]);
   const totalStoriesCount = storiesData?.pages[0]?.pagination?.count || 0;
+  // In Read/Read Along mode, cards must lead to the isolated detail page for
+  // that mode instead of the all-modes hub — genre/category/search browsing
+  // (no mode) keeps the old /story/:slug destination.
+  const storyLinkTo = isReadMode
+    ? (slug: string) => `/read/${slug}`
+    : isReadAlongMode
+    ? (slug: string) => `/read-along/${slug}`
+    : undefined;
 
-  const shelves = useMemo(() => shelvesData?.pages.flatMap((page) => page.results) || [], [shelvesData]);
-  const totalLibraryStoriesCount = shelvesData?.pages[0]?.aggregate?.total_stories || 0;
+  const PREVIEW_COUNT = 12;
+  const { data: readPreview, isLoading: isReadPreviewLoading } = useQuery({
+    queryKey: ["library-section", "read"],
+    queryFn: () => storyApi.getStories(1, [], "popular", "all", "", "all", "all", []),
+    enabled: isBrowsing,
+    staleTime: 60_000,
+  });
+  const { data: listenPreview, isLoading: isListenPreviewLoading } = useQuery({
+    queryKey: ["library-section", "listen"],
+    queryFn: () => storyApi.getStories(1, [], "popular", "all", "", "all", "all", [], true),
+    enabled: isBrowsing,
+    staleTime: 60_000,
+  });
+  const { data: readAlongPreview, isLoading: isReadAlongPreviewLoading } = useQuery({
+    queryKey: ["library-section", "read-along"],
+    queryFn: () => storyApi.getStories(1, [], "popular", "all", "", "all", "all", [], false, false, "all", false, [], true),
+    enabled: isBrowsing,
+    staleTime: 60_000,
+  });
+  const { data: watchPreview, isLoading: isWatchPreviewLoading } = useQuery({
+    queryKey: ["library-section", "watch"],
+    queryFn: () => storyApi.getStories(1, [], "popular", "all", "", "all", "all", [], false, false, "all", true),
+    enabled: isBrowsing,
+    staleTime: 60_000,
+  });
+  const { data: quickReadPreview, isLoading: isQuickReadPreviewLoading } = useQuery({
+    queryKey: ["library-section", "quick-read"],
+    queryFn: () => storyApi.getStories(1, [], "popular", "all", "", "all", "all", [], false, true),
+    enabled: isBrowsing,
+    staleTime: 60_000,
+  });
+  const { data: blogPreview, isLoading: isBlogPreviewLoading } = useQuery({
+    queryKey: ["library-section", "blog"],
+    queryFn: () => storyApi.getBlogs(1, "", "newest"),
+    enabled: isBrowsing,
+    staleTime: 60_000,
+  });
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -215,9 +268,7 @@ const Library = () => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting) return;
-        if (isBrowsing) {
-          if (hasNextShelvesPage && !isFetchingNextShelvesPage) fetchNextShelvesPage();
-        } else if (hasNextStoriesPage && !isFetchingNextStoriesPage) {
+        if (!isBrowsing && hasNextStoriesPage && !isFetchingNextStoriesPage) {
           fetchNextStoriesPage();
         }
       },
@@ -226,15 +277,7 @@ const Library = () => {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [
-    isBrowsing,
-    fetchNextStoriesPage,
-    hasNextStoriesPage,
-    isFetchingNextStoriesPage,
-    fetchNextShelvesPage,
-    hasNextShelvesPage,
-    isFetchingNextShelvesPage,
-  ]);
+  }, [isBrowsing, fetchNextStoriesPage, hasNextStoriesPage, isFetchingNextStoriesPage]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -277,7 +320,7 @@ const Library = () => {
     setSearchQuery("");
   };
 
-  const browseByGenre = () => {
+  const backToLibrary = () => {
     clearAllFilters();
     setSearchParams({});
   };
@@ -286,8 +329,9 @@ const Library = () => {
     setSearchQuery(searchInput.trim());
   };
 
-  const isLoading = isBrowsing ? isShelvesLoading : isStoriesLoading;
-  if (isLoading) return <FullScreenLoader />;
+  // In browsing mode each of the 6 sections loads and renders its own
+  // spinner independently, so the page shell isn't gated behind one big load.
+  if (!isBrowsing && isStoriesLoading) return <FullScreenLoader />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -300,7 +344,7 @@ const Library = () => {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Library</h1>
           <p className="mt-2 text-sm text-slate-700 sm:text-base">
             {isBrowsing
-              ? "Every story on WorldStories, shelved by genre — keep scrolling for more shelves."
+              ? "Every story on WorldStories, organized by how you want to experience it."
               : "Filtered results from across the library."}
           </p>
         </div>
@@ -323,17 +367,17 @@ const Library = () => {
               isHeaderScrolled ? "gap-1.5" : "gap-2 sm:gap-3"
             }`}
           >
-            <div
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 text-xs transition-all duration-300 ease-in-out sm:gap-2 sm:text-sm ${
-                isHeaderScrolled ? "px-2 py-1" : "px-2.5 py-2 sm:px-3"
-              }`}
-            >
-              <LibraryIcon className="h-4 w-4 text-primary" />
-              <span className="font-semibold">
-                {formatViews(isBrowsing ? totalLibraryStoriesCount : totalStoriesCount)}
-              </span>
-              <span className="hidden text-muted-foreground sm:inline">stories</span>
-            </div>
+            {!isBrowsing && (
+              <div
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 text-xs transition-all duration-300 ease-in-out sm:gap-2 sm:text-sm ${
+                  isHeaderScrolled ? "px-2 py-1" : "px-2.5 py-2 sm:px-3"
+                }`}
+              >
+                <LibraryIcon className="h-4 w-4 text-primary" />
+                <span className="font-semibold">{formatViews(totalStoriesCount)}</span>
+                <span className="hidden text-muted-foreground sm:inline">stories</span>
+              </div>
+            )}
 
             <form
               className="flex min-w-0 flex-1 items-center gap-2 sm:min-w-[220px]"
@@ -872,88 +916,117 @@ const Library = () => {
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         {isBrowsing ? (
           <>
-            <OriginalsRail className="mb-10" />
+            <OriginalsRail className="mb-8" compact />
             <div className="space-y-10">
-              {shelves.map((shelf) => (
-                <section key={shelf.id}>
-                  <div className="mb-4">
-                    <h2 className="text-lg font-semibold sm:text-xl">{shelf.name}</h2>
+              <ContentTypeSection
+                title="Read"
+                icon={BookMarked}
+                theme="emerald"
+                subtitle="Text stories you can read here — novels, short stories, and poetry."
+                stories={(readPreview?.results || []).slice(0, PREVIEW_COUNT)}
+                isLoading={isReadPreviewLoading}
+                seeAllTo="/library?mode=read"
+                linkTo={(slug) => `/read/${slug}`}
+              />
+              <ContentTypeSection
+                title="Listen"
+                icon={Headphones}
+                theme="rose"
+                subtitle="Narrated audiobooks you can listen to anywhere."
+                stories={(listenPreview?.results || []).slice(0, PREVIEW_COUNT)}
+                isLoading={isListenPreviewLoading}
+                seeAllTo="/audiobooks"
+                linkTo={(slug) => `/listen/${slug}`}
+              />
+              <ContentTypeSection
+                title="Read Along"
+                icon={Captions}
+                theme="sky"
+                subtitle="Follow the transcript highlighted in time with the narration."
+                stories={(readAlongPreview?.results || []).slice(0, PREVIEW_COUNT)}
+                isLoading={isReadAlongPreviewLoading}
+                seeAllTo="/library?mode=read-along"
+                linkTo={(slug) => `/read-along/${slug}`}
+              />
+              <ContentTypeSection
+                title="Watch"
+                icon={Youtube}
+                theme="indigo"
+                subtitle="Animated video narrations you can watch."
+                stories={(watchPreview?.results || []).slice(0, PREVIEW_COUNT)}
+                isLoading={isWatchPreviewLoading}
+                seeAllTo="/watch"
+                linkTo={(slug) => `/watch/${slug}`}
+              />
+              <ContentTypeSection
+                title="Quick Read"
+                icon={Zap}
+                theme="amber"
+                subtitle="Short summaries you can get through in a few minutes."
+                stories={(quickReadPreview?.results || []).slice(0, PREVIEW_COUNT)}
+                isLoading={isQuickReadPreviewLoading}
+                seeAllTo="/quick-reads"
+                linkTo={(slug) => `/quick-read/${slug}`}
+              />
+
+              <section className={`rounded-2xl border p-4 sm:p-6 ${SECTION_THEMES.slate.wrap}`}>
+                <div className="mb-4 flex items-end justify-between gap-3">
+                  <div>
+                    <h2 className="flex items-center gap-2 text-lg font-semibold sm:text-xl">
+                      <Newspaper className={`h-5 w-5 ${SECTION_THEMES.slate.icon}`} />
+                      Blog
+                    </h2>
                     <p className="text-xs text-muted-foreground sm:text-sm">
-                      {formatViews(shelf.stories_count)} {shelf.stories_count === 1 ? "story" : "stories"}
+                      Reading recommendations, author spotlights, and news.
                     </p>
                   </div>
+                  <Link
+                    to="/blog"
+                    className={`inline-flex shrink-0 items-center gap-1 text-xs font-medium sm:text-sm ${SECTION_THEMES.slate.link}`}
+                  >
+                    See all
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+                {isBlogPreviewLoading ? (
+                  <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading blog posts...
+                  </div>
+                ) : (blogPreview?.results || []).length === 0 ? (
+                  <div className="rounded-lg border border-border p-6 text-center text-muted-foreground">
+                    No blog posts yet.
+                  </div>
+                ) : (
                   <Carousel opts={{ align: "start" }} className="px-1">
                     <CarouselContent>
-                      {shelf.preview_stories.map((story) => (
-                        <CarouselItem
-                          key={story.id}
-                          className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
-                        >
-                          <StoryCard {...story} compact />
+                      {(blogPreview?.results || []).slice(0, PREVIEW_COUNT).map((blog) => (
+                        <CarouselItem key={blog.id} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                          <BlogCard blog={blog} />
                         </CarouselItem>
                       ))}
-                      {shelf.stories_count > shelf.preview_stories.length && (
-                        <CarouselItem className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-                          <Link
-                            to={`/library?genre=${shelf.id}`}
-                            className="flex aspect-[4/5] flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 transition-colors hover:border-primary/50 hover:bg-primary/10"
-                          >
-                            <div className="inline-flex w-fit rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
-                              See more
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-foreground sm:text-sm">
-                                {formatViews(shelf.stories_count - shelf.preview_stories.length)} more in{" "}
-                                {shelf.name}
-                              </p>
-                              <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary">
-                                <span>View all</span>
-                                <ArrowRight className="h-3 w-3" />
-                              </div>
-                            </div>
-                          </Link>
-                        </CarouselItem>
-                      )}
                     </CarouselContent>
                     <CarouselPrevious />
                     <CarouselNext />
                   </Carousel>
-                </section>
-              ))}
-            </div>
-
-            {shelves.length === 0 && (
-              <div className="mt-6 rounded-lg border border-border p-6 text-center text-muted-foreground">
-                No genres with stories yet.
-              </div>
-            )}
-
-            <div ref={sentinelRef} className="mt-8 flex items-center justify-center py-4">
-              {isFetchingNextShelvesPage && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading more genres...
-                </div>
-              )}
-              {!hasNextShelvesPage && shelves.length > 0 && (
-                <p className="text-sm text-muted-foreground">You've reached the end of the shelves.</p>
-              )}
+                )}
+              </section>
             </div>
           </>
         ) : (
           <>
             <button
               type="button"
-              onClick={browseByGenre}
+              onClick={backToLibrary}
               className="mb-5 flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Browse by genre
+              Back to Library
             </button>
 
             <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {stories.map((story) => (
-                <StoryCard key={story.id} {...story} />
+                <StoryCard key={story.id} {...story} linkTo={storyLinkTo?.(story.slug)} />
               ))}
             </section>
 
