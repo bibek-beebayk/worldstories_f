@@ -954,7 +954,7 @@ export interface AdminOverviewResponse {
   top_rated_stories: AdminTopRatedStory[];
 }
 
-export type AdminAnalyticsRangeDays = 1 | 7 | 30 | 90 | 365;
+export type AdminAnalyticsRangeDays = 1 | 7 | 30 | 90 | 365 | "all";
 export type AdminAnalyticsExportSection =
   | "content"
   | "engagement"
@@ -1066,7 +1066,7 @@ export interface AdminAnalyticsProgressBucket {
 }
 
 export interface AdminAnalyticsChapterDropoff {
-  chapter_order: number;
+  position_bucket: string;
   avg_progress: number;
   readers: number;
 }
@@ -1254,6 +1254,7 @@ export interface AdminStoryDetailAnalyticsResponse {
   page_opens: number;
   started_reading: number;
   completed_reading: number;
+  completion_rate: number;
   avg_progress: number;
   reading_minutes: number;
   completions_tracked: number;
@@ -1277,6 +1278,18 @@ export interface AdminStoryDetailAnalyticsResponse {
   } | null;
   has_video: boolean;
   video: { watchers: number; avg_progress: number; watching_minutes: number } | null;
+  referral_sources: Array<{ referral_source: string; count: number }>;
+  countries: Array<{ country_code: string; visitors: number }>;
+  lifetime: {
+    total_views: number;
+    total_readers_ever: number;
+    total_completions: number;
+    total_favorites: number;
+    total_reviews: number;
+    avg_rating: number;
+    total_downloads: number;
+    median_time_to_completion_hours: number | null;
+  };
 }
 
 export interface AdminBlogDetailAnalyticsResponse {
@@ -1285,18 +1298,26 @@ export interface AdminBlogDetailAnalyticsResponse {
   time_series: AdminTitleAnalyticsTimeSeries;
   page_opens: number;
   started_reading: number;
+  completion_rate: number;
   reading_minutes: number;
   signed_in_readers_with_depth_tracked: number;
   avg_progress_signed_in: number;
   completed_signed_in: number;
   progress_distribution_signed_in: Array<{ bucket: string; count: number }>;
+  referral_sources: Array<{ referral_source: string; count: number }>;
+  countries: Array<{ country_code: string; visitors: number }>;
+  lifetime: {
+    total_views: number;
+    total_readers_ever: number;
+    total_completions: number;
+  };
 }
 
 export interface AdminQuickReadDetailAnalyticsResponse {
   range_days: AdminAnalyticsRangeDays;
   story: { id: number; title: string; slug: string };
   time_series: {
-    interval: "hour" | "day";
+    interval: "hour" | "day" | "month";
     points: Array<{
       period: string;
       opens: number;

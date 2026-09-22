@@ -41,6 +41,7 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 30, label: "Last 30 days" },
   { value: 90, label: "Last 90 days" },
   { value: 365, label: "Last year" },
+  { value: "all", label: "All time" },
 ];
 
 type TabKey =
@@ -157,7 +158,10 @@ const AdminAnalytics = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={String(days)} onValueChange={(value) => setDays(Number(value) as AdminAnalyticsRangeDays)}>
+          <Select
+            value={String(days)}
+            onValueChange={(value) => setDays(value === "all" ? "all" : Number(value) as AdminAnalyticsRangeDays)}
+          >
             <SelectTrigger className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
@@ -360,11 +364,8 @@ const AdminAnalytics = () => {
                 </ChartCard>
                 <ChartCard title="Chapter drop-off" subtitle="Avg. progress by chapter position, across all stories">
                   <TrendLineChart
-                    data={engagementQuery.data.chapter_dropoff.map((row) => ({
-                      ...row,
-                      chapter_order: `Ch. ${row.chapter_order}`,
-                    }))}
-                    xKey="chapter_order"
+                    data={engagementQuery.data.chapter_dropoff}
+                    xKey="position_bucket"
                     series={[{ key: "avg_progress", label: "Avg progress" }]}
                     formatX={(v) => v}
                     formatY={(v) => `${Math.round(v * 100)}%`}

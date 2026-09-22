@@ -17,6 +17,7 @@ const RANGES: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 30, label: "Last 30 days" },
   { value: 90, label: "Last 90 days" },
   { value: 365, label: "Last year" },
+  { value: "all", label: "All time" },
 ];
 
 const SORTS: { value: AdminContentPerformanceSort; label: string }[] = [
@@ -33,15 +34,18 @@ const SORTS: { value: AdminContentPerformanceSort; label: string }[] = [
   { value: "completions", label: "Completions" },
 ];
 
-const allowedDays = new Set([1, 7, 30, 90, 365]);
+const allowedDays = new Set<AdminAnalyticsRangeDays>([1, 7, 30, 90, 365, "all"]);
 const allowedSorts = new Set(SORTS.map((item) => item.value));
 
 export default function AdminContentPerformance() {
   const [params, setParams] = useSearchParams();
   const kindParam = params.get("kind");
   const kind = kindParam === "blog" || kindParam === "audiobook" || kindParam === "quick_read" ? kindParam : "story";
-  const rawDays = Number(params.get("days"));
-  const days = (allowedDays.has(rawDays) ? rawDays : 30) as AdminAnalyticsRangeDays;
+  const daysParam = params.get("days");
+  const rawDays = daysParam === "all" ? "all" : Number(daysParam);
+  const days = allowedDays.has(rawDays as AdminAnalyticsRangeDays)
+    ? rawDays as AdminAnalyticsRangeDays
+    : 30;
   const rawSort = params.get("sort") as AdminContentPerformanceSort | null;
   const sort = rawSort && allowedSorts.has(rawSort) ? rawSort : "performance_score";
   const page = Math.max(1, Number(params.get("page")) || 1);

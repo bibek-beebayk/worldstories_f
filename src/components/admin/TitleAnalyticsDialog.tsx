@@ -104,6 +104,7 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: 30, label: "Last 30 days" },
   { value: 90, label: "Last 90 days" },
   { value: 365, label: "Last year" },
+  { value: "all", label: "All time" },
 ];
 
 interface TitleAnalyticsDialogProps {
@@ -174,7 +175,10 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
           <DialogTitle className="min-w-0 flex-1 leading-snug">
             {title}{kind === "quick_read" ? " — Quick Read" : ""}
           </DialogTitle>
-          <Select value={String(days)} onValueChange={(value) => setDays(Number(value) as AdminAnalyticsRangeDays)}>
+          <Select
+            value={String(days)}
+            onValueChange={(value) => setDays(value === "all" ? "all" : Number(value) as AdminAnalyticsRangeDays)}
+          >
             <SelectTrigger className="w-[150px] shrink-0">
               <SelectValue />
             </SelectTrigger>

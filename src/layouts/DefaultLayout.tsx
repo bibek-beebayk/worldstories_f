@@ -4,7 +4,12 @@ import LoggedOutBanner from "@/components/LoggedOutBanner";
 import LoginModal from "@/components/LoginModal";
 import FirstLoginSetupModal from "@/components/FirstLoginSetupModal";
 import PullToRefresh from "@/components/PullToRefresh";
-import { Outlet, useLocation, useNavigate } from "react-router";
+import { Button } from "@/components/ui/button";
+import { authApi } from "@/api/auth";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useQuery } from "@tanstack/react-query";
+import { ShieldCheck } from "lucide-react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { useEffect } from "react";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { flushPendingSaves } from "@/lib/progressSync";
@@ -41,7 +46,15 @@ export default function DefaultLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
+  const isLoggedIn = useIsLoggedIn();
   const { isImmersiveReaderActive } = useImmersiveReader();
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["profile-me"],
+    queryFn: authApi.getMe,
+    enabled: isLoggedIn,
+    retry: false,
+  });
 
   // Offline, only content that can actually work without a network — the
   // readers/player (which fall back to a downloaded, decrypted copy) and the
@@ -124,6 +137,19 @@ export default function DefaultLayout() {
       </PullToRefresh>
 
       {!isImmersiveReaderRoute && <Footer />}
+
+      {currentUser?.is_superuser && (
+        <Button
+          asChild
+          size="icon"
+          className="fixed bottom-20 right-4 z-50 shadow-lg sm:bottom-6 sm:right-6"
+        >
+          <Link to="/admin" aria-label="Open Admin Panel">
+            <ShieldCheck aria-hidden="true" />
+          </Link>
+        </Button>
+      )}
+
       <LoginModal />
       <FirstLoginSetupModal />
     </>

@@ -34,6 +34,7 @@ const RANGE_LABELS: Record<AdminAnalyticsRangeDays, string> = {
   30: "the last 30 days",
   90: "the last 90 days",
   365: "the last year",
+  all: "all time",
 };
 
 interface AnalyticsExportDialogProps {
