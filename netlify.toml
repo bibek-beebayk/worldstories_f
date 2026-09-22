@@ -7,7 +7,7 @@
 
 [[redirects]]
   from = "/sitemap.xml"
-  to = "https://worldstories-b-production.up.railway.app/api/sitemap.xml"
+  to = "https://api.worldstories.net/api/sitemap.xml"
   status = 200
   force = true
 
