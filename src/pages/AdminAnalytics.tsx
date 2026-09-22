@@ -22,6 +22,7 @@ import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog"
 import { ContentPerformanceTable } from "@/components/admin/ContentPerformanceTable";
 import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
+import { BookOpen, Eye, Heart, Star } from "lucide-react";
 
 const formatNumber = (value: number) => value.toLocaleString();
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
@@ -44,6 +45,17 @@ const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
   { value: "all", label: "All time" },
 ];
 
+const TAB_OPTIONS: Array<{ value: TabKey; label: string }> = [
+  { value: "content", label: "Content" },
+  { value: "engagement", label: "Engagement" },
+  { value: "metrics", label: "Metrics" },
+  { value: "audience", label: "Audience" },
+  { value: "users", label: "Users" },
+  { value: "geography", label: "Geography" },
+  { value: "submissions", label: "Submissions" },
+  { value: "nepalikatha", label: "Nepalikatha" },
+];
+
 type TabKey =
   | "content"
   | "engagement"
@@ -58,6 +70,7 @@ const AdminAnalytics = () => {
   const isAuthenticated = Boolean(getAccessToken());
   const [activeTab, setActiveTab] = useState<TabKey>("content");
   const [days, setDays] = useState<AdminAnalyticsRangeDays>(30);
+  const averagePerDay = (value: number) => days === "all" ? undefined : `${(value / days).toFixed(1)}/day`;
 
   const { data: me, isLoading: meLoading } = useQuery({
     queryKey: ["profile-me"],
@@ -149,20 +162,23 @@ const AdminAnalytics = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto space-y-4 pr-1">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-gradient-to-r from-muted/60 via-muted/20 to-transparent px-4 py-3">
-        <div>
-          <h2 className="text-base font-semibold">Analytics</h2>
-          <p className="text-xs text-muted-foreground">
-            Content performance, reading engagement, growth, and submissions in detail.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="h-full space-y-3 overflow-y-auto sm:space-y-4 sm:pr-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border bg-gradient-to-r from-muted/60 via-muted/20 to-transparent p-2 sm:flex sm:justify-end sm:px-4 sm:py-3">
+        <Select value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
+          <SelectTrigger aria-label="Analytics section" className="min-w-0 bg-card sm:hidden">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TAB_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
           <Select
             value={String(days)}
             onValueChange={(value) => setDays(value === "all" ? "all" : Number(value) as AdminAnalyticsRangeDays)}
           >
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -174,11 +190,10 @@ const AdminAnalytics = () => {
             </SelectContent>
           </Select>
           {activeTab !== "nepalikatha" && <AnalyticsExportDialog days={days} />}
-        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
-        <div className="-mx-1 overflow-x-auto px-1 pb-1">
+        <div className="hidden -mx-1 overflow-x-auto px-1 pb-1 sm:block">
           <TabsList className="w-max">
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="engagement">Engagement</TabsTrigger>
@@ -200,7 +215,7 @@ const AdminAnalytics = () => {
           )}
           {contentQuery.data && (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">
                 <StatTile label="Stories" value={formatNumber(contentQuery.data.stories_count)} />
                 <StatTile label="Audiobooks" value={formatNumber(contentQuery.data.audiobooks_count)} />
                 <StatTile label="Watchable Stories" value={formatNumber(contentQuery.data.watchable_count)} />
@@ -247,6 +262,7 @@ const AdminAnalytics = () => {
                     xKey="day"
                     series={[{ key: "count", label: "Views" }]}
                     formatX={formatAnalyticsPeriod(contentQuery.data.time_interval)}
+                    previousData={contentQuery.data.comparison?.views_over_time}
                   />
                 </ChartCard>
                 <ChartCard title="Publishing velocity" subtitle={`Stories added per ${contentQuery.data.publishing_interval}`}>
@@ -255,6 +271,7 @@ const AdminAnalytics = () => {
                     xKey="day"
                     series={[{ key: "count", label: "Stories published" }]}
                     formatX={formatAnalyticsPeriod(contentQuery.data.publishing_interval)}
+                    previousData={contentQuery.data.comparison?.publishing_over_time}
                   />
                 </ChartCard>
                 <ChartCard title="Blog publishing velocity" subtitle={`Blog posts published per ${contentQuery.data.time_interval}`}>
@@ -263,12 +280,57 @@ const AdminAnalytics = () => {
                     xKey="day"
                     series={[{ key: "count", label: "Posts published" }]}
                     formatX={formatAnalyticsPeriod(contentQuery.data.time_interval)}
+                    previousData={contentQuery.data.comparison?.blog_publishing_over_time}
                   />
                 </ChartCard>
               </div>
 
               <ChartCard title="Genre performance" subtitle="Across the whole published catalogue">
-                <div className="overflow-x-auto">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {contentQuery.data.genre_performance.map((genre) => (
+                    <div
+                      key={genre.id}
+                      className="relative overflow-hidden rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] via-card to-card p-3 shadow-sm"
+                    >
+                      <div className="absolute inset-y-0 left-0 w-1 bg-primary/70" />
+                      <div className="flex items-center justify-between gap-3 pl-1">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary ring-1 ring-primary/15">
+                            {genre.name.slice(0, 1).toUpperCase()}
+                          </div>
+                          <p className="min-w-0 flex-1 truncate text-sm font-semibold">{genre.name}</p>
+                        </div>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                          <Star className="h-3 w-3 fill-current" />
+                          {genre.avg_rating.toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-1.5 pl-1">
+                        <div className="rounded-lg border bg-background/70 px-2 py-2 text-center">
+                          <BookOpen className="mx-auto mb-1 h-3.5 w-3.5 text-primary" />
+                          <p className="text-sm font-bold">{formatNumber(genre.stories_count)}</p>
+                          <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Stories</p>
+                        </div>
+                        <div className="rounded-lg border bg-background/70 px-2 py-2 text-center">
+                          <Eye className="mx-auto mb-1 h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                          <p className="text-sm font-bold">{formatNumber(genre.total_views)}</p>
+                          <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Views</p>
+                        </div>
+                        <div className="rounded-lg border bg-background/70 px-2 py-2 text-center">
+                          <Heart className="mx-auto mb-1 h-3.5 w-3.5 text-rose-500" />
+                          <p className="text-sm font-bold">{formatNumber(genre.total_favorites)}</p>
+                          <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Favorites</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {contentQuery.data.genre_performance.length === 0 && (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      No published stories with genres yet.
+                    </p>
+                  )}
+                </div>
+                <div className="hidden">
                   <table className="w-full min-w-[520px] text-sm">
                     <thead>
                       <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -331,7 +393,7 @@ const AdminAnalytics = () => {
           )}
           {engagementQuery.data && (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
                 <StatTile
                   label="View → read conversion"
                   value={formatPercent(engagementQuery.data.view_to_read_conversion.conversion_rate)}
@@ -339,10 +401,16 @@ const AdminAnalytics = () => {
                 <StatTile
                   label="Story views"
                   value={formatNumber(engagementQuery.data.view_to_read_conversion.views)}
+                  current={engagementQuery.data.view_to_read_conversion.views}
+                  previous={engagementQuery.data.comparison?.view_to_read_conversion.views}
+                  average={averagePerDay(engagementQuery.data.view_to_read_conversion.views)}
                 />
                 <StatTile
                   label="Readers who started"
                   value={formatNumber(engagementQuery.data.view_to_read_conversion.readers)}
+                  current={engagementQuery.data.view_to_read_conversion.readers}
+                  previous={engagementQuery.data.comparison?.view_to_read_conversion.readers}
+                  average={averagePerDay(engagementQuery.data.view_to_read_conversion.readers)}
                 />
                 <StatTile
                   label="Audio listen-through"
@@ -371,6 +439,7 @@ const AdminAnalytics = () => {
                     formatY={(v) => `${Math.round(v * 100)}%`}
                     yDomain={[0, 1]}
                     yAxisWidth={44}
+                    previousData={engagementQuery.data.comparison?.chapter_dropoff}
                   />
                 </ChartCard>
               </div>
@@ -382,6 +451,7 @@ const AdminAnalytics = () => {
                     xKey="day"
                     series={[{ key: "count", label: "Favorites" }]}
                     formatX={formatAnalyticsPeriod(engagementQuery.data.time_interval)}
+                    previousData={engagementQuery.data.comparison?.favorites_over_time}
                   />
                 </ChartCard>
                 <ChartCard title="Rating trend" subtitle={`Average rating of reviews submitted per ${engagementQuery.data.time_interval}`}>
@@ -390,6 +460,7 @@ const AdminAnalytics = () => {
                     xKey="day"
                     series={[{ key: "avg_rating", label: "Avg rating" }]}
                     formatX={formatAnalyticsPeriod(engagementQuery.data.time_interval)}
+                    previousData={engagementQuery.data.comparison?.rating_trend}
                   />
                 </ChartCard>
               </div>
@@ -415,17 +486,17 @@ const AdminAnalytics = () => {
           )}
           {audienceQuery.data && (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                <StatTile label="Visitors" value={formatNumber(audienceQuery.data.summary.visitors)} />
-                <StatTile label="Returning visitors" value={formatNumber(audienceQuery.data.summary.returning_visitors)} />
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5">
+                <StatTile label="Visitors" value={formatNumber(audienceQuery.data.summary.visitors)} current={audienceQuery.data.summary.visitors} previous={audienceQuery.data.comparison?.summary.visitors} average={averagePerDay(audienceQuery.data.summary.visitors)} />
+                <StatTile label="Returning visitors" value={formatNumber(audienceQuery.data.summary.returning_visitors)} current={audienceQuery.data.summary.returning_visitors} previous={audienceQuery.data.comparison?.summary.returning_visitors} average={averagePerDay(audienceQuery.data.summary.returning_visitors)} />
                 <StatTile label="Return rate" value={formatPercent(audienceQuery.data.summary.returning_rate)} />
-                <StatTile label="Readers" value={formatNumber(audienceQuery.data.summary.readers)} />
+                <StatTile label="Readers" value={formatNumber(audienceQuery.data.summary.readers)} current={audienceQuery.data.summary.readers} previous={audienceQuery.data.comparison?.summary.readers} average={averagePerDay(audienceQuery.data.summary.readers)} />
                 <StatTile label="Returning readers" value={formatNumber(audienceQuery.data.summary.returning_readers)} />
                 <StatTile label="Reader retention" value={formatPercent(audienceQuery.data.summary.reader_retention_rate)} />
-                <StatTile label="Ad impressions" value={formatNumber(audienceQuery.data.summary.ad_impressions)} />
-                <StatTile label="Downloads" value={formatNumber(audienceQuery.data.summary.downloads)} />
+                <StatTile label="Ad impressions" value={formatNumber(audienceQuery.data.summary.ad_impressions)} current={audienceQuery.data.summary.ad_impressions} previous={audienceQuery.data.comparison?.summary.ad_impressions} average={averagePerDay(audienceQuery.data.summary.ad_impressions)} />
+                <StatTile label="Downloads" value={formatNumber(audienceQuery.data.summary.downloads)} current={audienceQuery.data.summary.downloads} previous={audienceQuery.data.comparison?.summary.downloads} average={averagePerDay(audienceQuery.data.summary.downloads)} />
                 <StatTile label="Unique downloaders" value={formatNumber(audienceQuery.data.summary.unique_downloaders)} />
-                <StatTile label="Completions" value={formatNumber(audienceQuery.data.summary.completions)} />
+                <StatTile label="Completions" value={formatNumber(audienceQuery.data.summary.completions)} current={audienceQuery.data.summary.completions} previous={audienceQuery.data.comparison?.summary.completions} average={averagePerDay(audienceQuery.data.summary.completions)} />
                 <StatTile label="Completion rate" value={formatPercent(audienceQuery.data.summary.completion_rate)} />
                 <StatTile label="Reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.reading_minutes))}m`} />
                 <StatTile label="Listening time" value={`${formatNumber(Math.round(audienceQuery.data.summary.listening_minutes))}m`} />
@@ -451,6 +522,7 @@ const AdminAnalytics = () => {
                       { key: "returning_visitors", label: "Returning" },
                     ]}
                     formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
+                    previousData={audienceQuery.data.comparison?.visitor_retention}
                   />
                 </ChartCard>
                 <ChartCard title="Reading, listening & watching time" subtitle="Measured active session minutes">
@@ -463,6 +535,7 @@ const AdminAnalytics = () => {
                       { key: "watching_minutes", label: "Watching minutes" },
                     ]}
                     formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
+                    previousData={audienceQuery.data.comparison?.daily_activity}
                   />
                 </ChartCard>
               </div>
@@ -477,6 +550,7 @@ const AdminAnalytics = () => {
                     { key: "completions", label: "Completions" },
                   ]}
                   formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
+                  previousData={audienceQuery.data.comparison?.daily_activity}
                 />
               </ChartCard>
 
@@ -635,11 +709,14 @@ const AdminAnalytics = () => {
           {usersQuery.isError && <p className="text-sm text-red-600">Failed to load user analytics.</p>}
           {usersQuery.data && (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
                 <StatTile label="Total users" value={formatNumber(usersQuery.data.total_users)} />
                 <StatTile
                   label={`Active in range`}
                   value={formatNumber(usersQuery.data.active_users)}
+                  current={usersQuery.data.active_users}
+                  previous={usersQuery.data.comparison?.active_users}
+                  average={averagePerDay(usersQuery.data.active_users)}
                 />
                 <StatTile
                   label="OTP verification rate"
@@ -648,6 +725,9 @@ const AdminAnalytics = () => {
                 <StatTile
                   label="New signups in range"
                   value={formatNumber(usersQuery.data.otp_conversion.joined)}
+                  current={usersQuery.data.otp_conversion.joined}
+                  previous={usersQuery.data.comparison?.otp_conversion.joined}
+                  average={averagePerDay(usersQuery.data.otp_conversion.joined)}
                 />
               </div>
 
@@ -658,6 +738,7 @@ const AdminAnalytics = () => {
                     xKey="day"
                     series={[{ key: "count", label: "Signups" }]}
                     formatX={formatAnalyticsPeriod(usersQuery.data.time_interval)}
+                    previousData={usersQuery.data.comparison?.signups_over_time}
                   />
                 </ChartCard>
                 <ChartCard title="Cumulative user growth">
@@ -688,8 +769,8 @@ const AdminAnalytics = () => {
           )}
           {geographyQuery.data && (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <StatTile label="Sign-ins" value={formatNumber(geographyQuery.data.total_logins)} />
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+                <StatTile label="Sign-ins" value={formatNumber(geographyQuery.data.total_logins)} current={geographyQuery.data.total_logins} previous={geographyQuery.data.comparison?.total_logins} average={averagePerDay(geographyQuery.data.total_logins)} />
                 <StatTile label="Countries reached" value={formatNumber(geographyQuery.data.countries_reached)} />
                 <StatTile
                   label="Top country"
@@ -717,6 +798,7 @@ const AdminAnalytics = () => {
                     { key: "users", label: "Unique users" },
                   ]}
                   formatX={formatAnalyticsPeriod(geographyQuery.data.time_interval)}
+                  previousData={geographyQuery.data.comparison?.logins_over_time}
                 />
               </ChartCard>
 
@@ -847,7 +929,7 @@ const AdminAnalytics = () => {
           )}
           {submissionsQuery.data && (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
                 {submissionsQuery.data.funnel.map((row) => (
                   <StatTile
                     key={row.status}

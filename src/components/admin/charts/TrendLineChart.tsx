@@ -24,6 +24,7 @@ interface TrendLineChartProps<T extends Record<string, unknown>> {
   emptyLabel?: string;
   yDomain?: [number, number];
   yAxisWidth?: number;
+  previousData?: T[] | null;
 }
 
 const defaultFormatX = (value: string) => {
@@ -42,14 +43,32 @@ export function TrendLineChart<T extends Record<string, unknown>>({
   emptyLabel = "Not enough data for this range yet.",
   yDomain,
   yAxisWidth = 36,
+  previousData,
 }: TrendLineChartProps<T>) {
   if (data.length === 0) {
     return <div className={emptyStateClass}>{emptyLabel}</div>;
   }
 
+  const chartData = data.map((row, index) => {
+    // Compare equivalent positions inside each period, not their real calendar
+    // dates. This keeps the previous period directly overlaid on the selected
+    // period even when month/week bucketing produces a different row count.
+    const previousIndex = previousData?.length
+      ? data.length <= 1
+        ? 0
+        : Math.round(index * (previousData.length - 1) / (data.length - 1))
+      : -1;
+    const previous = previousIndex >= 0 ? previousData?.[previousIndex] : undefined;
+    if (!previous) return row;
+    return {
+      ...row,
+      ...Object.fromEntries(series.map((item) => [`${item.key}__previous`, previous[item.key]])),
+    };
+  });
+
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+      <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
         <XAxis
           dataKey={xKey}
@@ -77,6 +96,22 @@ export function TrendLineChart<T extends Record<string, unknown>>({
             fontSize: "0.75rem",
           }}
         />
+        {series.map((s, idx) => (
+          previousData && (
+            <Line
+              key={`${s.key}-previous`}
+              type="monotone"
+              dataKey={`${s.key}__previous`}
+              name={`${s.label} (previous)`}
+              stroke={CHART_PALETTE[idx % CHART_PALETTE.length]}
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              strokeOpacity={0.55}
+              dot={false}
+              activeDot={{ r: 3 }}
+            />
+          )
+        ))}
         {series.map((s, idx) => (
           <Line
             key={s.key}

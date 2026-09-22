@@ -995,6 +995,7 @@ export interface AdminAnalyticsCompletionSplit {
 }
 
 export interface AdminAnalyticsContentResponse {
+  comparison?: Omit<AdminAnalyticsContentResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
   publishing_interval: AdminAnalyticsTimeInterval;
@@ -1085,6 +1086,7 @@ export interface AdminAnalyticsRatingTrendPoint {
 }
 
 export interface AdminAnalyticsEngagementResponse {
+  comparison?: Omit<AdminAnalyticsEngagementResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
   reading_progress_buckets: AdminAnalyticsProgressBucket[];
@@ -1103,6 +1105,7 @@ export interface AdminAnalyticsLoginBucket {
 }
 
 export interface AdminAnalyticsUsersResponse {
+  comparison?: Omit<AdminAnalyticsUsersResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
   signups_over_time: AdminAnalyticsDayCount[];
@@ -1136,6 +1139,7 @@ export interface AdminAnalyticsGenreCount {
 }
 
 export interface AdminAnalyticsSubmissionsResponse {
+  comparison?: Omit<AdminAnalyticsSubmissionsResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
   submissions_over_time: AdminAnalyticsSubmissionsOverTimePoint[];
@@ -1146,6 +1150,7 @@ export interface AdminAnalyticsSubmissionsResponse {
 }
 
 export interface AdminAnalyticsAudienceResponse {
+  comparison?: Omit<AdminAnalyticsAudienceResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
   summary: {
@@ -1237,6 +1242,7 @@ export interface AdminAnalyticsCountryRow {
 }
 
 export interface AdminAnalyticsGeographyResponse {
+  comparison?: Omit<AdminAnalyticsGeographyResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
   total_logins: number;
@@ -1868,6 +1874,7 @@ export interface RetentionBucket {
 }
 
 export interface EngagementMetricsResponse {
+  comparison?: Omit<EngagementMetricsResponse, "comparison"> | null;
   range_days: number;
   funnel: EngagementFunnelRow[];
   averages: {

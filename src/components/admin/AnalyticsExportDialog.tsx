@@ -89,9 +89,8 @@ export function AnalyticsExportDialog({ days }: AnalyticsExportDialogProps) {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="icon" aria-label="Export analytics data" title="Export data">
           <Download className="h-4 w-4" />
-          Export data
         </Button>
       </DialogTrigger>
       <DialogContent>

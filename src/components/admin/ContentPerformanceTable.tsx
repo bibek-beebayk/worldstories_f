@@ -27,7 +27,7 @@ export function ContentPerformanceTable({
   const isAudiobook = kind === "audiobook";
   const isQuickRead = kind === "quick_read";
   const table = (
-    <div className="overflow-x-auto">
+    <div className="hidden overflow-x-auto sm:block">
       <table className="w-full min-w-[940px] text-sm">
         <thead>
           <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -44,7 +44,7 @@ export function ContentPerformanceTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b last:border-0">
+            <tr key={row.id} className="border-b transition-colors last:border-0 hover:bg-primary/[0.04]">
               <td className="max-w-[300px] py-3 pr-4 font-medium">
                 <span className="line-clamp-2">{row.title}</span>
               </td>
@@ -78,19 +78,53 @@ export function ContentPerformanceTable({
       </table>
     </div>
   );
+  const mobileCards = (
+    <div className="space-y-2 sm:hidden">
+      {rows.map((row) => (
+        <div key={row.id} className="rounded-xl border border-primary/10 bg-gradient-to-br from-primary/[0.06] via-card to-card p-3 shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <p className="min-w-0 flex-1 text-sm font-medium leading-snug">{row.title}</p>
+            <TitleAnalyticsDialog
+              kind={kind === "blog" ? "blog" : isQuickRead ? "quick_read" : "story"}
+              slug={row.slug}
+              title={row.title}
+              initialDays={days}
+            />
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-md bg-muted/40 px-1.5 py-2">
+              <p className="text-sm font-semibold">{number(row.performance_score)}</p>
+              <p className="mt-0.5 text-[10px] uppercase text-muted-foreground">Score</p>
+            </div>
+            <div className="rounded-md bg-muted/40 px-1.5 py-2">
+              <p className="text-sm font-semibold">{number(row.views)}</p>
+              <p className="mt-0.5 text-[10px] uppercase text-muted-foreground">{isQuickRead ? "Opens" : "Views"}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 px-1.5 py-2">
+              <p className="text-sm font-semibold">{number(isAudiobook ? row.listens : row.reads)}</p>
+              <p className="mt-0.5 text-[10px] uppercase text-muted-foreground">{isAudiobook ? "Listens" : "Reads"}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+      {rows.length === 0 && (
+        <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+      )}
+    </div>
+  );
 
-  if (!title) return table;
+  if (!title) return <>{mobileCards}{table}</>;
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className="overflow-hidden border-border/80 shadow-sm">
+      <CardHeader className="flex-row items-center justify-between space-y-0 border-b bg-gradient-to-r from-primary/[0.07] via-muted/20 to-transparent px-3 py-3 sm:px-6">
+        <CardTitle className="text-sm sm:text-base">{title}</CardTitle>
         {viewAllHref && (
           <Button asChild variant="outline" size="sm">
             <Link to={viewAllHref}>View all</Link>
           </Button>
         )}
       </CardHeader>
-      <CardContent>{table}</CardContent>
+      <CardContent className="px-3 sm:px-6">{mobileCards}{table}</CardContent>
     </Card>
   );
 }
