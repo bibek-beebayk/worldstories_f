@@ -85,7 +85,7 @@ export default function AuthorDetail({ loaderData }: Route.ComponentProps) {
           <ArrowLeft className="h-4 w-4" /> All authors
         </Link>
 
-        <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 via-card to-sky-50 dark:from-violet-950/30 dark:via-card dark:to-background shadow-sm">
+        <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 via-card to-sky-50 shadow-sm">
           <div className="grid gap-6 p-5 sm:grid-cols-[180px_1fr] sm:items-center sm:p-8 lg:grid-cols-[220px_1fr]">
             <AuthorPortrait src={author.image} name={author.name} className="mx-auto aspect-[3/4] w-36 rounded-xl border shadow-md sm:mx-0 sm:w-full" />
             <div className="text-center sm:text-left">

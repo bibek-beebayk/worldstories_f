@@ -186,7 +186,7 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
 
       <div
         ref={contentRef}
-        className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+        className="prose prose-sm md:prose-base max-w-none"
         dangerouslySetInnerHTML={{ __html: sanitizeBlogContent(blog.content) }}
       />
 

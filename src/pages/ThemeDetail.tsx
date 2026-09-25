@@ -91,7 +91,7 @@ export default function ThemeDetail({ loaderData }: Route.ComponentProps) {
           <ArrowLeft className="h-4 w-4" /> Back to library
         </Link>
 
-        <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 via-card to-sky-50 dark:from-violet-950/30 dark:via-card dark:to-background p-5 shadow-sm sm:p-8">
+        <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 via-card to-sky-50 p-5 shadow-sm sm:p-8">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             <Palette className="h-3.5 w-3.5" /> Theme
           </p>

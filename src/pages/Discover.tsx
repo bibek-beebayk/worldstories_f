@@ -302,8 +302,8 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-        <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 dark:border-cyan-800/40 dark:from-cyan-950/30 dark:via-background dark:to-background p-5 sm:p-6">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:border-cyan-800/50 dark:text-cyan-300">
+        <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">
             <Compass className="h-3.5 w-3.5" />
             Discover
           </div>
@@ -399,8 +399,8 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
         <AdSpace size="banner" className="mb-8" contentType="discover" />
 
         <section id="trending" className="mb-8 scroll-mt-24">
-          <div className="mb-5 rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50 via-orange-50 to-amber-100 dark:border-rose-800/40 dark:from-rose-950/30 dark:via-background dark:to-background p-5 sm:p-6">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700 dark:border-rose-800/50 dark:text-rose-300">
+          <div className="mb-5 rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50 via-orange-50 to-amber-100 p-5 sm:p-6">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
               <Flame className="h-3.5 w-3.5" />
               Live Leaderboard
             </div>

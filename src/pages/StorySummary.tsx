@@ -234,14 +234,14 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
           />
         </div>
 
-        <p className="mt-8 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-medium text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+        <p className="mt-8 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-medium text-red-700">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           This quick summary may include spoilers for the story.
         </p>
 
         <article
           ref={summaryRef}
-          className="prose prose-lg mt-6 max-w-none leading-relaxed dark:prose-invert"
+          className="prose prose-lg mt-6 max-w-none leading-relaxed"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
         />
 

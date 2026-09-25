@@ -161,7 +161,7 @@ export default function ProfileDownloadedStory({
           <p className="line-clamp-1 text-sm font-semibold group-hover:text-primary">{item.title}</p>
           <span className="shrink-0 text-xs font-medium text-primary">{Math.round(progress * 100)}%</span>
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-muted">
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200">
           <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(0, Math.min(100, progress * 100))}%` }} />
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{formatBytes(item.size_bytes)}</p>
@@ -223,7 +223,7 @@ export default function ProfileDownloadedStory({
         )}
       </div>
 
-      <Card className="overflow-hidden border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 shadow-sm dark:border-cyan-800/40 dark:from-cyan-950/30 dark:via-card dark:to-background">
+      <Card className="overflow-hidden border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 shadow-sm">
         <CardContent className="p-0">
           <div className="p-4 sm:hidden">
             <div className="flex items-start gap-4">
@@ -235,7 +235,7 @@ export default function ProfileDownloadedStory({
                 className="aspect-[3/4] w-24 shrink-0 rounded-xl object-cover shadow-lg"
               />
               <div className="min-w-0 flex-1 pt-1">
-                <span className="mb-2 inline-flex rounded-full border border-cyan-300 bg-white/75 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-cyan-700 dark:border-cyan-800/50 dark:bg-background/50 dark:text-cyan-300">
+                <span className="mb-2 inline-flex rounded-full border border-cyan-300 bg-white/75 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-cyan-700">
                   Available offline
                 </span>
                 <h2 className="line-clamp-3 text-xl font-bold leading-tight tracking-tight text-foreground">
@@ -246,10 +246,10 @@ export default function ProfileDownloadedStory({
             </div>
 
             {(storyType || genres.length > 0) && (
-              <div className="mt-4 flex flex-wrap gap-1.5 border-t border-cyan-200/60 pt-4 dark:border-cyan-800/40">
-                {storyType && <Badge variant="secondary" className="bg-white/75 dark:bg-background/50">{storyType}</Badge>}
+              <div className="mt-4 flex flex-wrap gap-1.5 border-t border-cyan-200/60 pt-4">
+                {storyType && <Badge variant="secondary" className="bg-white/75">{storyType}</Badge>}
                 {genres.map((genre) => (
-                  <Badge key={genre} variant="outline" className="border-cyan-200 bg-white/60 text-slate-700 dark:border-cyan-800/40 dark:bg-background/40 dark:text-muted-foreground">
+                  <Badge key={genre} variant="outline" className="border-cyan-200 bg-white/60 text-slate-700">
                     {genre}
                   </Badge>
                 ))}
@@ -258,19 +258,19 @@ export default function ProfileDownloadedStory({
 
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
               {chapters.length > 0 && (
-                <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5 dark:bg-background/40"><BookOpenText className="h-4 w-4 text-primary" />{chapters.length} chapters</div>
+                <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5"><BookOpenText className="h-4 w-4 text-primary" />{chapters.length} chapters</div>
               )}
               {audios.length > 0 && (
-                <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5 dark:bg-background/40"><Headphones className="h-4 w-4 text-primary" />{audios.length} audios</div>
+                <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5"><Headphones className="h-4 w-4 text-primary" />{audios.length} audios</div>
               )}
               {fileDownload && (
-                <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5 dark:bg-background/40"><FileText className="h-4 w-4 text-primary" />{fileDownload.type.toUpperCase()}</div>
+                <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5"><FileText className="h-4 w-4 text-primary" />{fileDownload.type.toUpperCase()}</div>
               )}
-              <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5 dark:bg-background/40"><HardDrive className="h-4 w-4 text-primary" />{formatBytes(totalBytes)}</div>
+              <div className="flex items-center gap-2 rounded-lg bg-white/65 p-2.5"><HardDrive className="h-4 w-4 text-primary" />{formatBytes(totalBytes)}</div>
             </div>
 
             {overallProgressLabels.length > 0 && (
-              <div className="mt-3 rounded-lg border border-cyan-200/70 bg-white/70 px-3 py-2.5 text-xs font-semibold text-primary dark:border-cyan-800/40 dark:bg-background/40">
+              <div className="mt-3 rounded-lg border border-cyan-200/70 bg-white/70 px-3 py-2.5 text-xs font-semibold text-primary">
                 {overallProgressLabels.join(" · ")}
               </div>
             )}
@@ -305,7 +305,7 @@ export default function ProfileDownloadedStory({
               className="aspect-[3/4] w-24 shrink-0 rounded-xl object-cover shadow-lg sm:w-32"
             />
             <div className="flex min-w-0 flex-1 flex-col justify-center">
-              <span className="mb-2 w-fit rounded-full border border-cyan-300 bg-white/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-700 dark:border-cyan-800/50 dark:bg-background/50 dark:text-cyan-300">
+              <span className="mb-2 w-fit rounded-full border border-cyan-300 bg-white/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-700">
                 Available offline
               </span>
               <h2 className="line-clamp-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -314,9 +314,9 @@ export default function ProfileDownloadedStory({
               {authorName && <p className="mt-1 text-sm font-medium text-muted-foreground">by {authorName}</p>}
               {(storyType || genres.length > 0) && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {storyType && <Badge variant="secondary" className="bg-white/75 dark:bg-background/50">{storyType}</Badge>}
+                  {storyType && <Badge variant="secondary" className="bg-white/75">{storyType}</Badge>}
                   {genres.map((genre) => (
-                    <Badge key={genre} variant="outline" className="border-cyan-200 bg-white/60 text-slate-700 dark:border-cyan-800/40 dark:bg-background/40 dark:text-muted-foreground">
+                    <Badge key={genre} variant="outline" className="border-cyan-200 bg-white/60 text-slate-700">
                       {genre}
                     </Badge>
                   ))}
@@ -365,7 +365,7 @@ export default function ProfileDownloadedStory({
           </div>
 
           {fileDownload && audios.length > 0 && (
-            <div className="border-t border-cyan-200/70 bg-white/45 p-4 sm:p-6 dark:border-cyan-800/40 dark:bg-background/30">
+            <div className="border-t border-cyan-200/70 bg-white/45 p-4 sm:p-6">
               <div className="mb-3 flex items-center gap-2">
                 <Headphones className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold text-foreground">Downloaded audios</h3>

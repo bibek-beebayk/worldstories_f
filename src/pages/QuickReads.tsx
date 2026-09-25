@@ -94,9 +94,9 @@ const QuickReads = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-amber-200/60 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100 dark:border-amber-800/40 dark:from-amber-950/30 dark:via-background dark:to-background">
+      <div className="border-b border-amber-200/60 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-800/50 dark:text-amber-300">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
             <Zap className="h-3.5 w-3.5" />
             Quick Read
           </div>

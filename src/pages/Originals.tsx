@@ -70,7 +70,7 @@ export default function Originals() {
           <ArrowLeft className="h-4 w-4" /> Back to library
         </Link>
 
-        <section className="rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-blue-50 dark:from-indigo-950/30 dark:via-card dark:to-background p-5 shadow-sm sm:p-8">
+        <section className="rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-blue-50 p-5 shadow-sm sm:p-8">
           <p className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
             <Sparkles className="h-3.5 w-3.5" /> WorldStories Originals
           </p>

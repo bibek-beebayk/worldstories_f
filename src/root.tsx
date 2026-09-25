@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { AuthModalProvider } from "@/context/AuthModalContext";
 import { ImmersiveReaderProvider } from "@/context/ImmersiveReaderContext";
-import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { queryClient } from "@/lib/queryClient";
 import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 import NavigationProgress from "@/components/NavigationProgress";
@@ -71,20 +70,6 @@ gtag('js', new Date());
 gtag('config', ${JSON.stringify(GA_MEASUREMENT_ID)});`
   : null;
 
-// Runs synchronously before first paint so a dark-mode visitor doesn't see a
-// flash of the light theme while React hydrates — ThemeRouteGate below is
-// the source of truth once React is running, this just pre-empts it for the
-// very first frame. The storage key and "system" fallback logic must stay
-// in sync with ThemeContext.tsx's own reading of the same key.
-const THEME_BOOTSTRAP_SCRIPT = `(function () {
-  try {
-    if (location.pathname === '/admin' || location.pathname.indexOf('/admin/') === 0) return;
-    var stored = localStorage.getItem('worldstories_theme');
-    var isDark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    if (isDark) document.documentElement.classList.add('dark');
-  } catch (e) {}
-})();`;
-
 function AnalyticsRouteGate() {
   const { pathname } = useLocation();
   // Assigned during render rather than in an effect: GA's history-change
@@ -97,31 +82,10 @@ function AnalyticsRouteGate() {
   return null;
 }
 
-// The admin panel stays light-only staff tooling regardless of the site
-// visitor's dark-mode preference — same "single shared <html>, exclude by
-// pathname" shape as AnalyticsRouteGate above, since dark mode has to be a
-// class on <html> (not scoped to a wrapper div) or Radix portals (dialogs,
-// sheets, the login modal, toasts) would render outside it and never pick
-// up the dark styling at all.
-function ThemeRouteGate() {
-  const { pathname } = useLocation();
-  const { resolvedTheme } = useTheme();
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const shouldBeDark = resolvedTheme === "dark" && !isAdminPath(pathname);
-    document.documentElement.classList.toggle("dark", shouldBeDark);
-  }, [resolvedTheme, pathname]);
-
-  return null;
-}
-
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
-
         {GA_MEASUREMENT_ID && GA_BOOTSTRAP_SCRIPT ? (
           <>
             <link rel="preconnect" href="https://www.googletagmanager.com" />
@@ -191,21 +155,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function Root() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <AuthModalProvider>
-            <ImmersiveReaderProvider>
-              <AnalyticsRouteGate />
-              <ThemeRouteGate />
-              <NavigationProgress />
-              <Toaster />
-              <Sonner />
-              <PwaUpdatePrompt />
-              <Outlet />
-            </ImmersiveReaderProvider>
-          </AuthModalProvider>
-        </TooltipProvider>
-      </ThemeProvider>
+      <TooltipProvider>
+        <AuthModalProvider>
+          <ImmersiveReaderProvider>
+            <AnalyticsRouteGate />
+            <NavigationProgress />
+            <Toaster />
+            <Sonner />
+            <PwaUpdatePrompt />
+            <Outlet />
+          </ImmersiveReaderProvider>
+        </AuthModalProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

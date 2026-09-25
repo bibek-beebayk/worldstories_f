@@ -20,7 +20,7 @@ const Terms = () => {
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Terms of Service</h1>
         <p className="mt-2 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
 
-        <div className="prose prose-sm sm:prose-base prose-neutral mt-8 max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-primary">
+        <div className="prose prose-sm sm:prose-base prose-neutral mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary">
           <p>
             These Terms of Service ("Terms") govern your access to and use of worldstories.net (the
             "Site"), operated by WorldStories ("we", "us", or "our"). By creating an account or using

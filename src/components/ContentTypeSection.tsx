@@ -17,34 +17,34 @@ import type { Story } from "@/api/types";
 // not invented separately per page.
 export const SECTION_THEMES = {
   emerald: {
-    wrap: "border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-card to-teal-50 dark:border-emerald-800/40 dark:from-emerald-950/30 dark:via-card dark:to-background",
-    icon: "text-emerald-600 dark:text-emerald-400",
-    link: "text-emerald-700 hover:underline dark:text-emerald-300",
+    wrap: "border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-card to-teal-50",
+    icon: "text-emerald-600",
+    link: "text-emerald-700 hover:underline",
   },
   rose: {
-    wrap: "border-rose-200/60 bg-gradient-to-br from-rose-50 via-card to-pink-50 dark:border-rose-800/40 dark:from-rose-950/30 dark:via-card dark:to-background",
-    icon: "text-rose-600 dark:text-rose-400",
-    link: "text-rose-700 hover:underline dark:text-rose-300",
+    wrap: "border-rose-200/60 bg-gradient-to-br from-rose-50 via-card to-pink-50",
+    icon: "text-rose-600",
+    link: "text-rose-700 hover:underline",
   },
   sky: {
-    wrap: "border-sky-200/60 bg-gradient-to-br from-sky-50 via-card to-cyan-50 dark:border-sky-800/40 dark:from-sky-950/30 dark:via-card dark:to-background",
-    icon: "text-sky-600 dark:text-sky-400",
-    link: "text-sky-700 hover:underline dark:text-sky-300",
+    wrap: "border-sky-200/60 bg-gradient-to-br from-sky-50 via-card to-cyan-50",
+    icon: "text-sky-600",
+    link: "text-sky-700 hover:underline",
   },
   indigo: {
-    wrap: "border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-violet-50 dark:border-indigo-800/40 dark:from-indigo-950/30 dark:via-card dark:to-background",
-    icon: "text-indigo-600 dark:text-indigo-400",
-    link: "text-indigo-700 hover:underline dark:text-indigo-300",
+    wrap: "border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-violet-50",
+    icon: "text-indigo-600",
+    link: "text-indigo-700 hover:underline",
   },
   amber: {
-    wrap: "border-amber-200/60 bg-gradient-to-br from-amber-50 via-card to-orange-50 dark:border-amber-800/40 dark:from-amber-950/30 dark:via-card dark:to-background",
-    icon: "text-amber-600 dark:text-amber-400",
-    link: "text-amber-700 hover:underline dark:text-amber-300",
+    wrap: "border-amber-200/60 bg-gradient-to-br from-amber-50 via-card to-orange-50",
+    icon: "text-amber-600",
+    link: "text-amber-700 hover:underline",
   },
   slate: {
-    wrap: "border-slate-200/60 bg-gradient-to-br from-slate-50 via-card to-zinc-100 dark:border-slate-700/40 dark:from-slate-900/30 dark:via-card dark:to-background",
-    icon: "text-slate-600 dark:text-slate-400",
-    link: "text-slate-700 hover:underline dark:text-slate-300",
+    wrap: "border-slate-200/60 bg-gradient-to-br from-slate-50 via-card to-zinc-100",
+    icon: "text-slate-600",
+    link: "text-slate-700 hover:underline",
   },
 } as const;
 export type SectionTheme = keyof typeof SECTION_THEMES;

@@ -27,8 +27,8 @@ const STATE_LABEL: Record<AudioTranscriptState, string> = {
 
 const STATE_CLASS: Record<AudioTranscriptState, string> = {
   empty: "bg-muted text-muted-foreground",
-  unsynchronized: "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  synchronized: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  unsynchronized: "border-transparent bg-amber-500/15 text-amber-700",
+  synchronized: "border-transparent bg-emerald-500/15 text-emerald-700",
 };
 
 const formatMs = (ms: number) => {

@@ -266,7 +266,7 @@ const AdminSubmissions = () => {
                   <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm">
                     {selectedSubmission.content ? (
                       <div
-                        className="prose prose-sm max-w-none dark:prose-invert"
+                        className="prose prose-sm max-w-none"
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedSubmission.content) }}
                       />
                     ) : (

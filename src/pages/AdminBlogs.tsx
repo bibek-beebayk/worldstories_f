@@ -540,7 +540,7 @@ const AdminBlogs = () => {
                       suppressContentEditableWarning
                       onInput={syncContentEditor}
                       onPaste={(e) => handleRichTextPaste(e, syncContentEditor)}
-                      className="prose prose-sm dark:prose-invert min-h-60 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="prose prose-sm min-h-60 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   )}
                 </div>
@@ -784,7 +784,7 @@ const AdminBlogs = () => {
                   <div className="space-y-2">
                     <p className="text-sm font-medium">This story has a retrospective. Use it as the blog content?</p>
                     <div
-                      className="prose prose-sm dark:prose-invert max-h-40 max-w-none overflow-y-auto rounded-md border bg-muted/30 px-3 py-2"
+                      className="prose prose-sm max-h-40 max-w-none overflow-y-auto rounded-md border bg-muted/30 px-3 py-2"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkStoryOffer.retrospective) }}
                     />
                     <div className="flex justify-end">

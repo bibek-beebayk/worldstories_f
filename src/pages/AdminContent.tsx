@@ -1811,7 +1811,7 @@ const AdminContent = () => {
                       suppressContentEditableWarning
                       onInput={syncSummaryEditorContent}
                       onPaste={(e) => handleRichTextPaste(e, syncSummaryEditorContent)}
-                      className="prose prose-sm dark:prose-invert min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="prose prose-sm min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                 </div>
@@ -1839,7 +1839,7 @@ const AdminContent = () => {
                       suppressContentEditableWarning
                       onInput={syncRetrospectiveEditorContent}
                       onPaste={(e) => handleRichTextPaste(e, syncRetrospectiveEditorContent)}
-                      className="prose prose-sm dark:prose-invert min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="prose prose-sm min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                 </div>
@@ -2477,7 +2477,7 @@ const AdminContent = () => {
                         suppressContentEditableWarning
                         onInput={syncChapterEditorContent}
                         onPaste={(e) => handleRichTextPaste(e, syncChapterEditorContent)}
-                        className="prose prose-sm dark:prose-invert min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="prose prose-sm min-h-40 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                   </div>
@@ -2647,7 +2647,7 @@ const AdminContent = () => {
                 />
                 {selectedStory?.summary ? (
                   <div
-                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
+                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.summary) }}
                   />
                 ) : (
@@ -2686,7 +2686,7 @@ const AdminContent = () => {
                 />
                 {selectedStory?.retrospective ? (
                   <div
-                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2 dark:prose-invert"
+                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.retrospective) }}
                   />
                 ) : (
@@ -3204,7 +3204,7 @@ const AdminContent = () => {
                     suppressContentEditableWarning
                     onInput={syncAudioTranscriptEditorContent}
                     onPaste={(event) => handleRichTextPaste(event, syncAudioTranscriptEditorContent)}
-                    className="prose prose-sm dark:prose-invert min-h-52 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="prose prose-sm min-h-52 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <p className="text-xs text-muted-foreground">
                     This transcript belongs to the audio track. Copying a chapter creates an editable snapshot and does not keep it linked.

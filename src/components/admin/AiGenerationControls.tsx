@@ -67,7 +67,7 @@ export const AiGenerationResultBanner = ({
   if (status === "failed") {
     return (
       <div
-        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700"
         title={error || undefined}
       >
         <span>{label} generation failed{error ? `: ${error}` : "."}</span>
@@ -90,14 +90,14 @@ export const AiGenerationResultBanner = ({
 
   if (dismissed) {
     return (
-      <div className="mb-3 rounded-md border bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+      <div className="mb-3 rounded-md border bg-amber-50 px-3 py-2 text-xs text-amber-800">
         Generated from general knowledge, not this content's actual text.
       </div>
     );
   }
 
   return (
-    <div className="mb-3 space-y-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+    <div className="mb-3 space-y-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
       <p>
         Generated from general knowledge, not this content's actual text.{" "}
         {confident === false

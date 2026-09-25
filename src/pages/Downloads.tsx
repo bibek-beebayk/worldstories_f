@@ -70,8 +70,8 @@ const Downloads = () => {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
       <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
         {!selectedStory && (
-          <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 dark:border-cyan-800/40 dark:from-cyan-950/30 dark:via-background dark:to-background p-5 sm:p-6">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:border-cyan-800/50 dark:text-cyan-300">
+          <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">
               <Download className="h-3.5 w-3.5" />
               Offline Library
             </div>
@@ -95,7 +95,7 @@ const Downloads = () => {
         ) : (
           <>
             <section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-              <Card className="border-cyan-100 bg-white/85 shadow-sm dark:border-cyan-800/40 dark:bg-card/85">
+              <Card className="border-cyan-100 bg-white/85 shadow-sm">
                 <CardContent className="p-4 sm:p-5">
                   <Library className="h-5 w-5 text-primary" />
                   <p className="mt-3 text-2xl font-bold text-foreground">{groupedDownloads.length}</p>
@@ -104,14 +104,14 @@ const Downloads = () => {
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-cyan-100 bg-white/85 shadow-sm dark:border-cyan-800/40 dark:bg-card/85">
+              <Card className="border-cyan-100 bg-white/85 shadow-sm">
                 <CardContent className="p-4 sm:p-5">
                   <BookOpenText className="h-5 w-5 text-primary" />
                   <p className="mt-3 text-2xl font-bold text-foreground">{downloads.length}</p>
                   <p className="text-xs text-muted-foreground sm:text-sm">Downloaded items</p>
                 </CardContent>
               </Card>
-              <Card className="col-span-2 border-cyan-100 bg-white/85 shadow-sm dark:border-cyan-800/40 dark:bg-card/85 sm:col-span-1">
+              <Card className="col-span-2 border-cyan-100 bg-white/85 shadow-sm sm:col-span-1">
                 <CardContent className="p-4 sm:p-5">
                   <HardDrive className="h-5 w-5 text-primary" />
                   <p className="mt-3 text-2xl font-bold text-foreground">{formatBytes(totalBytes)}</p>

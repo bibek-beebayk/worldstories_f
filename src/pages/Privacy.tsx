@@ -20,7 +20,7 @@ const Privacy = () => {
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>
         <p className="mt-2 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
 
-        <div className="prose prose-sm sm:prose-base prose-neutral mt-8 max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-primary">
+        <div className="prose prose-sm sm:prose-base prose-neutral mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary">
           <p>
             WorldStories ("WorldStories", "we", "us", or "our") operates worldstories.net (the "Site"),
             a platform for reading and publishing short stories, novels, and audiobooks. This Privacy

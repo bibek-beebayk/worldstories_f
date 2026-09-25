@@ -867,7 +867,7 @@ const StoryQueueManager = () => {
             </div>
 
             {titleMatches > 0 && (
-              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <div className="space-y-1">
                   <p className="font-medium">This title may already exist:</p>
@@ -918,7 +918,7 @@ const StoryQueueManager = () => {
                   suppressContentEditableWarning
                   onInput={syncContentEditorContent}
                   onPaste={(e) => handleRichTextPaste(e, syncContentEditorContent)}
-                  className="prose prose-sm dark:prose-invert min-h-32 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="prose prose-sm min-h-32 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -949,7 +949,7 @@ const StoryQueueManager = () => {
                   suppressContentEditableWarning
                   onInput={syncNotesEditorContent}
                   onPaste={(e) => handleRichTextPaste(e, syncNotesEditorContent)}
-                  className="prose prose-sm dark:prose-invert min-h-20 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="prose prose-sm min-h-20 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -1558,7 +1558,7 @@ const StoryQueueManager = () => {
                     Content <span className="italic">(becomes "Chapter 1" when added to Stories)</span>
                   </p>
                   <div
-                    className="prose prose-sm dark:prose-invert max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
+                    className="prose prose-sm max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(detailsItem.content) }}
                   />
                 </div>
@@ -1567,7 +1567,7 @@ const StoryQueueManager = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Notes</p>
                   <div
-                    className="prose prose-sm dark:prose-invert max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
+                    className="prose prose-sm max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(detailsItem.notes) }}
                   />
                 </div>

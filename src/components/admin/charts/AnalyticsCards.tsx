@@ -30,12 +30,12 @@ export const StatTile = ({
     {(change !== null || isNew || average) && (
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
         {change !== null && (
-          <span className={`rounded-full px-1.5 py-0.5 font-semibold ${change >= 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-rose-500/10 text-rose-600 dark:text-rose-400"}`}>
+          <span className={`rounded-full px-1.5 py-0.5 font-semibold ${change >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"}`}>
             {change >= 0 ? "↑" : "↓"} {Math.abs(change).toFixed(1)}%
           </span>
         )}
         {isNew && (
-          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
+          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-600">
             New vs previous
           </span>
         )}

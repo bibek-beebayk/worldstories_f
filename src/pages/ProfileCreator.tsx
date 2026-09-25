@@ -683,7 +683,7 @@ const ProfileCreator = () => {
                 <div className="rounded-md border bg-muted/30 p-3 text-sm">
                   {activeSubmissionData.content ? (
                     <div
-                      className="prose prose-sm max-w-none dark:prose-invert"
+                      className="prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(activeSubmissionData.content) }}
                     />
                   ) : (
