@@ -295,7 +295,7 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="flex h-full flex-col justify-center space-y-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <Badge>{story.story_type}</Badge>

@@ -1,8 +1,10 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
 import CoverImage from "@/components/CoverImage";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
@@ -16,8 +18,20 @@ import RecommendedQuickReadsSection from "@/components/RecommendedQuickReadsSect
 import { useAuthModal } from "@/context/AuthModalContext";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { formatViews } from "@/lib/utils";
 import { buildMeta } from "@/lib/buildMeta";
-import { ArrowLeft, ArrowRight, Clock, Headphones, Heart, Info, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  BookMarked,
+  Clock,
+  Eye,
+  Headphones,
+  Heart,
+  Info,
+  Sparkles,
+  Star,
+  Zap,
+} from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { data, Link, useParams } from "react-router";
 import type { Route } from "./+types/StorySummary";
@@ -189,105 +203,218 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
     <div className="min-h-screen bg-background">
       <ReadingProgressBar fraction={summaryProgress} label="Summary" />
 
-      <main className="mx-auto max-w-[760px] px-4 py-6 sm:py-10">
-        <Link
-          to={`/story/${story.slug}`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Story
-        </Link>
+      <main className="container mx-auto px-4 pb-8 pt-0 sm:pt-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            {/* Same info-card treatment as the story details page — cover
+                beside title/stats, with the image stretching to match
+                however tall that content ends up being (from md up). */}
+            <div className="relative -mx-4 mb-8 overflow-hidden border-y border-primary/15 bg-gradient-to-br from-primary/[0.07] via-card to-card p-4 shadow-sm sm:mx-0 sm:rounded-sm sm:border-x sm:p-6">
+              <div className="pointer-events-none absolute -right-16 -top-16 hidden h-48 w-48 rounded-full bg-primary/10 blur-3xl sm:block" />
 
-        <div className="mt-6">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-            <Zap className="h-3.5 w-3.5" />
-            Quick Read
-          </span>
-          <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{story.title}</h1>
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+              <div className="relative grid grid-cols-1 gap-6 md:grid-cols-[260px_1fr]">
+                <div className="relative aspect-[3/4] w-full overflow-hidden rounded-sm shadow-lg md:aspect-auto md:h-full md:min-h-[360px]">
+                  <CoverImage
+                    src={story.cover_image}
+                    alt={story.title}
+                    author={story.author?.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+
+                <div className="flex h-full flex-col justify-center space-y-4">
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <Badge className="border-amber-200 bg-amber-50 text-amber-700">
+                        <Zap className="mr-1 h-3 w-3" />
+                        Quick Read
+                      </Badge>
+                      {story.categories.slice(0, 2).map((category) => (
+                        <Badge key={category.id} variant="secondary">
+                          {category.name}
+                        </Badge>
+                      ))}
+                    </div>
+                    <h1 className="mb-2 text-4xl font-bold">{story.title}</h1>
+                    {story.author && (
+                      <div className="mb-4 flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={story.author.image || ""} />
+                          <AvatarFallback>SC</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm text-muted-foreground">
+                          by{" "}
+                          <Link
+                            to={`/authors/${story.author.id}`}
+                            className="font-medium text-foreground transition-colors hover:text-primary hover:underline"
+                          >
+                            {story.author.name}
+                          </Link>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-foreground sm:gap-x-6 sm:text-sm">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 sm:h-4 sm:w-4" />
+                      <span className="font-semibold text-amber-600">{story.rating}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Eye className="h-3.5 w-3.5 text-sky-500 sm:h-4 sm:w-4" />
+                      <span className="font-semibold text-sky-600">{story.views}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-amber-500 sm:h-4 sm:w-4" />
+                      <span className="font-semibold text-amber-600">{quickReadMinutes} min read</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Heart
+                        className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? "fill-pink-500 text-pink-500" : "text-pink-400"}`}
+                      />
+                      <span className="font-semibold text-pink-600">{story.favorites_count}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" onClick={toggleFavorite} disabled={favoriteLoading} variant="outline">
+                      <Heart className={`mr-1.5 h-3.5 w-3.5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+                      {isFavorite ? "Saved" : "Save"}
+                    </Button>
+                  </div>
+
+                  {(primaryReadHref || firstAudioSlug) && (
+                    <div className="rounded-sm border border-dashed border-primary/30 bg-primary/5 p-3">
+                      <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Also Available
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {primaryReadHref && (
+                          <Link
+                            to={primaryReadHref}
+                            onClick={trackFullStoryClick}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 shadow-sm transition-all hover:scale-105"
+                          >
+                            <BookMarked className="h-3.5 w-3.5" />
+                            Read Full Story
+                          </Link>
+                        )}
+                        {firstAudioSlug && (
+                          <Link
+                            to={`/listen/${story.slug}/${firstAudioSlug}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 shadow-sm transition-all hover:scale-105"
+                          >
+                            <Headphones className="h-3.5 w-3.5" />
+                            Listen
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Content card — same treatment as the chapter/audio list cards
+                on the story details page, with a heading row of its own.
+                Plain (no border/shadow/rounding) on mobile; restored from
+                sm up. */}
+            <Card className="rounded-none border-x-0 border-b-0 shadow-none sm:rounded-lg sm:border sm:shadow-sm">
+              <CardContent className="p-0">
+                <h3 className="flex items-center gap-2 border-b bg-muted/50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-foreground">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Summary
+                </h3>
+                <div className="p-4 sm:p-6">
+                  <p className="flex items-start gap-2 rounded-sm border border-red-300 bg-red-50 p-3 text-xs font-medium text-red-700">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    This quick summary may include spoilers for the story.
+                  </p>
+
+                  <article
+                    ref={summaryRef}
+                    className="prose prose-lg mt-6 max-w-none text-justify leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
+                  />
+
+                  {/* Marks the end of the summary. Seeing this is what counts
+                      as having read it — see useQuickReadFunnel. */}
+                  <div ref={endOfSummaryRef} aria-hidden="true" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="relative mt-6 flex flex-col items-center gap-4 overflow-hidden rounded-sm bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 p-5 text-center text-white shadow-lg sm:flex-row sm:justify-between sm:p-6 sm:text-left">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-12 left-1/4 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+              <BookMarked className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 animate-flicker text-white/10" style={{ animationDuration: "3s" }} />
+
+              <div className="relative flex items-center gap-3">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15">
+                  <BookMarked className="h-6 w-6" />
+                </span>
+                <div>
+                  {/* "the summary", not "the story" — that is what they just read,
+                      and the whole point of this panel is to offer them the story. */}
+                  <p className="font-display text-lg font-bold sm:text-xl">Enjoyed the summary?</p>
+                  {primaryReadHref ? (
+                    <p className="mt-0.5 text-sm text-white/85">
+                      Read it in full, the way it was written.
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-sm text-white/85">The full story isn't available yet.</p>
+                  )}
+                </div>
+              </div>
+
+              {primaryReadHref && (
+                <div className="relative shrink-0">
+                  <span className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-white/20" />
+                  <Link
+                    to={primaryReadHref}
+                    onClick={trackFullStoryClick}
+                    className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:scale-110 hover:bg-white/25"
+                  >
+                    Read the Full Story
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
             {story.author && (
-              <Link
-                to={`/authors/${story.author.id}`}
-                className="font-medium text-foreground transition-colors hover:text-primary hover:underline"
-              >
-                by {story.author.name}
-              </Link>
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-semibold mb-2">About the Author</h3>
+                  <Link to={`/authors/${story.author.id}`} className="group mb-3 flex w-fit items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={story.author.image || ""} />
+                      <AvatarFallback>SC</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium transition-colors group-hover:text-primary group-hover:underline">
+                        {story.author.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatViews(story.author.stories_count)} stories
+                      </p>
+                    </div>
+                  </Link>
+                  <p className="text-sm text-muted-foreground">
+                    {story.author.bio || "No author bio available."}
+                  </p>
+                  <Separator className="my-4" />
+                  <p className="text-sm text-muted-foreground">{story.about}</p>
+                </CardContent>
+              </Card>
             )}
-            {story.categories.slice(0, 2).map((category) => (
-              <Badge key={category.id} variant="outline">
-                {category.name}
-              </Badge>
-            ))}
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {quickReadMinutes} min read
-            </span>
+
+            <RecommendedQuickReadsSection stories={recommendedQuickReads || []} />
           </div>
         </div>
-
-        <div className="mx-auto mt-6 w-36 overflow-hidden rounded-lg shadow-md sm:w-44">
-          <CoverImage
-            src={story.cover_image}
-            alt={story.title}
-            author={story.author?.name}
-            className="aspect-[3/4] w-full object-cover"
-          />
-        </div>
-
-        <p className="mt-8 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-medium text-red-700">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          This quick summary may include spoilers for the story.
-        </p>
-
-        <article
-          ref={summaryRef}
-          className="prose prose-lg mt-6 max-w-none leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
-        />
-
-        {/* Marks the end of the summary. Seeing this is what counts as having
-            read it — see useQuickReadFunnel. */}
-        <div ref={endOfSummaryRef} aria-hidden="true" />
-
-        <div className="mt-8 flex flex-col items-center gap-3 rounded-xl border border-border bg-muted/30 p-4 text-center sm:flex-row sm:justify-between sm:p-5 sm:text-left">
-          <div>
-            {/* "the summary", not "the story" — that is what they just read,
-                and the whole point of this panel is to offer them the story. */}
-            <p className="text-sm font-semibold">Enjoyed the summary?</p>
-            {primaryReadHref ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Read it in full, the way it was written.
-              </p>
-            ) : (
-              <p className="mt-0.5 text-xs text-muted-foreground">The full story isn't available yet.</p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
-            {primaryReadHref && (
-              <Link to={primaryReadHref} onClick={trackFullStoryClick}>
-                <Button size="sm">
-                  Read the Full Story
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            )}
-            {firstAudioSlug && (
-              <Link to={`/listen/${story.slug}/${firstAudioSlug}`}>
-                <Button variant="outline" size="sm">
-                  <Headphones className="mr-1.5 h-3.5 w-3.5" />
-                  Listen
-                </Button>
-              </Link>
-            )}
-            <Button variant="outline" size="sm" onClick={toggleFavorite} disabled={favoriteLoading}>
-              <Heart className={`mr-1.5 h-3.5 w-3.5 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
-              {isFavorite ? "Saved" : "Save"}
-            </Button>
-          </div>
-        </div>
-
-        <RecommendedQuickReadsSection stories={recommendedQuickReads || []} />
       </main>
     </div>
   );

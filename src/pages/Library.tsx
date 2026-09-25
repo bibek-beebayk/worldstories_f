@@ -335,14 +335,24 @@ const Library = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-indigo-50 to-slate-100">
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700">
+      <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-600 to-slate-700 text-white">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+
+        {/* Decorative only — a big flickering library watermark plus small
+            drifting book icons, echoing the "browse everything" theme the
+            way Quick Reads' bolt echoes "fast". */}
+        <LibraryIcon className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 animate-flicker text-white/10" style={{ animationDuration: "3.5s" }} />
+        <BookMarked className="pointer-events-none absolute bottom-5 left-[16%] h-6 w-6 animate-float text-white/25" style={{ animationDuration: "4.5s" }} />
+        <BookMarked className="pointer-events-none absolute right-[26%] top-8 h-5 w-5 animate-float text-white/20" style={{ animationDelay: "1s", animationDuration: "5.5s" }} />
+
+        <div className="container relative mx-auto px-3 py-8 sm:px-4 sm:py-12">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
             <LibraryIcon className="h-3.5 w-3.5" />
             The Full Library
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Library</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Library</h1>
+          <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
             {isBrowsing
               ? "Every story on WorldStories, organized by how you want to experience it."
               : "Filtered results from across the library."}
