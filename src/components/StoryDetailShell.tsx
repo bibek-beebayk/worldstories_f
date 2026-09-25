@@ -47,7 +47,6 @@ import { Link, useParams } from "react-router";
 import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
 import { listLocalProgress, makeDownloadId } from "@/lib/offlineDb";
 import { formatDurationMinutes } from "@/lib/utils";
-import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import CoverImage from "@/components/CoverImage";
 import StoryCard from "@/components/StoryCard";
 import WatchModal from "@/components/WatchModal";
@@ -61,6 +60,16 @@ const MODE_LABEL: Record<StoryDetailMode, string> = {
   listen: "Listen",
   "read-along": "Read Along",
   watch: "Watch",
+};
+
+// Same per-format color coding used elsewhere (StoryCard's FORMAT_BADGES,
+// Discover's ContentTypeSection themes), so "Also Available" pills read
+// consistently with the rest of the app rather than inventing new colors.
+const MODE_PILL_COLORS: Record<StoryDetailMode, string> = {
+  read: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  listen: "border-rose-200 bg-rose-50 text-rose-700",
+  "read-along": "border-sky-200 bg-sky-50 text-sky-700",
+  watch: "border-indigo-200 bg-indigo-50 text-indigo-700",
 };
 
 // Each mode-scoped detail page (ReadDetail/ListenDetail/ReadAlongDetail/
@@ -186,7 +195,6 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
   const watchLabel = hasSavedVideo ? "Continue Watching" : "Watch";
 
   const storyPath = `/${mode}/${story.slug}`;
-  const quickReadMinutes = estimateSummaryReadingMinutes(story.summary);
   // Other ways to experience this same title, excluding the mode this page
   // is already scoped to — surfaced separately below as "Also Available"
   // rather than mixed into the primary action, so the page stays a single
@@ -203,6 +211,7 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
       ? [{ mode: "watch" as const, href: `/watch/${story.slug}`, label: "Watch", icon: Youtube }]
       : []),
   ];
+  const hasQuickRead = Boolean(story.summary);
   // Similar titles are scoped to the same mode this page is isolated to —
   // a reader on a Watch page shouldn't be offered "similar" titles that
   // turn out to be text-only. "read" has no reliable per-item flag to
@@ -225,13 +234,56 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
     story_type: story.story_type,
   };
 
+  // Rendered twice below (mobile vs. desktop position) rather than moved,
+  // since the two columns are independent stacks in the DOM — on mobile
+  // (single column) that means this would otherwise land after everything
+  // in the left column instead of right below the info card.
+  const descriptionAndAuthorCard = (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold mb-2">Story Description</h3>
+          <p className="text-muted-foreground">{story.about || "No description available."}</p>
+        </div>
+        {story.author && (
+          <>
+            <Separator />
+            <div>
+              <h3 className="font-semibold mb-2">About the Author</h3>
+              <Link to={`/authors/${story.author.id}`} className="group mb-3 flex w-fit items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={story.author.image || ""} />
+                  <AvatarFallback>SC</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium transition-colors group-hover:text-primary group-hover:underline">{story.author.name}</p>
+                  <p className="text-sm text-muted-foreground">{story.author.stories_count} stories</p>
+                </div>
+              </Link>
+              <p className="text-sm text-muted-foreground">{story.author.bio || "No author bio available."}</p>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 pb-8 pt-0 sm:pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 mb-8">
-              <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-lg">
+            <div className="relative -mx-4 mb-8 overflow-hidden border-y border-primary/15 bg-gradient-to-br from-primary/[0.07] via-card to-card p-4 shadow-sm sm:mx-0 sm:rounded-sm sm:border-x sm:p-6">
+              <div className="pointer-events-none absolute -right-16 -top-16 hidden h-48 w-48 rounded-full bg-primary/10 blur-3xl sm:block" />
+
+              <div className="relative grid grid-cols-1 gap-6 md:grid-cols-[260px_1fr]">
+              {/* aspect-ratio only applies on mobile, where the image sits
+                  stacked above the info column with nothing to match. From
+                  md up (side-by-side), the grid row already stretches both
+                  columns to equal height, so h-full here makes the image
+                  match however tall the info content actually is, rather
+                  than the other way around. */}
+              <div className="relative aspect-[3/4] w-full overflow-hidden rounded-sm shadow-lg md:aspect-auto md:h-full md:min-h-[360px]">
                 <CoverImage
                   src={story.cover_image}
                   alt={story.title}
@@ -278,45 +330,43 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-foreground sm:gap-x-6 sm:text-sm">
                   <div className="flex items-center gap-1">
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 sm:h-4 sm:w-4" />
-                    <span className="font-semibold">{story.rating}</span>
+                    <span className="font-semibold text-amber-600">{story.rating}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Eye className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                    <span>{story.views}</span>
+                    <Eye className="h-3.5 w-3.5 text-sky-500 sm:h-4 sm:w-4" />
+                    <span className="font-semibold text-sky-600">{story.views}</span>
                   </div>
                   {mode === "read" &&
                     (story.chapter_count > 0 ? (
                       <div className="flex items-center gap-1">
-                        <BookMarked className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                        <span>{story.chapter_count} chapters</span>
+                        <BookMarked className="h-3.5 w-3.5 text-emerald-500 sm:h-4 sm:w-4" />
+                        <span className="font-semibold text-emerald-600">{story.chapter_count} chapters</span>
                       </div>
                     ) : story.epub_file || story.pdf_file ? (
                       <div className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                        <span>{story.epub_file ? "EPUB" : "PDF"}</span>
+                        <FileText className="h-3.5 w-3.5 text-emerald-500 sm:h-4 sm:w-4" />
+                        <span className="font-semibold text-emerald-600">{story.epub_file ? "EPUB" : "PDF"}</span>
                       </div>
                     ) : null)}
                   {mode === "read" && story.reading_time_minutes != null && (
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                      <span>{formatDurationMinutes(story.reading_time_minutes)} read</span>
+                      <Clock className="h-3.5 w-3.5 text-amber-500 sm:h-4 sm:w-4" />
+                      <span className="font-semibold text-amber-600">{formatDurationMinutes(story.reading_time_minutes)} read</span>
                     </div>
                   )}
                   {(mode === "listen" || mode === "read-along") && story.listening_time_minutes != null && (
                     <div className="flex items-center gap-1">
-                      <Headphones className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                      <span>{formatDurationMinutes(story.listening_time_minutes)} listen</span>
+                      <Headphones className="h-3.5 w-3.5 text-rose-500 sm:h-4 sm:w-4" />
+                      <span className="font-semibold text-rose-600">{formatDurationMinutes(story.listening_time_minutes)} listen</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1">
                     <Heart
-                      className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                      className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? "fill-pink-500 text-pink-500" : "text-pink-400"}`}
                     />
-                    <span>{favoritesCount}</span>
+                    <span className="font-semibold text-pink-600">{favoritesCount}</span>
                   </div>
                 </div>
-
-                <p className="text-muted-foreground leading-relaxed">{story.about}</p>
 
                 <div className="flex flex-wrap gap-2">
                   {story.genres.map((tag, index) => (
@@ -416,43 +466,61 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                 )}
                 {favoriteError && <p className="text-sm text-red-500">{favoriteError}</p>}
 
-                {(otherModes.length > 0 || quickReadMinutes !== null) && (
-                  <div>
-                    <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {(otherModes.length > 0 || hasQuickRead) && (
+                  <div className="rounded-sm border border-dashed border-primary/30 bg-primary/5 p-3">
+                    <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
                       Also Available
                     </span>
                     <div className="flex flex-wrap items-center gap-2">
-                      {otherModes.map(({ mode: otherMode, href, label, icon: Icon }) => (
-                        <Link
-                          key={otherMode}
-                          to={href}
-                          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {label}
-                        </Link>
-                      ))}
-                      {quickReadMinutes !== null && (
+                      {otherModes.map(({ mode: otherMode, href, label, icon: Icon }) => {
+                        const colors = MODE_PILL_COLORS[otherMode];
+                        return (
+                          <Link
+                            key={otherMode}
+                            to={href}
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:scale-105 ${colors}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {label}
+                          </Link>
+                        );
+                      })}
+                      {hasQuickRead && (
                         <AuthGatedLink
                           to={`/quick-read/${story.slug}`}
-                          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 shadow-sm transition-all hover:scale-105"
                         >
                           <Zap className="h-3.5 w-3.5" />
-                          Quick Read · {quickReadMinutes} min
+                          Quick Read
                         </AuthGatedLink>
                       )}
                     </div>
                   </div>
                 )}
               </div>
+              </div>
             </div>
+
+            {/* Mobile-only: desktop shows this in the sidebar instead (below). */}
+            <div className="mb-8 lg:hidden">{descriptionAndAuthorCard}</div>
 
             <AdSpace size="banner" className="mb-8" contentType="story" />
 
-            {/* Mode-specific content list — the only list shown on this page. */}
-            {mode === "read" && (
+            {/* Mode-specific content list — the only list shown on this page.
+                Skipped entirely when there's only one item: the primary
+                button above already goes straight to it, so a one-row list
+                repeating the same single option adds nothing. */}
+            {mode === "read" && story.chapters.length > 1 && (
               <Card>
                 <CardContent className="p-0">
+                  <h3 className="flex items-center gap-2 border-b bg-muted/50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-foreground">
+                    <BookMarked className="h-4 w-4 text-primary" />
+                    Chapters
+                    <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                      {story.chapters.length}
+                    </span>
+                  </h3>
                   {story.chapters.length > 0 ? (
                     story.chapters.map((chapter, index) => {
                       const chapterProgress = chapterProgressMap[chapter.slug] || 0;
@@ -517,9 +585,16 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
               </Card>
             )}
 
-            {mode === "listen" && (
+            {mode === "listen" && story.audios.length > 1 && (
               <Card>
                 <CardContent className="p-0">
+                  <h3 className="flex items-center gap-2 border-b bg-muted/50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-foreground">
+                    <Headphones className="h-4 w-4 text-primary" />
+                    Audio Tracks
+                    <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                      {story.audios.length}
+                    </span>
+                  </h3>
                   {story.audios.length > 0 ? (
                     story.audios.map((audio, index) => {
                       const downloadId = makeDownloadId(story.slug, "audio", audio.slug);
@@ -576,9 +651,16 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
               </Card>
             )}
 
-            {mode === "read-along" && (
+            {mode === "read-along" && readAlongTracks.length > 1 && (
               <Card>
                 <CardContent className="p-0">
+                  <h3 className="flex items-center gap-2 border-b bg-muted/50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-foreground">
+                    <Captions className="h-4 w-4 text-primary" />
+                    Read Along Tracks
+                    <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                      {readAlongTracks.length}
+                    </span>
+                  </h3>
                   {readAlongTracks.length > 0 ? (
                     readAlongTracks.map((audio, index) => (
                       <Link to={`/read-along/${slug}/${audio.slug}`} key={index}>
@@ -599,9 +681,16 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
               </Card>
             )}
 
-            {mode === "watch" && (
+            {mode === "watch" && story.videos.length > 1 && (
               <Card>
                 <CardContent className="p-0">
+                  <h3 className="flex items-center gap-2 border-b bg-muted/50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-foreground">
+                    <Youtube className="h-4 w-4 text-primary" />
+                    Videos
+                    <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                      {story.videos.length}
+                    </span>
+                  </h3>
                   {story.videos.length > 0 ? (
                     story.videos.map((video, index) => {
                       const watchProgress = videoProgressMap[video.slug] || 0;
@@ -647,42 +736,20 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
               </Card>
             )}
 
-            <Card className="mt-6">
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Story Description</h3>
-                  <p className="text-muted-foreground">{story.about || "No description available."}</p>
-                </div>
-                {story.author && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold mb-2">About the Author</h3>
-                      <Link to={`/authors/${story.author.id}`} className="group mb-3 flex w-fit items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={story.author.image || ""} />
-                          <AvatarFallback>SC</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium transition-colors group-hover:text-primary group-hover:underline">{story.author.name}</p>
-                          <p className="text-sm text-muted-foreground">{story.author.stories_count} stories</p>
-                        </div>
-                      </Link>
-                      <p className="text-sm text-muted-foreground">{story.author.bio || "No author bio available."}</p>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            {/* Lives here, not after the two-column grid, so it fills the
+                space the content list would otherwise take up when a story
+                has no list to show (0 or 1 items — see above) instead of
+                leaving the left column visibly shorter than the sidebar. */}
+            <div className="mt-6">
+              <StoryReactions storySlug={story.slug} />
+            </div>
           </div>
 
           <div className="space-y-6">
+            <div className="hidden lg:block">{descriptionAndAuthorCard}</div>
+
             <AdSpace size="rectangle" contentType="story" />
           </div>
-        </div>
-
-        <div className="mt-12">
-          <StoryReactions storySlug={story.slug} />
         </div>
 
         {similarStories.length > 0 && (

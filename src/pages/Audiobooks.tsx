@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
 import { formatViews } from "@/lib/utils";
-import { Headphones, Loader2, Search } from "lucide-react";
+import { Headphones, Loader2, Music, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildMeta } from "@/lib/buildMeta";
 
@@ -64,14 +64,24 @@ const Audiobooks = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-rose-200/60 bg-gradient-to-br from-rose-50 via-pink-50 to-fuchsia-100">
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
+      <div className="relative overflow-hidden bg-gradient-to-br from-rose-600 via-pink-600 to-fuchsia-600 text-white">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+
+        {/* Decorative only — a big pulsing headphone watermark plus small
+            drifting notes, echoing the "listen" theme the way Quick Reads'
+            bolt echoes "fast". */}
+        <Headphones className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 animate-flicker text-white/10" style={{ animationDuration: "3s" }} />
+        <Music className="pointer-events-none absolute bottom-5 left-[16%] h-6 w-6 animate-float text-white/25" style={{ animationDuration: "4.5s" }} />
+        <Music className="pointer-events-none absolute right-[26%] top-8 h-5 w-5 animate-float text-white/20" style={{ animationDelay: "1s", animationDuration: "5.5s" }} />
+
+        <div className="container relative mx-auto px-3 py-8 sm:px-4 sm:py-12">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
             <Headphones className="h-3.5 w-3.5" />
             Listen
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Audiobooks</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Audiobooks</h1>
+          <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
             Every story on WorldStories with narration — listen on the go, wherever you are.
           </p>
         </div>
@@ -118,7 +128,7 @@ const Audiobooks = () => {
           </div>
         </div>
 
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <section className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
           {stories.map((story) => (
             <StoryCard key={story.id} {...story} linkTo={`/listen/${story.slug}`} />
           ))}

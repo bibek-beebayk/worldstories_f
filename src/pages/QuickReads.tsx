@@ -72,12 +72,12 @@ const QuickReads = () => {
   if (!isAuthenticated) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-sm text-center">
+        <Card className="w-full max-w-sm border-amber-200 text-center">
           <CardContent className="p-8">
-            <div className="mx-auto mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-              <Zap className="h-3.5 w-3.5" />
-              Quick Read
-            </div>
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+              <Zap className="h-6 w-6" />
+            </span>
+            <h2 className="mb-1 font-display text-lg font-bold">Quick Reads</h2>
             <p className="text-sm text-muted-foreground">
               <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
                 Login
@@ -94,14 +94,24 @@ const QuickReads = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-amber-200/60 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-100">
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">
+      <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+
+        {/* Decorative only — a big flickering bolt plus a couple of small
+            drifting sparks, echoing the "quick/energetic" theme the way
+            Explore by Country's globe/pins echo its own. */}
+        <Zap className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 animate-flicker text-white/10" style={{ animationDuration: "2.5s" }} />
+        <Zap className="pointer-events-none absolute bottom-5 left-[16%] h-6 w-6 animate-float text-white/25" style={{ animationDuration: "4s" }} />
+        <Zap className="pointer-events-none absolute right-[26%] top-8 h-5 w-5 animate-float text-white/20" style={{ animationDelay: "1s", animationDuration: "5s" }} />
+
+        <div className="container relative mx-auto px-3 py-8 sm:px-4 sm:py-12">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
             <Zap className="h-3.5 w-3.5" />
             Quick Read
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Quick Reads</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Quick Reads</h1>
+          <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
             Short summaries for when you're short on time — every story on WorldStories with a Quick Read.
           </p>
         </div>
@@ -148,10 +158,14 @@ const QuickReads = () => {
           </div>
         </div>
 
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <section className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
           {stories.map((story) => (
-            <div key={story.id}>
-              <div className="relative mb-3 aspect-[3/4] overflow-hidden rounded-lg shadow-md">
+            <AuthGatedLink
+              key={story.id}
+              to={`/quick-read/${story.slug}`}
+              className="group relative z-0 block transition-transform duration-300 ease-out hover:z-20 hover:scale-105"
+            >
+              <div className="relative mb-3 aspect-[3/4] overflow-hidden rounded-lg shadow-md group-hover:shadow-2xl">
                 <CoverImage
                   src={story.cover_image}
                   alt={story.title}
@@ -165,25 +179,18 @@ const QuickReads = () => {
                     <Headphones className="h-3 w-3 text-white" />
                   </div>
                 )}
+                {story.summary_reading_minutes != null && (
+                  <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                    <Clock3 className="h-3 w-3" />
+                    <span>{story.summary_reading_minutes} min read</span>
+                  </div>
+                )}
               </div>
 
-              <h3 className="mb-1 line-clamp-2 text-sm font-semibold">{story.title}</h3>
-              {story.author && <p className="mb-1 line-clamp-1 text-xs text-muted-foreground">by {story.author}</p>}
-              {story.summary_reading_minutes != null && (
-                <div className="mb-3 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock3 className="h-3 w-3" />
-                  <span>{story.summary_reading_minutes} min read</span>
-                </div>
-              )}
-
-              <AuthGatedLink
-                to={`/quick-read/${story.slug}`}
-                className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <Zap className="h-3.5 w-3.5" />
-                Read
-              </AuthGatedLink>
-            </div>
+              <h3 className="line-clamp-2 text-sm font-semibold transition-colors group-hover:text-primary">
+                {story.title}
+              </h3>
+            </AuthGatedLink>
           ))}
         </section>
 

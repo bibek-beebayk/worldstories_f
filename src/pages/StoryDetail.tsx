@@ -220,11 +220,14 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   // already clicked into themselves is never overridden.
   useEffect(() => {
     if (!story) return;
-    if (story.chapters.length > 0) return;
+    // A single chapter/audio/video needs no list of its own — the primary
+    // action button above already goes straight to it — so treat a lone
+    // item the same as none when picking the default tab.
+    if (story.chapters.length > 1) return;
     setActiveTab((current) => {
       if (current !== "chapters") return current;
-      if (story.audios.length > 0) return "audios";
-      if (story.videos.length > 0) return "videos";
+      if (story.audios.length > 1) return "audios";
+      if (story.videos.length > 1) return "videos";
       return "about";
     });
   }, [story]);
@@ -693,10 +696,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                   </div>
                 </div>
 
-                <p className="text-muted-foreground leading-relaxed">
-                  {story.about}
-                </p>
-
                 <div className="flex flex-wrap gap-2">
                   {story.genres.map((tag, index) => (
                     <Badge key={index} variant="secondary">{tag.name}</Badge>
@@ -895,9 +894,9 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <div className="-mx-1 overflow-x-auto px-1 pb-1">
                 <TabsList className="w-max">
-                  {story.chapters.length > 0 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
-                  {story.audios.length > 0 && <TabsTrigger value="audios">Audios</TabsTrigger>}
-                  {story.videos.length > 0 && <TabsTrigger value="videos">Watch</TabsTrigger>}
+                  {story.chapters.length > 1 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
+                  {story.audios.length > 1 && <TabsTrigger value="audios">Audios</TabsTrigger>}
+                  {story.videos.length > 1 && <TabsTrigger value="videos">Watch</TabsTrigger>}
                   <TabsTrigger value="about">About</TabsTrigger>
                   <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 </TabsList>
@@ -906,7 +905,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
               <TabsContent value="chapters" className="mt-6" ref={chaptersRef}>
                 <Card >
                   <CardContent className="p-0">
-                    {story.chapters.length > 0 ? <>{story?.chapters?.map((chapter, index) => {
+                    {story.chapters.length > 1 ? <>{story?.chapters?.map((chapter, index) => {
                       const chapterProgress = chapterProgressMap[chapter.slug] || 0;
                       const isChapterCompleted = chapterProgress >= 1;
                       const downloadId = makeDownloadId(story.slug, "chapter", chapter.slug);
@@ -982,7 +981,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
               <TabsContent value="audios" className="mt-6" ref={audiosRef}>
                 <Card >
                   <CardContent className="p-0">
-                    {story.audios.length > 0 ? <>{story?.audios?.map((chapter, index) => {
+                    {story.audios.length > 1 ? <>{story?.audios?.map((chapter, index) => {
                       const downloadId = makeDownloadId(story.slug, "audio", chapter.slug);
                       const isDownloaded = downloadedIds.has(downloadId);
                       const isPending = isDownloadPending(downloadId);
@@ -1062,7 +1061,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
               <TabsContent value="videos" className="mt-6">
                 <Card>
                   <CardContent className="p-0">
-                    {story.videos.length > 0 ? (
+                    {story.videos.length > 1 ? (
                       story.videos.map((video, index) => {
                         const watchProgress = videoProgressMap[video.slug] || 0;
                         const isVideoCompleted = watchProgress >= 0.995;
