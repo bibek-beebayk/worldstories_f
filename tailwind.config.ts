@@ -117,17 +117,6 @@ export default {
           "50%": { transform: "scale(0.96) rotate(2deg)", opacity: "1" },
           "75%": { transform: "scale(1.05) rotate(-1deg)", opacity: "0.95" },
         },
-        "pop-in": {
-          "0%": { transform: "scale(0)", opacity: "0" },
-          "60%": { transform: "scale(1.15)", opacity: "1" },
-          "80%": { transform: "scale(0.95)" },
-          "100%": { transform: "scale(1)" },
-        },
-        "pop-loop": {
-          "0%, 75%, 100%": { transform: "scale(1)" },
-          "83%": { transform: "scale(1.15)" },
-          "91%": { transform: "scale(0.97)" },
-        },
         rise: {
           "0%": { transform: "translateY(0) scale(0.8)", opacity: "0" },
           "20%": { opacity: "1" },
@@ -145,8 +134,6 @@ export default {
         float: "float 6s ease-in-out infinite",
         "drift-slow": "drift-slow 12s ease-in-out infinite",
         "gradient-x": "gradient-x 4s ease infinite",
-        "pop-in": "pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both",
-        "pop-loop": "pop-loop 2.5s ease-in-out infinite",
         flicker: "flicker 2s ease-in-out infinite",
         rise: "rise 3s ease-in infinite",
         "path-dash": "path-dash 1.5s linear infinite",

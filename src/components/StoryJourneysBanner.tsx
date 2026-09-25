@@ -52,13 +52,16 @@ const StoryJourneysBanner = ({ enabled }: { enabled: boolean }) => {
           </div>
         </div>
 
-        <Link
-          to="/journeys"
-          className="inline-flex shrink-0 animate-pop-loop items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all duration-200 hover:animate-none hover:scale-110 hover:bg-white/25 sm:text-sm"
-        >
-          Explore journeys
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+        <div className="relative shrink-0">
+          <span className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-white/20" />
+          <Link
+            to="/journeys"
+            className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all duration-200 hover:scale-110 hover:bg-white/25 sm:text-sm"
+          >
+            Explore journeys
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
     </section>
   );
