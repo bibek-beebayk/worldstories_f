@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, ChevronDown, Earth, FileText, Menu, Search, Sparkles, UsersRound, X } from "lucide-react";
+import { BookOpen, ChevronDown, Earth, FileText, LogIn, LogOut, Menu, Search, Sparkles, User, UsersRound, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -337,17 +337,27 @@ const Header = () => {
           {isLoggedIn ? (
             <>
               <Link to="/profile">
-                <Button variant="outline" className="hidden sm:inline-flex">
+                <Button className="hidden rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex">
+                  <User className="mr-1.5 h-4 w-4" />
                   Profile
                 </Button>
               </Link>
-              <Button variant="outline" className="hidden sm:inline-flex" onClick={requestLogout}>
+              <Button
+                variant="outline"
+                className="hidden rounded-full border-destructive/30 text-destructive transition-colors hover:border-destructive hover:bg-destructive/10 hover:text-destructive sm:inline-flex"
+                onClick={requestLogout}
+              >
+                <LogOut className="mr-1.5 h-4 w-4" />
                 Logout
               </Button>
             </>
           ) : (
             <>
-              <Button variant="outline" className="hidden sm:inline-flex" onClick={handleOpenLoginModal}>
+              <Button
+                className="hidden rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex"
+                onClick={handleOpenLoginModal}
+              >
+                <LogIn className="mr-1.5 h-4 w-4" />
                 Log In
               </Button>
               {/* <Link to="/register">
@@ -677,18 +687,28 @@ const Header = () => {
                   <>
                     <SheetClose asChild>
                       <Link to="/profile">
-                        <Button variant="outline" className="w-full">
+                        <Button className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm">
+                          <User className="mr-1.5 h-4 w-4" />
                           Profile
                         </Button>
                       </Link>
                     </SheetClose>
-                    <Button variant="outline" className="w-full" onClick={requestLogout}>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={requestLogout}
+                    >
+                      <LogOut className="mr-1.5 h-4 w-4" />
                       Logout
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" className="w-full" onClick={handleOpenLoginModal}>
+                    <Button
+                      className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm"
+                      onClick={handleOpenLoginModal}
+                    >
+                      <LogIn className="mr-1.5 h-4 w-4" />
                       Log In
                     </Button>
 
