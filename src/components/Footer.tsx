@@ -29,7 +29,7 @@ const Footer = () => {
             </nav>
 
             <div className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} WorldStories, All rights reserved.
+              © 2026 WorldStories · Owned and operated by Bibek Gautam
             </div>
           </div>
         </div>

@@ -1,60 +1,42 @@
 import { Link } from "react-router";
-import { Mail, MessageSquareText, ShieldCheck } from "lucide-react";
+import { Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { buildMeta } from "@/lib/buildMeta";
 
-const CONTACT_EMAIL = "worldstoriesnet@gmail.com";
+const CONTACT_EMAIL = "beebayk0001@gmail.com";
 
 export function meta() {
   return buildMeta({
-    title: "Contact Us | WorldStories",
+    title: "Contact | WorldStories",
     description:
-      "Get in touch with the WorldStories team for support, privacy requests, or feedback.",
+      "Contact WorldStories publisher Bibek Gautam with questions, feedback, rights, or publishing enquiries.",
     path: "/contact",
   });
 }
-
-const topics = [
-  {
-    icon: MessageSquareText,
-    title: "General support",
-    description: "Questions about your account, reading a story, or something not working as expected.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Privacy & content concerns",
-    description: "Requests about your personal data, or reporting content that violates our Terms of Service.",
-  },
-];
 
 const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:py-16">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Contact Us</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Contact</h1>
         <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-          Have a question, found a bug, or want to reach out about your account or a story on
-          WorldStories? We'd like to hear from you.
+          For questions, feedback, rights or publishing enquiries, contact Bibek Gautam at{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-primary hover:underline">
+            {CONTACT_EMAIL}
+          </a>
+          .
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {topics.map(({ icon: Icon, title, description }) => (
-            <Card key={title}>
-              <CardContent className="flex flex-col gap-2 p-5">
-                <Icon className="h-5 w-5 text-primary" />
-                <h2 className="text-sm font-semibold">{title}</h2>
-                <p className="text-xs text-muted-foreground">{description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="mt-6 border-primary/20 bg-primary/5">
+        <Card className="mt-8 border-primary/20 bg-primary/5">
           <CardContent className="flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary">Email us</p>
-              <p className="mt-1 text-lg font-semibold">{CONTACT_EMAIL}</p>
+              <p className="mt-1 text-lg font-semibold">Bibek Gautam</p>
+              <p className="mt-1 text-sm text-muted-foreground">Kathmandu, Nepal</p>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="mt-1 block text-sm font-medium text-primary hover:underline">
+                {CONTACT_EMAIL}
+              </a>
               <p className="mt-1 text-sm text-muted-foreground">We aim to respond within a few business days.</p>
             </div>
             <Button asChild>
