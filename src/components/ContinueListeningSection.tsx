@@ -84,7 +84,7 @@ const ContinueListeningSection = ({
             const progress = getCompletionPercentage(item.overall_progress);
             const continueHref = item.audio_slug
               ? `/listen/${item.story.slug}/${item.audio_slug}`
-              : `/story/${item.story.slug}`;
+              : `/read/${item.story.slug}`;
 
             return (
               <Link

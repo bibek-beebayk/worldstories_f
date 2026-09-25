@@ -193,7 +193,7 @@ const TrendingLeaderboard = ({
       return (
         <Link
           key={story.id}
-          to={`/story/${story.slug}`}
+          to={`/read/${story.slug}`}
           className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40 sm:gap-4 sm:p-4"
         >
           <div
@@ -534,7 +534,7 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
             {data.hidden_gems.map((story) => (
               <Link
                 key={story.id}
-                to={`/story/${story.slug}`}
+                to={`/read/${story.slug}`}
                 className="group flex items-center gap-3 rounded-xl border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/50 sm:gap-4"
               >
                 <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:h-20 sm:w-14">

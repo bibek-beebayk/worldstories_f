@@ -113,7 +113,7 @@ const StoryCompletionScreen = ({
           <p className="text-xs font-medium uppercase tracking-wide text-primary">Read next</p>
           <div className="mt-3 flex gap-4">
             <Link
-              to={`/story/${primary.slug}`}
+              to={`/read/${primary.slug}`}
               className="group block w-24 shrink-0 sm:w-28"
               tabIndex={-1}
               aria-hidden="true"
@@ -134,7 +134,7 @@ const StoryCompletionScreen = ({
             <div className="flex min-w-0 flex-1 flex-col">
               <h3 className="text-base font-semibold sm:text-lg">
                 <Link
-                  to={`/story/${primary.slug}`}
+                  to={`/read/${primary.slug}`}
                   className="hover:text-primary"
                   onClick={() => trackNextStoryClick(primary.slug, "title")}
                 >
@@ -152,7 +152,7 @@ const StoryCompletionScreen = ({
               )}
               <Button asChild className="mt-auto w-full self-start pt-0 sm:w-auto">
                 <Link
-                  to={`/story/${primary.slug}`}
+                  to={`/read/${primary.slug}`}
                   onClick={() => trackNextStoryClick(primary.slug, "read_next")}
                 >
                   Read Next

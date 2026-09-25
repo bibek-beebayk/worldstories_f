@@ -102,7 +102,7 @@ const SurpriseMeCard = ({ excludeSlug }: { excludeSlug?: string }) => {
 
       {story && !noneFound && (
         <article className="mt-4 flex gap-4 rounded-lg border border-border/70 bg-background/70 p-3">
-          <Link to={`/story/${story.slug}`} className="w-20 shrink-0" aria-hidden="true" tabIndex={-1}>
+          <Link to={`/read/${story.slug}`} className="w-20 shrink-0" aria-hidden="true" tabIndex={-1}>
             <div className="aspect-[3/4] overflow-hidden rounded-md bg-muted">
               <CoverImage
                 src={story.cover_image}
@@ -116,7 +116,7 @@ const SurpriseMeCard = ({ excludeSlug }: { excludeSlug?: string }) => {
           </Link>
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold">
-              <Link to={`/story/${story.slug}`} className="hover:text-primary">
+              <Link to={`/read/${story.slug}`} className="hover:text-primary">
                 {story.title}
               </Link>
             </h3>
@@ -127,7 +127,7 @@ const SurpriseMeCard = ({ excludeSlug }: { excludeSlug?: string }) => {
               <p className="mt-1 text-xs text-muted-foreground">{readingTime}</p>
             )}
             <Link
-              to={`/story/${story.slug}`}
+              to={`/read/${story.slug}`}
               className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
               Open story

@@ -94,7 +94,7 @@ const ContinueReadingSection = ({
             const remaining = formatRemainingMinutes(item.remaining_minutes);
             const continueHref = item.chapter_slug
               ? `/read/${item.story.slug}/${item.chapter_slug}`
-              : `/story/${item.story.slug}`;
+              : `/read/${item.story.slug}`;
 
             return (
               <Link

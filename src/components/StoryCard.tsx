@@ -21,9 +21,9 @@ interface StoryCardProps {
   is_original?: boolean;
   reading_time_minutes?: number | null;
   compact?: boolean;
-  /** Overrides the default `/story/:slug` destination — used by mode-scoped
+  /** Overrides the default `/read/:slug` destination — used by mode-scoped
    * sections (e.g. Library's Listen rail) so the card leads to the isolated
-   * detail page for that content type instead of the all-modes hub. */
+   * detail page for that content type instead. */
   linkTo?: string;
   /** Gives the card a softer rounded corner and heavier shadow — used by the
    * Featured Stories rail to stand apart from the site's usual
@@ -58,7 +58,7 @@ const StoryCard = (props: StoryCardProps) => {
 
   return (
     <Link
-      to={linkTo || `/story/${slug}`}
+      to={linkTo || `/read/${slug}`}
       className="group relative z-0 block cursor-pointer transition-transform duration-300 ease-out hover:z-20 hover:scale-105"
     >
       <div

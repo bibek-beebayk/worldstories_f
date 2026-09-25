@@ -204,7 +204,7 @@ const HeroSection = ({ featuredStories = [], dailyStory }: HeroSectionProps) => 
 
             <div className="flex flex-wrap gap-3">
               <Button size="lg" className="px-7 text-sm md:text-base" asChild>
-                <Link to={story ? `/story/${story.slug}` : "/library"} onClick={() => trackDailyStart("read_story")}>
+                <Link to={story ? `/read/${story.slug}` : "/library"} onClick={() => trackDailyStart("read_story")}>
                   {story ? (configuredDaily ? "Read Story" : "Read Featured Story") : "Explore"}
                 </Link>
               </Button>

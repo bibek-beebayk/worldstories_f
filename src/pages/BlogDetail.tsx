@@ -202,7 +202,7 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
             {linkedStories.map((story) => (
               <Card key={story.id} className="overflow-hidden transition-shadow hover:shadow-md">
                 <CardContent className="flex gap-4 p-4">
-                  <Link to={`/story/${story.slug}`} className="aspect-[3/4] w-20 shrink-0 overflow-hidden rounded-md">
+                  <Link to={`/read/${story.slug}`} className="aspect-[3/4] w-20 shrink-0 overflow-hidden rounded-md">
                     <CoverImage
                       src={story.cover_image}
                       alt={story.title}
@@ -214,12 +214,12 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
                     <p className="text-xs font-medium uppercase tracking-wide text-primary">
                       {story.story_type || "Story"}
                     </p>
-                    <Link to={`/story/${story.slug}`} className="mt-1 line-clamp-2 font-semibold hover:text-primary">
+                    <Link to={`/read/${story.slug}`} className="mt-1 line-clamp-2 font-semibold hover:text-primary">
                       {story.title}
                     </Link>
                     {story.author && <p className="mt-1 truncate text-xs text-muted-foreground">by {story.author}</p>}
                     <Link
-                      to={`/story/${story.slug}`}
+                      to={`/read/${story.slug}`}
                       className="mt-3 flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                     >
                       Read Story <ArrowRight className="h-3.5 w-3.5" />

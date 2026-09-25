@@ -267,7 +267,7 @@ const Header = () => {
                             if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
                           }}
                           onClick={() => {
-                            navigate(`/story/${story.slug}`);
+                            navigate(`/read/${story.slug}`);
                             setShowSuggestions(false);
                           }}
                           className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
@@ -452,7 +452,7 @@ const Header = () => {
                       <button
                         key={`mobile-story-${story.id}`}
                         type="button"
-                        onClick={() => openMobileSearchResult(`/story/${story.slug}`)}
+                        onClick={() => openMobileSearchResult(`/read/${story.slug}`)}
                         className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
                       >
                         <CoverImage

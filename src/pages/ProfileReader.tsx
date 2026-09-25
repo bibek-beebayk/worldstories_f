@@ -193,7 +193,7 @@ const ProfileReader = () => {
                   coverImage={item.story.cover_image}
                   title={item.story.title}
                   author={item.story.author}
-                  linkTo={`/story/${item.story.slug}`}
+                  linkTo={`/read/${item.story.slug}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="line-clamp-1 min-w-0 font-medium">{item.story.title}</p>
@@ -202,7 +202,7 @@ const ProfileReader = () => {
                   <p className="mt-1 text-sm text-muted-foreground">
                     Completed {new Date(item.updated_at).toLocaleDateString()}
                   </p>
-                  <Link to={`/story/${item.story.slug}`}>
+                  <Link to={`/read/${item.story.slug}`}>
                     <Button size="sm" className="mt-3" variant="outline">View Story</Button>
                   </Link>
                 </ProfileStoryRow>
@@ -233,7 +233,7 @@ const ProfileReader = () => {
                   coverImage={item.story.cover_image}
                   title={item.story.title}
                   author={item.story.author}
-                  linkTo={`/story/${item.story.slug}`}
+                  linkTo={`/read/${item.story.slug}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="line-clamp-1 min-w-0 font-medium">{item.story.title}</p>
@@ -248,7 +248,7 @@ const ProfileReader = () => {
                   <p className="mt-1 text-sm text-muted-foreground">
                     Last read {new Date(item.last_read_at).toLocaleDateString()}
                   </p>
-                  <Link to={`/story/${item.story.slug}`}>
+                  <Link to={`/read/${item.story.slug}`}>
                     <Button size="sm" className="mt-3" variant="outline">View Story</Button>
                   </Link>
                 </ProfileStoryRow>
@@ -320,14 +320,14 @@ const ProfileReader = () => {
                   coverImage={item.story.cover_image}
                   title={item.story.title}
                   author={item.story.author}
-                  linkTo={`/story/${item.story.slug}`}
+                  linkTo={`/read/${item.story.slug}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="line-clamp-1 min-w-0 font-medium">{item.story.title}</p>
                       <p className="text-xs text-muted-foreground">Added {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/story/${item.story.slug}`)}>View</Button>
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/read/${item.story.slug}`)}>View</Button>
                   </div>
                 </ProfileStoryRow>
               ))}
@@ -354,7 +354,7 @@ const ProfileReader = () => {
                   coverImage={item.story.cover_image}
                   title={item.story.title}
                   author={item.story.author}
-                  linkTo={`/story/${item.story.slug}`}
+                  linkTo={`/read/${item.story.slug}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="line-clamp-1 min-w-0 font-medium">{item.story.title}</p>
@@ -364,7 +364,7 @@ const ProfileReader = () => {
                   <p className="mt-2 text-xs text-muted-foreground">
                     Updated {new Date(item.updated_at).toLocaleDateString()}
                   </p>
-                  <Button size="sm" variant="outline" className="mt-2" onClick={() => navigate(`/story/${item.story.slug}`)}>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => navigate(`/read/${item.story.slug}`)}>
                     Open Story
                   </Button>
                 </ProfileStoryRow>
