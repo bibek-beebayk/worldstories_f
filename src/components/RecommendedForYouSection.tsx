@@ -12,17 +12,12 @@ const RecommendedForYouSection = ({ stories, isLoading, isError }: RecommendedFo
   if (isError) return null;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-5">
-      <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5 sm:gap-4">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
-            <Wand2 className="h-3.5 w-3.5" />
-            <span>Recommended for You</span>
-          </div>
-          <p className="text-xs text-muted-foreground sm:text-sm">
-            Based on the genres you picked when you joined.
-          </p>
-        </div>
+    <section>
+      <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
+        <h2 className="flex items-center gap-2.5 text-xl font-bold tracking-tight sm:text-2xl">
+          <Wand2 className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />
+          Recommended for You
+        </h2>
       </div>
 
       {isLoading ? (

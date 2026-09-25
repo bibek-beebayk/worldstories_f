@@ -33,25 +33,52 @@ const ReadingJourneyCard = ({ enabled }: { enabled: boolean }) => {
 
   return (
     <section
-      className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-background p-4 sm:rounded-2xl sm:p-5"
+      className="relative overflow-hidden rounded-sm bg-gradient-to-br from-orange-500 via-rose-500 to-primary p-5 text-white shadow-lg sm:p-6"
       aria-labelledby="reading-journey-heading"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            {current > 0 ? <Flame className="h-5 w-5" /> : <BookOpenCheck className="h-5 w-5" />}
+      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      <div className="pointer-events-none absolute -bottom-12 left-1/3 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+
+      {/* Decorative watermark + rising embers — mirrors Explore by Country's
+          background treatment but themed to fire/streaks instead of maps.
+          The watermark always flickers; embers only rise for an active
+          streak, since they read as "the fire is currently lit". */}
+      <Flame className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 animate-flicker text-white/10" style={{ animationDuration: "3s" }} />
+      {current > 0 && (
+        <>
+          <span className="pointer-events-none absolute bottom-3 left-[22%] h-1.5 w-1.5 animate-rise rounded-full bg-amber-200/70" style={{ animationDuration: "2.8s" }} />
+          <span className="pointer-events-none absolute bottom-2 left-[45%] h-1 w-1 animate-rise rounded-full bg-white/70" style={{ animationDelay: "0.8s", animationDuration: "3.4s" }} />
+          <span className="pointer-events-none absolute bottom-4 right-[30%] h-1.5 w-1.5 animate-rise rounded-full bg-amber-200/60" style={{ animationDelay: "1.6s", animationDuration: "3s" }} />
+        </>
+      )}
+
+      <div className="relative flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/15">
+            {current > 0 ? (
+              <Flame className="h-7 w-7 animate-flicker text-amber-200" />
+            ) : (
+              <BookOpenCheck className="h-7 w-7" />
+            )}
           </span>
           <div>
-            <h2 id="reading-journey-heading" className="text-sm font-semibold sm:text-base">
-              {current > 0
-                ? `${current}-day reading streak`
-                : "Your reading journey"}
-            </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            {current > 0 ? (
+              <h2 id="reading-journey-heading" className="font-display text-3xl font-extrabold leading-none sm:text-4xl">
+                {current}
+                <span className="ml-1.5 text-base font-semibold text-white/85">
+                  day{current === 1 ? "" : "s"} strong
+                </span>
+              </h2>
+            ) : (
+              <h2 id="reading-journey-heading" className="font-display text-lg font-bold sm:text-xl">
+                Your reading streak
+              </h2>
+            )}
+            <p className="mt-1 text-xs text-white/80 sm:text-sm">
               {current > 0
                 ? longest > current
                   ? `Your best run so far is ${longest} days.`
-                  : "This is your best run yet."
+                  : "This is your best run yet. Keep it going!"
                 : `Your longest run was ${longest} days. Read something today to start another.`}
             </p>
           </div>
@@ -59,7 +86,7 @@ const ReadingJourneyCard = ({ enabled }: { enabled: boolean }) => {
 
         <Link
           to="/profile/reader"
-          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline sm:text-sm"
+          className="inline-flex shrink-0 animate-pop-loop items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all duration-200 hover:animate-none hover:scale-110 hover:bg-white/25 sm:text-sm"
         >
           Your reading
           <ArrowRight className="h-3.5 w-3.5" />

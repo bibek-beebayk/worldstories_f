@@ -1,13 +1,6 @@
 import { ContinueListeningItem } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { ArrowRight, Clock3, Headphones } from "lucide-react";
 import { Link } from "react-router";
 import CoverImage from "@/components/CoverImage";
@@ -33,38 +26,41 @@ const ContinueListeningSection = ({
   isLoading,
   isError,
 }: ContinueListeningSectionProps) => {
-  const visibleItems = items.slice(0, 10);
+  const visibleItems = items.slice(0, 1);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:rounded-2xl sm:p-5">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
-            <Headphones className="h-3.5 w-3.5" />
-            <span>Continue Listening</span>
-          </div>
-        </div>
+    <section className="rounded-sm border border-border bg-card p-4 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <Headphones className="h-5 w-5 shrink-0 text-primary" />
+          Continue Listening
+        </h2>
+        <Link
+          to="/profile/reader?view=listening"
+          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:text-sm"
+        >
+          See all
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </div>
 
       {isLoading && (
-        <Carousel opts={{ align: "start" }} className="px-1">
-          <CarouselContent>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <CarouselItem key={index} className="basis-[170px] sm:basis-[185px]">
-                <div className="h-full animate-pulse rounded-xl border border-border/60 bg-background/70 p-4">
-                  <div className="mb-4 aspect-[3/4] rounded-lg bg-muted" />
-                  <div className="mb-2 h-4 rounded bg-muted" />
-                  <div className="mb-4 h-3 w-2/3 rounded bg-muted" />
-                  <div className="h-2 rounded-full bg-muted" />
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+        <div className="space-y-3">
+          {Array.from({ length: 1 }).map((_, index) => (
+            <div key={index} className="flex animate-pulse items-center gap-4">
+              <div className="aspect-[3/4] w-28 shrink-0 rounded-sm bg-muted sm:w-32" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-4 w-2/3 rounded bg-muted" />
+                <div className="h-3 w-1/3 rounded bg-muted" />
+                <div className="h-1.5 w-full rounded-full bg-muted" />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {!isLoading && isError && (
-        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+        <div className="rounded-sm border border-dashed border-border px-4 py-8 text-center">
           <p className="text-sm text-muted-foreground">
             We could not load your listening progress right now.
           </p>
@@ -72,7 +68,7 @@ const ContinueListeningSection = ({
       )}
 
       {!isLoading && !isError && visibleItems.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+        <div className="rounded-sm border border-dashed border-border px-4 py-8 text-center">
           <p className="text-sm text-muted-foreground">
             You do not have any in-progress audiobooks yet.
           </p>
@@ -83,110 +79,69 @@ const ContinueListeningSection = ({
       )}
 
       {!isLoading && !isError && visibleItems.length > 0 && (
-        <Carousel opts={{ align: "start" }} className="px-1">
-          <CarouselContent>
-            {visibleItems.map((item) => {
-              const progress = getCompletionPercentage(item.overall_progress);
-              const continueHref = item.audio_slug
-                ? `/listen/${item.story.slug}/${item.audio_slug}`
-                : `/story/${item.story.slug}`;
+        <div className="space-y-2">
+          {visibleItems.map((item) => {
+            const progress = getCompletionPercentage(item.overall_progress);
+            const continueHref = item.audio_slug
+              ? `/listen/${item.story.slug}/${item.audio_slug}`
+              : `/story/${item.story.slug}`;
 
-              return (
-                <CarouselItem
-                  key={`${item.story.id}-${item.updated_at}`}
-                  className="basis-[170px] sm:basis-[185px]"
-                >
-                  <article className="h-full rounded-lg border border-border/70 bg-background/70 p-3">
-                    <Link to={continueHref} className="group block">
-                      <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-muted shadow-sm">
-                        <CoverImage
-                          src={item.story.cover_image}
-                          alt={item.story.title}
-                          author={item.story.author}
-                          loading="lazy"
-                          decoding="async"
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                        {item.story.story_type && (
-                          <Badge className="absolute left-2 top-2 border-0 bg-black/70 px-1.5 py-0 text-[10px] text-white">
-                            {item.story.story_type}
-                          </Badge>
-                        )}
-                        <div className="absolute right-1.5 top-1.5 rounded-full bg-red-600 p-[3px] opacity-80">
-                          <Headphones className="h-2.5 w-2.5 text-white" />
-                        </div>
-                      </div>
-                    </Link>
-
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <Link to={continueHref} className="group/title">
-                            <h3 className="line-clamp-2 text-xs font-semibold transition-colors group-hover/title:text-primary">
-                              {item.story.title}
-                            </h3>
-                          </Link>
-                          <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
-                            {item.audio_title || "Current audio"}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-xs font-semibold text-primary">
-                          {progress}%
-                        </span>
-                      </div>
-
-                      <div>
-                        <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Clock3 className="h-3 w-3" />
-                          <span>Last listened {formatLastListened(item.updated_at)}</span>
-                        </div>
-                      </div>
-
-                      <Link
-                        to={continueHref}
-                        className="inline-flex text-xs font-medium text-primary transition-colors hover:text-primary/80"
-                      >
-                        Continue listening
-                      </Link>
-                    </div>
-                  </article>
-                </CarouselItem>
-              );
-            })}
-
-            <CarouselItem className="basis-[170px] sm:basis-[185px]">
+            return (
               <Link
-                to="/profile/reader?view=listening"
-                className="flex h-full min-h-[360px] flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/50 hover:bg-primary/10"
+                key={`${item.story.id}-${item.updated_at}`}
+                to={continueHref}
+                className="group flex items-center gap-4 rounded-sm p-2 transition-colors hover:bg-muted/50"
               >
-                <div>
-                  <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
-                    Show All
+                {/* Left column: title card */}
+                <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-sm shadow-sm sm:w-32">
+                  <CoverImage
+                    src={item.story.cover_image}
+                    alt={item.story.title}
+                    author={item.story.author}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {item.story.story_type && (
+                    <Badge className="absolute left-1 top-1 border-0 bg-black/70 px-1.5 py-0 text-[10px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                      {item.story.story_type}
+                    </Badge>
+                  )}
+                  <div className="absolute right-1 top-1 rounded-full bg-red-600 p-[3px] opacity-80">
+                    <Headphones className="h-2.5 w-2.5 text-white" />
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    View your full listening queue
-                  </h3>
-                  <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                    Open the reader section to see all in-progress audiobooks and continue where you left off.
-                  </p>
                 </div>
 
-                <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
-                  <span>Open reader section</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                {/* Right column: everything else */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary">
+                      {item.story.title}
+                    </h3>
+                    <span className="shrink-0 text-xs font-semibold text-primary">
+                      {progress}%
+                    </span>
+                  </div>
+                  <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                    {item.audio_title || "Current audio"}
+                  </p>
+
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Clock3 className="h-3 w-3" />
+                    Last listened {formatLastListened(item.updated_at)}
+                  </div>
                 </div>
               </Link>
-            </CarouselItem>
-          </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
-        </Carousel>
+            );
+          })}
+        </div>
       )}
     </section>
   );

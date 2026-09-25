@@ -54,7 +54,7 @@ export function OriginalsRail({ stories, className, compact = false }: Originals
         </div>
         <Link
           to="/originals"
-          className="mb-1 flex shrink-0 items-center gap-1 text-xs font-medium text-indigo-600 hover:underline sm:text-sm"
+          className="mb-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition-all duration-200 hover:scale-105 hover:bg-indigo-600 hover:text-white sm:text-sm"
         >
           See all <ArrowRight className="h-3 w-3" />
         </Link>

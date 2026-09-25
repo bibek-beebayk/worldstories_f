@@ -1,13 +1,6 @@
 import { ContinueReadingItem } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { ArrowRight, BookOpenText, Clock3, Headphones, Timer } from "lucide-react";
 import { Link } from "react-router";
 import CoverImage from "@/components/CoverImage";
@@ -17,14 +10,14 @@ interface ContinueReadingSectionProps {
   items: ContinueReadingItem[];
   isLoading: boolean;
   isError: boolean;
-  /** How many cards to show before deferring to the "Show All" card. The
-   *  homepage keeps this small on purpose: the rail competes with every other
-   *  section above the fold, and a reader who wants the rest has the full
-   *  queue one click away. */
+  /** How many rows to show before deferring to "See all". The homepage keeps
+   *  this small on purpose: the rail competes with every other section above
+   *  the fold, and a reader who wants the rest has the full queue one click
+   *  away. */
   limit?: number;
 }
 
-const HOMEPAGE_LIMIT = 5;
+const HOMEPAGE_LIMIT = 1;
 
 const getCompletionPercentage = (progress: number) =>
   Math.round(Math.max(0, Math.min(1, progress)) * 100);
@@ -45,38 +38,38 @@ const ContinueReadingSection = ({
   const visibleItems = items.slice(0, limit);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:rounded-2xl sm:p-5">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
-            <BookOpenText className="h-3.5 w-3.5" />
-            <span>Continue Reading</span>
-          </div>
-          {/* <p className="text-xs text-muted-foreground sm:text-sm">
-            Pick up where you left off. Stories are ordered by your latest reading activity.
-          </p> */}
-        </div>
+    <section className="rounded-sm border border-border bg-card p-4 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <BookOpenText className="h-5 w-5 shrink-0 text-primary" />
+          Continue Reading
+        </h2>
+        <Link
+          to="/profile/reader?view=reading"
+          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:text-sm"
+        >
+          See all
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </div>
 
       {isLoading && (
-        <Carousel opts={{ align: "start" }} className="px-1">
-          <CarouselContent>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <CarouselItem key={index} className="basis-[170px] sm:basis-[185px]">
-                <div className="h-full animate-pulse rounded-xl border border-border/60 bg-background/70 p-4">
-                  <div className="mb-4 aspect-[3/4] rounded-lg bg-muted" />
-                  <div className="mb-2 h-4 rounded bg-muted" />
-                  <div className="mb-4 h-3 w-2/3 rounded bg-muted" />
-                  <div className="h-2 rounded-full bg-muted" />
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+        <div className="space-y-3">
+          {Array.from({ length: 1 }).map((_, index) => (
+            <div key={index} className="flex animate-pulse items-center gap-4">
+              <div className="aspect-[3/4] w-28 shrink-0 rounded-sm bg-muted sm:w-32" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-4 w-2/3 rounded bg-muted" />
+                <div className="h-3 w-1/3 rounded bg-muted" />
+                <div className="h-1.5 w-full rounded-full bg-muted" />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {!isLoading && isError && (
-        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+        <div className="rounded-sm border border-dashed border-border px-4 py-8 text-center">
           <p className="text-sm text-muted-foreground">
             We could not load your reading progress right now.
           </p>
@@ -84,7 +77,7 @@ const ContinueReadingSection = ({
       )}
 
       {!isLoading && !isError && visibleItems.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center">
+        <div className="rounded-sm border border-dashed border-border px-4 py-8 text-center">
           <p className="text-sm text-muted-foreground">
             You do not have any in-progress stories yet.
           </p>
@@ -95,129 +88,86 @@ const ContinueReadingSection = ({
       )}
 
       {!isLoading && !isError && visibleItems.length > 0 && (
-        <Carousel opts={{ align: "start" }} className="px-1">
-          <CarouselContent>
-            {visibleItems.map((item) => {
-              const progress = getCompletionPercentage(item.overall_progress);
-              const remaining = formatRemainingMinutes(item.remaining_minutes);
-              const continueHref = item.chapter_slug
-                ? `/read/${item.story.slug}/${item.chapter_slug}`
-                : `/story/${item.story.slug}`;
+        <div className="space-y-2">
+          {visibleItems.map((item) => {
+            const progress = getCompletionPercentage(item.overall_progress);
+            const remaining = formatRemainingMinutes(item.remaining_minutes);
+            const continueHref = item.chapter_slug
+              ? `/read/${item.story.slug}/${item.chapter_slug}`
+              : `/story/${item.story.slug}`;
 
-              return (
-                <CarouselItem
+            return (
+              <Link
                 key={`${item.story.id}-${item.updated_at}`}
-                  className="basis-[170px] sm:basis-[185px]"
+                to={continueHref}
+                className="group flex items-center gap-4 rounded-sm p-2 transition-colors hover:bg-muted/50"
               >
-                  <article className="h-full rounded-lg border border-border/70 bg-background/70 p-3">
-                <Link to={continueHref} className="group block">
-                  <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-muted shadow-sm">
-                    <CoverImage
-                      src={item.story.cover_image}
-                      alt={item.story.title}
-                      author={item.story.author}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {item.story.story_type && (
-                      <Badge className="absolute left-2 top-2 border-0 bg-black/70 px-1.5 py-0 text-[10px] text-white">
-                        {item.story.story_type}
-                      </Badge>
-                    )}
-                    {item.story.has_audio && (
-                      <div className="absolute right-1.5 top-1.5 rounded-full bg-red-600 p-[3px] opacity-80">
-                        <Headphones className="h-2.5 w-2.5 text-white" />
-                      </div>
-                    )}
-                  </div>
-                </Link>
-
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link to={continueHref} className="group/title">
-                        <h3 className="line-clamp-2 text-xs font-semibold transition-colors group-hover/title:text-primary">
-                          {item.story.title}
-                        </h3>
-                      </Link>
-                      <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
-                        {item.chapter_title || "Current chapter"}
-                      </p>
+                {/* Left column: title card */}
+                <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-sm shadow-sm sm:w-32">
+                  <CoverImage
+                    src={item.story.cover_image}
+                    alt={item.story.title}
+                    author={item.story.author}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {item.story.story_type && (
+                    <Badge className="absolute left-1 top-1 border-0 bg-black/70 px-1.5 py-0 text-[10px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                      {item.story.story_type}
+                    </Badge>
+                  )}
+                  {item.story.has_audio && (
+                    <div className="absolute right-1 top-1 rounded-full bg-red-600 p-[3px] opacity-80">
+                      <Headphones className="h-2.5 w-2.5 text-white" />
                     </div>
+                  )}
+                </div>
+
+                {/* Right column: everything else */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary">
+                      {item.story.title}
+                    </h3>
                     <span className="shrink-0 text-xs font-semibold text-primary">
                       {progress}%
                     </span>
                   </div>
+                  <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                    {item.chapter_title || "Current chapter"}
+                  </p>
 
                   {item.excerpt && (
-                    <p className="line-clamp-2 text-[11px] italic text-muted-foreground">
+                    <p className="mt-1 line-clamp-1 text-xs italic text-muted-foreground">
                       {item.excerpt}
                     </p>
                   )}
 
-                  <div>
-                    <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <div className="space-y-1 text-[11px] text-muted-foreground">
-                      {/* Rendered only when the story has a length estimate —
-                          see lib/readingTime.ts. */}
-                      {remaining && (
-                        <div className="flex items-center gap-1 font-medium text-foreground/80">
-                          <Timer className="h-3 w-3" />
-                          <span>{remaining}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Clock3 className="h-3 w-3" />
-                        <span>Last read {formatLastRead(item.updated_at)}</span>
-                      </div>
-                    </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
 
-                  <Link
-                    to={continueHref}
-                    className="inline-flex text-xs font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    Continue reading
-                  </Link>
-                </div>
-                  </article>
-                </CarouselItem>
-              );
-            })}
-
-            <CarouselItem className="basis-[170px] sm:basis-[185px]">
-              <Link
-                to="/profile/reader?view=reading"
-                className="flex h-full min-h-[360px] flex-col justify-between rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:border-primary/50 hover:bg-primary/10"
-              >
-                <div>
-                  <div className="mb-3 inline-flex rounded-full border border-primary/20 bg-background/80 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-primary">
-                    Show All
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                    {remaining && (
+                      <span className="flex items-center gap-1 font-medium text-foreground/80">
+                        <Timer className="h-3 w-3" />
+                        {remaining}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Clock3 className="h-3 w-3" />
+                      Last read {formatLastRead(item.updated_at)}
+                    </span>
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    View your full reading queue
-                  </h3>
-                  <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                    Open the reader section to see all in-progress stories and continue where you left off.
-                  </p>
-                </div>
-
-                <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary">
-                  <span>Open reader section</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
                 </div>
               </Link>
-            </CarouselItem>
-          </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
-        </Carousel>
+            );
+          })}
+        </div>
       )}
     </section>
   );

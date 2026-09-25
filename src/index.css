@@ -73,4 +73,13 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
     font-family: 'Inter', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
+
+  /* Headings get the bolder, more distinctive display face so titles and
+     section headers stand out from body copy — body text stays on Inter for
+     readability. Excludes .prose content: story/blog reading bodies pick
+     their own typography (the reader's day/sepia/night font picker), and
+     in-text headings there must follow that choice, not this site-wide one. */
+  h1:not(.prose *), h2:not(.prose *), h3:not(.prose *) {
+    font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
 }
