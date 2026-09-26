@@ -41,7 +41,8 @@ import type { Route } from "./+types/StorySummary";
 export async function loader({ params }: Route.LoaderArgs) {
   try {
     return await storyApi.getStory(params.slug!);
-  } catch {
+  } catch (error) {
+    console.error("[SSR loader] request failed:", error);
     return data(null, { status: 404 });
   }
 }

@@ -66,9 +66,13 @@ import BlogCard from "@/components/BlogCard";
 export async function loader({ params }: Route.LoaderArgs) {
   try {
     return await storyApi.getStory(params.slug!);
-  } catch {
+  } catch (error) {
     // A story slug that doesn't resolve is a real 404, not a 200 — same
-    // "soft 404" reasoning as the catch-all NotFound route.
+    // "soft 404" reasoning as the catch-all NotFound route. Logged so a
+    // real network/backend failure (as opposed to a genuinely missing
+    // story) is visible in server logs instead of silently looking
+    // identical to "not found".
+    console.error("[SSR loader] request failed:", error);
     return data(null, { status: 404 });
   }
 }

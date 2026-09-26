@@ -61,7 +61,8 @@ import type { Route } from "./+types/ReadAlongReader";
 export async function loader({ params }: Route.LoaderArgs) {
   try {
     return await storyApi.getReadAlong(params.story_slug!, params.audio_slug!);
-  } catch {
+  } catch (error) {
+    console.error("[SSR loader] request failed:", error);
     return data(null, { status: 404 });
   }
 }

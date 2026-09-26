@@ -56,7 +56,8 @@ export async function loader({ params }: Route.LoaderArgs) {
       storyApi.getChapter(story_slug!, chapter_slug!, "text"),
     ]);
     return { story, chapter };
-  } catch {
+  } catch (error) {
+    console.error("[SSR loader] request failed:", error);
     return data(null, { status: 404 });
   }
 }

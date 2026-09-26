@@ -27,7 +27,8 @@ import type { Route } from "./+types/AudiobookPlayer";
 export async function loader({ params }: Route.LoaderArgs) {
   try {
     return await storyApi.getStory(params.story_slug!);
-  } catch {
+  } catch (error) {
+    console.error("[SSR loader] request failed:", error);
     return data(null, { status: 404 });
   }
 }
