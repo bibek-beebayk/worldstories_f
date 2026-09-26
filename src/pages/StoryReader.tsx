@@ -234,10 +234,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   });
   const navigate = useNavigate();
   const location = useLocation();
-  // Coming from the Downloads page should return there, not to the story
-  // page — the entry point passes this via navigation state (see
-  // ProfileDownloadedStory.tsx).
-  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${story_slug}`;
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/read/${story_slug}`;
 
   const { data: chapter, isLoading, isError } = useChapter(
     story_slug,

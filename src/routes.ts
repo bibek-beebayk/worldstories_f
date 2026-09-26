@@ -31,7 +31,6 @@ export default [
       route("creator", "pages/ProfileCreator.tsx"),
       route("settings", "pages/ProfileSettings.tsx"),
     ]),
-    route("downloads", "pages/Downloads.tsx"),
     route("about", "pages/About.tsx"),
     route("contact", "pages/Contact.tsx"),
     route("privacy", "pages/Privacy.tsx"),

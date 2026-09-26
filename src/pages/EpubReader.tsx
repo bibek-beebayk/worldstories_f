@@ -7,8 +7,6 @@ import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
 import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
-import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
-import { makeDownloadId } from "@/lib/offlineDb";
 import { queueFileProgress, saveFileProgressLocally } from "@/lib/progressSync";
 import {
   ArrowLeft,
@@ -153,10 +151,7 @@ const EpubReader = ({ loaderData }: Route.ComponentProps) => {
   const navigate = useNavigate();
   const { slug } = useParams();
   const location = useLocation();
-  // Coming from the Downloads page should return there, not to the story
-  // page — the entry point passes this via navigation state (see
-  // ProfileDownloadedStory.tsx).
-  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${slug}`;
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/read/${slug}`;
   const { data: story, isLoading, isError } = useStory(slug || "", loaderData || undefined);
   const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -614,17 +609,7 @@ const EpubReader = ({ loaderData }: Route.ComponentProps) => {
         setReaderError("");
         setIsEpubLoading(true);
         isPageTurningRef.current = false;
-        // Offline: read a previously-downloaded, decrypted copy straight into
-        // memory instead of hitting the network at all — epub.js accepts an
-        // ArrayBuffer directly and treats it as a packed archive, so no
-        // openAs hint is needed for that path (only the URL form needs it,
-        // since it lacks a ".epub" extension for epub.js to infer from).
-        const offlineBuffer = !navigator.onLine
-          ? await getDecryptedBinary(makeDownloadId(story.slug, "epub")).catch(() => null)
-          : null;
-        const book = offlineBuffer
-          ? Epub(offlineBuffer)
-          : Epub(`${API_BASE_URL}/stories/${story.slug}/epub-stream/`, { openAs: "epub" });
+        const book = Epub(`${API_BASE_URL}/stories/${story.slug}/epub-stream/`, { openAs: "epub" });
         bookRef.current = book;
 
         // epub.js's page-turn step size ("layout.delta") is just the container

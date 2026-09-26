@@ -27,25 +27,21 @@ import {
   Captions,
   CheckCircle2,
   Clock,
-  Download,
   Eye,
   Facebook,
   FileText,
   Headphones,
   Heart,
   Link2,
-  Loader2,
   Share2,
   Sparkles,
   Star,
-  Trash2,
   Youtube,
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
-import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
-import { listLocalProgress, makeDownloadId } from "@/lib/offlineDb";
+import { listLocalProgress } from "@/lib/offlineDb";
 import { formatDurationMinutes } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
 import StoryCard from "@/components/StoryCard";
@@ -81,14 +77,6 @@ const MODE_PILL_COLORS: Record<StoryDetailMode, string> = {
 const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderData?: Story }) => {
   const { slug } = useParams();
   const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
-  const { downloadedIds, refresh: refreshDownloadedIds } = useDownloadedIds(slug || "");
-  const {
-    downloadChapter,
-    downloadAudio,
-    isPending: isDownloadPending,
-    getProgress: getDownloadProgress,
-    removeDownloadItem,
-  } = useOfflineDownload();
 
   const viewedSlugRef = useRef<string | null>(null);
   useEffect(() => {
@@ -225,15 +213,6 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
       : mode === "watch"
       ? story.similar_stories.filter((item) => item.has_video)
       : story.similar_stories;
-  const storyDownloadMetadata = {
-    slug: story.slug,
-    title: story.title,
-    cover_image: story.cover_image,
-    author: story.author?.name,
-    genres: story.genres.map((genre) => genre.name),
-    story_type: story.story_type,
-  };
-
   // Rendered twice below (mobile vs. desktop position) rather than moved,
   // since the two columns are independent stacks in the DOM — on mobile
   // (single column) that means this would otherwise land after everything
@@ -525,9 +504,6 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                     story.chapters.map((chapter, index) => {
                       const chapterProgress = chapterProgressMap[chapter.slug] || 0;
                       const isChapterCompleted = chapterProgress >= 1;
-                      const downloadId = makeDownloadId(story.slug, "chapter", chapter.slug);
-                      const isDownloaded = downloadedIds.has(downloadId);
-                      const isPending = isDownloadPending(downloadId);
                       return (
                         <Link to={`/read/${slug}/${chapter.slug}`} key={index}>
                           <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
@@ -548,30 +524,6 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                                     <span>{Math.round(chapterProgress * 100)}%</span>
                                   </>
                                 ))}
-                              <button
-                                type="button"
-                                title={isDownloaded ? "Remove download" : "Download for offline reading"}
-                                onClick={async (event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  if (isPending) return;
-                                  if (isDownloaded) {
-                                    await removeDownloadItem(downloadId);
-                                  } else {
-                                    await downloadChapter(storyDownloadMetadata, chapter.slug, chapter.title, chapter.order, chapter.read_along_available);
-                                  }
-                                  refreshDownloadedIds();
-                                }}
-                                className="rounded-full p-1.5 hover:bg-muted"
-                              >
-                                {isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : isDownloaded ? (
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                ) : (
-                                  <Download className="h-4 w-4" />
-                                )}
-                              </button>
                             </div>
                           </div>
                           {index < story.chapters.length - 1 && <Separator />}
@@ -597,9 +549,6 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                   </h3>
                   {story.audios.length > 0 ? (
                     story.audios.map((audio, index) => {
-                      const downloadId = makeDownloadId(story.slug, "audio", audio.slug);
-                      const isDownloaded = downloadedIds.has(downloadId);
-                      const isPending = isDownloadPending(downloadId);
                       return (
                         <Link to={`/listen/${slug}/${audio.slug}`} key={index}>
                           <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
@@ -609,35 +558,6 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Headphones className="h-3 w-3" />
-                              {isPending && getDownloadProgress(downloadId) != null && (
-                                <span className="text-xs tabular-nums">
-                                  {Math.round((getDownloadProgress(downloadId) || 0) * 100)}%
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                title={isDownloaded ? "Remove download" : "Download for offline listening"}
-                                onClick={async (event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  if (isPending) return;
-                                  if (isDownloaded) {
-                                    await removeDownloadItem(downloadId);
-                                  } else {
-                                    await downloadAudio(storyDownloadMetadata, audio.slug, audio.title, audio.order);
-                                  }
-                                  refreshDownloadedIds();
-                                }}
-                                className="rounded-full p-1.5 hover:bg-muted"
-                              >
-                                {isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : isDownloaded ? (
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                ) : (
-                                  <Download className="h-4 w-4" />
-                                )}
-                              </button>
                             </div>
                           </div>
                           {index < story.audios.length - 1 && <Separator />}

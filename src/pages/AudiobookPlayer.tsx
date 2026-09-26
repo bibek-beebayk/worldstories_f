@@ -72,10 +72,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   const { story_slug, chapter_slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  // Coming from the Downloads page should return there, not to the story
-  // page — the entry point passes this via navigation state (see
-  // ProfileDownloadedStory.tsx).
-  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${story_slug}`;
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/listen/${story_slug}`;
   const { data: story, isLoading, isError } = useStory(story_slug, loaderData || undefined);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
 

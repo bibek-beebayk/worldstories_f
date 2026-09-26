@@ -25,7 +25,7 @@ export default function PwaInstallDialog({ open, onOpenChange }: PwaInstallDialo
             <div className="rounded-full bg-primary/10 p-2 text-primary"><Smartphone className="h-5 w-5" /></div>
             <div>
               <DialogTitle>Install WorldStories</DialogTitle>
-              <p className="mt-1 text-sm text-muted-foreground">Add the app to your home screen for faster access and offline reading.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Add the app to your home screen for faster access.</p>
             </div>
           </div>
         </DialogHeader>

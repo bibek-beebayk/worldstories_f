@@ -50,8 +50,6 @@ import { TranscriptCues } from "@/components/read-along/TranscriptCues";
 import { SyncOffsetControl } from "@/components/read-along/SyncOffsetControl";
 import { SYNC_OFFSET_MAX } from "@/lib/readAlongSyncOffset";
 import { trackAnalyticsEvent } from "@/lib/analytics";
-import { isDownloaded } from "@/hooks/useOfflineDownload";
-import { listOfflineReadAlongTracks } from "@/lib/offlineReadAlong";
 import {
   isInteractiveShortcutTarget,
   resolveReadAlongShortcut,
@@ -132,7 +130,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${story_slug}`;
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/read-along/${story_slug}`;
 
   const isAuthenticated = useIsLoggedIn();
   const { setIsImmersiveReaderActive } = useImmersiveReader();
@@ -165,20 +163,6 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   });
   const isSuperuser = Boolean(me?.is_superuser);
   const reducedMotion = usePrefersReducedMotion();
-  const { data: offlineReadAlongTracks = [] } = useQuery({
-    queryKey: ["offline-read-along-tracks", story_slug],
-    queryFn: () => listOfflineReadAlongTracks(story_slug!),
-    enabled: hasMounted && !!story_slug && !isOnline,
-    retry: false,
-    networkMode: "always",
-  });
-  const { data: offlineAudioAvailable = false } = useQuery({
-    queryKey: ["offline-audio-available", story_slug, audio_slug],
-    queryFn: () => isDownloaded(story_slug!, "audio", audio_slug),
-    enabled: hasMounted && !!story_slug && !!audio_slug && !isOnline,
-    retry: false,
-    networkMode: "always",
-  });
 
   const [isChromeVisible, setIsChromeVisible] = useState(true);
   const [isContentsOpen, setIsContentsOpen] = useState(false);
@@ -481,21 +465,11 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
 
   if (isError || !readAlong) {
     if (hasMounted && !isOnline) {
-      if (offlineAudioAvailable) {
-        return (
-          <MessageScreen
-            title="Transcript not available offline"
-            body="The audio is downloaded, but its Read Along transcript is not. You can continue in audio-only mode."
-            primary={{ label: "Listen offline", to: `/listen/${story_slug}/${audio_slug}` }}
-            secondary={{ label: "Go to Downloads", to: "/downloads" }}
-          />
-        );
-      }
       return (
         <MessageScreen
-          title="Read Along isn't available offline yet"
-          body="Downloading a story's transcript for offline use is coming soon. For now, connect to the internet to use Read Along."
-          primary={{ label: "Go to Downloads", to: "/downloads" }}
+          title="Read Along needs a connection"
+          body="Connect to the internet to use Read Along."
+          primary={{ label: "Listen instead", to: `/listen/${story_slug}/${audio_slug}` }}
           secondary={{ label: "Back", to: backHref }}
         />
       );
@@ -524,11 +498,9 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
     ? "bg-sky-400/15 shadow-[inset_3px_0_0_theme(colors.sky.400)]"
     : "bg-amber-300/35 shadow-[inset_3px_0_0_theme(colors.amber.500)]";
 
-  const compatibleTracks = !isOnline && offlineReadAlongTracks.length > 0
-    ? offlineReadAlongTracks
-    : (story?.audios ?? [])
-        .filter((track) => track.read_along_available)
-        .sort((a, b) => a.order - b.order);
+  const compatibleTracks = (story?.audios ?? [])
+    .filter((track) => track.read_along_available)
+    .sort((a, b) => a.order - b.order);
 
   return (
     <div
@@ -644,19 +616,13 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
               />
             ) : transcriptEmpty ? (
               <div className="py-16 text-center">
-                {!isOnline && !audio.read_along_available ? (
-                  <p className="text-sm opacity-70">
-                    The transcript is not saved on this device. Use the audio controls below to listen offline.
-                  </p>
-                ) : (
-                  <p className="text-sm opacity-70">
-                    This track doesn't have a transcript yet.{" "}
-                    <Link to={listenHref} className="font-medium underline underline-offset-2 opacity-100">
-                      Listen without Read Along
-                    </Link>
-                    .
-                  </p>
-                )}
+                <p className="text-sm opacity-70">
+                  This track doesn't have a transcript yet.{" "}
+                  <Link to={listenHref} className="font-medium underline underline-offset-2 opacity-100">
+                    Listen without Read Along
+                  </Link>
+                  .
+                </p>
               </div>
             ) : (
               <div

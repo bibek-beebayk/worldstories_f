@@ -6,8 +6,6 @@ import { storyApi } from "@/api/story";
 import { useStory } from "@/hooks/useStory";
 import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
-import { getDecryptedBinary } from "@/hooks/useOfflineDownload";
-import { makeDownloadId } from "@/lib/offlineDb";
 import { queueFileProgress, saveFileProgressLocally } from "@/lib/progressSync";
 import {
   ArrowLeft,
@@ -230,10 +228,7 @@ const PdfReader = ({ loaderData }: Route.ComponentProps) => {
   const navigate = useNavigate();
   const { slug } = useParams();
   const location = useLocation();
-  // Coming from the Downloads page should return there, not to the story
-  // page — the entry point passes this via navigation state (see
-  // ProfileDownloadedStory.tsx).
-  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/story/${slug}`;
+  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/read/${slug}`;
   const { data: story, isLoading, isError } = useStory(slug || "", loaderData || undefined);
   const isAuthenticated = useIsLoggedIn();
   const readerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -289,14 +284,7 @@ const PdfReader = ({ loaderData }: Route.ComponentProps) => {
       try {
         setReaderError("");
         setIsPdfLoading(true);
-        // Offline: read a previously-downloaded, decrypted copy straight into
-        // memory instead of hitting the network at all.
-        const offlineBuffer = !navigator.onLine
-          ? await getDecryptedBinary(makeDownloadId(story.slug, "pdf")).catch(() => null)
-          : null;
-        const loadingTask = offlineBuffer
-          ? getDocument({ data: offlineBuffer })
-          : getDocument({ url: `${API_BASE_URL}/stories/${story.slug}/pdf-stream/` });
+        const loadingTask = getDocument({ url: `${API_BASE_URL}/stories/${story.slug}/pdf-stream/` });
         const doc = await loadingTask.promise;
         if (!isMounted) return;
         setPdfDoc(doc);

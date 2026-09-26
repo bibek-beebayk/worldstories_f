@@ -118,12 +118,11 @@ export async function apiClient<T>(
   throw new Error(message);
 }
 
-// Like apiClient, but for endpoints that return raw bytes (epub/pdf/audio
-// streams) rather than JSON — used by the offline-download flow to pull
-// plaintext content into memory for client-side encryption. Accepts an
-// optional onProgress callback (0-1) for showing download percentage; when
-// given, the response body is read as a stream instead of via the simpler
-// res.arrayBuffer() so byte counts are observable as they arrive.
+// Like apiClient, but for endpoints that return raw bytes rather than JSON
+// (e.g. the admin CSV/export endpoints). Accepts an optional onProgress
+// callback (0-1) for showing download percentage; when given, the response
+// body is read as a stream instead of via the simpler res.arrayBuffer() so
+// byte counts are observable as they arrive.
 export async function fetchAuthenticatedBinary(
   endpoint: string,
   onProgress?: (fraction: number) => void

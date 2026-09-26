@@ -44,7 +44,7 @@ class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundary
             {this.state.recovering
               ? "A newer version is available. The app will reopen automatically."
               : navigator.onLine
-                ? "Please reload the app. Your downloads and reading progress will remain on this device."
+                ? "Please reload the app. Your reading progress will remain on this device."
                 : "This page is not currently available offline. Reconnect and try again."}
           </p>
           {!this.state.recovering && (

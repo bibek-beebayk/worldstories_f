@@ -9,11 +9,10 @@ import { authApi } from "@/api/auth";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useQuery } from "@tanstack/react-query";
 import { ShieldCheck } from "lucide-react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { useEffect } from "react";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { flushPendingSaves } from "@/lib/progressSync";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { buildMeta } from "@/lib/buildMeta";
 import { buildVisitMetadata, getOwnHosts } from "@/lib/share";
@@ -44,8 +43,6 @@ export function meta({ location }: Route.MetaArgs) {
 
 export default function DefaultLayout() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const isOnline = useOnlineStatus();
   const isLoggedIn = useIsLoggedIn();
   const { isImmersiveReaderActive } = useImmersiveReader();
 
@@ -55,25 +52,6 @@ export default function DefaultLayout() {
     enabled: isLoggedIn,
     retry: false,
   });
-
-  // Offline, only content that can actually work without a network — the
-  // readers/player (which fall back to a downloaded, decrypted copy) and the
-  // Downloads page itself (purely local IndexedDB) — stays reachable.
-  // Everything else depends on the API and would otherwise just dead-end.
-  const isReaderOrListenerRoute =
-    location.pathname.startsWith("/read/") ||
-    location.pathname.startsWith("/read-along/") ||
-    location.pathname.startsWith("/listen/") ||
-    location.pathname.endsWith("/pdf") ||
-    location.pathname.endsWith("/epub");
-  const isDownloadsPage = location.pathname === "/downloads";
-  const isAllowedOffline = isReaderOrListenerRoute || isDownloadsPage;
-
-  useEffect(() => {
-    if (!isOnline && !isAllowedOffline) {
-      navigate("/downloads", { replace: true });
-    }
-  }, [isOnline, isAllowedOffline, navigate]);
 
   // The PDF/EPUB readers are meant to be a full-viewport, distraction-free
   // reading experience with their own internal header/controls — their height

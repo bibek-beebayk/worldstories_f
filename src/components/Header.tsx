@@ -183,7 +183,6 @@ const Header = () => {
                   { to: "/audiobooks", label: "Audiobooks" },
                   { to: "/watch", label: "Watch" },
                   { to: "/quick-reads", label: "Quick Reads" },
-                  { to: "/downloads", label: "Downloads" },
                 ].map((item) => (
                   <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
                     <Link to={item.to}>{item.label}</Link>
@@ -630,14 +629,6 @@ const Header = () => {
                   </Link>
                 </SheetClose>
 
-                <SheetClose asChild>
-                  <Link
-                    to="/downloads"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Downloads
-                  </Link>
-                </SheetClose>
 
                 <SheetClose asChild>
                   <Link

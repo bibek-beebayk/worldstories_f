@@ -31,19 +31,16 @@ import {
   Captions,
   CheckCircle2,
   Clock,
-  Download,
   Eye,
   Facebook,
   FileText,
   Headphones,
   Heart,
   Link2,
-  Loader2,
   Newspaper,
   Share2,
   Sparkles,
   Star,
-  Trash2,
   Twitter,
   Youtube,
   Zap,
@@ -53,10 +50,9 @@ import { data, Link, useNavigate, useParams } from "react-router";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import type { Route } from "./+types/StoryDetail";
-import { useDownloadedIds, useOfflineDownload } from "@/hooks/useOfflineDownload";
-import { listLocalProgress, makeDownloadId } from "@/lib/offlineDb";
+import { listLocalProgress } from "@/lib/offlineDb";
 import { getLanguageLabel } from "@/lib/languages";
-import { cn, formatBytes, formatDurationMinutes } from "@/lib/utils";
+import { cn, formatDurationMinutes } from "@/lib/utils";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
 import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
@@ -144,9 +140,7 @@ export function meta({ data, params }: Route.MetaArgs) {
   });
 }
 
-type BulkDownloadKind = "chapters" | "audios" | "epub" | "pdf";
-
-// The action cluster (Read / Listen / Watch / Download / favorite / share)
+// The action cluster (Read / Listen / Watch / favorite / share)
 // otherwise renders as `size="lg"` pills that stack into three tall rows on a
 // phone. These keep the full-size look from `sm:` up but shrink the height,
 // padding and label on mobile so more fit per row and the block is shorter.
@@ -191,28 +185,10 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
     enabled: !!slug,
   });
   const relatedBlogs = relatedBlogsData?.results || [];
-  const { downloadedIds, refresh: refreshDownloadedIds } = useDownloadedIds(slug || "");
-  const {
-    downloadChapter,
-    downloadAudio,
-    downloadFile,
-    removeDownloadItem,
-    isPending: isDownloadPending,
-    getProgress: getDownloadProgress,
-  } = useOfflineDownload();
-  // const [pendingScroll, setPendingScroll] = useState<"chapters" | "audios" | null>(null);
-
-  // const slug = "the-raven"
-
-  // debugger;
 
   const [activeTab, setActiveTab] = useState("chapters");
   const [watchOpen, setWatchOpen] = useState(false);
   const [watchStartSlug, setWatchStartSlug] = useState<string | null>(null);
-  const [bulkDownloadStage, setBulkDownloadStage] = useState<"choose" | "confirm" | null>(null);
-  const [bulkDownloadKind, setBulkDownloadKind] = useState<BulkDownloadKind | null>(null);
-  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
-  const [bulkDownloadedCount, setBulkDownloadedCount] = useState(0);
 
   // "chapters" is only a valid default if the story actually has chapters —
   // once the story loads, fall back to the next-best tab that has content.
@@ -450,110 +426,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   // decide between "Start Reading" and "Continue Reading" for the EPUB/PDF
   // fallback formats too, now that they track real per-account progress.
   const primaryFileProgress = story.chapters.length > 0 ? null : story.epub_file ? epubProgress : pdfProgress;
-  const primaryFileType: "epub" | "pdf" | null =
-    story.chapters.length > 0 ? null : story.epub_file ? "epub" : story.pdf_file ? "pdf" : null;
-  const bulkChoices: BulkDownloadKind[] = story.chapters.length > 0
-    ? ["chapters", ...(story.audios.length > 0 ? (["audios"] as BulkDownloadKind[]) : [])]
-    : [
-        ...(primaryFileType ? ([primaryFileType] as BulkDownloadKind[]) : []),
-        ...(story.audios.length > 0 ? (["audios"] as BulkDownloadKind[]) : []),
-      ];
-  const getBulkItemCount = (kind: BulkDownloadKind) =>
-    kind === "chapters" ? story.chapters.length : kind === "audios" ? story.audios.length : 1;
-  const getBulkDownloadedCount = (kind: BulkDownloadKind) =>
-    kind === "chapters"
-      ? story.chapters.filter((chapter) => downloadedIds.has(makeDownloadId(story.slug, "chapter", chapter.slug))).length
-      : kind === "audios"
-      ? story.audios.filter((audio) => downloadedIds.has(makeDownloadId(story.slug, "audio", audio.slug))).length
-      : downloadedIds.has(makeDownloadId(story.slug, kind))
-      ? 1
-      : 0;
-  const openBulkDownload = () => {
-    if (!isAuthenticated) {
-      openLoginModal();
-      return;
-    }
-    if (bulkChoices.length === 1) {
-      setBulkDownloadKind(bulkChoices[0]);
-      setBulkDownloadStage("confirm");
-    } else {
-      setBulkDownloadKind(null);
-      setBulkDownloadStage("choose");
-    }
-  };
-  const bulkItemCount = bulkDownloadKind ? getBulkItemCount(bulkDownloadKind) : 0;
-  const bulkAlreadyDownloadedCount = bulkDownloadKind ? getBulkDownloadedCount(bulkDownloadKind) : 0;
-  const bulkRemainingCount = bulkItemCount - bulkAlreadyDownloadedCount;
-  const bulkSizeBytes = bulkDownloadKind === "chapters"
-    ? story.chapters.reduce((sum, item) => sum + (item.download_size_bytes || 0), 0)
-    : bulkDownloadKind === "audios"
-    ? story.audios.reduce((sum, item) => sum + (item.download_size_bytes || 0), 0)
-    : bulkDownloadKind === "epub"
-    ? story.epub_size_bytes || 0
-    : bulkDownloadKind === "pdf"
-    ? story.pdf_size_bytes || 0
-    : 0;
-  const storyDownloadMetadata = {
-    slug: story.slug,
-    title: story.title,
-    cover_image: story.cover_image,
-    author: story.author?.name,
-    genres: story.genres.map((genre) => genre.name),
-    story_type: story.story_type,
-  };
-  const bulkKindLabel = (kind: BulkDownloadKind) =>
-    kind === "chapters" ? "Chapters" : kind === "audios" ? "Audios" : kind.toUpperCase();
-  const confirmBulkDownload = async () => {
-    if (!bulkDownloadKind) return;
-    setIsBulkDownloading(true);
-    setBulkDownloadedCount(bulkAlreadyDownloadedCount);
-    try {
-      let completed = true;
-      if (bulkDownloadKind === "chapters") {
-        for (const chapter of story.chapters) {
-          if (downloadedIds.has(makeDownloadId(story.slug, "chapter", chapter.slug))) continue;
-          const downloaded = await downloadChapter(storyDownloadMetadata, chapter.slug, chapter.title, chapter.order);
-          if (downloaded === false) {
-            completed = false;
-            break;
-          }
-          setBulkDownloadedCount((count) => count + 1);
-        }
-      } else if (bulkDownloadKind === "audios") {
-        for (const audio of story.audios) {
-          if (downloadedIds.has(makeDownloadId(story.slug, "audio", audio.slug))) continue;
-          const downloaded = await downloadAudio(
-            storyDownloadMetadata,
-            audio.slug,
-            audio.title,
-            audio.order,
-            audio.read_along_available
-          );
-          if (downloaded === false) {
-            completed = false;
-            break;
-          }
-          setBulkDownloadedCount((count) => count + 1);
-        }
-      } else {
-        const id = makeDownloadId(story.slug, bulkDownloadKind);
-        if (!downloadedIds.has(id)) {
-          const downloaded = await downloadFile(storyDownloadMetadata, bulkDownloadKind, story.title);
-          if (downloaded !== false) setBulkDownloadedCount(1);
-          else completed = false;
-        }
-      }
-      refreshDownloadedIds();
-      if (completed) {
-        toast.success("Offline download complete.");
-        setBulkDownloadStage(null);
-      }
-    } catch {
-      toast.error("The download could not be completed. Please try again.");
-    } finally {
-      setIsBulkDownloading(false);
-    }
-  };
   const hasSavedPrimaryFileProgress = (primaryFileProgress?.progress || 0) > 0;
   // Full labels on `sm`+, single-word labels on phones so two actions fit a row
   // without the `whitespace-nowrap` text overflowing the viewport.
@@ -803,19 +675,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                     </Button>
                   )}
 
-                  {bulkChoices.length > 0 && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className={cn(ACTION_BTN, ACTION_ITEM)}
-                      onClick={openBulkDownload}
-                      disabled={isBulkDownloading}
-                    >
-                      {isBulkDownloading ? <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" /> : <Download className="mr-2 h-4 w-4 shrink-0" />}
-                      <span className="truncate">Download</span>
-                    </Button>
-                  )}
-
                   <Button
                     size="lg"
                     variant="outline"
@@ -908,9 +767,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                     {story.chapters.length > 1 ? <>{story?.chapters?.map((chapter, index) => {
                       const chapterProgress = chapterProgressMap[chapter.slug] || 0;
                       const isChapterCompleted = chapterProgress >= 1;
-                      const downloadId = makeDownloadId(story.slug, "chapter", chapter.slug);
-                      const isDownloaded = downloadedIds.has(downloadId);
-                      const isPending = isDownloadPending(downloadId);
                       return (
                       <Link to={`/read/${slug}/${chapter.slug}`} key={index}>
                         <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
@@ -937,36 +793,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                                 </>
                               )
                             )}
-                            <button
-                              type="button"
-                              title={isDownloaded ? "Remove download" : "Download for offline reading"}
-                              onClick={async (event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                if (isPending) return;
-                                if (isDownloaded) {
-                                  await removeDownloadItem(downloadId);
-                                } else {
-                                  await downloadChapter(
-                                    { slug: story.slug, title: story.title, cover_image: story.cover_image, author: story.author?.name, genres: story.genres.map((genre) => genre.name), story_type: story.story_type },
-                                    chapter.slug,
-                                    chapter.title,
-                                    chapter.order,
-                                    chapter.read_along_available
-                                  );
-                                }
-                                refreshDownloadedIds();
-                              }}
-                              className="rounded-full p-1.5 hover:bg-muted"
-                            >
-                              {isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : isDownloaded ? (
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                            </button>
                           </div>
                         </div>
                         {index < story.chapters.length - 1 && <Separator />}
@@ -982,9 +808,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                 <Card >
                   <CardContent className="p-0">
                     {story.audios.length > 1 ? <>{story?.audios?.map((chapter, index) => {
-                      const downloadId = makeDownloadId(story.slug, "audio", chapter.slug);
-                      const isDownloaded = downloadedIds.has(downloadId);
-                      const isPending = isDownloadPending(downloadId);
                       return (
                       <Link to={`/listen/${slug}/${chapter.slug}`} key={index}>
                         <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
@@ -999,11 +822,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Headphones className="h-3 w-3" />
-                            {isPending && getDownloadProgress(downloadId) != null && (
-                              <span className="text-xs tabular-nums">
-                                {Math.round((getDownloadProgress(downloadId) || 0) * 100)}%
-                              </span>
-                            )}
                             {chapter.read_along_available && (
                               <button
                                 type="button"
@@ -1019,35 +837,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                                 <Captions className="h-4 w-4" />
                               </button>
                             )}
-                            <button
-                              type="button"
-                              title={isDownloaded ? "Remove download" : "Download for offline listening"}
-                              onClick={async (event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                if (isPending) return;
-                                if (isDownloaded) {
-                                  await removeDownloadItem(downloadId);
-                                } else {
-                                  await downloadAudio(
-                                    { slug: story.slug, title: story.title, cover_image: story.cover_image, author: story.author?.name, genres: story.genres.map((genre) => genre.name), story_type: story.story_type },
-                                    chapter.slug,
-                                    chapter.title,
-                                    chapter.order
-                                  );
-                                }
-                                refreshDownloadedIds();
-                              }}
-                              className="rounded-full p-1.5 hover:bg-muted"
-                            >
-                              {isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : isDownloaded ? (
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                            </button>
                           </div>
                         </div>
                         {index < story.audios.length - 1 && <Separator />}
@@ -1321,111 +1110,6 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
         />
       )}
 
-      {bulkDownloadStage && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-md shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="bulk-download-title">
-            <CardContent className="p-5 sm:p-6">
-              {bulkDownloadStage === "choose" ? (
-                <>
-                  <h2 id="bulk-download-title" className="text-xl font-bold">Choose what to download</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Select the format you want available offline.</p>
-                  <div className="mt-5 grid gap-3">
-                    {bulkChoices.map((kind) => {
-                      const itemCount = getBulkItemCount(kind);
-                      const downloadedCount = getBulkDownloadedCount(kind);
-                      const isFullyDownloaded = downloadedCount === itemCount;
-                      return (
-                        <button
-                          key={kind}
-                          type="button"
-                          className="flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition hover:border-primary hover:bg-primary/5"
-                          onClick={() => {
-                            setBulkDownloadKind(kind);
-                            setBulkDownloadStage("confirm");
-                          }}
-                        >
-                          <span>
-                            <span className="block font-semibold">Download {bulkKindLabel(kind)}</span>
-                            {downloadedCount > 0 && !isFullyDownloaded && (
-                              <span className="mt-0.5 block text-xs text-muted-foreground">{downloadedCount} of {itemCount} already downloaded</span>
-                            )}
-                          </span>
-                          {isFullyDownloaded ? (
-                            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-700">
-                              <CheckCircle2 className="h-4 w-4" /> Downloaded
-                            </span>
-                          ) : (
-                            <Download className="h-4 w-4 shrink-0 text-primary" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h2 id="bulk-download-title" className="text-xl font-bold">Confirm download</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{story.title}</p>
-                  <div className="mt-5 space-y-3 rounded-xl border bg-muted/40 p-4 text-sm">
-                    <div className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">Content</span>
-                      <span className="font-medium">{bulkDownloadKind && bulkKindLabel(bulkDownloadKind)}</span>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">{bulkDownloadKind === "chapters" ? "Chapters" : bulkDownloadKind === "audios" ? "Audio tracks" : "Files"}</span>
-                      <span className="font-medium">{bulkItemCount}</span>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">Download size</span>
-                      <span className="font-medium">{bulkSizeBytes > 0 ? formatBytes(bulkSizeBytes) : "Size unavailable"}</span>
-                    </div>
-                  </div>
-                  {bulkAlreadyDownloadedCount === bulkItemCount ? (
-                    <div className="mt-3 flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>All {bulkItemCount} {bulkItemCount === 1 ? "item is" : "items are"} already downloaded and available offline.</span>
-                    </div>
-                  ) : bulkAlreadyDownloadedCount > 0 ? (
-                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                      {bulkAlreadyDownloadedCount} of {bulkItemCount} items are already downloaded. Only the remaining {bulkRemainingCount} will be downloaded.
-                    </div>
-                  ) : null}
-                  {isBulkDownloading && (
-                    <p className="mt-3 text-sm font-medium text-primary">Downloaded {bulkDownloadedCount} of {bulkItemCount}</p>
-                  )}
-                </>
-              )}
-
-              <div className="mt-6 flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  disabled={isBulkDownloading}
-                  onClick={() => {
-                    if (bulkDownloadStage === "confirm" && bulkChoices.length > 1) {
-                      setBulkDownloadStage("choose");
-                      setBulkDownloadKind(null);
-                    } else {
-                      setBulkDownloadStage(null);
-                    }
-                  }}
-                >
-                  {bulkDownloadStage === "confirm" && bulkChoices.length > 1
-                    ? "Back"
-                    : bulkDownloadStage === "confirm" && bulkRemainingCount === 0
-                    ? "Close"
-                    : "Cancel"}
-                </Button>
-                {bulkDownloadStage === "confirm" && (
-                  <Button onClick={confirmBulkDownload} disabled={isBulkDownloading || bulkRemainingCount === 0}>
-                    {isBulkDownloading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isBulkDownloading ? "Downloading…" : bulkRemainingCount === 0 ? "Already downloaded" : "Confirm Download"}
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 };

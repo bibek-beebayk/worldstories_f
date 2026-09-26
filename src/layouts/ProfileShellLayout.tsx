@@ -7,8 +7,7 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { useQuery } from "@tanstack/react-query";
 import { BookMarked, FileText, Flame, LayoutGrid, Settings } from "lucide-react";
-import { useEffect } from "react";
-import { NavLink, Outlet, useNavigate, useSearchParams } from "react-router";
+import { NavLink, Outlet } from "react-router";
 import { buildMeta } from "@/lib/buildMeta";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import type { UserProfile, ReadingStreakResponse } from "@/api/types";
@@ -40,8 +39,6 @@ const profileNavItems: Array<{ to: string; end: boolean; label: string; icon: ty
 // every nested profile page can assume `profile` is available via
 // useOutletContext<ProfileOutletContext>() rather than each re-checking.
 const ProfileShellLayout = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
   const headerBottom = useHeaderHeight();
@@ -58,14 +55,6 @@ const ProfileShellLayout = () => {
     queryFn: authApi.getReadingStreak,
     enabled: isAuthenticated,
   });
-
-  // Back-compat for old bookmarks/notifications built against the previous
-  // single-page `/profile?section=downloads&story=...` URL.
-  useEffect(() => {
-    if (searchParams.get("section") !== "downloads") return;
-    const story = searchParams.get("story");
-    navigate(story ? `/downloads?story=${encodeURIComponent(story)}` : "/downloads", { replace: true });
-  }, [navigate, searchParams]);
 
   if (!isAuthenticated) {
     return (

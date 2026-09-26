@@ -1,5 +1,5 @@
 import { storyApi } from "@/api/story";
-import { PendingSave, claimAnonymousDownloads, claimAnonymousLocalProgress, deletePendingSave, listPendingSaves, queuePendingSave, saveLocalProgress } from "@/lib/offlineDb";
+import { PendingSave, claimAnonymousLocalProgress, deletePendingSave, listPendingSaves, queuePendingSave, saveLocalProgress } from "@/lib/offlineDb";
 import { getOfflineOwnerId } from "@/lib/offlineIdentity";
 import { PENDING_PROGRESS_EVENT } from "@/lib/progressEvents";
 import { trackCompletionOnce } from "@/lib/analytics";
@@ -156,7 +156,6 @@ export async function flushPendingSaves(): Promise<void> {
 }
 
 export async function adoptGuestProgress(): Promise<void> {
-  await claimAnonymousDownloads();
   const records = await claimAnonymousLocalProgress();
   for (const record of records) {
     try {
