@@ -54,6 +54,14 @@ export function clearTokens() {
 // visitor's page load would count against the same IP-keyed anon rate
 // limit on the backend (see core/libs/throttling.py in worldstories_b).
 const SSR_INTERNAL_API_KEY = typeof window === "undefined" ? process.env.SSR_INTERNAL_API_KEY : undefined;
+if (typeof window === "undefined") {
+  console.error(
+    "[SSR] SSR_INTERNAL_API_KEY present:",
+    Boolean(SSR_INTERNAL_API_KEY),
+    "length:",
+    SSR_INTERNAL_API_KEY?.length ?? 0
+  );
+}
 
 export async function apiClient<T>(
   endpoint: string,
