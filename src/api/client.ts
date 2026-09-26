@@ -109,12 +109,19 @@ export async function apiClient<T>(
     throw new Error("Session expired. Please log in again.");
   }
 
-  const error = await res.json().catch(() => ({}));
+  const rawBody = await res.text();
+  const error = ((): unknown => {
+    try {
+      return JSON.parse(rawBody);
+    } catch {
+      return {};
+    }
+  })();
   const message =
-    (typeof error?.detail === "string" && error.detail) ||
-    (typeof error?.message === "string" && error.message) ||
+    (typeof (error as { detail?: unknown })?.detail === "string" && (error as { detail: string }).detail) ||
+    (typeof (error as { message?: unknown })?.message === "string" && (error as { message: string }).message) ||
     formatValidationErrors(error) ||
-    "API request failed";
+    `API request failed (${res.status} ${res.statusText} for ${endpoint}): ${rawBody.slice(0, 300) || "<empty body>"}`;
   throw new Error(message);
 }
 
