@@ -123,17 +123,24 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Story cover images and other uploaded media (R2) rarely change
-            // once published, so serve from cache first and only hit the
-            // network for media not seen before. Bumped to v2 to invalidate
-            // stale cached audio files from before a since-fixed encoding
-            // issue — CacheFirst has no way to notice that content changed
-            // at an existing URL within the expiration window, so renaming
-            // the cache is what forces already-affected clients to refetch.
-            urlPattern: ({ url }) => url.hostname.endsWith("r2.dev") || url.hostname.includes("r2.cloudflarestorage.com"),
+            // Story cover images and other uploaded media (R2, or the
+            // media.worldstories.net custom domain in front of it) rarely
+            // change once published, so serve from cache first and only hit
+            // the network for media not seen before. Bumped to v3 to
+            // invalidate stale cached cover images from before covers moved
+            // to resized renditions behind a custom domain — CacheFirst has
+            // no way to notice that content changed at an existing URL
+            // within the expiration window, so renaming the cache is what
+            // forces already-affected clients to refetch. (v2 similarly
+            // invalidated stale cached audio files from a since-fixed
+            // encoding issue.)
+            urlPattern: ({ url }) =>
+              url.hostname.endsWith("r2.dev") ||
+              url.hostname.includes("r2.cloudflarestorage.com") ||
+              url.hostname === "media.worldstories.net",
             handler: "CacheFirst",
             options: {
-              cacheName: "media-cache-v2",
+              cacheName: "media-cache-v3",
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
