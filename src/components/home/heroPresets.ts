@@ -143,6 +143,21 @@ export const HERO_PRESETS: Record<string, HeroPreset> = {
       { icon: "Snowflake", className: "right-[3%] -top-10 h-5 w-5 sm:h-7 sm:w-7", animationClass: "animate-snowfall", style: { animationDelay: "0.8s", animationDuration: "10.5s" } },
     ],
   },
+  christmas: {
+    label: "Christmas",
+    blobs: true,
+    slots: [
+      { icon: "Star", className: "left-[46%] top-[8%] h-8 w-8 sm:h-11 sm:w-11", animationClass: "animate-flicker", style: { animationDuration: "3s" } },
+      { icon: "TreePine", className: "left-[4%] top-[58%] h-12 w-12 sm:h-16 sm:w-16", animationClass: "animate-float", style: { animationDuration: "9s" } },
+      { icon: "TreePine", className: "right-[5%] top-[50%] h-10 w-10 sm:h-14 sm:w-14", animationClass: "animate-float", style: { animationDelay: "1.5s", animationDuration: "10s" } },
+      { icon: "Gift", className: "left-[24%] top-[74%] h-7 w-7 sm:h-9 sm:w-9", animationClass: "animate-float", style: { animationDelay: "0.8s", animationDuration: "6.5s" } },
+      { icon: "Gift", className: "right-[28%] top-[72%] h-6 w-6 sm:h-8 sm:w-8", animationClass: "animate-float", style: { animationDelay: "2.2s", animationDuration: "7s" } },
+      { icon: "Snowflake", className: "left-[12%] -top-10 h-5 w-5 sm:h-7 sm:w-7", animationClass: "animate-snowfall", style: { animationDuration: "11s" } },
+      { icon: "Snowflake", className: "left-[34%] -top-10 h-4 w-4 sm:h-6 sm:w-6", animationClass: "animate-snowfall", style: { animationDelay: "3s", animationDuration: "9.5s" } },
+      { icon: "Snowflake", className: "right-[36%] -top-10 h-6 w-6 sm:h-7 sm:w-7", animationClass: "animate-snowfall", style: { animationDelay: "5.5s", animationDuration: "12s" } },
+      { icon: "Snowflake", className: "right-[16%] -top-10 h-4 w-4 sm:h-6 sm:w-6", animationClass: "animate-snowfall", style: { animationDelay: "1.5s", animationDuration: "10s" } },
+    ],
+  },
   none: {
     label: "None",
     blobs: false,

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import HomeHero from "@/components/home/HomeHero";
+import { HERO_TEMPLATE_PRESETS } from "@/components/home/heroTemplatePresets";
 import { isoToLocalInput, localInputToIso } from "@/lib/datetimeLocal";
 import {
   HERO_ICON_NAMES,
@@ -145,6 +146,16 @@ const HeroTemplateEditor = ({
     setDraft((current) => ({ ...current, [key]: value }));
 
   const preview = useMemo(() => heroConfigFromTemplate(draft, liveStats), [draft, liveStats]);
+  const [presetKey, setPresetKey] = useState(HERO_TEMPLATE_PRESETS[0].key);
+
+  // Fills the form only — the name and schedule are kept, and nothing is saved
+  // until "Save template", so the preview shows the result first.
+  const applyPreset = () => {
+    const preset = HERO_TEMPLATE_PRESETS.find((option) => option.key === presetKey);
+    if (!preset) return;
+    if (!window.confirm(`Replace this template's content, colours and animation with the “${preset.label}” preset?`)) return;
+    setDraft((current) => ({ ...current, ...preset.values }));
+  };
 
   const save = useMutation({
     mutationFn: () => storyApi.updateAdminHeroTemplate(template.id, draft),
@@ -185,6 +196,25 @@ const HeroTemplateEditor = ({
           <Field label="Name" hint="Only shown here, e.g. “Halloween 2026”.">
             <Input value={draft.name} onChange={(event) => set("name", event.target.value)} maxLength={80} required />
           </Field>
+          <Field label="Load a preset" hint="Replaces everything below except the schedule. Unsaved until you save.">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={presetKey} onValueChange={setPresetKey}>
+                <SelectTrigger className="w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HERO_TEMPLATE_PRESETS.map((option) => (
+                    <SelectItem key={option.key} value={option.key}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" onClick={applyPreset}>
+                Apply preset
+              </Button>
+            </div>
+          </Field>
         </Section>
 
         <Section title="Schedule">
@@ -222,7 +252,7 @@ const HeroTemplateEditor = ({
 
         <Section title="Title">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="White part">
+            <Field label="White part" hint="End it with a space for two words (“Spooky Stories”); leave none for a wordmark (“WorldStories”).">
               <Input value={draft.title_prefix} onChange={(event) => set("title_prefix", event.target.value)} maxLength={60} />
             </Field>
             <Field label="Gradient part">
@@ -405,6 +435,7 @@ const HeroTemplateEditor = ({
 const AdminHero = () => {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
+  const [preset, setPreset] = useState(HERO_TEMPLATE_PRESETS[0].key);
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const { data: templates, isLoading } = useQuery({
@@ -427,7 +458,11 @@ const AdminHero = () => {
   const onError = (fallback: string) => (error: Error) => toast.error(error.message || fallback);
 
   const create = useMutation({
-    mutationFn: () => storyApi.createAdminHeroTemplate({ name: name.trim() }),
+    mutationFn: () =>
+      storyApi.createAdminHeroTemplate({
+        ...(HERO_TEMPLATE_PRESETS.find((option) => option.key === preset) ?? HERO_TEMPLATE_PRESETS[0]).values,
+        name: name.trim(),
+      }),
     onSuccess: (template) => {
       toast.success("Template created");
       setName("");
@@ -497,14 +532,29 @@ const AdminHero = () => {
                 className="mt-1"
               />
             </div>
+            <div className="w-52">
+              <Label className="text-xs">Start from</Label>
+              <Select value={preset} onValueChange={setPreset}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HERO_TEMPLATE_PRESETS.map((option) => (
+                    <SelectItem key={option.key} value={option.key}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button type="submit" disabled={create.isPending || !name.trim()}>
               <Plus className="mr-1.5 h-4 w-4" />
               Create
             </Button>
           </form>
           <p className="mt-3 text-xs text-muted-foreground">
-            New templates aren't shown until you make one the default or give it a schedule. Tip: duplicate an existing
-            template to start from its content.
+            Presets fill in the content, colours and animation as a starting point — everything stays editable. New
+            templates aren't shown until you make one the default or give it a schedule.
           </p>
         </CardContent>
       </Card>

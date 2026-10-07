@@ -204,6 +204,24 @@ export const THEME_PRESETS: { key: string; label: string; values: PageThemeValue
     },
   },
   {
+    key: "christmas",
+    label: "Christmas",
+    values: {
+      ...SITE_THEME,
+      background_color: "#0f2a1d",
+      surface_color: "#163a29",
+      text_color: "#f5efe6",
+      muted_text_color: "#c9bfae",
+      heading_color: "#f8d27a",
+      primary_color: "#c62828",
+      primary_text_color: "#ffffff",
+      border_color: "#2a5a40",
+      heading_font: "Mountains of Christmas",
+      body_font: "Lora",
+      radius: 14,
+    },
+  },
+  {
     key: "editorial",
     label: "Editorial serif",
     values: {

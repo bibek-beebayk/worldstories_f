@@ -489,7 +489,7 @@ export interface HomeDataResponse {
   hero?: HeroConfig | null;
 }
 
-export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "none";
+export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "christmas" | "none";
 export type HeroStatSource = "stories" | "creators" | "readers" | "custom";
 
 /** Public hero content, as /home/ serves it (apps/story/serializers.py serialize_hero). */
