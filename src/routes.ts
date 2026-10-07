@@ -37,6 +37,8 @@ export default [
     route("terms", "pages/Terms.tsx"),
     route("blog", "pages/BlogList.tsx"),
     route("blog/:slug", "pages/BlogDetail.tsx"),
+    // Admin-built pages (apps/pages); main site only.
+    route("pages/:slug", "pages/DynamicPage.tsx"),
     route("story/:slug", "pages/StoryDetail.tsx"),
     // Isolated, mode-scoped detail pages linked from the Library's 6
     // sections — each shows only the actions/content for that one content
@@ -70,6 +72,8 @@ export default [
         index("pages/AdminHome.tsx"),
         route("content", "pages/AdminContent.tsx"),
         route("featured", "pages/AdminFeatured.tsx"),
+        route("hero", "pages/AdminHero.tsx"),
+        route("pages", "pages/AdminPages.tsx"),
         route("story-report", "pages/AdminStoryReport.tsx"),
         route("submissions", "pages/AdminSubmissions.tsx"),
         route("analytics", "pages/AdminAnalytics.tsx"),

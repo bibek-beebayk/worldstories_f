@@ -126,6 +126,20 @@ export default {
           "0%": { strokeDashoffset: "24" },
           "100%": { strokeDashoffset: "0" },
         },
+        // Hero background presets (src/components/home/heroPresets.ts).
+        haunt: {
+          "0%, 100%": { transform: "translate(0, 0)", opacity: "0.9" },
+          "25%": { transform: "translate(14px, -12px)", opacity: "0.5" },
+          "50%": { transform: "translate(28px, 4px)", opacity: "1" },
+          "75%": { transform: "translate(10px, 10px)", opacity: "0.6" },
+        },
+        snowfall: {
+          "0%": { transform: "translateY(0) translateX(0) rotate(0deg)", opacity: "0" },
+          "10%": { opacity: "1" },
+          "50%": { transform: "translateY(260px) translateX(18px) rotate(180deg)" },
+          "90%": { opacity: "1" },
+          "100%": { transform: "translateY(520px) translateX(0) rotate(360deg)", opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -137,6 +151,8 @@ export default {
         flicker: "flicker 2s ease-in-out infinite",
         rise: "rise 3s ease-in infinite",
         "path-dash": "path-dash 1.5s linear infinite",
+        haunt: "haunt 9s ease-in-out infinite",
+        snowfall: "snowfall 10s linear infinite",
       },
     },
   },

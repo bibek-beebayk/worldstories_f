@@ -83,3 +83,33 @@ All colors MUST be HSL.
     font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 }
+
+/* Admin-built pages (/pages/<slug>). A page theme sets the --pt-* variables
+   (and the design-system ones) on .ws-page-theme — see
+   src/components/pages/pageTheme.ts. Without a theme these fall back to the
+   site's own look. */
+.ws-page-theme .ws-heading,
+.ws-page-theme .prose :is(h1, h2, h3, h4) {
+  color: var(--pt-heading, hsl(var(--foreground)));
+  font-family: var(--pt-heading-font, inherit);
+  font-weight: var(--pt-heading-weight, 700);
+  text-transform: var(--pt-heading-transform, none);
+}
+
+.ws-page-theme .prose {
+  font-size: var(--pt-font-size, 1.125rem);
+  --tw-prose-body: hsl(var(--foreground));
+  --tw-prose-headings: var(--pt-heading, hsl(var(--foreground)));
+  --tw-prose-lead: hsl(var(--muted-foreground));
+  --tw-prose-links: hsl(var(--primary));
+  --tw-prose-bold: hsl(var(--foreground));
+  --tw-prose-counters: hsl(var(--muted-foreground));
+  --tw-prose-bullets: hsl(var(--muted-foreground));
+  --tw-prose-hr: hsl(var(--border));
+  --tw-prose-quotes: hsl(var(--foreground));
+  --tw-prose-quote-borders: hsl(var(--primary));
+  --tw-prose-captions: hsl(var(--muted-foreground));
+  --tw-prose-code: hsl(var(--foreground));
+  --tw-prose-th-borders: hsl(var(--border));
+  --tw-prose-td-borders: hsl(var(--border));
+}

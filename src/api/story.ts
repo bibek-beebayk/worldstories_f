@@ -53,6 +53,14 @@ import {
   AdminCategory,
   AdminTag,
   AdminJourney,
+  AdminHeroTemplate,
+  AdminPage,
+  AdminPageInput,
+  AdminPageListItem,
+  AdminPageTheme,
+  PageThemeValues,
+  PublicPageResponse,
+  AdminHeroTemplateInput,
   AdminJourneyItem,
   AdminMood,
   AdminStoryMood,
@@ -656,6 +664,61 @@ export const storyApi = {
       body: JSON.stringify({ items }),
     }),
 
+  // `preview` only matters for a signed-in superuser: it also returns drafts.
+  getPage: (slug: string, preview = false) =>
+    apiClient<PublicPageResponse>(
+      `/pages/${encodeURIComponent(slug)}/${preview ? "?preview=1" : ""}`
+    ),
+  getAdminPages: () => apiClient<AdminPageListItem[]>("/admin/pages/"),
+  getAdminPage: (id: number) => apiClient<AdminPage>(`/admin/pages/${id}/`),
+  createAdminPage: (payload: { title: string; template: AdminPageInput["template"] }) =>
+    apiClient<AdminPage>("/admin/pages/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminPage: (id: number, payload: Partial<AdminPageInput>) =>
+    apiClient<AdminPage>(`/admin/pages/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminPage: (id: number) =>
+    apiClient<void>(`/admin/pages/${id}/`, { method: "DELETE" }),
+  duplicateAdminPage: (id: number) =>
+    apiClient<AdminPage>(`/admin/pages/${id}/duplicate/`, { method: "POST" }),
+  getAdminPageThemes: () => apiClient<AdminPageTheme[]>("/admin/page-themes/"),
+  createAdminPageTheme: (payload: PageThemeValues & { name: string }) =>
+    apiClient<AdminPageTheme>("/admin/page-themes/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminPageTheme: (id: number, payload: Partial<PageThemeValues & { name: string }>) =>
+    apiClient<AdminPageTheme>(`/admin/page-themes/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminPageTheme: (id: number) =>
+    apiClient<void>(`/admin/page-themes/${id}/`, { method: "DELETE" }),
+  duplicateAdminPageTheme: (id: number) =>
+    apiClient<AdminPageTheme>(`/admin/page-themes/${id}/duplicate/`, { method: "POST" }),
+
+  getAdminHeroTemplates: () => apiClient<AdminHeroTemplate[]>("/admin/hero-templates/"),
+  createAdminHeroTemplate: (payload: Partial<AdminHeroTemplateInput>) =>
+    apiClient<AdminHeroTemplate>("/admin/hero-templates/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminHeroTemplate: (id: number, payload: Partial<AdminHeroTemplateInput>) =>
+    apiClient<AdminHeroTemplate>(`/admin/hero-templates/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminHeroTemplate: (id: number) =>
+    apiClient<void>(`/admin/hero-templates/${id}/`, { method: "DELETE" }),
+  setDefaultAdminHeroTemplate: (id: number) =>
+    apiClient<AdminHeroTemplate>(`/admin/hero-templates/${id}/set-default/`, { method: "POST" }),
+  duplicateAdminHeroTemplate: (id: number) =>
+    apiClient<AdminHeroTemplate>(`/admin/hero-templates/${id}/duplicate/`, { method: "POST" }),
+
   getAdminMoods: () => apiClient<AdminMood[]>("/admin/moods/"),
   createAdminMood: (payload: { name: string; icon?: string; description?: string }) =>
     apiClient<AdminMood>("/admin/moods/", {
@@ -800,6 +863,7 @@ export const storyApi = {
     slug?: string;
     youtube_url: string;
     duration_seconds?: string | number | null;
+    aspect_ratio: "16:9" | "9:16";
   }) =>
     apiClient<AdminVideo>("/admin/videos/", {
       method: "POST",
@@ -813,6 +877,7 @@ export const storyApi = {
       slug: string;
       youtube_url: string;
       duration_seconds: string | number | null;
+      aspect_ratio: "16:9" | "9:16";
     }>
   ) =>
     apiClient<AdminVideo>(`/admin/videos/${id}/`, {

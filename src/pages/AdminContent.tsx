@@ -226,6 +226,7 @@ const AdminContent = () => {
   const [newVideoOrder, setNewVideoOrder] = useState(1);
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [newVideoDuration, setNewVideoDuration] = useState("");
+  const [newVideoAspectRatio, setNewVideoAspectRatio] = useState<"16:9" | "9:16">("16:9");
   const [creatingVideo, setCreatingVideo] = useState(false);
   const [pendingDeleteVideoId, setPendingDeleteVideoId] = useState<number | null>(null);
   const [deletingVideo, setDeletingVideo] = useState(false);
@@ -771,6 +772,7 @@ const AdminContent = () => {
     setNewVideoOrder((videosData?.results?.length || 0) + 1);
     setNewVideoUrl("");
     setNewVideoDuration("");
+    setNewVideoAspectRatio("16:9");
     setShowVideoModal(true);
   };
 
@@ -781,6 +783,7 @@ const AdminContent = () => {
     order: number;
     youtube_url: string;
     duration_seconds: number | null;
+    aspect_ratio: "16:9" | "9:16";
   }) => {
     setEditingVideoId(video.id);
     setNewVideoTitle(video.title || "");
@@ -788,6 +791,7 @@ const AdminContent = () => {
     setNewVideoOrder(video.order || 1);
     setNewVideoUrl(video.youtube_url || "");
     setNewVideoDuration(video.duration_seconds != null ? String(video.duration_seconds) : "");
+    setNewVideoAspectRatio(video.aspect_ratio || "16:9");
     setShowVideoModal(true);
   };
 
@@ -808,6 +812,7 @@ const AdminContent = () => {
           slug: newVideoSlug.trim() || undefined,
           youtube_url: newVideoUrl.trim(),
           duration_seconds: duration,
+          aspect_ratio: newVideoAspectRatio,
         });
       } else {
         await storyApi.createAdminVideo({
@@ -817,6 +822,7 @@ const AdminContent = () => {
           slug: newVideoSlug.trim() || undefined,
           youtube_url: newVideoUrl.trim(),
           duration_seconds: duration,
+          aspect_ratio: newVideoAspectRatio,
         });
       }
       await queryClient.invalidateQueries({ queryKey: ["admin-videos", selectedStoryId] });
@@ -3315,6 +3321,21 @@ const AdminContent = () => {
                     onChange={(e) => setNewVideoDuration(e.target.value)}
                     placeholder="seconds or mm:ss"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="new-video-aspect-ratio">Video orientation</Label>
+                  <Select
+                    value={newVideoAspectRatio}
+                    onValueChange={(value: "16:9" | "9:16") => setNewVideoAspectRatio(value)}
+                  >
+                    <SelectTrigger id="new-video-aspect-ratio">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                      <SelectItem value="9:16">Portrait (9:16)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setShowVideoModal(false)}>Cancel</Button>

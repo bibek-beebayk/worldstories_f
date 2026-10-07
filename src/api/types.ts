@@ -77,6 +77,7 @@ export interface Video {
   youtube_id: string;
   order: number;
   duration_seconds: number | null;
+  aspect_ratio: "16:9" | "9:16";
 }
 
 export interface Genre{
@@ -483,7 +484,75 @@ export interface HomeDataResponse {
   originals: Story[];
   tabs: HomeTabs;
   sidebar: HomeSidebar;
+  /** The hero template showing right now, or null when none applies — the
+   *  homepage then falls back to its built-in default. */
+  hero?: HeroConfig | null;
 }
+
+export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "none";
+export type HeroStatSource = "stories" | "creators" | "readers" | "custom";
+
+/** Public hero content, as /home/ serves it (apps/story/serializers.py serialize_hero). */
+export interface HeroConfig {
+  id?: number;
+  title: { prefix: string; highlight: string; highlight_from: string; highlight_to: string };
+  description: string;
+  info_lines: { icon: string; text: string }[];
+  /** Live counts arrive as numbers (abbreviated client-side), custom values as text. */
+  stats: { label: string; value: number | string }[];
+  cta: { label: string; url: string; bg_from: string; bg_to: string; text_color: string };
+  background: {
+    color: string;
+    image: string;
+    accent: string;
+    animation: HeroAnimationPreset | string;
+    icons: string[];
+  };
+}
+
+/** A hero template as the admin panel edits it — every field flat. */
+export interface AdminHeroTemplate {
+  id: number;
+  name: string;
+  is_default: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  /** live = what the homepage shows right now. */
+  status: "live" | "scheduled" | "ended" | "idle";
+  title_prefix: string;
+  title_highlight: string;
+  title_highlight_from: string;
+  title_highlight_to: string;
+  description: string;
+  show_info_lines: boolean;
+  show_stats: boolean;
+  info_line_1_icon: string;
+  info_line_1_text: string;
+  info_line_2_icon: string;
+  info_line_2_text: string;
+  stat_1_source: HeroStatSource;
+  stat_1_label: string;
+  stat_1_value: string;
+  stat_2_source: HeroStatSource;
+  stat_2_label: string;
+  stat_2_value: string;
+  stat_3_source: HeroStatSource;
+  stat_3_label: string;
+  stat_3_value: string;
+  cta_label: string;
+  cta_url: string;
+  cta_bg_from: string;
+  cta_bg_to: string;
+  cta_text_color: string;
+  background_color: string;
+  background_image: string;
+  accent_color: string;
+  animation_preset: HeroAnimationPreset;
+  animation_icons: string[];
+  updated_at: string;
+}
+
+export type AdminHeroTemplateInput = Omit<AdminHeroTemplate, "id" | "is_default" | "status" | "updated_at">;
 
 export interface TrendingDataResponse {
   most_viewed: Story[];
@@ -853,6 +922,7 @@ export interface AdminVideo {
   youtube_id: string;
   order: number;
   duration_seconds: number | null;
+  aspect_ratio: "16:9" | "9:16";
 }
 
 export interface AdminSubmission {
@@ -1898,4 +1968,157 @@ export interface NepalikathaAnalytics {
   average_reading_seconds: number | null;
   over_time: { day: string; visitors: number; page_views: number; reading_seconds: number }[];
   top_stories: { slug: string; title: string; readers: number; reads: number; reading_seconds: number }[];
+}
+
+// ---------------------------------------------------------------------------
+// Admin-built pages (/pages/<slug>) — apps/pages on the backend.
+// ---------------------------------------------------------------------------
+
+export type PageStoryLayout = "grid" | "rail";
+
+export interface RichTextBlockConfig { html: string }
+export interface StoryListBlockConfig { heading: string; story_ids: number[]; layout: PageStoryLayout }
+export interface StoryQueryBlockConfig {
+  heading: string;
+  genre: string;
+  category: string;
+  tag: string;
+  theme: string;
+  country: string;
+  sort: "newest" | "popular" | "top_rated";
+  limit: number;
+  layout: PageStoryLayout;
+}
+export interface BannerBlockConfig {
+  heading: string;
+  text: string;
+  image: string;
+  cta_label: string;
+  cta_url: string;
+  background_color: string;
+}
+export interface ImageBlockConfig { url: string; alt: string; caption: string }
+export interface FaqBlockConfig { heading: string; items: { question: string; answer: string }[] }
+export interface CtaBlockConfig { text: string; label: string; url: string; bg_color: string; text_color: string }
+
+export type PageBlockData =
+  | { type: "rich_text"; config: RichTextBlockConfig }
+  | { type: "story_list"; config: StoryListBlockConfig }
+  | { type: "story_query"; config: StoryQueryBlockConfig }
+  | { type: "banner"; config: BannerBlockConfig }
+  | { type: "image"; config: ImageBlockConfig }
+  | { type: "faq"; config: FaqBlockConfig }
+  | { type: "cta"; config: CtaBlockConfig };
+
+export type PageBlockType = PageBlockData["type"];
+
+/** A block as the public page receives it — story blocks come with card data. */
+export type PublicPageBlock = PageBlockData & {
+  id: number;
+  stories?: Story[];
+  see_all_url?: string | null;
+};
+
+export type PageContentWidth = "narrow" | "normal" | "wide" | "full";
+export type PageSectionSpacing = "compact" | "normal" | "relaxed";
+
+/** Everything a theme controls (apps/pages/models.py PageTheme). */
+export interface PageThemeValues {
+  background_color: string;
+  surface_color: string;
+  text_color: string;
+  muted_text_color: string;
+  heading_color: string;
+  primary_color: string;
+  primary_text_color: string;
+  border_color: string;
+  heading_font: string;
+  body_font: string;
+  body_font_size: number;
+  heading_weight: number;
+  heading_uppercase: boolean;
+  radius: number;
+  content_width: PageContentWidth;
+  section_spacing: PageSectionSpacing;
+  background_image: string;
+  background_overlay_color: string;
+  background_overlay_opacity: number;
+  custom_css: string;
+}
+
+export interface PublicPageTheme extends PageThemeValues {
+  id: number;
+}
+
+export interface AdminPageTheme extends PageThemeValues {
+  id: number;
+  name: string;
+  /** How many pages use it — shown before deleting. */
+  page_count: number;
+  updated_at: string;
+}
+
+export interface PublicPage {
+  title: string;
+  slug: string;
+  path: string;
+  meta_title: string;
+  meta_description: string;
+  og_image: string;
+  noindex: boolean;
+  is_preview: boolean;
+  /** null = the site's own look. */
+  theme: PublicPageTheme | null;
+  published_at: string;
+  updated_at: string;
+  blocks: PublicPageBlock[];
+}
+
+/** An old slug answers with where the page lives now. */
+export type PublicPageResponse = PublicPage | { redirect: string };
+
+export type PageTemplate = "static" | "book_list" | "blank";
+export type PageStatus = "draft" | "published";
+export type PageStatusLabel = "draft" | "scheduled" | "live";
+
+export interface AdminPageListItem {
+  id: number;
+  title: string;
+  slug: string;
+  path: string;
+  template: PageTemplate;
+  status: PageStatus;
+  status_label: PageStatusLabel;
+  publish_at: string | null;
+  updated_at: string;
+}
+
+/** A block as the editor holds it; story lists carry titles for display. */
+export type AdminPageBlock = PageBlockData & {
+  id?: number;
+  stories?: { id: number; title: string; is_published: boolean }[];
+};
+
+export interface AdminPage extends AdminPageListItem {
+  meta_title: string;
+  meta_description: string;
+  og_image: string;
+  noindex: boolean;
+  theme: number | null;
+  blocks: AdminPageBlock[];
+  created_at: string;
+}
+
+export interface AdminPageInput {
+  title: string;
+  slug: string;
+  template: PageTemplate;
+  status: PageStatus;
+  publish_at: string | null;
+  meta_title: string;
+  meta_description: string;
+  og_image: string;
+  noindex: boolean;
+  theme: number | null;
+  blocks: PageBlockData[];
 }
