@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router";
-import { useState } from "react";
-import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Route, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star, PanelTop, FileText } from "lucide-react";
+import { useEffect, useState, type ComponentType } from "react";
+import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Route, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star, PanelTop, FileText, Paintbrush, ChevronDown, FolderOpen } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
@@ -9,22 +9,44 @@ import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-const menuItems = [
+type MenuIcon = ComponentType<{ className?: string }>;
+type MenuLink = { to: string; label: string; icon: MenuIcon; exact: boolean };
+/** A collapsible section of related links. */
+type MenuGroup = { label: string; icon: MenuIcon; children: MenuLink[] };
+type MenuEntry = MenuLink | MenuGroup;
+
+const isGroup = (entry: MenuEntry): entry is MenuGroup => "children" in entry;
+
+const menuItems: MenuEntry[] = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { to: "/admin/content", label: "Stories", icon: Library, exact: false },
-  { to: "/admin/featured", label: "Featured Stories", icon: Star, exact: false },
-  { to: "/admin/hero", label: "Homepage Hero", icon: PanelTop, exact: false },
-  { to: "/admin/pages", label: "Pages", icon: FileText, exact: false },
+  {
+    // The catalogue: what's published and how it's organised.
+    label: "Content",
+    icon: FolderOpen,
+    children: [
+      { to: "/admin/content", label: "Stories", icon: Library, exact: false },
+      { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false },
+      { to: "/admin/categories", label: "Categories", icon: Tag, exact: false },
+      { to: "/admin/genres", label: "Genres", icon: BookMarked, exact: false },
+      { to: "/admin/tags", label: "Tags", icon: Tags, exact: false },
+      { to: "/admin/themes", label: "Themes", icon: Palette, exact: false },
+      { to: "/admin/moods", label: "Moods", icon: Smile, exact: false },
+      { to: "/admin/journeys", label: "Journeys", icon: Route, exact: false },
+      { to: "/admin/story-types", label: "Story Types", icon: BookOpenText, exact: false },
+      { to: "/admin/authors", label: "Authors", icon: Users, exact: false },
+    ],
+  },
+  {
+    // What the public site shows and how it looks, rather than the catalogue.
+    label: "Customize",
+    icon: Paintbrush,
+    children: [
+      { to: "/admin/featured", label: "Featured Stories", icon: Star, exact: false },
+      { to: "/admin/hero", label: "Homepage Hero", icon: PanelTop, exact: false },
+      { to: "/admin/pages", label: "Pages", icon: FileText, exact: false },
+    ],
+  },
   { to: "/admin/story-report", label: "Story Report", icon: ClipboardList, exact: false },
-  { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false },
-  { to: "/admin/categories", label: "Categories", icon: Tag, exact: false },
-  { to: "/admin/genres", label: "Genres", icon: BookMarked, exact: false },
-  { to: "/admin/tags", label: "Tags", icon: Tags, exact: false },
-  { to: "/admin/themes", label: "Themes", icon: Palette, exact: false },
-  { to: "/admin/moods", label: "Moods", icon: Smile, exact: false },
-  { to: "/admin/journeys", label: "Journeys", icon: Route, exact: false },
-  { to: "/admin/story-types", label: "Story Types", icon: BookOpenText, exact: false },
-  { to: "/admin/authors", label: "Authors", icon: Users, exact: false },
   { to: "/admin/users", label: "Users", icon: UserCog, exact: false },
   { to: "/admin/ai-settings", label: "AI Settings", icon: Sparkles, exact: false },
   { to: "/admin/submissions", label: "Submissions", icon: Inbox, exact: false },
@@ -36,12 +58,29 @@ const isActive = (pathname: string, to: string, exact: boolean) => {
   return pathname === to || pathname.startsWith(`${to}/`);
 };
 
+const groupHasActive = (pathname: string, group: MenuGroup) =>
+  group.children.some((child) => isActive(pathname, child.to, child.exact));
+
+const activeGroupLabels = (pathname: string) =>
+  menuItems.filter((entry) => isGroup(entry) && groupHasActive(pathname, entry)).map((entry) => entry.label);
+
 export default function AdminShellLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Groups start open when you're on one of their pages, and open themselves
+  // when you navigate into one; otherwise they stay as you left them.
+  const [openGroups, setOpenGroups] = useState<string[]>(() => activeGroupLabels(location.pathname));
+
+  useEffect(() => {
+    const active = activeGroupLabels(location.pathname);
+    if (active.length) setOpenGroups((current) => [...new Set([...current, ...active])]);
+  }, [location.pathname]);
+
+  const toggleGroup = (label: string) =>
+    setOpenGroups((current) => (current.includes(label) ? current.filter((l) => l !== label) : [...current, label]));
 
   const onLogout = () => {
     authApi.logout().catch(() => undefined);
@@ -51,28 +90,72 @@ export default function AdminShellLayout() {
     navigate("/admin/login");
   };
 
-  const navLinks = (onNavigate?: () => void) => (
-    <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-      {menuItems.map((item) => {
-        const active = isActive(location.pathname, item.to, item.exact);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className={`flex items-center rounded-md px-3 py-2 text-sm transition-colors ${
-              active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
-            } ${collapsed && !onNavigate ? "justify-center" : "gap-2"}`}
-            title={item.label}
-          >
-            <Icon className="h-4 w-4" />
-            {(!collapsed || onNavigate) && <span>{item.label}</span>}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  const navLinks = (onNavigate?: () => void) => {
+    // The desktop sidebar can be collapsed to icons; the mobile drawer never is.
+    const iconsOnly = collapsed && !onNavigate;
+
+    const renderLink = (item: MenuLink, nested = false) => {
+      const active = isActive(location.pathname, item.to, item.exact);
+      const Icon = item.icon;
+      return (
+        <Link
+          key={item.to}
+          to={item.to}
+          onClick={onNavigate}
+          className={`flex items-center rounded-md px-3 py-2 text-sm transition-colors ${
+            active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+          } ${iconsOnly ? "justify-center" : "gap-2"} ${nested && !iconsOnly ? "pl-8" : ""}`}
+          title={item.label}
+        >
+          <Icon className="h-4 w-4" />
+          {!iconsOnly && <span>{item.label}</span>}
+        </Link>
+      );
+    };
+
+    return (
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+        {menuItems.map((entry) => {
+          if (!isGroup(entry)) return renderLink(entry);
+
+          const open = openGroups.includes(entry.label);
+          const hasActive = groupHasActive(location.pathname, entry);
+          const Icon = entry.icon;
+          return (
+            <div key={entry.label} className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  // With only icons showing there's no room for the sub-menu,
+                  // so expand the sidebar and open the group instead.
+                  if (iconsOnly) {
+                    setCollapsed(false);
+                    if (!open) toggleGroup(entry.label);
+                    return;
+                  }
+                  toggleGroup(entry.label);
+                }}
+                aria-expanded={open}
+                title={entry.label}
+                className={`flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
+                  hasActive && (iconsOnly || !open) ? "bg-primary/10 font-medium text-primary" : "text-foreground"
+                } ${iconsOnly ? "justify-center" : "gap-2"}`}
+              >
+                <Icon className="h-4 w-4" />
+                {!iconsOnly && (
+                  <>
+                    <span className="flex-1 text-left">{entry.label}</span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+                  </>
+                )}
+              </button>
+              {open && !iconsOnly && entry.children.map((child) => renderLink(child, true))}
+            </div>
+          );
+        })}
+      </nav>
+    );
+  };
 
   const footerLinks = (onNavigate?: () => void) => (
     <div className="mt-auto border-t pt-3">
