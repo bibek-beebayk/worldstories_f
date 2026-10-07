@@ -14,6 +14,10 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 }
 
+// Tells SiteThemeStyles (root.tsx) that this page's loader data may carry a
+// theme chosen for the story — which then overrides the site theme here.
+export const handle = { storyTheme: true };
+
 export function meta({ data, params }: Route.MetaArgs) {
   if (!data) {
     return buildMeta({

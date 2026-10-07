@@ -1,12 +1,12 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation } from "react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { AuthModalProvider } from "@/context/AuthModalContext";
 import { ImmersiveReaderProvider } from "@/context/ImmersiveReaderContext";
-import { queryClient } from "@/lib/queryClient";
+import { getQueryClient } from "@/lib/queryClient";
 import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 import NavigationProgress from "@/components/NavigationProgress";
 import { buildMeta } from "@/lib/buildMeta";
@@ -169,6 +169,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function Root() {
+  // Per request on the server, one per session in the browser (see getQueryClient).
+  const [queryClient] = useState(getQueryClient);
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

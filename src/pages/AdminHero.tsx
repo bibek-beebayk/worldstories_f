@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, Copy, Loader2, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { storyApi } from "@/api/story";
-import type { AdminHeroTemplate, AdminHeroTemplateInput, HeroStatSource, HomeStats } from "@/api/types";
+import type {
+  AdminHeroTemplate,
+  AdminHeroTemplateInput,
+  HeroLetterSpacing,
+  HeroStatSource,
+  HeroTextSize,
+  HeroTitleSize,
+  HomeStats,
+} from "@/api/types";
+import { FontSelect } from "@/components/admin/themeFields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -182,7 +191,7 @@ const HeroTemplateEditor = ({
         <p className="border-b bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
           Live preview — unsaved changes included
         </p>
-        <HomeHero hero={preview} />
+        <HomeHero hero={preview} loadFonts />
       </div>
 
       <form
@@ -274,6 +283,99 @@ const HeroTemplateEditor = ({
             maxLength={400}
             rows={3}
           />
+        </Section>
+
+        <Section title="Typography">
+          <p className="text-xs font-medium text-muted-foreground">Title</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Font">
+              <FontSelect value={draft.title_font} onChange={(v) => set("title_font", v)} />
+            </Field>
+            <Field label="Size">
+              <Select value={draft.title_size} onValueChange={(v) => set("title_size", v as HeroTitleSize)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                  <SelectItem value="xlarge">Extra large</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Weight" hint="Fonts without that weight use their nearest.">
+              <Select value={String(draft.title_weight)} onValueChange={(v) => set("title_weight", Number(v))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    [300, "Light"],
+                    [400, "Regular"],
+                    [500, "Medium"],
+                    [600, "Semibold"],
+                    [700, "Bold"],
+                    [800, "Extra bold"],
+                    [900, "Black"],
+                  ].map(([value, label]) => (
+                    <SelectItem key={value} value={String(value)}>
+                      {label} ({value})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Letter spacing">
+              <Select
+                value={draft.title_letter_spacing}
+                onValueChange={(v) => set("title_letter_spacing", v as HeroLetterSpacing)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tight">Tight</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="wide">Wide</SelectItem>
+                  <SelectItem value="wider">Wider</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={draft.title_uppercase} onCheckedChange={(c) => set("title_uppercase", c === true)} />
+              Uppercase
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={draft.title_italic} onCheckedChange={(c) => set("title_italic", c === true)} />
+              Italic
+            </label>
+          </div>
+
+          <p className="pt-2 text-xs font-medium text-muted-foreground">Description, info lines, stats and button</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Font">
+              <FontSelect value={draft.body_font} onChange={(v) => set("body_font", v)} />
+            </Field>
+            <Field label="Description size">
+              <Select value={draft.description_size} onValueChange={(v) => set("description_size", v as HeroTextSize)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={draft.cta_uppercase} onCheckedChange={(c) => set("cta_uppercase", c === true)} />
+            Uppercase button label
+          </label>
         </Section>
 
         <Section title="Info lines" shown={draft.show_info_lines} onShownChange={(v) => set("show_info_lines", v)}>

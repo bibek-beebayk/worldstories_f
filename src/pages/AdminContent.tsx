@@ -161,6 +161,8 @@ const AdminContent = () => {
   const [sitePublishedDate, setSitePublishedDate] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [isOriginal, setIsOriginal] = useState(false);
+  // A site theme for this story's /read/<slug> page; "none" = the site's own.
+  const [siteThemeId, setSiteThemeId] = useState("none");
   const [showInNepaliSite, setShowInNepaliSite] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [publishAt, setPublishAt] = useState("");
@@ -261,6 +263,11 @@ const AdminContent = () => {
   const { data: storyTypes } = useQuery({
     queryKey: ["admin-story-types"],
     queryFn: storyApi.getAdminStoryTypes,
+    enabled: isAuthenticated && Boolean(me?.is_superuser),
+  });
+  const { data: siteThemes } = useQuery({
+    queryKey: ["admin-site-themes"],
+    queryFn: storyApi.getAdminSiteThemes,
     enabled: isAuthenticated && Boolean(me?.is_superuser),
   });
   const { data: categories } = useQuery({
@@ -371,6 +378,7 @@ const AdminContent = () => {
     setSitePublishedDate("");
     setIsCompleted(false);
     setIsOriginal(false);
+    setSiteThemeId("none");
     // Cleared like the other flags: without this, opening "New story" straight
     // after editing a flagged one would silently carry the flag over.
     setShowInNepaliSite(false);
@@ -417,6 +425,7 @@ const AdminContent = () => {
     setOriginalPublishedDay(numToStr(selectedStory.original_published_day));
     setIsCompleted(Boolean(selectedStory.is_completed));
     setIsOriginal(Boolean(selectedStory.is_original));
+    setSiteThemeId(selectedStory.site_theme ? String(selectedStory.site_theme) : "none");
     setShowInNepaliSite(Boolean(selectedStory.show_in_nepali_site));
     setCoverImage(selectedStory.cover_image || "");
     setRemoveCoverImage(false);
@@ -985,6 +994,7 @@ const AdminContent = () => {
     setSitePublishedDate(selectedStory.site_published_date || "");
     setIsCompleted(Boolean(selectedStory.is_completed));
     setIsOriginal(Boolean(selectedStory.is_original));
+    setSiteThemeId(selectedStory.site_theme ? String(selectedStory.site_theme) : "none");
     setShowInNepaliSite(Boolean(selectedStory.show_in_nepali_site));
     setIsPublished(Boolean(selectedStory.is_published));
     setPublishAt(toDatetimeLocalValue(selectedStory.publish_at));
@@ -1283,6 +1293,11 @@ const AdminContent = () => {
     }
     formData.append("is_completed", String(isCompleted));
     formData.append("is_original", String(isOriginal));
+    if (siteThemeId !== "none") {
+      formData.append("site_theme", siteThemeId);
+    } else if (mode === "edit") {
+      formData.append("site_theme", "");
+    }
     formData.append("show_in_nepali_site", String(showInNepaliSite));
     const publishValue = forceDraft ? false : forcePublish ? true : isPublished;
     formData.append("is_published", String(publishValue));
@@ -1889,6 +1904,21 @@ const AdminContent = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label>Page theme</Label>
+                    <Select value={siteThemeId} onValueChange={setSiteThemeId}>
+                      <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Site theme (whichever is on)</SelectItem>
+                        {(siteThemes || []).map((theme) => (
+                          <SelectItem key={theme.id} value={String(theme.id)}>{theme.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Used on this story's /read page, overriding any site theme — even one that's switched off.
+                    </p>
                   </div>
                   <div>
                     <div className="flex items-center justify-between">

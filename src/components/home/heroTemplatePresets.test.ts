@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HERO_ICON_NAMES, HERO_PRESETS } from "./heroPresets";
 import { HERO_TEMPLATE_PRESETS } from "./heroTemplatePresets";
+import { PAGE_FONT_NAMES } from "@/components/pages/pageTheme";
 
 describe("hero template presets", () => {
   const regular = HERO_TEMPLATE_PRESETS[0].values;
@@ -25,6 +26,9 @@ describe("hero template presets", () => {
       }
       expect(values.cta_url.startsWith("/") || /^https?:\/\//.test(values.cta_url)).toBe(true);
       expect(values.animation_icons.length).toBeLessThanOrEqual(10);
+      for (const font of [values.title_font, values.body_font]) {
+        if (font) expect(PAGE_FONT_NAMES, `${label}: ${font}`).toContain(font);
+      }
     }
   });
 });

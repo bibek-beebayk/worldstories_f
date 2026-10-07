@@ -225,6 +225,8 @@ export interface StoryTranslation {
 }
 
 export interface StoryDetail extends Story {
+  /** The look chosen for this story's /read/<slug> page, overriding any site theme. */
+  site_theme?: PublicSiteTheme | null;
   is_original: boolean;
   story_type: string;
   about: string;
@@ -491,12 +493,30 @@ export interface HomeDataResponse {
 
 export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "christmas" | "none";
 export type HeroStatSource = "stories" | "creators" | "readers" | "custom";
+export type HeroTitleSize = "small" | "medium" | "large" | "xlarge";
+export type HeroLetterSpacing = "tight" | "normal" | "wide" | "wider";
+export type HeroTextSize = "small" | "medium" | "large";
+
+/** Hero fonts and text styling. Fonts are Google Fonts names; "" = the site's own. */
+export interface HeroTypography {
+  title_font: string;
+  title_size: HeroTitleSize;
+  title_weight: number;
+  title_letter_spacing: HeroLetterSpacing;
+  title_uppercase: boolean;
+  title_italic: boolean;
+  body_font: string;
+  description_size: HeroTextSize;
+  cta_uppercase: boolean;
+}
 
 /** Public hero content, as /home/ serves it (apps/story/serializers.py serialize_hero). */
 export interface HeroConfig {
   id?: number;
   title: { prefix: string; highlight: string; highlight_from: string; highlight_to: string };
   description: string;
+  /** Missing from older backends — the hero then uses DEFAULT_HERO_TYPOGRAPHY. */
+  typography?: HeroTypography;
   info_lines: { icon: string; text: string }[];
   /** Live counts arrive as numbers (abbreviated client-side), custom values as text. */
   stats: { label: string; value: number | string }[];
@@ -524,6 +544,15 @@ export interface AdminHeroTemplate {
   title_highlight_from: string;
   title_highlight_to: string;
   description: string;
+  title_font: string;
+  title_size: HeroTitleSize;
+  title_weight: number;
+  title_letter_spacing: HeroLetterSpacing;
+  title_uppercase: boolean;
+  title_italic: boolean;
+  body_font: string;
+  description_size: HeroTextSize;
+  cta_uppercase: boolean;
   show_info_lines: boolean;
   show_stats: boolean;
   info_line_1_icon: string;
@@ -728,6 +757,8 @@ export interface AdminStory {
   id: number;
   title: string;
   slug: string;
+  /** A site theme's id, used for this story's /read/<slug> page. */
+  site_theme?: number | null;
   about: string | null;
   summary: string | null;
   summary_status: AiGenerationStatus | null;

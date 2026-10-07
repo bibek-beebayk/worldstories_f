@@ -1,22 +1,47 @@
 import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
-import type { HeroConfig } from "@/api/types";
+import type { HeroConfig, HeroLetterSpacing, HeroTextSize, HeroTitleSize } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { formatViews } from "@/lib/utils";
-import { heroIcon, heroPreset, resolvePresetSlots } from "@/components/home/heroPresets";
+import { DEFAULT_HERO_TYPOGRAPHY, heroFontsUrl, heroIcon, heroPreset, resolvePresetSlots } from "@/components/home/heroPresets";
+import { fontStack } from "@/components/pages/pageTheme";
 
 const isExternal = (url: string) => /^https?:\/\//.test(url);
+
+// Responsive presets — "medium" is the hero's original size.
+const TITLE_SIZE_CLASS: Record<HeroTitleSize, string> = {
+  small: "text-3xl sm:text-4xl md:text-5xl",
+  medium: "text-4xl sm:text-5xl md:text-6xl",
+  large: "text-5xl sm:text-6xl md:text-7xl",
+  xlarge: "text-5xl sm:text-7xl md:text-8xl",
+};
+const LETTER_SPACING: Record<HeroLetterSpacing, string> = {
+  tight: "-0.025em",
+  normal: "0",
+  wide: "0.05em",
+  wider: "0.1em",
+};
+const DESCRIPTION_SIZE_CLASS: Record<HeroTextSize, string> = {
+  small: "text-xs sm:text-sm",
+  medium: "text-sm sm:text-base",
+  large: "text-base sm:text-lg",
+};
 
 /**
  * The homepage hero. The layout is fixed here; every piece of content —
  * text, stats, CTA, colours, background and its animation — comes from a
  * backend hero template (see heroPresets.ts for the animation presets).
  *
- * Colours are inline styles because they arrive at runtime: Tailwind can only
- * generate classes it sees at build time.
+ * Colours and fonts are inline styles because they arrive at runtime:
+ * Tailwind can only generate classes it sees at build time.
+ *
+ * The homepage loads the hero's fonts from its meta() (so they're in <head>
+ * on first paint); `loadFonts` adds them in place instead, for the admin preview.
  */
-const HomeHero = ({ hero }: { hero: HeroConfig }) => {
+const HomeHero = ({ hero, loadFonts = false }: { hero: HeroConfig; loadFonts?: boolean }) => {
   const { title, cta, background } = hero;
+  const typography = hero.typography ?? DEFAULT_HERO_TYPOGRAPHY;
+  const fontsUrl = loadFonts ? heroFontsUrl(hero) : null;
   const preset = heroPreset(background.animation);
   const slots = resolvePresetSlots(preset, background.icons ?? []);
   const ctaContent = (
@@ -28,6 +53,7 @@ const HomeHero = ({ hero }: { hero: HeroConfig }) => {
 
   return (
     <section className="relative overflow-hidden" style={{ backgroundColor: background.color }}>
+      {fontsUrl && <link rel="stylesheet" href={fontsUrl} />}
       {background.image && (
         <>
           <img
@@ -71,16 +97,32 @@ const HomeHero = ({ hero }: { hero: HeroConfig }) => {
         })}
       </div>
 
-      <div className="container relative px-3 py-10 sm:px-4 sm:py-14 md:py-16">
+      <div
+        className="container relative px-3 py-10 sm:px-4 sm:py-14 md:py-16"
+        style={typography.body_font ? { fontFamily: fontStack(typography.body_font) } : undefined}
+      >
         <div className="flex flex-wrap items-center justify-between gap-8">
           <div className="min-w-0 max-w-2xl">
-            <h1 className="animate-in fade-in-0 slide-in-from-bottom-4 text-4xl font-bold tracking-tight duration-700 sm:text-5xl md:text-6xl">
+            <h1
+              className={`animate-in fade-in-0 slide-in-from-bottom-4 duration-700 ${TITLE_SIZE_CLASS[typography.title_size] ?? TITLE_SIZE_CLASS.medium}`}
+              style={{
+                // Inline, so it also beats a site theme's heading font.
+                ...(typography.title_font ? { fontFamily: fontStack(typography.title_font) } : {}),
+                fontWeight: typography.title_weight,
+                letterSpacing: LETTER_SPACING[typography.title_letter_spacing] ?? LETTER_SPACING.tight,
+                textTransform: typography.title_uppercase ? "uppercase" : undefined,
+                fontStyle: typography.title_italic ? "italic" : undefined,
+              }}
+            >
               <span className="text-white">{title.prefix}</span>
               {title.highlight && (
                 <span
                   className="animate-gradient-x bg-[length:200%_auto] bg-clip-text text-transparent"
                   style={{
                     backgroundImage: `linear-gradient(to right, ${title.highlight_from}, ${title.highlight_to}, ${title.highlight_from})`,
+                    // Gradient text is only painted inside the box, and italic
+                    // letters lean past it — give the last one room.
+                    ...(typography.title_italic ? { paddingRight: "0.15em" } : {}),
                   }}
                 >
                   {title.highlight}
@@ -88,7 +130,9 @@ const HomeHero = ({ hero }: { hero: HeroConfig }) => {
               )}
             </h1>
             {hero.description && (
-              <p className="mt-3 text-sm text-white/75 sm:text-base">{hero.description}</p>
+              <p className={`mt-3 text-white/75 ${DESCRIPTION_SIZE_CLASS[typography.description_size] ?? DESCRIPTION_SIZE_CLASS.medium}`}>
+                {hero.description}
+              </p>
             )}
 
             {hero.info_lines.length > 0 && (
@@ -127,7 +171,9 @@ const HomeHero = ({ hero }: { hero: HeroConfig }) => {
               <Button
                 asChild
                 size="lg"
-                className="group relative rounded-full px-8 text-base font-semibold shadow-lg shadow-black/30 transition-transform hover:scale-105 hover:shadow-xl"
+                className={`group relative rounded-full px-8 text-base font-semibold shadow-lg shadow-black/30 transition-transform hover:scale-105 hover:shadow-xl ${
+                  typography.cta_uppercase ? "uppercase tracking-wide" : ""
+                }`}
                 style={{
                   backgroundImage: `linear-gradient(to right, ${cta.bg_from}, ${cta.bg_to})`,
                   color: cta.text_color,

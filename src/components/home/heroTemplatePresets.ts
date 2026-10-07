@@ -1,4 +1,5 @@
 import type { AdminHeroTemplateInput } from "@/api/types";
+import { DEFAULT_HERO_TYPOGRAPHY } from "@/components/home/heroPresets";
 
 /** Everything a hero template holds except its name and schedule. */
 export type HeroTemplateValues = Omit<AdminHeroTemplateInput, "name" | "starts_at" | "ends_at">;
@@ -11,6 +12,7 @@ const REGULAR: HeroTemplateValues = {
   title_highlight_to: "#fbbf24",
   description:
     "The home for stories from around the world. Read novels, poetry, and short fiction for free, and discover audiobooks and read-along narrations from authors across every genre and country.",
+  ...DEFAULT_HERO_TYPOGRAPHY,
   show_info_lines: true,
   show_stats: true,
   info_line_1_icon: "BookOpenText",
@@ -67,6 +69,10 @@ export const HERO_TEMPLATE_PRESETS: { key: string; label: string; values: HeroTe
       background_color: "#120a1f",
       accent_color: "#ff7518",
       animation_preset: "halloween",
+      title_font: "Creepster",
+      title_weight: 400,
+      title_letter_spacing: "wide",
+      body_font: "Lora",
     },
   },
   {
@@ -90,6 +96,10 @@ export const HERO_TEMPLATE_PRESETS: { key: string; label: string; values: HeroTe
       background_color: "#0b1a2e",
       accent_color: "#60a5fa",
       animation_preset: "winter",
+      title_font: "Cormorant Garamond",
+      title_size: "large",
+      title_letter_spacing: "normal",
+      body_font: "Lora",
     },
   },
   {
@@ -113,6 +123,9 @@ export const HERO_TEMPLATE_PRESETS: { key: string; label: string; values: HeroTe
       background_color: "#0d2418",
       accent_color: "#dc2626",
       animation_preset: "christmas",
+      title_font: "Mountains of Christmas",
+      title_size: "large",
+      body_font: "Lora",
     },
   },
   {
@@ -137,6 +150,9 @@ export const HERO_TEMPLATE_PRESETS: { key: string; label: string; values: HeroTe
       accent_color: "#facc15",
       animation_preset: "classic",
       animation_icons: ["Sparkles", "Star", "PartyPopper", "Gem", "Zap"],
+      title_font: "Abril Fatface",
+      title_weight: 400,
+      title_letter_spacing: "normal",
     },
   },
   {
@@ -161,6 +177,10 @@ export const HERO_TEMPLATE_PRESETS: { key: string; label: string; values: HeroTe
       accent_color: "#f43f5e",
       animation_preset: "classic",
       animation_icons: ["Heart", "Flower2", "Sparkles", "Feather"],
+      title_font: "Dancing Script",
+      title_size: "large",
+      title_letter_spacing: "normal",
+      body_font: "Lora",
     },
   },
   {
@@ -185,6 +205,9 @@ export const HERO_TEMPLATE_PRESETS: { key: string; label: string; values: HeroTe
       accent_color: "#fbbf24",
       animation_preset: "classic",
       animation_icons: ["Sun", "Leaf", "Globe2", "BookOpen", "Cloud"],
+      title_font: "Pacifico",
+      title_weight: 400,
+      title_letter_spacing: "normal",
     },
   },
   {

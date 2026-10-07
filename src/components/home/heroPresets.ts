@@ -35,7 +35,8 @@ import {
   WandSparkles,
   Zap,
 } from "lucide-react";
-import type { AdminHeroTemplate, HeroConfig, HomeStats } from "@/api/types";
+import type { AdminHeroTemplate, HeroConfig, HeroTypography, HomeStats } from "@/api/types";
+import { themeFontsUrl } from "@/components/pages/pageTheme";
 
 type IconComponent = ComponentType<{ className?: string; style?: CSSProperties }>;
 
@@ -173,6 +174,25 @@ export const resolvePresetSlots = (preset: HeroPreset, icons: string[]): PresetS
     ? preset.slots
     : preset.slots.map((slot, index) => ({ ...slot, icon: icons[index % icons.length] }));
 
+/** The hero's original look: site fonts, bold tight title, medium text. */
+export const DEFAULT_HERO_TYPOGRAPHY: HeroTypography = {
+  title_font: "",
+  title_size: "medium",
+  title_weight: 700,
+  title_letter_spacing: "tight",
+  title_uppercase: false,
+  title_italic: false,
+  body_font: "",
+  description_size: "medium",
+  cta_uppercase: false,
+};
+
+/** The Google Fonts stylesheet the hero's typography needs, if any. */
+export const heroFontsUrl = (hero: HeroConfig) => {
+  const typography = hero.typography ?? DEFAULT_HERO_TYPOGRAPHY;
+  return themeFontsUrl({ heading_font: typography.title_font, body_font: typography.body_font });
+};
+
 /**
  * The hero as it was hardcoded before templates existed — shown whenever the
  * API sends no template (none default/scheduled, or an older backend), so the
@@ -183,6 +203,7 @@ export const buildDefaultHero = (stats?: HomeStats): HeroConfig => ({
   title: { prefix: "World", highlight: "Stories", highlight_from: "#ed405a", highlight_to: "#fbbf24" },
   description:
     "The home for stories from around the world. Read novels, poetry, and short fiction for free, and discover audiobooks and read-along narrations from authors across every genre and country.",
+  typography: DEFAULT_HERO_TYPOGRAPHY,
   info_lines: [
     { icon: "BookOpenText", text: "Full novels, quick reads & poetry" },
     { icon: "Headphones", text: "Audiobooks & read-along narration" },
@@ -227,6 +248,17 @@ export const heroConfigFromTemplate = (
       highlight_to: template.title_highlight_to,
     },
     description: template.description,
+    typography: {
+      title_font: template.title_font,
+      title_size: template.title_size,
+      title_weight: template.title_weight,
+      title_letter_spacing: template.title_letter_spacing,
+      title_uppercase: template.title_uppercase,
+      title_italic: template.title_italic,
+      body_font: template.body_font,
+      description_size: template.description_size,
+      cta_uppercase: template.cta_uppercase,
+    },
     info_lines: [
       { icon: template.info_line_1_icon, text: template.info_line_1_text },
       { icon: template.info_line_2_icon, text: template.info_line_2_text },

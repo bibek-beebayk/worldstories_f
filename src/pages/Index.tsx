@@ -10,7 +10,7 @@ import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
 import { OriginalsRail } from "@/components/OriginalsRail";
 import HomeHero from "@/components/home/HomeHero";
-import { buildDefaultHero } from "@/components/home/heroPresets";
+import { buildDefaultHero, heroFontsUrl } from "@/components/home/heroPresets";
 import { Link } from "react-router";
 import { storyApi } from "@/api/story";
 import { useHomeData } from "@/hooks/useHomeData";
@@ -39,13 +39,16 @@ export async function loader() {
   }
 }
 
-export function meta() {
-  return buildMeta({
+export function meta({ data }: Route.MetaArgs) {
+  const tags = buildMeta({
     title: "WorldStories - Home of Stories",
     description:
       "WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres.",
     path: "/",
   });
+  // The hero template's fonts, in <head> so the title renders in them on first paint.
+  const fontsUrl = data?.hero ? heroFontsUrl(data.hero) : null;
+  return fontsUrl ? [...tags, { tagName: "link", rel: "stylesheet", href: fontsUrl }] : tags;
 }
 
 const SectionTitle = ({
