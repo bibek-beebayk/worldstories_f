@@ -335,7 +335,8 @@ const Library = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-600 to-slate-700 text-white">
+      {/* themed-banner: today's violet gradient normally, the theme's accent under a site theme. */}
+      <div className="relative overflow-hidden themed-banner [--banner-from:#7c3aed] [--banner-via:#4f46e5] [--banner-to:#334155]">
         <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
@@ -351,8 +352,9 @@ const Library = () => {
             <LibraryIcon className="h-3.5 w-3.5" />
             The Full Library
           </div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Library</h1>
-          <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
+          {/* text-inherit: the banner sets the colour, not a theme's heading colour. */}
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-inherit sm:text-4xl">Library</h1>
+          <p className="mt-2 max-w-xl text-sm opacity-85 sm:text-base">
             {isBrowsing
               ? "Every story on WorldStories, organized by how you want to experience it."
               : "Filtered results from across the library."}

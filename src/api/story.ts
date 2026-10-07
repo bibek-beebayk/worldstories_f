@@ -58,6 +58,9 @@ import {
   AdminPageInput,
   AdminPageListItem,
   AdminPageTheme,
+  AdminSiteTheme,
+  PublicSiteTheme,
+  SiteThemeInput,
   PageThemeValues,
   PublicPageResponse,
   AdminHeroTemplateInput,
@@ -685,6 +688,27 @@ export const storyApi = {
     apiClient<void>(`/admin/pages/${id}/`, { method: "DELETE" }),
   duplicateAdminPage: (id: number) =>
     apiClient<AdminPage>(`/admin/pages/${id}/duplicate/`, { method: "POST" }),
+  getLiveSiteThemes: () => apiClient<PublicSiteTheme[]>("/site-themes/live/"),
+  getAdminSiteThemes: () => apiClient<AdminSiteTheme[]>("/admin/site-themes/"),
+  createAdminSiteTheme: (payload: Partial<SiteThemeInput> & { name: string }) =>
+    apiClient<AdminSiteTheme>("/admin/site-themes/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminSiteTheme: (id: number, payload: Partial<SiteThemeInput>) =>
+    apiClient<AdminSiteTheme>(`/admin/site-themes/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminSiteTheme: (id: number) =>
+    apiClient<void>(`/admin/site-themes/${id}/`, { method: "DELETE" }),
+  // Only one site theme is on at a time: activating one switches the rest off.
+  activateAdminSiteTheme: (id: number) =>
+    apiClient<AdminSiteTheme>(`/admin/site-themes/${id}/activate/`, { method: "POST" }),
+  deactivateAdminSiteTheme: (id: number) =>
+    apiClient<AdminSiteTheme>(`/admin/site-themes/${id}/deactivate/`, { method: "POST" }),
+  duplicateAdminSiteTheme: (id: number) =>
+    apiClient<AdminSiteTheme>(`/admin/site-themes/${id}/duplicate/`, { method: "POST" }),
   getAdminPageThemes: () => apiClient<AdminPageTheme[]>("/admin/page-themes/"),
   createAdminPageTheme: (payload: PageThemeValues & { name: string }) =>
     apiClient<AdminPageTheme>("/admin/page-themes/", {

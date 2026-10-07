@@ -54,7 +54,11 @@ const STORY_WORD_BY_LANG: Record<string, { singular: string; plural: string }> =
 };
 
 export function formatStoryCountLabel(code: string, count: number): string {
-  const number = new Intl.NumberFormat(code).format(count);
+  // Latin digits pinned explicitly: a locale's default numbering system
+  // differs between Node's ICU and browsers (Node formats "ne" as "१", Chrome
+  // as "1"), and that difference made Discover's server and client HTML
+  // disagree — a hydration failure that drops the page's styles in dev.
+  const number = new Intl.NumberFormat(code, { numberingSystem: "latn" }).format(count);
   const words = STORY_WORD_BY_LANG[code] || STORY_WORD_BY_LANG.en;
   return `${number} ${count === 1 ? words.singular : words.plural}`;
 }

@@ -226,7 +226,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                 <div className="flex h-full flex-col justify-center space-y-4">
                   <div>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge className="border-amber-200 bg-amber-50 text-amber-700">
+                      <Badge className="tinted-chip [--tint:#f59e0b]">
                         <Zap className="mr-1 h-3 w-3" />
                         Quick Read
                       </Badge>
@@ -295,7 +295,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                           <Link
                             to={primaryReadHref}
                             onClick={trackFullStoryClick}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 shadow-sm transition-all hover:scale-105"
+                            className="inline-flex items-center gap-1.5 rounded-full tinted-chip border [--tint:#10b981] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:scale-105"
                           >
                             <BookMarked className="h-3.5 w-3.5" />
                             Read Full Story
@@ -304,7 +304,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                         {firstAudioSlug && (
                           <Link
                             to={`/listen/${story.slug}/${firstAudioSlug}`}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 shadow-sm transition-all hover:scale-105"
+                            className="inline-flex items-center gap-1.5 rounded-full tinted-chip border [--tint:#f43f5e] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:scale-105"
                           >
                             <Headphones className="h-3.5 w-3.5" />
                             Listen
@@ -328,7 +328,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                   Summary
                 </h3>
                 <div className="p-4 sm:p-6">
-                  <p className="flex items-start gap-2 rounded-sm border border-red-300 bg-red-50 p-3 text-xs font-medium text-red-700">
+                  <p className="flex items-start gap-2 rounded-sm tinted-chip border [--tint:#ef4444] p-3 text-xs font-medium">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     This quick summary may include spoilers for the story.
                   </p>
@@ -346,7 +346,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
               </CardContent>
             </Card>
 
-            <div className="relative mt-6 flex flex-col items-center gap-4 overflow-hidden rounded-sm bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 p-5 text-center text-white shadow-lg sm:flex-row sm:justify-between sm:p-6 sm:text-left">
+            <div className="relative mt-6 flex flex-col items-center gap-4 overflow-hidden rounded-sm themed-banner [--banner-from:#f59e0b] [--banner-via:#f97316] [--banner-to:#d97706] p-5 text-center shadow-lg sm:flex-row sm:justify-between sm:p-6 sm:text-left">
               <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
               <div className="pointer-events-none absolute -bottom-12 left-1/4 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
               <BookMarked className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 animate-flicker text-white/10" style={{ animationDuration: "3s" }} />
@@ -360,11 +360,11 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                       and the whole point of this panel is to offer them the story. */}
                   <p className="font-display text-lg font-bold sm:text-xl">Enjoyed the summary?</p>
                   {primaryReadHref ? (
-                    <p className="mt-0.5 text-sm text-white/85">
+                    <p className="mt-0.5 text-sm opacity-85">
                       Read it in full, the way it was written.
                     </p>
                   ) : (
-                    <p className="mt-0.5 text-sm text-white/85">The full story isn't available yet.</p>
+                    <p className="mt-0.5 text-sm opacity-85">The full story isn't available yet.</p>
                   )}
                 </div>
               </div>

@@ -29,7 +29,7 @@ export default function AuthorPortrait({
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/20 via-violet-100 to-sky-100",
+        "relative flex items-center justify-center overflow-hidden tinted-panel [--tint:#8b5cf6] [--tint-2:#0ea5e9]",
         className
       )}
     >

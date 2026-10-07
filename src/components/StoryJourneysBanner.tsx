@@ -23,7 +23,7 @@ const StoryJourneysBanner = ({ enabled }: { enabled: boolean }) => {
 
   return (
     <section
-      className="relative overflow-hidden rounded-sm bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 p-5 text-white shadow-lg sm:p-6"
+      className="relative overflow-hidden rounded-sm themed-banner [--banner-from:#7c3aed] [--banner-via:#9333ea] [--banner-to:#4f46e5] p-5 shadow-lg sm:p-6"
       aria-labelledby="story-journeys-heading"
     >
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
@@ -44,7 +44,7 @@ const StoryJourneysBanner = ({ enabled }: { enabled: boolean }) => {
             <h2 id="story-journeys-heading" className="font-display text-lg font-bold sm:text-xl">
               Story Journeys
             </h2>
-            <p className="mt-1 text-xs text-white/80 sm:text-sm">
+            <p className="mt-1 text-xs opacity-80 sm:text-sm">
               {completedCount > 0
                 ? `You've completed ${completedCount} of ${journeys.length} curated journeys.`
                 : `${journeys.length} curated paths through countries, genres, and themes.`}

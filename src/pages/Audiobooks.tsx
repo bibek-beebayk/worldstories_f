@@ -64,7 +64,7 @@ const Audiobooks = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-rose-600 via-pink-600 to-fuchsia-600 text-white">
+      <div className="relative overflow-hidden themed-banner [--banner-from:#e11d48] [--banner-via:#db2777] [--banner-to:#c026d3]">
         <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
@@ -81,7 +81,7 @@ const Audiobooks = () => {
             Listen
           </div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Audiobooks</h1>
-          <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
+          <p className="mt-2 max-w-xl text-sm opacity-85 sm:text-base">
             Every story on WorldStories with narration — listen on the go, wherever you are.
           </p>
         </div>

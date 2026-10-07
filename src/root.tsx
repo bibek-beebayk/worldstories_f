@@ -10,6 +10,8 @@ import { queryClient } from "@/lib/queryClient";
 import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 import NavigationProgress from "@/components/NavigationProgress";
 import { buildMeta } from "@/lib/buildMeta";
+import { storyApi } from "@/api/story";
+import SiteThemeStyles from "@/components/SiteThemeStyles";
 import "./index.css";
 
 // Last-resort fallback only — every real page defines its own meta() (see
@@ -26,6 +28,18 @@ export function meta() {
       "WorldStories is the home for stories from around the world. Discover new tales, connect with authors, and immerse yourself in diverse narratives across genres.",
     path: "/",
   });
+}
+
+// The site themes live right now (Customize → Site Themes in the admin
+// panel). Loaded once per full page load — the root loader isn't re-run on
+// client navigation, and each page picks its theme from this list by path
+// (SiteThemeStyles). Never fails the page: no themes just means the site's look.
+export async function loader() {
+  try {
+    return { siteThemes: await storyApi.getLiveSiteThemes() };
+  } catch {
+    return { siteThemes: [] };
+  }
 }
 
 const ORGANIZATION_JSON_LD = {
@@ -142,6 +156,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         <Meta />
         <Links />
+        {/* After the app's own CSS, so the theme's variables win. */}
+        <SiteThemeStyles />
       </head>
       <body>
         <div id="root">{children}</div>

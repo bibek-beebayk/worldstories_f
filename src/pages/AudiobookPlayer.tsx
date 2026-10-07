@@ -362,7 +362,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
         isFullscreen
           ? "fixed inset-0 z-[200] h-[100dvh] overflow-y-auto bg-background"
           : "min-h-screen"
-      } bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_55%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]`}
+      } bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_55%),linear-gradient(to_bottom,var(--theme-page-wash,#f8fafc),transparent_280px)]`}
     >
       <main
         className={

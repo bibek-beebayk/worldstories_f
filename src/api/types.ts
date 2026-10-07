@@ -2022,8 +2022,8 @@ export type PublicPageBlock = PageBlockData & {
 export type PageContentWidth = "narrow" | "normal" | "wide" | "full";
 export type PageSectionSpacing = "compact" | "normal" | "relaxed";
 
-/** Everything a theme controls (apps/pages/models.py PageTheme). */
-export interface PageThemeValues {
+/** The look page themes and site themes share (apps/pages/models.py ThemeLook). */
+export interface ThemeLookValues {
   background_color: string;
   surface_color: string;
   text_color: string;
@@ -2034,16 +2034,46 @@ export interface PageThemeValues {
   border_color: string;
   heading_font: string;
   body_font: string;
-  body_font_size: number;
-  heading_weight: number;
-  heading_uppercase: boolean;
   radius: number;
-  content_width: PageContentWidth;
-  section_spacing: PageSectionSpacing;
   background_image: string;
   background_overlay_color: string;
   background_overlay_opacity: number;
   custom_css: string;
+}
+
+/** Everything a page theme controls: the shared look plus page-only layout. */
+export interface PageThemeValues extends ThemeLookValues {
+  body_font_size: number;
+  heading_weight: number;
+  heading_uppercase: boolean;
+  content_width: PageContentWidth;
+  section_spacing: PageSectionSpacing;
+}
+
+export type SiteThemeMode = "off" | "always" | "scheduled";
+export type SiteThemeApplyTo = "site" | "pages";
+
+/** A live site theme as the public site receives it, highest priority first. */
+export interface PublicSiteTheme extends ThemeLookValues {
+  id: number;
+  apply_to: SiteThemeApplyTo;
+  /** "/library" matches exactly; "/story/*" matches every path under it. */
+  page_paths: string[];
+}
+
+export interface SiteThemeInput extends ThemeLookValues {
+  name: string;
+  mode: SiteThemeMode;
+  starts_at: string | null;
+  ends_at: string | null;
+  apply_to: SiteThemeApplyTo;
+  page_paths: string[];
+}
+
+export interface AdminSiteTheme extends SiteThemeInput {
+  id: number;
+  status: "off" | "always" | "live" | "scheduled" | "ended";
+  updated_at: string;
 }
 
 export interface PublicPageTheme extends PageThemeValues {

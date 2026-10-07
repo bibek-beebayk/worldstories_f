@@ -70,7 +70,7 @@ export default function Originals() {
           <ArrowLeft className="h-4 w-4" /> Back to library
         </Link>
 
-        <section className="rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-blue-50 p-5 shadow-sm sm:p-8">
+        <section className="tinted-panel rounded-2xl border [--tint:#6366f1] [--tint-2:#3b82f6] p-5 shadow-sm sm:p-8">
           <p className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
             <Sparkles className="h-3.5 w-3.5" /> WorldStories Originals
           </p>
@@ -78,7 +78,7 @@ export default function Originals() {
           <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
             Explore exclusive stories published in-house and created especially for the WorldStories community.
           </p>
-          <p className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700">
+          <p className="mt-4 tinted-link inline-flex items-center gap-1.5 text-sm font-medium">
             <BookOpen className="h-4 w-4" /> {data?.pages[0]?.pagination.count ?? stories.length} originals
           </p>
         </section>

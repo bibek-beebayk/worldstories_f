@@ -786,7 +786,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             {isAuthenticated && (
                               isChapterCompleted ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                <span className="inline-flex items-center gap-1 rounded-full tinted-chip border [--tint:#10b981] px-2 py-0.5 text-xs font-medium">
                                   <CheckCircle2 className="h-3 w-3" />
                                   Completed
                                 </span>
@@ -879,7 +879,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 {isAuthenticated &&
                                   (isVideoCompleted ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                    <span className="inline-flex items-center gap-1 rounded-full tinted-chip border [--tint:#10b981] px-2 py-0.5 text-xs font-medium">
                                       <CheckCircle2 className="h-3 w-3" />
                                       Watched
                                     </span>

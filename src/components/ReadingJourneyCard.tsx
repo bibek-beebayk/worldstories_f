@@ -33,7 +33,7 @@ const ReadingJourneyCard = ({ enabled }: { enabled: boolean }) => {
 
   return (
     <section
-      className="relative overflow-hidden rounded-sm bg-gradient-to-br from-orange-500 via-rose-500 to-primary p-5 text-white shadow-lg sm:p-6"
+      className="relative overflow-hidden rounded-sm themed-banner [--banner-from:#f97316] [--banner-via:#f43f5e] [--banner-to:hsl(var(--primary))] p-5 shadow-lg sm:p-6"
       aria-labelledby="reading-journey-heading"
     >
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
@@ -65,7 +65,7 @@ const ReadingJourneyCard = ({ enabled }: { enabled: boolean }) => {
             {current > 0 ? (
               <h2 id="reading-journey-heading" className="font-display text-3xl font-extrabold leading-none sm:text-4xl">
                 {current}
-                <span className="ml-1.5 text-base font-semibold text-white/85">
+                <span className="ml-1.5 text-base font-semibold opacity-85">
                   day{current === 1 ? "" : "s"} strong
                 </span>
               </h2>
@@ -74,7 +74,7 @@ const ReadingJourneyCard = ({ enabled }: { enabled: boolean }) => {
                 Your reading streak
               </h2>
             )}
-            <p className="mt-1 text-xs text-white/80 sm:text-sm">
+            <p className="mt-1 text-xs opacity-80 sm:text-sm">
               {current > 0
                 ? longest > current
                   ? `Your best run so far is ${longest} days.`

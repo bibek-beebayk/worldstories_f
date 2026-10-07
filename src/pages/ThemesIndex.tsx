@@ -33,9 +33,9 @@ export default function ThemesIndex({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_38%)]">
-      <div className="border-b border-violet-200/60 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-sky-50">
+      <div className="tinted-panel border-b [--tint:#8b5cf6] [--tint-2:#0ea5e9]">
         <div className="container mx-auto px-4 py-8 sm:py-10">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-700">
+          <div className="mb-2 inline-flex items-center gap-2 tinted-chip rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide">
             <Palette className="h-3.5 w-3.5" />
             Browse by theme
           </div>

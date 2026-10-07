@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { PageContentWidth, PageSectionSpacing, PageThemeValues } from "@/api/types";
+import type { PageContentWidth, PageSectionSpacing, PageThemeValues, ThemeLookValues } from "@/api/types";
 
 /**
  * Google Fonts a page theme may use → the weights to request. Keep in step
@@ -54,7 +54,7 @@ export const themeFontsUrl = (theme: Pick<PageThemeValues, "heading_font" | "bod
   return `https://fonts.googleapis.com/css2?${params}&display=swap`;
 };
 
-const fontStack = (name: string) => (name ? `'${name}', ` : "") + "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+export const fontStack = (name: string) => (name ? `'${name}', ` : "") + "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 /** "#ed405a" → "351 83% 59%", the HSL triplet format the site's CSS variables use. */
 export const hexToHslTriplet = (hex: string) => {
@@ -80,14 +80,21 @@ export const hexToHslTriplet = (hex: string) => {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
+/** An HSL triplet for `hex` with its lightness and saturation scaled — for
+ *  deriving a gradient's darker stops from one colour. */
+const shadeTriplet = (hex: string, lightness: number, saturation = 1) => {
+  const [h, s, l] = hexToHslTriplet(hex).split(" ").map((part) => parseFloat(part));
+  return `${h} ${Math.round(s * saturation)}% ${Math.round(l * lightness)}%`;
+};
+
 /**
- * The theme as CSS custom properties. Overriding the site's own design-system
- * variables (--background, --primary, --card, …) on the page wrapper re-themes
- * every shared component inside it — buttons, story cards, borders — without
- * any of them knowing about page themes. The --pt-* ones are read by the
- * .ws-page-theme rules in index.css.
+ * The look as the site's own design-system variables (--background,
+ * --primary, --card, …). Setting these on an element re-themes every shared
+ * component inside it — buttons, story cards, borders — without any of them
+ * knowing about themes. Used by page themes (on the page wrapper) and site
+ * themes (on :root).
  */
-export const themeStyle = (theme: PageThemeValues): CSSProperties => {
+export const lookVariables = (theme: ThemeLookValues): Record<string, string> => {
   const text = hexToHslTriplet(theme.text_color);
   const surface = hexToHslTriplet(theme.surface_color);
   const primary = hexToHslTriplet(theme.primary_color);
@@ -111,6 +118,27 @@ export const themeStyle = (theme: PageThemeValues): CSSProperties => {
     "--border": border,
     "--input": border,
     "--radius": `${theme.radius}px`,
+    // Only defined under a theme; parts of the site with their own fixed
+    // colours fall back to those otherwise (see .themed-banner in index.css).
+    // Banners: the accent fading darker, with the theme's "text on accent"
+    // colour so banner text is always readable.
+    "--theme-banner-from": `hsl(${primary})`,
+    "--theme-banner-via": `hsl(${shadeTriplet(theme.primary_color, 0.8)})`,
+    "--theme-banner-to": `hsl(${shadeTriplet(theme.primary_color, 0.45, 0.6)})`,
+    "--theme-banner-foreground": theme.primary_text_color,
+    // The soft wash at the top of some pages, and full-page backgrounds.
+    "--theme-page-wash": `hsl(${surface})`,
+    "--theme-page-bg": `hsl(${hexToHslTriplet(theme.background_color)})`,
+  };
+};
+
+/**
+ * A page theme as inline CSS custom properties: the shared look plus the
+ * --pt-* ones read by the .ws-page-theme rules in index.css.
+ */
+export const themeStyle = (theme: PageThemeValues): CSSProperties => {
+  return {
+    ...lookVariables(theme),
     "--pt-heading": theme.heading_color,
     "--pt-heading-font": fontStack(theme.heading_font),
     "--pt-heading-weight": String(theme.heading_weight),
@@ -260,3 +288,25 @@ export const THEME_PRESETS: { key: string; label: string; values: PageThemeValue
     },
   },
 ];
+
+/** The keys of the shared look — what a site theme takes from a page-theme preset. */
+export const LOOK_KEYS = Object.keys({
+  background_color: 0,
+  surface_color: 0,
+  text_color: 0,
+  muted_text_color: 0,
+  heading_color: 0,
+  primary_color: 0,
+  primary_text_color: 0,
+  border_color: 0,
+  heading_font: 0,
+  body_font: 0,
+  radius: 0,
+  background_image: 0,
+  background_overlay_color: 0,
+  background_overlay_opacity: 0,
+  custom_css: 0,
+} satisfies Record<keyof ThemeLookValues, 0>) as (keyof ThemeLookValues)[];
+
+export const pickLook = (values: ThemeLookValues): ThemeLookValues =>
+  Object.fromEntries(LOOK_KEYS.map((key) => [key, values[key]])) as unknown as ThemeLookValues;

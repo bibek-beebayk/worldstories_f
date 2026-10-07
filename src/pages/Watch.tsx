@@ -72,9 +72,9 @@ const Watch = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-violet-50 to-fuchsia-100">
+      <div className="tinted-panel border-b [--tint:#6366f1] [--tint-2:#d946ef]">
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+          <div className="mb-2 inline-flex items-center gap-2 tinted-chip rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide">
             <Youtube className="h-3.5 w-3.5" />
             Watch
           </div>

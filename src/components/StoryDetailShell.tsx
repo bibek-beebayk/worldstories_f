@@ -62,10 +62,10 @@ const MODE_LABEL: Record<StoryDetailMode, string> = {
 // Discover's ContentTypeSection themes), so "Also Available" pills read
 // consistently with the rest of the app rather than inventing new colors.
 const MODE_PILL_COLORS: Record<StoryDetailMode, string> = {
-  read: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  listen: "border-rose-200 bg-rose-50 text-rose-700",
-  "read-along": "border-sky-200 bg-sky-50 text-sky-700",
-  watch: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  read: "tinted-chip [--tint:#10b981]",
+  listen: "tinted-chip [--tint:#f43f5e]",
+  "read-along": "tinted-chip [--tint:#0ea5e9]",
+  watch: "tinted-chip [--tint:#6366f1]",
 };
 
 // Each mode-scoped detail page (ReadDetail/ListenDetail/ReadAlongDetail/
@@ -468,7 +468,7 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                       {hasQuickRead && (
                         <AuthGatedLink
                           to={`/quick-read/${story.slug}`}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 shadow-sm transition-all hover:scale-105"
+                          className="inline-flex items-center gap-1.5 rounded-full tinted-chip border [--tint:#f59e0b] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:scale-105"
                         >
                           <Zap className="h-3.5 w-3.5" />
                           Quick Read
@@ -514,7 +514,7 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               {isAuthenticated &&
                                 (isChapterCompleted ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                  <span className="inline-flex items-center gap-1 rounded-full tinted-chip border [--tint:#10b981] px-2 py-0.5 text-xs font-medium">
                                     <CheckCircle2 className="h-3 w-3" />
                                     Completed
                                   </span>
@@ -632,7 +632,7 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               {isAuthenticated &&
                                 (isVideoCompleted ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                  <span className="inline-flex items-center gap-1 rounded-full tinted-chip border [--tint:#10b981] px-2 py-0.5 text-xs font-medium">
                                     <CheckCircle2 className="h-3 w-3" />
                                     Watched
                                   </span>

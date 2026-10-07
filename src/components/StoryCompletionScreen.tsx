@@ -70,7 +70,7 @@ const StoryCompletionScreen = ({
         You finished <span className="font-medium text-foreground">{storyTitle}</span>.
       </p>
       {streak && streak.current_streak > 0 && (
-        <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-medium text-orange-700">
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-full tinted-chip border [--tint:#f97316] px-3 py-1 text-sm font-medium">
           <Flame className="h-4 w-4" aria-hidden="true" />
           {streak.current_streak}-day reading streak
         </p>

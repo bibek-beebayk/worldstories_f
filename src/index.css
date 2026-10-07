@@ -98,6 +98,62 @@ All colors MUST be HSL.
 
 .ws-page-theme .prose {
   font-size: var(--pt-font-size, 1.125rem);
+}
+
+/* Hue-tinted panels (Library and Discover sections, the Originals rail).
+   The hue is mixed into the theme's own card, border and text colours rather
+   than fixed light tints, so a panel reads as "a card with a hint of green"
+   on a white site and a dark one alike. Set --tint (and optionally --tint-2)
+   on the panel; icons and links inside pick the same hue up. */
+.tinted-panel {
+  background-color: hsl(var(--card));
+  border-color: color-mix(in srgb, var(--tint) 30%, hsl(var(--border)));
+  background-image: linear-gradient(
+    to bottom right,
+    color-mix(in srgb, var(--tint) 10%, hsl(var(--card))),
+    hsl(var(--card)) 50%,
+    color-mix(in srgb, var(--tint-2, var(--tint)) 10%, hsl(var(--card)))
+  );
+}
+.tinted-icon {
+  color: color-mix(in srgb, var(--tint) 80%, hsl(var(--foreground)));
+}
+/* Pulled toward the text colour — darker on light themes, lighter on dark —
+   so links stay readable either way. */
+.tinted-link {
+  color: color-mix(in srgb, var(--tint) 70%, hsl(var(--foreground)));
+}
+.tinted-chip {
+  color: color-mix(in srgb, var(--tint) 70%, hsl(var(--foreground)));
+  border-color: color-mix(in srgb, var(--tint) 40%, hsl(var(--border)));
+  background-color: color-mix(in srgb, var(--tint) 12%, hsl(var(--card)));
+}
+/* The chip's background and border without changing the text colour. */
+.tinted-surface {
+  border-color: color-mix(in srgb, var(--tint) 30%, hsl(var(--border)));
+  background-color: color-mix(in srgb, var(--tint) 8%, hsl(var(--card)));
+}
+
+/* Colourful banners and promo cards (page headers, Journeys, Reactions…).
+   Each sets its own gradient with --banner-from/--banner-via/--banner-to and
+   keeps it — and its white text — normally. Under a site or page theme the
+   --theme-banner-* variables are defined (pageTheme.ts lookVariables) and
+   every banner switches to the theme's accent and "text on accent" colour, so
+   it suits the theme and its text stays readable. */
+.themed-banner {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--theme-banner-from, var(--banner-from)),
+    var(--theme-banner-via, var(--banner-via, var(--banner-from))),
+    var(--theme-banner-to, var(--banner-to))
+  );
+  color: var(--theme-banner-foreground, #fff);
+}
+
+/* Rich text on themed pages in the theme's colours rather than typography's
+   fixed greys, so it stays readable on a dark theme. (Blog articles keep
+   their own ink: they sit on a fixed parchment surface.) */
+.ws-page-theme .prose {
   --tw-prose-body: hsl(var(--foreground));
   --tw-prose-headings: var(--pt-heading, hsl(var(--foreground)));
   --tw-prose-lead: hsl(var(--muted-foreground));

@@ -116,7 +116,7 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
   const originalStories = rails.claim(data?.originals);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_320px)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,var(--theme-page-wash,#f8fafc),transparent_320px)]">
       <HomeHero hero={data?.hero ?? buildDefaultHero(data?.sidebar.stats)} />
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
@@ -214,7 +214,7 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
           {/* The Story Map already existed as its own page but had no entry
               point on the homepage at all — the one place the brief asks for
               it. Country is the site's most distinctive way in. */}
-          <section className="relative overflow-hidden rounded-sm bg-gradient-to-br from-cyan-600 via-blue-600 to-teal-600 p-5 text-white shadow-lg sm:p-6">
+          <section className="relative overflow-hidden rounded-sm themed-banner [--banner-from:#0891b2] [--banner-via:#2563eb] [--banner-to:#0d9488] p-5 shadow-lg sm:p-6">
             <Globe2 className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 text-white/10 [animation:spin_30s_linear_infinite]" />
             <MapPin className="pointer-events-none absolute bottom-4 left-[20%] h-8 w-8 animate-float text-white/20" style={{ animationDuration: "5s" }} />
             <MapPin className="pointer-events-none absolute right-[15%] top-6 h-6 w-6 animate-float text-white/15" style={{ animationDelay: "1s", animationDuration: "6.5s" }} />
@@ -226,7 +226,7 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
                 </span>
                 <div>
                   <h2 className="font-display text-lg font-bold sm:text-xl">Explore by Country</h2>
-                  <p className="mt-1 text-xs text-white/80 sm:text-sm">
+                  <p className="mt-1 text-xs opacity-80 sm:text-sm">
                     Follow a story back to where it comes from — pick a country and start reading.
                   </p>
                 </div>

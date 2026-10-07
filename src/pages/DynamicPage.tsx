@@ -98,7 +98,7 @@ export function meta({ data: page, location }: Route.MetaArgs) {
 const PageView = ({ page }: { page: PublicPage }) => (
   <ThemedPage theme={page.theme} scope={`ws-page-theme-${page.theme?.id ?? "site"}`}>
     {page.is_preview && (
-      <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+      <p className="tinted-chip rounded-md border [--tint:#f59e0b] px-3 py-2 text-sm">
         Preview — this page isn't live yet, so visitors and search engines can't see it.
       </p>
     )}

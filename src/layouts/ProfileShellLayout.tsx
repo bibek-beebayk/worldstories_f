@@ -112,7 +112,7 @@ const ProfileShellLayout = () => {
   );
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-100">
+    <div className="min-h-screen overflow-x-hidden bg-[var(--theme-page-bg,#f1f5f9)]">
       {/* Mobile/tablet: a fixed bottom tab bar (icons + short labels) instead
           of a "Modules" button that ate a full row of the page — this takes
           zero space in the content flow since it's overlaid, the way a

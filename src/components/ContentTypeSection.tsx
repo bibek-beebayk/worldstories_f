@@ -11,40 +11,41 @@ import {
 import StoryCard from "@/components/StoryCard";
 import type { Story } from "@/api/types";
 
-// One color theme per content type, echoing the palette each type's own
-// full-list page already uses (Audiobooks=rose, Watch=indigo, QuickReads=
-// amber) so the coding is consistent across the app (Library, Discover),
-// not invented separately per page.
+// One colour per content type, echoing the palette each type's own full-list
+// page already uses (Audiobooks=rose, Watch=indigo, QuickReads=amber) so the
+// coding is consistent across the app (Library, Discover), not invented
+// separately per page. The hue is only a tint mixed into the active theme's
+// colours (.tinted-* in index.css), so panels suit any site theme.
 export const SECTION_THEMES = {
   emerald: {
-    wrap: "border-emerald-200/60 bg-gradient-to-br from-emerald-50 via-card to-teal-50",
-    icon: "text-emerald-600",
-    link: "text-emerald-700 hover:underline",
+    wrap: "tinted-panel [--tint:#10b981] [--tint-2:#14b8a6]",
+    icon: "tinted-icon",
+    link: "tinted-link hover:underline",
   },
   rose: {
-    wrap: "border-rose-200/60 bg-gradient-to-br from-rose-50 via-card to-pink-50",
-    icon: "text-rose-600",
-    link: "text-rose-700 hover:underline",
+    wrap: "tinted-panel [--tint:#f43f5e] [--tint-2:#ec4899]",
+    icon: "tinted-icon",
+    link: "tinted-link hover:underline",
   },
   sky: {
-    wrap: "border-sky-200/60 bg-gradient-to-br from-sky-50 via-card to-cyan-50",
-    icon: "text-sky-600",
-    link: "text-sky-700 hover:underline",
+    wrap: "tinted-panel [--tint:#0ea5e9] [--tint-2:#06b6d4]",
+    icon: "tinted-icon",
+    link: "tinted-link hover:underline",
   },
   indigo: {
-    wrap: "border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-violet-50",
-    icon: "text-indigo-600",
-    link: "text-indigo-700 hover:underline",
+    wrap: "tinted-panel [--tint:#6366f1] [--tint-2:#8b5cf6]",
+    icon: "tinted-icon",
+    link: "tinted-link hover:underline",
   },
   amber: {
-    wrap: "border-amber-200/60 bg-gradient-to-br from-amber-50 via-card to-orange-50",
-    icon: "text-amber-600",
-    link: "text-amber-700 hover:underline",
+    wrap: "tinted-panel [--tint:#f59e0b] [--tint-2:#f97316]",
+    icon: "tinted-icon",
+    link: "tinted-link hover:underline",
   },
   slate: {
-    wrap: "border-slate-200/60 bg-gradient-to-br from-slate-50 via-card to-zinc-100",
-    icon: "text-slate-600",
-    link: "text-slate-700 hover:underline",
+    wrap: "tinted-panel [--tint:#64748b] [--tint-2:#71717a]",
+    icon: "tinted-icon",
+    link: "tinted-link hover:underline",
   },
 } as const;
 export type SectionTheme = keyof typeof SECTION_THEMES;

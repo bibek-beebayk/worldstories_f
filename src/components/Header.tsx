@@ -336,7 +336,7 @@ const Header = () => {
           {isLoggedIn ? (
             <>
               <Link to="/profile">
-                <Button className="hidden rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex">
+                <Button className="hidden rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex">
                   <User className="mr-1.5 h-4 w-4" />
                   Profile
                 </Button>
@@ -353,7 +353,7 @@ const Header = () => {
           ) : (
             <>
               <Button
-                className="hidden rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex"
+                className="hidden rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex"
                 onClick={handleOpenLoginModal}
               >
                 <LogIn className="mr-1.5 h-4 w-4" />
@@ -678,7 +678,7 @@ const Header = () => {
                   <>
                     <SheetClose asChild>
                       <Link to="/profile">
-                        <Button className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm">
+                        <Button className="w-full rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm">
                           <User className="mr-1.5 h-4 w-4" />
                           Profile
                         </Button>
@@ -696,7 +696,7 @@ const Header = () => {
                 ) : (
                   <>
                     <Button
-                      className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 shadow-sm"
+                      className="w-full rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm"
                       onClick={handleOpenLoginModal}
                     >
                       <LogIn className="mr-1.5 h-4 w-4" />

@@ -105,7 +105,7 @@ const BlogList = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-700 via-slate-800 to-zinc-900 text-white">
+      <div className="relative overflow-hidden themed-banner [--banner-from:#334155] [--banner-via:#1e293b] [--banner-to:#18181b]">
         <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
@@ -122,7 +122,7 @@ const BlogList = () => {
             The WorldStories Blog
           </div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Blog</h1>
-          <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
+          <p className="mt-2 max-w-xl text-sm opacity-85 sm:text-base">
             Reading recommendations, author spotlights, and news from the WorldStories team.
           </p>
         </div>

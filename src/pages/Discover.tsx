@@ -44,9 +44,9 @@ import {
 } from "@/components/ui/carousel";
 
 const RANK_STYLES = [
-  "border-amber-400/50 bg-amber-400/15 text-amber-600",
-  "border-slate-300/60 bg-slate-300/20 text-slate-600",
-  "border-orange-400/50 bg-orange-400/15 text-orange-700",
+  "tinted-chip [--tint:#f59e0b]",
+  "tinted-chip [--tint:#64748b]",
+  "tinted-chip [--tint:#f97316]",
 ];
 
 const rankClass = (index: number) => RANK_STYLES[index] || "border-border bg-muted text-muted-foreground";
@@ -58,43 +58,43 @@ const rankClass = (index: number) => RANK_STYLES[index] || "border-border bg-mut
 // kinds of grouping.
 const CARD_PALETTE = [
   {
-    wrap: "border-violet-200/60 bg-gradient-to-br from-violet-50 to-purple-50 hover:border-violet-400",
+    wrap: "tinted-panel [--tint:#8b5cf6] [--tint-2:#a855f7] hover:border-violet-400",
     icon: "bg-violet-600/10 text-violet-600 group-hover:bg-violet-600 group-hover:text-white",
   },
   {
-    wrap: "border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 hover:border-teal-400",
+    wrap: "tinted-panel [--tint:#14b8a6] [--tint-2:#06b6d4] hover:border-teal-400",
     icon: "bg-teal-600/10 text-teal-600 group-hover:bg-teal-600 group-hover:text-white",
   },
   {
-    wrap: "border-orange-200/60 bg-gradient-to-br from-orange-50 to-amber-50 hover:border-orange-400",
+    wrap: "tinted-panel [--tint:#f97316] [--tint-2:#f59e0b] hover:border-orange-400",
     icon: "bg-orange-600/10 text-orange-600 group-hover:bg-orange-600 group-hover:text-white",
   },
   {
-    wrap: "border-cyan-200/60 bg-gradient-to-br from-cyan-50 to-sky-50 hover:border-cyan-400",
+    wrap: "tinted-panel [--tint:#06b6d4] [--tint-2:#0ea5e9] hover:border-cyan-400",
     icon: "bg-cyan-600/10 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white",
   },
   {
-    wrap: "border-rose-200/60 bg-gradient-to-br from-rose-50 to-pink-50 hover:border-rose-400",
+    wrap: "tinted-panel [--tint:#f43f5e] [--tint-2:#ec4899] hover:border-rose-400",
     icon: "bg-rose-600/10 text-rose-600 group-hover:bg-rose-600 group-hover:text-white",
   },
   {
-    wrap: "border-indigo-200/60 bg-gradient-to-br from-indigo-50 to-blue-50 hover:border-indigo-400",
+    wrap: "tinted-panel [--tint:#6366f1] [--tint-2:#3b82f6] hover:border-indigo-400",
     icon: "bg-indigo-600/10 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white",
   },
   {
-    wrap: "border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-green-50 hover:border-emerald-400",
+    wrap: "tinted-panel [--tint:#10b981] [--tint-2:#22c55e] hover:border-emerald-400",
     icon: "bg-emerald-600/10 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white",
   },
   {
-    wrap: "border-amber-200/60 bg-gradient-to-br from-amber-50 to-yellow-50 hover:border-amber-400",
+    wrap: "tinted-panel [--tint:#f59e0b] [--tint-2:#eab308] hover:border-amber-400",
     icon: "bg-amber-600/10 text-amber-600 group-hover:bg-amber-600 group-hover:text-white",
   },
   {
-    wrap: "border-fuchsia-200/60 bg-gradient-to-br from-fuchsia-50 to-pink-50 hover:border-fuchsia-400",
+    wrap: "tinted-panel [--tint:#d946ef] [--tint-2:#ec4899] hover:border-fuchsia-400",
     icon: "bg-fuchsia-600/10 text-fuchsia-600 group-hover:bg-fuchsia-600 group-hover:text-white",
   },
   {
-    wrap: "border-lime-200/60 bg-gradient-to-br from-lime-50 to-green-50 hover:border-lime-400",
+    wrap: "tinted-panel [--tint:#84cc16] [--tint-2:#22c55e] hover:border-lime-400",
     icon: "bg-lime-600/10 text-lime-700 group-hover:bg-lime-600 group-hover:text-white",
   },
 ] as const;
@@ -300,18 +300,32 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
   if (isError || !data) return <div className="container mx-auto px-4 py-8">Failed to load discover content.</div>;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_50%),linear-gradient(to_bottom,#f8fafc,transparent_280px)]">
-      <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-        <div className="mb-6 rounded-2xl border border-cyan-200/60 bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 p-5 sm:p-6">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">
+    <div className="min-h-screen bg-background">
+      {/* Same full-width banner as Library, Blog and the other section pages,
+          in Discover's own cyan → blue (the theme's accent under a site theme). */}
+      <div className="relative overflow-hidden themed-banner [--banner-from:#0891b2] [--banner-via:#0284c7] [--banner-to:#1e3a8a]">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+
+        {/* Decorative only — a big slowly-drifting compass watermark plus small
+            floating finds: languages, genres, hidden gems. */}
+        <Compass className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 animate-drift-slow text-white/10" style={{ animationDuration: "14s" }} />
+        <Gem className="pointer-events-none absolute bottom-5 left-[16%] h-6 w-6 animate-float text-white/25" style={{ animationDuration: "4.5s" }} />
+        <Languages className="pointer-events-none absolute right-[26%] top-8 h-5 w-5 animate-float text-white/20" style={{ animationDelay: "1s", animationDuration: "5.5s" }} />
+
+        <div className="container relative mx-auto px-3 py-8 sm:px-4 sm:py-12">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
             <Compass className="h-3.5 w-3.5" />
-            Discover
+            Explore
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Discover</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-inherit sm:text-4xl">Discover</h1>
+          <p className="mt-2 max-w-xl text-sm opacity-85 sm:text-base">
             Browse by genre, story type, or language, catch what's fresh, and dig up stories most readers miss.
           </p>
         </div>
+      </div>
+
+      <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
 
         {/* Two ways past the filters, for a reader who does not want to browse:
             one picks for them, the other asks how they want to feel. Ahead of
@@ -399,8 +413,8 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
         <AdSpace size="banner" className="mb-8" contentType="discover" />
 
         <section id="trending" className="mb-8 scroll-mt-24">
-          <div className="mb-5 rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50 via-orange-50 to-amber-100 p-5 sm:p-6">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-300 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
+          <div className="mb-5 tinted-panel rounded-2xl border [--tint:#f43f5e] [--tint-2:#f59e0b] p-5 sm:p-6">
+            <div className="mb-2 inline-flex items-center gap-2 tinted-chip rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide">
               <Flame className="h-3.5 w-3.5" />
               Live Leaderboard
             </div>

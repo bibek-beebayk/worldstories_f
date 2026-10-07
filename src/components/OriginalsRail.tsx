@@ -34,7 +34,7 @@ export function OriginalsRail({ stories, className, compact = false }: Originals
 
   return (
     <section
-      className={`rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-card to-blue-50 ${compact ? "p-3 sm:p-4" : "p-4 sm:p-6"} ${className ?? ""}`}
+      className={`tinted-panel rounded-2xl border [--tint:#6366f1] [--tint-2:#3b82f6] ${compact ? "p-3 sm:p-4" : "p-4 sm:p-6"} ${className ?? ""}`}
       aria-labelledby="originals-rail-heading"
     >
       <div className={`flex items-end justify-between gap-3 ${compact ? "mb-3" : "mb-4"}`}>
@@ -54,7 +54,7 @@ export function OriginalsRail({ stories, className, compact = false }: Originals
         </div>
         <Link
           to="/originals"
-          className="mb-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition-all duration-200 hover:scale-105 hover:bg-indigo-600 hover:text-white sm:text-sm"
+          className="tinted-chip mb-1 inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 hover:scale-105 hover:!bg-indigo-600 hover:!text-white sm:text-sm"
         >
           See all <ArrowRight className="h-3 w-3" />
         </Link>

@@ -22,28 +22,28 @@ const ENTRY_TYPES: EntryType[] = [
     label: "Read",
     icon: BookMarked,
     linkTo: (slug) => `/read/${slug}`,
-    labelClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    labelClass: "tinted-chip [--tint:#10b981]",
   },
   {
     key: "listen",
     label: "Listen",
     icon: Headphones,
     linkTo: (slug) => `/listen/${slug}`,
-    labelClass: "border-rose-200 bg-rose-50 text-rose-700",
+    labelClass: "tinted-chip [--tint:#f43f5e]",
   },
   {
     key: "read-along",
     label: "Read Along",
     icon: Captions,
     linkTo: (slug) => `/read-along/${slug}`,
-    labelClass: "border-sky-200 bg-sky-50 text-sky-700",
+    labelClass: "tinted-chip [--tint:#0ea5e9]",
   },
   {
     key: "watch",
     label: "Watch",
     icon: Youtube,
     linkTo: (slug) => `/watch/${slug}`,
-    labelClass: "border-indigo-200 bg-indigo-50 text-indigo-700",
+    labelClass: "tinted-chip [--tint:#6366f1]",
   },
 ];
 

@@ -1,11 +1,12 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { storyApi } from "@/api/story";
 import type { AdminPageTheme, PageThemeValues, PublicPageBlock, Story } from "@/api/types";
 import { PageBody } from "@/components/pages/PageBlocks";
 import ThemedPage from "@/components/pages/ThemedPage";
-import { PAGE_FONT_NAMES, THEME_PRESETS } from "@/components/pages/pageTheme";
+import { THEME_PRESETS } from "@/components/pages/pageTheme";
+import { COLOR_FIELDS, ColorInput, Field, FontSelect, Section, ThemeSwatches } from "@/components/admin/themeFields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,8 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 
 type ThemeDraft = PageThemeValues & { name: string };
-
-const SITE_FONT = "__site__"; // Radix Select can't use "" as an item value.
 
 const toDraft = ({ id: _id, page_count: _p, updated_at: _u, ...draft }: AdminPageTheme): ThemeDraft => draft;
 
@@ -41,63 +40,6 @@ const SAMPLE_BLOCKS: PublicPageBlock[] = [
   },
   { id: 3, type: "faq", config: { heading: "Questions", items: [{ question: "Is reading free?", answer: "Yes — every story here is free to read." }] } },
   { id: 4, type: "cta", config: { text: "Ready for more?", label: "Browse the library", url: "#", bg_color: "#ed405a", text_color: "#ffffff" } },
-];
-
-const Field = ({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) => (
-  <div className="space-y-1">
-    <Label className="text-xs">{label}</Label>
-    {children}
-    {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-  </div>
-);
-
-const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-  <fieldset className="space-y-3 rounded-md border p-4">
-    <legend className="px-1 text-sm font-semibold">{title}</legend>
-    {children}
-  </fieldset>
-);
-
-const ColorInput = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
-  <Field label={label}>
-    <div className="flex items-center gap-2">
-      <input
-        type="color"
-        value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-12 shrink-0 cursor-pointer rounded-md border border-input bg-background p-1"
-        aria-label={`${label} picker`}
-      />
-      <Input value={value} onChange={(event) => onChange(event.target.value)} maxLength={7} />
-    </div>
-  </Field>
-);
-
-const FontSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-  <Select value={value || SITE_FONT} onValueChange={(v) => onChange(v === SITE_FONT ? "" : v)}>
-    <SelectTrigger>
-      <SelectValue />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value={SITE_FONT}>Site default</SelectItem>
-      {PAGE_FONT_NAMES.map((name) => (
-        <SelectItem key={name} value={name}>
-          {name}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-);
-
-const COLOR_FIELDS: { key: keyof PageThemeValues; label: string }[] = [
-  { key: "background_color", label: "Page background" },
-  { key: "surface_color", label: "Cards & panels" },
-  { key: "text_color", label: "Text" },
-  { key: "muted_text_color", label: "Secondary text" },
-  { key: "heading_color", label: "Headings" },
-  { key: "primary_color", label: "Accent (buttons, links)" },
-  { key: "primary_text_color", label: "Text on accent" },
-  { key: "border_color", label: "Borders" },
 ];
 
 const CSS_HINT = (
@@ -385,11 +327,7 @@ export function PageThemesManager() {
               <li key={theme.id} className="rounded-md border p-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex shrink-0 overflow-hidden rounded-md border">
-                      {[theme.background_color, theme.surface_color, theme.heading_color, theme.primary_color].map((color, index) => (
-                        <span key={index} className="h-6 w-5" style={{ backgroundColor: color }} />
-                      ))}
-                    </span>
+                    <ThemeSwatches theme={theme} />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{theme.name}</p>
                       <p className="text-xs text-muted-foreground">

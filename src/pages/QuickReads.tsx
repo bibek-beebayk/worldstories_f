@@ -94,7 +94,7 @@ const QuickReads = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white">
+      <div className="relative overflow-hidden themed-banner [--banner-from:#f59e0b] [--banner-via:#f97316] [--banner-to:#d97706]">
         <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
@@ -111,7 +111,7 @@ const QuickReads = () => {
             Quick Read
           </div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Quick Reads</h1>
-          <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
+          <p className="mt-2 max-w-xl text-sm opacity-85 sm:text-base">
             Short summaries for when you're short on time — every story on WorldStories with a Quick Read.
           </p>
         </div>

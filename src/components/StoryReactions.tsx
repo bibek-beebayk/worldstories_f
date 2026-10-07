@@ -52,7 +52,7 @@ const StoryReactions = ({ storySlug }: { storySlug: string }) => {
 
   return (
     <section
-      className="relative overflow-hidden rounded-sm bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 p-4 text-white shadow-lg sm:p-5"
+      className="relative overflow-hidden rounded-sm themed-banner [--banner-from:#ec4899] [--banner-via:#f43f5e] [--banner-to:#9333ea] p-4 shadow-lg sm:p-5"
       aria-labelledby="reactions-heading"
     >
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
@@ -91,7 +91,7 @@ const StoryReactions = ({ storySlug }: { storySlug: string }) => {
               <span aria-hidden="true">{REACTION_EMOJI[reaction.type]}</span>
               <span>{reaction.label}</span>
               {reaction.count > 0 && (
-                <span className={`text-xs ${isMine ? "text-rose-500" : "text-white/75"}`}>{reaction.count}</span>
+                <span className={`text-xs ${isMine ? "text-rose-500" : "opacity-75"}`}>{reaction.count}</span>
               )}
             </button>
           );
@@ -99,7 +99,7 @@ const StoryReactions = ({ storySlug }: { storySlug: string }) => {
       </div>
 
       {!isLoggedIn && data.total > 0 && (
-        <p className="relative mt-3 text-xs text-white/80">
+        <p className="relative mt-3 text-xs opacity-80">
           Sign in to add yours.
         </p>
       )}
