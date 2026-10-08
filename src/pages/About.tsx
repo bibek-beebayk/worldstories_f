@@ -3,22 +3,26 @@ import { BookOpen, Globe2, Library, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildMeta } from "@/lib/buildMeta";
+import { identityFromMatches, useSiteIdentity } from "@/lib/siteIdentity";
+import type { Route } from "./+types/About";
 
-export function meta() {
+export function meta({ matches }: Route.MetaArgs) {
+  // The publisher is only named — here, in the snippet and the structured
+  // data — while the admin's "Show publisher info" switch is on.
+  const identity = identityFromMatches(matches);
   return buildMeta({
     title: "About WorldStories",
-    description:
-      "Learn about WorldStories, its public-domain library, WorldStories Originals, and independent publisher Bibek Gautam.",
+    description: identity.showPublisher
+      ? `Learn about WorldStories, its public-domain library, WorldStories Originals, and independent publisher ${identity.contactName}.`
+      : "Learn about WorldStories, its public-domain library of classics and folk stories, and WorldStories Originals.",
     path: "/about",
     structuredData: {
       "@context": "https://schema.org",
       "@type": "Organization",
       name: "WorldStories",
       url: "https://worldstories.net",
-      founder: {
-        "@type": "Person",
-        name: "Bibek Gautam",
-      },
+      email: identity.email,
+      ...(identity.showPublisher ? { founder: { "@type": "Person", name: identity.contactName } } : {}),
     },
   });
 }
@@ -42,6 +46,7 @@ const values = [
 ];
 
 const About = () => {
+  const identity = useSiteIdentity();
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:py-16">
@@ -67,19 +72,23 @@ const About = () => {
         </div>
 
         <section className="mt-10 space-y-4 rounded-xl border border-primary/15 bg-primary/5 p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-foreground">About the Publisher</h2>
-          <p>
-            WorldStories and WorldStories Originals are owned and operated by Bibek Gautam, an
-            independent developer and author based in Kathmandu, Nepal.
-          </p>
+          <h2 className="text-xl font-semibold text-foreground">
+            {identity.showPublisher ? "About the Publisher" : "Get in Touch"}
+          </h2>
+          {identity.showPublisher && (
+            <p>
+              WorldStories and WorldStories Originals are owned and operated by {identity.contactName}, an
+              independent developer and author based in {identity.location}.
+            </p>
+          )}
           <p>
             WorldStories Originals titles are also available as ebooks on Amazon Kindle.
             {/* TODO: Add the Amazon Kindle author/store URL when it is available. */}
           </p>
           <p>
             Contact:{" "}
-            <a href="mailto:beebayk0001@gmail.com" className="font-medium text-primary hover:underline">
-              beebayk0001@gmail.com
+            <a href={`mailto:${identity.email}`} className="font-medium text-primary hover:underline">
+              {identity.email}
             </a>
           </p>
         </section>

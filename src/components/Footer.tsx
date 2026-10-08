@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useSiteIdentity } from "@/lib/siteIdentity";
 
 const footerLinks = [
   { to: "/originals", label: "WorldStories Originals" },
@@ -10,6 +11,7 @@ const footerLinks = [
 ];
 
 const Footer = () => {
+    const identity = useSiteIdentity();
     return (
         <footer className="border-t border-border bg-muted/50 mt-8">
         <div className="container px-4 py-8">
@@ -29,7 +31,7 @@ const Footer = () => {
             </nav>
 
             <div className="text-sm text-muted-foreground">
-              © 2026 WorldStories · Owned and operated by Bibek Gautam
+              © 2026 WorldStories{identity.footerCredit && ` · ${identity.footerCredit}`}
             </div>
           </div>
         </div>

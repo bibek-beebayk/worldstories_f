@@ -688,6 +688,13 @@ export const storyApi = {
     apiClient<void>(`/admin/pages/${id}/`, { method: "DELETE" }),
   duplicateAdminPage: (id: number) =>
     apiClient<AdminPage>(`/admin/pages/${id}/duplicate/`, { method: "POST" }),
+  getSiteSettings: () => apiClient<{ show_publisher_info: boolean }>("/site-settings/"),
+  getAdminSiteSettings: () => apiClient<{ show_publisher_info: boolean }>("/admin/site-settings/"),
+  updateAdminSiteSettings: (payload: { show_publisher_info: boolean }) =>
+    apiClient<{ show_publisher_info: boolean }>("/admin/site-settings/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   getLiveSiteThemes: () => apiClient<PublicSiteTheme[]>("/site-themes/live/"),
   getAdminSiteThemes: () => apiClient<AdminSiteTheme[]>("/admin/site-themes/"),
   createAdminSiteTheme: (payload: Partial<SiteThemeInput> & { name: string }) =>

@@ -3,27 +3,31 @@ import { Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { buildMeta } from "@/lib/buildMeta";
+import { identityFromMatches, useSiteIdentity } from "@/lib/siteIdentity";
+import type { Route } from "./+types/Contact";
 
-const CONTACT_EMAIL = "beebayk0001@gmail.com";
-
-export function meta() {
+export function meta({ matches }: Route.MetaArgs) {
+  const identity = identityFromMatches(matches);
   return buildMeta({
     title: "Contact | WorldStories",
-    description:
-      "Contact WorldStories publisher Bibek Gautam with questions, feedback, rights, or publishing enquiries.",
+    description: identity.showPublisher
+      ? `Contact WorldStories publisher ${identity.contactName} with questions, feedback, rights, or publishing enquiries.`
+      : "Contact WorldStories with questions, feedback, rights, or publishing enquiries.",
     path: "/contact",
   });
 }
 
 const Contact = () => {
+  // Publisher details or just "WorldStories", per the admin's Site Settings switch.
+  const { contactName, email, location } = useSiteIdentity();
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:py-16">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Contact</h1>
         <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-          For questions, feedback, rights or publishing enquiries, contact Bibek Gautam at{" "}
-          <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-primary hover:underline">
-            {CONTACT_EMAIL}
+          For questions, feedback, rights or publishing enquiries, contact {contactName} at{" "}
+          <a href={`mailto:${email}`} className="font-medium text-primary hover:underline">
+            {email}
           </a>
           .
         </p>
@@ -32,15 +36,15 @@ const Contact = () => {
           <CardContent className="flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary">Email us</p>
-              <p className="mt-1 text-lg font-semibold">Bibek Gautam</p>
-              <p className="mt-1 text-sm text-muted-foreground">Kathmandu, Nepal</p>
-              <a href={`mailto:${CONTACT_EMAIL}`} className="mt-1 block text-sm font-medium text-primary hover:underline">
-                {CONTACT_EMAIL}
+              <p className="mt-1 text-lg font-semibold">{contactName}</p>
+              {location && <p className="mt-1 text-sm text-muted-foreground">{location}</p>}
+              <a href={`mailto:${email}`} className="mt-1 block text-sm font-medium text-primary hover:underline">
+                {email}
               </a>
               <p className="mt-1 text-sm text-muted-foreground">We aim to respond within a few business days.</p>
             </div>
             <Button asChild>
-              <a href={`mailto:${CONTACT_EMAIL}`}>
+              <a href={`mailto:${email}`}>
                 <Mail className="mr-2 h-4 w-4" />
                 Send an email
               </a>

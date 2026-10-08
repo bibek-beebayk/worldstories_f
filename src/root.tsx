@@ -30,16 +30,20 @@ export function meta() {
   });
 }
 
-// The site themes live right now (Customize → Site Themes in the admin
-// panel). Loaded once per full page load — the root loader isn't re-run on
-// client navigation, and each page picks its theme from this list by path
-// (SiteThemeStyles). Never fails the page: no themes just means the site's look.
+// Site-wide data from the admin panel's Customize menu, loaded once per full
+// page load (the root loader isn't re-run on client navigation):
+// - siteThemes: the themes live right now; each page picks its own from
+//   this list by path (SiteThemeStyles).
+// - siteSettings: switches such as whether the publisher is named
+//   (src/lib/siteIdentity.ts).
+// Never fails the page: no themes means the site's own look, and no settings
+// means the defaults (publisher info hidden).
 export async function loader() {
-  try {
-    return { siteThemes: await storyApi.getLiveSiteThemes() };
-  } catch {
-    return { siteThemes: [] };
-  }
+  const [siteThemes, siteSettings] = await Promise.all([
+    storyApi.getLiveSiteThemes().catch(() => []),
+    storyApi.getSiteSettings().catch(() => null),
+  ]);
+  return { siteThemes, siteSettings };
 }
 
 const ORGANIZATION_JSON_LD = {
