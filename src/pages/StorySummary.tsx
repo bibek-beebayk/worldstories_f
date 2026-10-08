@@ -259,21 +259,21 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-foreground sm:gap-x-6 sm:text-sm">
                     <div className="flex items-center gap-1">
                       <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 sm:h-4 sm:w-4" />
-                      <span className="font-semibold text-amber-600">{story.rating}</span>
+                      <span className="tinted-link font-semibold [--tint:#d97706]">{story.rating}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Eye className="h-3.5 w-3.5 text-sky-500 sm:h-4 sm:w-4" />
-                      <span className="font-semibold text-sky-600">{story.views}</span>
+                      <span className="tinted-link font-semibold [--tint:#0284c7]">{story.views}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5 text-amber-500 sm:h-4 sm:w-4" />
-                      <span className="font-semibold text-amber-600">{quickReadMinutes} min read</span>
+                      <span className="tinted-link font-semibold [--tint:#d97706]">{quickReadMinutes} min read</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Heart
                         className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? "fill-pink-500 text-pink-500" : "text-pink-400"}`}
                       />
-                      <span className="font-semibold text-pink-600">{story.favorites_count}</span>
+                      <span className="tinted-link font-semibold [--tint:#db2777]">{story.favorites_count}</span>
                     </div>
                   </div>
 
@@ -335,7 +335,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
 
                   <article
                     ref={summaryRef}
-                    className="prose prose-lg mt-6 max-w-none text-justify leading-relaxed"
+                    className="prose prose-on-theme prose-lg mt-6 max-w-none text-justify leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(story.summary) }}
                   />
 

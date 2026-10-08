@@ -1,5 +1,5 @@
 import type { PublicSiteTheme } from "@/api/types";
-import { fontStack, lookVariables, themeFontsUrl } from "@/components/pages/pageTheme";
+import { fontStack, lookVariables, readableLook, themeFontsUrl } from "@/components/pages/pageTheme";
 
 const isAdminPath = (pathname: string) => pathname === "/admin" || pathname.startsWith("/admin/");
 
@@ -38,7 +38,9 @@ const cssUrl = (url: string) => `url("${url.replace(/["\\\n<]/g, "")}")`;
  * ordinary CSS, so with equal specificity whichever stylesheet comes last wins
  * — and in dev Vite injects index.css after this one.
  */
-export const siteThemeCss = (theme: PublicSiteTheme) => {
+export const siteThemeCss = (chosen: PublicSiteTheme) => {
+  // Unreadable text colours replaced (pageTheme.ts readableLook).
+  const theme = readableLook(chosen);
   const variables = Object.entries(lookVariables(theme))
     .map(([name, value]) => `${name}: ${value};`)
     .join(" ");
@@ -74,6 +76,19 @@ export const siteThemeCss = (theme: PublicSiteTheme) => {
     `html .themed-banner .text-white { color: ${theme.primary_text_color}; }`,
     // …and headings in a banner take the banner's text colour, not the theme's heading colour.
     `html .themed-banner :is(h1, h2, h3, h4) { color: inherit; }`
+  );
+
+  // Long-form text marked .prose-on-theme (the Quick Read summary) follows the
+  // theme instead of typography's fixed greys, which vanish on dark themes.
+  // Not every .prose: the readers and blog articles have their own surfaces.
+  rules.push(
+    `html .prose-on-theme { --tw-prose-body: ${theme.text_color}; --tw-prose-headings: ${theme.heading_color}; ` +
+      `--tw-prose-lead: ${theme.muted_text_color}; --tw-prose-links: ${theme.primary_color}; ` +
+      `--tw-prose-bold: ${theme.text_color}; --tw-prose-counters: ${theme.muted_text_color}; ` +
+      `--tw-prose-bullets: ${theme.muted_text_color}; --tw-prose-hr: ${theme.border_color}; ` +
+      `--tw-prose-quotes: ${theme.text_color}; --tw-prose-quote-borders: ${theme.primary_color}; ` +
+      `--tw-prose-captions: ${theme.muted_text_color}; --tw-prose-code: ${theme.text_color}; ` +
+      `--tw-prose-th-borders: ${theme.border_color}; --tw-prose-td-borders: ${theme.border_color}; }`
   );
 
   // The backend refuses "<"; escaping it again means this can never close its <style> tag.

@@ -80,6 +80,56 @@ export const hexToHslTriplet = (hex: string) => {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
+/** WCAG relative luminance of a "#rrggbb" colour (0 = black, 1 = white). */
+const luminance = (hex: string) => {
+  const value = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(value >> 16) & 255, (value >> 8) & 255, value & 255].map((channel) => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/** WCAG contrast ratio between two "#rrggbb" colours (1–21). */
+export const contrastRatio = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+const HEX = /^#[0-9a-f]{6}$/i;
+const NEAR_BLACK = "#111827";
+const NEAR_WHITE = "#f9fafb";
+
+/**
+ * `color` if it reads clearly on every one of `backgrounds` (at least
+ * `minRatio`), otherwise near-black or near-white — whichever reads better on
+ * all of them. Lets an editor pick any colours without being able to make
+ * text disappear.
+ */
+export const readableOn = (color: string, backgrounds: string[], minRatio: number) => {
+  if (!HEX.test(color) || !backgrounds.every((bg) => HEX.test(bg))) return color;
+  const worst = (c: string) => Math.min(...backgrounds.map((bg) => contrastRatio(c, bg)));
+  if (worst(color) >= minRatio) return color;
+  return worst(NEAR_BLACK) >= worst(NEAR_WHITE) ? NEAR_BLACK : NEAR_WHITE;
+};
+
+/**
+ * The theme with any unreadable text colour replaced (see readableOn): body
+ * text at WCAG AA (4.5:1) on both the page background and cards; secondary
+ * text, headings and button labels at 3:1 (large or bold text). Colours that
+ * already read well are left exactly as chosen.
+ */
+export const readableLook = <T extends ThemeLookValues>(theme: T): T => {
+  const surfaces = [theme.background_color, theme.surface_color];
+  return {
+    ...theme,
+    text_color: readableOn(theme.text_color, surfaces, 4.5),
+    muted_text_color: readableOn(theme.muted_text_color, surfaces, 3),
+    heading_color: readableOn(theme.heading_color, surfaces, 3),
+    primary_text_color: readableOn(theme.primary_text_color, [theme.primary_color], 3),
+  };
+};
+
 /** An HSL triplet for `hex` with its lightness and saturation scaled — for
  *  deriving a gradient's darker stops from one colour. */
 const shadeTriplet = (hex: string, lightness: number, saturation = 1) => {
@@ -94,7 +144,8 @@ const shadeTriplet = (hex: string, lightness: number, saturation = 1) => {
  * knowing about themes. Used by page themes (on the page wrapper) and site
  * themes (on :root).
  */
-export const lookVariables = (theme: ThemeLookValues): Record<string, string> => {
+export const lookVariables = (chosen: ThemeLookValues): Record<string, string> => {
+  const theme = readableLook(chosen);
   const text = hexToHslTriplet(theme.text_color);
   const surface = hexToHslTriplet(theme.surface_color);
   const primary = hexToHslTriplet(theme.primary_color);
@@ -139,7 +190,7 @@ export const lookVariables = (theme: ThemeLookValues): Record<string, string> =>
 export const themeStyle = (theme: PageThemeValues): CSSProperties => {
   return {
     ...lookVariables(theme),
-    "--pt-heading": theme.heading_color,
+    "--pt-heading": readableLook(theme).heading_color,
     "--pt-heading-font": fontStack(theme.heading_font),
     "--pt-heading-weight": String(theme.heading_weight),
     "--pt-heading-transform": theme.heading_uppercase ? "uppercase" : "none",
@@ -279,7 +330,7 @@ export const THEME_PRESETS: { key: string; label: string; values: PageThemeValue
       text_color: "#3f3a52",
       muted_text_color: "#7c7594",
       heading_color: "#7c3aed",
-      primary_color: "#f97316",
+      primary_color: "#ea580c",
       border_color: "#fde2c8",
       heading_font: "Poppins",
       heading_weight: 800,
