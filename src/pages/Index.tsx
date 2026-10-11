@@ -8,6 +8,7 @@ import StoryJourneysBanner from "@/components/StoryJourneysBanner";
 import NewEntriesSection from "@/components/NewEntriesSection";
 import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
+import FeaturedStoryCard from "@/components/FeaturedStoryCard";
 import { OriginalsRail } from "@/components/OriginalsRail";
 import HomeHero from "@/components/home/HomeHero";
 import { buildDefaultHero, heroFontsUrl } from "@/components/home/heroPresets";
@@ -147,9 +148,9 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
                 icon={Sparkles}
                 title={configuredDaily ? "Daily Story" : "Featured Stories"}
               />
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+              <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
                 {featuredStories.map((story) => (
-                  <StoryCard key={story.id} {...story} featured />
+                  <FeaturedStoryCard key={story.id} story={story} />
                 ))}
               </div>
             </section>
