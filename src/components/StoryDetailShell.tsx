@@ -34,6 +34,7 @@ import {
   Heart,
   Link2,
   Share2,
+  SquareArrowOutUpRight,
   Sparkles,
   Star,
   Youtube,
@@ -246,6 +247,34 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
       </CardContent>
     </Card>
   );
+
+  const externalLink = story.external_link?.trim();
+  const linkNote = story.link_note?.trim();
+  const linkLabel = story.link_label?.trim();
+  // Shown right after the description card, in the same mobile/desktop
+  // positions (see descriptionAndAuthorCard above). The note is the card's
+  // text (e.g. "Available on Amazon"); the link, when set, adds a button.
+  const externalLinkCard =
+    externalLink || linkNote ? (
+      <Card className="overflow-hidden border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card">
+        <CardContent className="flex items-start gap-4 p-6">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <Link2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="whitespace-pre-line font-semibold">{linkNote || "Also available elsewhere"}</p>
+            {externalLink && (
+              <Button asChild size="sm" className="mt-3 bg-amber-500 text-black hover:bg-amber-400">
+                <a href={externalLink} target="_blank" rel="noopener noreferrer">
+                  {linkLabel || "Visit link"}
+                  <SquareArrowOutUpRight className="ml-1.5 h-3.5 w-3.5" />
+                </a>
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    ) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -483,6 +512,7 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
 
             {/* Mobile-only: desktop shows this in the sidebar instead (below). */}
             <div className="mb-8 lg:hidden">{descriptionAndAuthorCard}</div>
+            {externalLinkCard && <div className="mb-8 lg:hidden">{externalLinkCard}</div>}
 
             <AdSpace size="banner" className="mb-8" contentType="story" />
 
@@ -667,6 +697,7 @@ const StoryDetailShell = ({ mode, loaderData }: { mode: StoryDetailMode; loaderD
 
           <div className="space-y-6">
             <div className="hidden lg:block">{descriptionAndAuthorCard}</div>
+            {externalLinkCard && <div className="hidden lg:block">{externalLinkCard}</div>}
 
             <AdSpace size="rectangle" contentType="story" />
           </div>

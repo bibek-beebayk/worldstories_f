@@ -230,6 +230,12 @@ export interface StoryDetail extends Story {
   is_original: boolean;
   story_type: string;
   about: string;
+  /** An outside page for the story (e.g. where to buy it); "" when unset. */
+  external_link?: string;
+  /** Text for the external-link card (e.g. "Available on Amazon"); "" when unset. */
+  link_note?: string;
+  /** Button text for external_link; "" falls back to "Visit link". */
+  link_label?: string;
   summary: string | null;
   retrospective: string | null;
   original_published_year: number | null;
@@ -786,6 +792,9 @@ export interface AdminStory {
   cover_image: string | null;
   cover_image_file: string | null;
   cover_image_url: string;
+  external_link: string;
+  link_note: string;
+  link_label: string;
   pdf_file: string | null;
   pdf_file_url: string | null;
   epub_file: string | null;

@@ -149,6 +149,9 @@ const AdminContent = () => {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [about, setAbout] = useState("");
+  const [externalLink, setExternalLink] = useState("");
+  const [linkNote, setLinkNote] = useState("");
+  const [linkLabel, setLinkLabel] = useState("");
   const [summary, setSummary] = useState("");
   const [retrospective, setRetrospective] = useState("");
   const [authorId, setAuthorId] = useState<string>("none");
@@ -366,6 +369,9 @@ const AdminContent = () => {
     setTitle("");
     setSlug("");
     setAbout("");
+    setExternalLink("");
+    setLinkNote("");
+    setLinkLabel("");
     setSummary("");
     setRetrospective("");
     setAuthorId("none");
@@ -982,6 +988,9 @@ const AdminContent = () => {
     setTitle(selectedStory.title || "");
     setSlug(selectedStory.slug || "");
     setAbout(selectedStory.about || "");
+    setExternalLink(selectedStory.external_link || "");
+    setLinkNote(selectedStory.link_note || "");
+    setLinkLabel(selectedStory.link_label || "");
     setSummary(selectedStory.summary || "");
     setRetrospective(selectedStory.retrospective || "");
     setAuthorId(selectedStory.author ? String(selectedStory.author) : "none");
@@ -1281,6 +1290,9 @@ const AdminContent = () => {
     formData.append("title", title.trim());
     if (slug.trim()) formData.append("slug", slug.trim());
     formData.append("about", about.trim());
+    formData.append("external_link", externalLink.trim());
+    formData.append("link_note", linkNote.trim());
+    formData.append("link_label", linkLabel.trim());
     formData.append("summary", summary.trim());
     formData.append("retrospective", retrospective.trim());
     if (effectiveStoryTypeId) formData.append("story_type", effectiveStoryTypeId);
@@ -1807,6 +1819,41 @@ const AdminContent = () => {
                 <div>
                   <Label htmlFor="admin-about">About</Label>
                   <Textarea id="admin-about" value={about} onChange={(e) => setAbout(e.target.value)} className="min-h-28" />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="admin-external-link">External Link</Label>
+                    <Input
+                      id="admin-external-link"
+                      type="url"
+                      value={externalLink}
+                      onChange={(e) => setExternalLink(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="admin-link-note">Link Note</Label>
+                    <Input
+                      id="admin-link-note"
+                      value={linkNote}
+                      onChange={(e) => setLinkNote(e.target.value)}
+                      placeholder="e.g. Available on Amazon"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="admin-link-label">Link Button Label</Label>
+                    <Input
+                      id="admin-link-label"
+                      value={linkLabel}
+                      onChange={(e) => setLinkLabel(e.target.value)}
+                      maxLength={64}
+                      placeholder="e.g. Buy on Amazon (default: Visit link)"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    A link or a note shows a card on the story page with the note as its text; the link adds a button with this label.
+                  </p>
                 </div>
 
                 <div>
