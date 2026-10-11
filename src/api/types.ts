@@ -946,7 +946,9 @@ export interface AudioTranscriptCuesResponse {
 
 export interface AdminVideo {
   id: number;
-  story: number;
+  /** Null for a standalone video that isn't attached to any story. */
+  story: number | null;
+  story_detail: { id: number; title: string; slug: string } | null;
   title: string;
   slug: string;
   youtube_url: string;
@@ -954,6 +956,9 @@ export interface AdminVideo {
   order: number;
   duration_seconds: number | null;
   aspect_ratio: "16:9" | "9:16";
+  cover_image_file: string | null;
+  cover_image_url: string;
+  created_at: string;
 }
 
 export interface AdminSubmission {

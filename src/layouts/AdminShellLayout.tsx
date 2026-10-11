@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { useEffect, useState, type ComponentType } from "react";
-import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Route, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star, PanelTop, FileText, Paintbrush, ChevronDown, FolderOpen, SwatchBook, Settings2 } from "lucide-react";
+import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Route, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star, PanelTop, FileText, Paintbrush, ChevronDown, FolderOpen, SwatchBook, Settings2, Clapperboard } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
@@ -25,6 +25,7 @@ const menuItems: MenuEntry[] = [
     icon: FolderOpen,
     children: [
       { to: "/admin/content", label: "Stories", icon: Library, exact: false },
+      { to: "/admin/videos", label: "Videos", icon: Clapperboard, exact: false },
       { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false },
       { to: "/admin/categories", label: "Categories", icon: Tag, exact: false },
       { to: "/admin/genres", label: "Genres", icon: BookMarked, exact: false },

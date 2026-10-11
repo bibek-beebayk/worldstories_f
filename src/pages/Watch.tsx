@@ -19,7 +19,9 @@ export function meta() {
 }
 
 const Watch = () => {
-  const [sort, setSort] = useState("popular");
+  // "video_recent" orders by each story's newest video, not the story's own
+  // publish date — so a freshly added video surfaces first.
+  const [sort, setSort] = useState("video_recent");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -117,8 +119,8 @@ const Watch = () => {
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="video_recent">Most Recent</SelectItem>
                 <SelectItem value="popular">Most Popular</SelectItem>
-                <SelectItem value="recent">Most Recent</SelectItem>
                 <SelectItem value="rating">Highest Rated</SelectItem>
                 <SelectItem value="views">Most Viewed</SelectItem>
               </SelectContent>

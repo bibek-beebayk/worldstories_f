@@ -887,6 +887,17 @@ export const storyApi = {
     }),
   getAdminVideos: (storyId: number) =>
     apiClient<PaginatedResponse<AdminVideo>>(`/admin/videos/?story=${storyId}`),
+  // Videos admin page: paged, newest first. `hasStory` narrows to videos
+  // attached to a story (true) or standalone ones (false).
+  listAdminVideos: (page: number = 1, q: string = "", hasStory?: boolean) =>
+    apiClient<PaginatedResponse<AdminVideo>>(
+      `/admin/videos/?page=${page}&search=${encodeURIComponent(q)}` +
+        (hasStory === undefined ? "" : `&has_story=${hasStory}`)
+    ),
+  createAdminVideoForm: (formData: FormData) =>
+    apiClient<AdminVideo>("/admin/videos/", { method: "POST", body: formData }),
+  updateAdminVideoForm: (id: number, formData: FormData) =>
+    apiClient<AdminVideo>(`/admin/videos/${id}/`, { method: "PATCH", body: formData }),
   createAdminVideo: (payload: {
     story: number;
     title: string;
