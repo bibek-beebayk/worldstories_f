@@ -7,7 +7,9 @@ describe("sanitizeHtml style-based formatting", () => {
   it("unwraps a Google Docs font-weight:normal <b> wrapper", () => {
     const html =
       '<b style="font-weight:normal;" id="docs-internal-guid-1234"><p><span style="font-weight:400">Once upon a time</span></p></b>';
-    expect(sanitizeHtml(html)).toBe('<span id="docs-internal-guid-1234"><p><span>Once upon a time</span></p></span>');
+    expect(sanitizeHtml(html)).toBe(
+      '<span style="font-weight:normal" id="docs-internal-guid-1234"><p><span style="font-weight:400">Once upon a time</span></p></span>'
+    );
   });
 
   it("turns a bold-styled span into <strong>", () => {
@@ -25,6 +27,23 @@ describe("sanitizeHtml style-based formatting", () => {
     expect(sanitizeHtml('<span style="--tw-font-weight: 700; color: red">x</span>')).toBe("<span>x</span>");
   });
 
+  // What the browser writes when you un-bold part of a bold element; losing
+  // the style made the text bold again on the next open.
+  it("keeps an un-bold span inside bold text", () => {
+    expect(sanitizeHtml('<strong>Title <span style="font-weight: normal;">plain</span></strong>')).toBe(
+      '<strong>Title <span style="font-weight:normal">plain</span></strong>'
+    );
+    expect(sanitizeHtml('<em>a <span style="font-style: normal">b</span></em>')).toBe(
+      '<em>a <span style="font-style:normal">b</span></em>'
+    );
+  });
+
+  it("allows no other inline styles", () => {
+    expect(
+      sanitizeHtml('<span style="font-weight: normal; color: red; background: url(x)">a</span><p style="font-weight:normal">b</p>')
+    ).toBe('<span style="font-weight:normal">a</span><p>b</p>');
+  });
+
   it("keeps plain bold and italic tags as they are", () => {
     expect(sanitizeHtml("<p><strong>a</strong> <b>b</b> <em>c</em></p>")).toBe(
       "<p><strong>a</strong> <b>b</b> <em>c</em></p>"
@@ -33,7 +52,7 @@ describe("sanitizeHtml style-based formatting", () => {
 
   it("applies the same handling to blog content", () => {
     expect(sanitizeBlogContent('<h1>T</h1><b style="font-weight:normal">body</b>')).toBe(
-      "<h2>T</h2><span>body</span>"
+      '<h2>T</h2><span style="font-weight:normal">body</span>'
     );
   });
 });

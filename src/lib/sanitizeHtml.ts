@@ -23,10 +23,13 @@ const ALLOWED_TAGS = [
   "ul", "var", "wbr",
 ];
 
-// `style` is deliberately excluded (mirrors the previous FORBID_ATTR), and
-// no `on*` event-handler attribute is ever included here on purpose.
+// `style` is deliberately excluded (mirrors the previous FORBID_ATTR) except
+// on <span>, where ALLOWED_STYLES narrows it to a single "not bold / not
+// italic" declaration; no `on*` event-handler attribute is ever included
+// here on purpose.
 const ALLOWED_ATTRIBUTES: sanitizeHtmlLib.IOptions["allowedAttributes"] = {
   "*": ["class", "id", "title", "lang", "dir"],
+  span: ["style"],
   a: ["href", "name", "target", "rel"],
   img: ["src", "alt", "width", "height"],
   time: ["datetime"],
@@ -69,6 +72,18 @@ const styleToSemanticTag: sanitizeHtmlLib.Transformer = (tagName, attribs) => {
   return { tagName, attribs };
 };
 
+// The one inline style that survives. Un-bolding text inside a bold element
+// in the editor makes the browser insert `<span style="font-weight: normal">`
+// rather than split the tag; with that style stripped the text went straight
+// back to bold — in the reader and the next time the editor opened. Only
+// "turn it off" values are allowed, so this can't be used to restyle text.
+const ALLOWED_STYLES: sanitizeHtmlLib.IOptions["allowedStyles"] = {
+  span: {
+    "font-weight": [/^(normal|[1-5]00)$/i],
+    "font-style": [/^normal$/i],
+  },
+};
+
 const STYLE_TRANSFORMS: Record<string, sanitizeHtmlLib.Transformer> = {
   b: styleToSemanticTag,
   strong: styleToSemanticTag,
@@ -86,6 +101,7 @@ export function sanitizeHtml(html: string | null | undefined): string {
     // javascript: URLs the same way DOMPurify does.
     allowedSchemes: sanitizeHtmlLib.defaults.allowedSchemes,
     disallowedTagsMode: "discard",
+    allowedStyles: ALLOWED_STYLES,
     transformTags: STYLE_TRANSFORMS,
   });
 }
@@ -103,6 +119,7 @@ export function sanitizeBlogContent(html: string | null | undefined): string {
     allowedAttributes: ALLOWED_ATTRIBUTES,
     allowedSchemes: sanitizeHtmlLib.defaults.allowedSchemes,
     disallowedTagsMode: "discard",
+    allowedStyles: ALLOWED_STYLES,
     transformTags: {
       ...STYLE_TRANSFORMS,
       h1: "h2",
