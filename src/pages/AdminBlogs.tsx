@@ -154,7 +154,12 @@ const AdminBlogs = () => {
 
   useEffect(() => {
     if (!showForm || !contentEditorRef.current) return;
-    contentEditorRef.current.innerHTML = content || "";
+    // Seeded through the readers' sanitizer so the editor shows what the
+    // published post will (inline styles from older pastes stripped, their
+    // bold/italic kept as tags) — see the chapter editor in AdminContent.tsx.
+    const cleanContent = sanitizeHtml(content);
+    contentEditorRef.current.innerHTML = cleanContent;
+    setContent(cleanContent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForm]);
 

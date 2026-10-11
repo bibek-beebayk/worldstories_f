@@ -1077,7 +1077,14 @@ const AdminContent = () => {
 
   useEffect(() => {
     if (!showChapterModal || !chapterEditorRef.current) return;
-    chapterEditorRef.current.innerHTML = newChapterContent || "";
+    // Seeded through the readers' sanitizer so the editor shows what readers
+    // will see — older content pasted before handleRichTextPaste cleaned
+    // HTML still carries inline styles (e.g. headings forced back to body
+    // size/weight) that only the editor would otherwise honour. Mirrored
+    // back into state so saving stores the cleaned version.
+    const cleanChapterContent = sanitizeHtml(newChapterContent);
+    chapterEditorRef.current.innerHTML = cleanChapterContent;
+    setNewChapterContent(cleanChapterContent);
     // Only seed the contenteditable when the modal opens; depending on the
     // mirrored state would reset the caret after every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1092,7 +1099,10 @@ const AdminContent = () => {
 
   useEffect(() => {
     if (!showStoryForm || !summaryEditorRef.current) return;
-    summaryEditorRef.current.innerHTML = summary || "";
+    // Sanitized for the same reason as the chapter editor above.
+    const cleanSummary = sanitizeHtml(summary);
+    summaryEditorRef.current.innerHTML = cleanSummary;
+    setSummary(cleanSummary);
     // Only seed the contenteditable when the form opens, same reasoning as
     // the chapter editor above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1100,7 +1110,10 @@ const AdminContent = () => {
 
   useEffect(() => {
     if (!showStoryForm || !retrospectiveEditorRef.current) return;
-    retrospectiveEditorRef.current.innerHTML = retrospective || "";
+    // Sanitized for the same reason as the chapter editor above.
+    const cleanRetrospective = sanitizeHtml(retrospective);
+    retrospectiveEditorRef.current.innerHTML = cleanRetrospective;
+    setRetrospective(cleanRetrospective);
     // Only seed the contenteditable when the form opens, same reasoning as
     // the chapter editor above.
     // eslint-disable-next-line react-hooks/exhaustive-deps

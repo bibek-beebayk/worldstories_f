@@ -35,6 +35,49 @@ const ALLOWED_ATTRIBUTES: sanitizeHtmlLib.IOptions["allowedAttributes"] = {
   ol: ["start", "type"],
 };
 
+// `style` is stripped (above), but pasted rich text often carries its bold/
+// italic formatting *only* in inline styles — Google Docs wraps a whole paste
+// in `<b style="font-weight:normal">`, and copying from a web page gives
+// `<span style="font-weight: bolder">`. The admin editor renders those styles,
+// the reader (without them) would not, so the same chapter looked different
+// in each — e.g. entirely bold in the reader. Before the style is dropped,
+// its formatting is turned into the equivalent tag so both agree.
+const BOLD_WEIGHT = /^(bold|bolder|[6-9]00)$/;
+const NORMAL_WEIGHT = /^(normal|lighter|[1-5]00)$/;
+
+const styleValue = (style: string | undefined, property: string) => {
+  const match = style?.match(new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*([^;!]+)`, "i"));
+  return match ? match[1].trim().toLowerCase() : null;
+};
+
+// Bold/italic tags whose style switches the formatting back off render as
+// plain text; any other tag whose style turns formatting on becomes the
+// matching tag. One tag per element, so bold wins over italic when a single
+// element sets both.
+const styleToSemanticTag: sanitizeHtmlLib.Transformer = (tagName, attribs) => {
+  const weight = styleValue(attribs.style, "font-weight");
+  const fontStyle = styleValue(attribs.style, "font-style");
+  const isBoldTag = tagName === "b" || tagName === "strong";
+  const isItalicTag = tagName === "i" || tagName === "em";
+
+  if (isBoldTag && weight && NORMAL_WEIGHT.test(weight)) return { tagName: "span", attribs };
+  if (isItalicTag && fontStyle === "normal") return { tagName: "span", attribs };
+  if (tagName === "span" || tagName === "font") {
+    if (weight && BOLD_WEIGHT.test(weight)) return { tagName: "strong", attribs };
+    if (fontStyle === "italic" || fontStyle === "oblique") return { tagName: "em", attribs };
+  }
+  return { tagName, attribs };
+};
+
+const STYLE_TRANSFORMS: Record<string, sanitizeHtmlLib.Transformer> = {
+  b: styleToSemanticTag,
+  strong: styleToSemanticTag,
+  i: styleToSemanticTag,
+  em: styleToSemanticTag,
+  span: styleToSemanticTag,
+  font: styleToSemanticTag,
+};
+
 export function sanitizeHtml(html: string | null | undefined): string {
   return sanitizeHtmlLib(html || "", {
     allowedTags: ALLOWED_TAGS,
@@ -43,6 +86,7 @@ export function sanitizeHtml(html: string | null | undefined): string {
     // javascript: URLs the same way DOMPurify does.
     allowedSchemes: sanitizeHtmlLib.defaults.allowedSchemes,
     disallowedTagsMode: "discard",
+    transformTags: STYLE_TRANSFORMS,
   });
 }
 
@@ -60,6 +104,7 @@ export function sanitizeBlogContent(html: string | null | undefined): string {
     allowedSchemes: sanitizeHtmlLib.defaults.allowedSchemes,
     disallowedTagsMode: "discard",
     transformTags: {
+      ...STYLE_TRANSFORMS,
       h1: "h2",
     },
   });
