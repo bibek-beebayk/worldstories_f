@@ -8,7 +8,7 @@ import StoryJourneysBanner from "@/components/StoryJourneysBanner";
 import NewEntriesSection from "@/components/NewEntriesSection";
 import AdSpace from "@/components/AdSpace";
 import StoryCard from "@/components/StoryCard";
-import FeaturedStoryCard from "@/components/FeaturedStoryCard";
+import FeaturedStoriesSection from "@/components/FeaturedStoriesSection";
 import { OriginalsRail } from "@/components/OriginalsRail";
 import HomeHero from "@/components/home/HomeHero";
 import { buildDefaultHero, heroFontsUrl } from "@/components/home/heroPresets";
@@ -19,7 +19,7 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useContinueReading } from "@/hooks/useContinueReading";
 import { useContinueListening } from "@/hooks/useContinueListening";
 import { useRecommendations } from "@/hooks/useRecommendations";
-import { ArrowRight, Globe2, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight, Globe2, MapPin } from "lucide-react";
 import { ComponentType } from "react";
 import { createRailDeduplicator } from "@/lib/railDeduplication";
 import { buildMeta } from "@/lib/buildMeta";
@@ -118,13 +118,28 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
   const quickReadStories = rails.claim(data?.quick_reads);
   const moreToExplore = rails.claim(data?.more_to_explore);
   const originalStories = rails.claim(data?.originals);
+  const hero = data?.hero ?? buildDefaultHero(data?.sidebar.stats);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,var(--theme-page-wash,#f8fafc),transparent_320px)]">
-      <HomeHero hero={data?.hero ?? buildDefaultHero(data?.sidebar.stats)} />
+      <HomeHero hero={hero} />
+
+      <main>
+      {/* Full-bleed, so it sits outside the container and continues the
+          hero's background straight down. */}
+      {!isLoading && data && (
+        <FeaturedStoriesSection
+          stories={featuredStories}
+          isDaily={Boolean(configuredDaily)}
+          date={data.daily_story?.date}
+          reason={configuredDaily?.featured_reason}
+          backgroundColor={hero.background.color}
+          accentColor={hero.background.accent}
+        />
+      )}
 
       <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
-        <main className="space-y-8 md:space-y-10">
+        <div className="space-y-8 md:space-y-10">
           {isLoading && (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
@@ -142,20 +157,6 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
 
           {!isLoading && data && (
             <>
-          {featuredStories.length > 0 && (
-            <section>
-              <SectionTitle
-                icon={Sparkles}
-                title={configuredDaily ? "Daily Story" : "Featured Stories"}
-              />
-              <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-                {featuredStories.map((story) => (
-                  <FeaturedStoryCard key={story.id} story={story} />
-                ))}
-              </div>
-            </section>
-          )}
-
           {/* Reader intent first *within the page body*: a signed-in reader
               picks up where they left off before anything else here. The
               featured hero deliberately stays above it — §3.1 lists Continue
@@ -274,8 +275,9 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
           <OriginalsRail stories={originalStories} />
             </>
           )}
-        </main>
+        </div>
       </div>
+      </main>
     </div>
   );
 };
