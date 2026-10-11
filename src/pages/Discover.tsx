@@ -282,7 +282,9 @@ const Discover = ({ loaderData }: Route.ComponentProps) => {
   });
   const { data: newVideos, isLoading: isNewVideosLoading } = useQuery({
     queryKey: ["discover-new", "watch"],
-    queryFn: () => storyApi.getStories(1, [], "recent", "all", "", "all", "all", [], false, false, "all", true),
+    // "video_recent": newest *video*, not newest story — a new video added to
+    // an older story would otherwise never surface here.
+    queryFn: () => storyApi.getStories(1, [], "video_recent", "all", "", "all", "all", [], false, false, "all", true),
     staleTime: 60_000,
   });
   const { data: newQuickReads, isLoading: isNewQuickReadsLoading } = useQuery({
