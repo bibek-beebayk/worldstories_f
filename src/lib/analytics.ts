@@ -38,6 +38,7 @@ interface AnalyticsEventInput {
   event_type: AnalyticsEventType;
   story_slug?: string;
   blog_slug?: string;
+  video_id?: number;
   duration_seconds?: number;
   value?: number;
   metadata?: Record<string, string | number | boolean | null>;

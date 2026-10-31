@@ -80,6 +80,34 @@ export interface Video {
   aspect_ratio: "16:9" | "9:16";
 }
 
+/** A video as listed on the Watch page — standalone or story-linked. */
+export interface PublicVideo {
+  id: number;
+  title: string;
+  slug: string;
+  youtube_id: string;
+  duration_seconds: number | null;
+  aspect_ratio: "16:9" | "9:16";
+  cover_image: string;
+  /** cover_image if set, otherwise YouTube's default thumbnail. */
+  thumbnail: string;
+  story: { id: number; title: string; slug: string } | null;
+  created_at: string;
+}
+
+export interface PublicVideoDetail extends PublicVideo {
+  suggested: PublicVideo[];
+}
+
+/** Watch progress keyed on the video itself, independent of any story. */
+export interface VideoProgress {
+  video_id: number;
+  progress: number;
+  position_seconds: number;
+  duration_seconds: number;
+  updated_at: string | null;
+}
+
 export interface Genre{
   id: number;
   name: string;
@@ -1326,9 +1354,9 @@ export interface AdminAnalyticsAudienceResponse {
     minutes: number;
   }>;
   top_watched: Array<{
-    story_id: number;
+    video_id: number;
     title: string;
-    slug: string;
+    story_title: string | null;
     sessions: number;
     minutes: number;
   }>;

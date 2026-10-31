@@ -31,7 +31,11 @@ export default defineConfig(({ mode }) => ({
     // "destination stream closed early" errors and intermittent CSS/asset
     // loss seen in dev after the streaming SSR fix. Nothing here uses
     // redirects/edge-functions/images locally, so nothing is lost.
-    netlify({ middleware: false }),
+    // `edgeFunctions` is disabled because its local Deno server crashes dev
+    // startup: @netlify/edge-functions-dev runs `deno eval --allow-scripts`,
+    // and the Deno 2.9+ it auto-downloads no longer accepts that flag on
+    // `eval`. There are no edge functions in this project anyway.
+    netlify({ middleware: false, edgeFunctions: { enabled: false } }),
     mode === "development" && componentTagger(),
     VitePWA({
       // Keep a newly-installed worker waiting until the user accepts the

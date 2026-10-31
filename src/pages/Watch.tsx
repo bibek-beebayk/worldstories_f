@@ -1,52 +1,35 @@
 import FullScreenLoader from "@/components/FullScreenLoader";
-import StoryCard from "@/components/StoryCard";
+import VideoCard from "@/components/VideoCard";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useInfiniteStories } from "@/hooks/useInfiniteStories";
+import { storyApi } from "@/api/story";
 import { formatViews } from "@/lib/utils";
 import { Loader2, Search, Youtube } from "lucide-react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildMeta } from "@/lib/buildMeta";
 
-// Mirrors Audiobooks.tsx: no loader, driven by useInfiniteStories.
 export function meta() {
   return buildMeta({
-    title: "Watch — Animated Story Narrations | WorldStories",
-    description:
-      "Browse every WorldStories tale with an animated video narration you can watch on YouTube.",
+    title: "Watch — Video Narrations | WorldStories",
+    description: "Browse every WorldStories video — animated narrations and more — to watch on YouTube.",
     path: "/watch",
   });
 }
 
 const Watch = () => {
-  // "video_recent" orders by each story's newest video, not the story's own
-  // publish date — so a freshly added video surfaces first.
-  const [sort, setSort] = useState("video_recent");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const {
-    data: storiesData,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteStories(
-    [],
-    sort,
-    "all",
-    searchQuery,
-    "all",
-    "all",
-    true,
-    [],
-    false,
-    false,
-    true
-  );
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["watch-videos", searchQuery],
+    queryFn: ({ pageParam }) => storyApi.getVideos(pageParam as number, searchQuery),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.pagination.page < last.pagination.pages ? last.pagination.page + 1 : undefined,
+  });
 
-  const stories = useMemo(() => storiesData?.pages.flatMap((page) => page.results) || [], [storiesData]);
-  const totalCount = storiesData?.pages[0]?.pagination?.count || 0;
+  const videos = useMemo(() => data?.pages.flatMap((page) => page.results) || [], [data]);
+  const totalCount = data?.pages[0]?.pagination?.count || 0;
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +65,7 @@ const Watch = () => {
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Watch</h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Every story on WorldStories with an animated video narration — sit back and watch.
+            Animated narrations and more — sit back and watch.
           </p>
         </div>
       </div>
@@ -92,7 +75,7 @@ const Watch = () => {
           <div className="inline-flex shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs sm:gap-2 sm:text-sm">
             <Youtube className="h-4 w-4 text-primary" />
             <span className="font-semibold">{formatViews(totalCount)}</span>
-            <span className="hidden text-muted-foreground sm:inline">watchable stories</span>
+            <span className="hidden text-muted-foreground sm:inline">videos</span>
           </div>
 
           <form
@@ -113,30 +96,17 @@ const Watch = () => {
             </div>
           </form>
 
-          <div className="w-full sm:w-auto sm:min-w-[160px]">
-            <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger type="button" className="h-9 text-sm">
-                <SelectValue placeholder="Sort" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="video_recent">Most Recent</SelectItem>
-                <SelectItem value="popular">Most Popular</SelectItem>
-                <SelectItem value="rating">Highest Rated</SelectItem>
-                <SelectItem value="views">Most Viewed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {stories.map((story) => (
-            <StoryCard key={story.id} {...story} linkTo={`/watch/${story.slug}`} />
+        <section className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {videos.map((video) => (
+            <VideoCard key={video.id} video={video} />
           ))}
         </section>
 
-        {stories.length === 0 && (
+        {videos.length === 0 && (
           <div className="mt-6 rounded-lg border border-border p-6 text-center text-muted-foreground">
-            {searchQuery ? "No videos match your search." : "No watchable stories available yet."}
+            {searchQuery ? "No videos match your search." : "No videos available yet."}
           </div>
         )}
 
@@ -147,7 +117,7 @@ const Watch = () => {
               Loading more...
             </div>
           )}
-          {!hasNextPage && stories.length > 0 && (
+          {!hasNextPage && videos.length > 0 && (
             <p className="text-sm text-muted-foreground">You've reached the end.</p>
           )}
         </div>

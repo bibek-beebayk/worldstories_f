@@ -9,8 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { storyApi } from "@/api/story";
 import { loadYouTubeApi } from "@/lib/youtube";
-import { trackCompletionOnce } from "@/lib/analytics";
-import { markStoryFinishedIfComplete } from "@/lib/storyCompletion";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import type { Video } from "@/api/types";
 
@@ -102,7 +100,7 @@ export default function WatchModal({
 
   useContentSessionAnalytics(
     "watching_session",
-    open ? { storySlug } : undefined,
+    open && currentVideo ? { videoId: Number(currentVideo.id) } : undefined,
     open && isPlaying,
     { format: "video", item_slug: currentVideo?.slug || "" }
   );
@@ -117,24 +115,13 @@ export default function WatchModal({
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         saveTimerRef.current = setTimeout(() => {
           void storyApi
-            .saveVideoProgress(storySlug, slug, progress, position, duration)
+            .saveWatchProgress(currentVideo.id, progress, position, duration)
             .then(() => onProgressSaved?.())
             .catch(() => undefined);
         }, 700);
       }
-
-      if (progress >= 0.995) {
-        trackCompletionOnce(storySlug, "video", slug);
-        const allFinished = orderedVideos.every((v) => {
-          if (v.slug === slug) return true;
-          const dur = v.duration_seconds || 0;
-          if (!dur) return false;
-          return readLocalResume(storySlug, v.slug) / dur >= 0.995;
-        });
-        markStoryFinishedIfComplete(storySlug, allFinished);
-      }
     },
-    [currentVideo, storySlug, isAuthenticated, orderedVideos, onProgressSaved]
+    [currentVideo, storySlug, isAuthenticated, onProgressSaved]
   );
 
   const stopPolling = useCallback(() => {
@@ -169,9 +156,8 @@ export default function WatchModal({
     writeLocalResume(storySlug, currentVideo.slug, position);
     if (isAuthenticated) {
       void storyApi
-        .saveVideoProgress(
-          storySlug,
-          currentVideo.slug,
+        .saveWatchProgress(
+          currentVideo.id,
           Math.min(1, position / duration),
           position,
           duration

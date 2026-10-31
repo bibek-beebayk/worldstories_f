@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AnalyticsEventType, trackAnalyticsEvent } from "@/lib/analytics";
 
-export type ContentIdentity = { storySlug: string } | { blogSlug: string };
+export type ContentIdentity = { storySlug: string } | { blogSlug: string } | { videoId: number };
 
 export function useContentSessionAnalytics(
   eventType: Extract<AnalyticsEventType, "reading_session" | "listening_session" | "watching_session">,
@@ -14,9 +14,10 @@ export function useContentSessionAnalytics(
 
   const storySlug = identity && "storySlug" in identity ? identity.storySlug : undefined;
   const blogSlug = identity && "blogSlug" in identity ? identity.blogSlug : undefined;
+  const videoId = identity && "videoId" in identity ? identity.videoId : undefined;
 
   useEffect(() => {
-    if ((!storySlug && !blogSlug) || !enabled) return;
+    if ((!storySlug && !blogSlug && !videoId) || !enabled) return;
     let startedAt = document.visibilityState === "visible" ? Date.now() : null;
     let accumulatedMs = 0;
 
@@ -43,6 +44,7 @@ export function useContentSessionAnalytics(
         event_type: eventType,
         story_slug: storySlug,
         blog_slug: blogSlug,
+        video_id: videoId,
         duration_seconds: seconds,
         metadata: metadataRef.current,
       });
@@ -62,5 +64,5 @@ export function useContentSessionAnalytics(
       window.removeEventListener("pageshow", start);
       flush();
     };
-  }, [enabled, eventType, storySlug, blogSlug]);
+  }, [enabled, eventType, storySlug, blogSlug, videoId]);
 }

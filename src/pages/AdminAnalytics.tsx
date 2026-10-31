@@ -648,7 +648,7 @@ const AdminAnalytics = () => {
                       <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
                       <tbody>
                         {audienceQuery.data.top_watched.map((row) => (
-                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
+                          <tr key={row.video_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3" title={row.story_title ?? undefined}>{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
                         ))}
                         {audienceQuery.data.top_watched.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No watching sessions yet.</td></tr>}
                       </tbody>

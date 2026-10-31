@@ -39,6 +39,9 @@ import {
   AudioTranscriptImportResult,
   AudioTranscriptCuesResponse,
   AdminVideo,
+  PublicVideo,
+  PublicVideoDetail,
+  VideoProgress,
   AiGenerationInputField,
   EpubImportJob,
   BookFetchJob,
@@ -200,6 +203,23 @@ export const storyApi = {
   getStoryTypes: () => apiClient<StoryType[]>("/story-types/"),
   getAuthors: (page: number = 1) =>
     apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
+  getVideos: (page: number = 1, q: string = "") =>
+    apiClient<PaginatedResponse<PublicVideo>>(
+      `/videos/?page=${page}&search=${encodeURIComponent(q)}`
+    ),
+  getVideo: (id: number | string) => apiClient<PublicVideoDetail>(`/videos/${id}/`),
+  getWatchProgress: (video_id: number | string) =>
+    apiClient<VideoProgress>(`/watch-progress/${video_id}/`),
+  saveWatchProgress: (
+    video_id: number | string,
+    progress: number,
+    position_seconds: number,
+    duration_seconds: number
+  ) =>
+    apiClient<VideoProgress>(`/watch-progress/${video_id}/`, {
+      method: "PUT",
+      body: JSON.stringify({ progress, position_seconds, duration_seconds }),
+    }),
   getAuthor: (id: number) => apiClient<AuthorDetail>(`/authors/${id}/`),
   getLibraryShelves: (page: number) =>
     apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
@@ -270,22 +290,6 @@ export const storyApi = {
     }),
   getVideoProgress: (story_slug: string) =>
     apiClient<VideoWatchProgress>(`/video-progress/${story_slug}/`),
-  saveVideoProgress: (
-    story_slug: string,
-    video_slug: string,
-    progress: number,
-    position_seconds: number,
-    duration_seconds: number
-  ) =>
-    apiClient<VideoWatchProgress>(`/video-progress/${story_slug}/`, {
-      method: "PUT",
-      body: JSON.stringify({
-        video_slug,
-        progress,
-        position_seconds,
-        duration_seconds,
-      }),
-    }),
   getFileReadingProgress: (story_slug: string, format: FileReadingFormat) =>
     apiClient<FileReadingProgress>(`/file-reading-progress/${story_slug}/${format}/`),
   saveFileReadingProgress: (
