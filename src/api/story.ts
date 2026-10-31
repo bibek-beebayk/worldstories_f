@@ -40,6 +40,7 @@ import {
   AudioTranscriptCuesResponse,
   AdminVideo,
   PublicVideo,
+  AdminVideoType,
   PublicVideoDetail,
   VideoProgress,
   AiGenerationInputField,
@@ -808,6 +809,7 @@ export const storyApi = {
     }),
   deleteAdminCategory: (id: number) =>
     apiClient<void>(`/admin/categories/${id}/`, { method: "DELETE" }),
+  getAdminVideoTypes: () => apiClient<AdminVideoType[]>("/admin/video-types/"),
   getAdminStoryTypes: () =>
     apiClient<StoryType[]>("/admin/story-types/"),
   createAdminStoryType: (name: string) =>

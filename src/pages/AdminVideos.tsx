@@ -59,6 +59,12 @@ const AdminVideos = () => {
   const [duration, setDuration] = useState("");
   const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16">("16:9");
   const [story, setStory] = useState<StoryOption | null>(null);
+  // "none" is the Select sentinel for no type (Radix items can't be "").
+  const [videoType, setVideoType] = useState<string>("none");
+  const { data: videoTypes = [] } = useQuery({
+    queryKey: ["admin-video-types"],
+    queryFn: () => storyApi.getAdminVideoTypes(),
+  });
   const [order, setOrder] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [removeCoverImage, setRemoveCoverImage] = useState(false);
@@ -88,6 +94,7 @@ const AdminVideos = () => {
     setDuration("");
     setAspectRatio("16:9");
     setStory(null);
+    setVideoType("none");
     setOrder("");
     setCoverImageFile(null);
     setRemoveCoverImage(false);
@@ -107,6 +114,7 @@ const AdminVideos = () => {
     setDuration(video.duration_seconds != null ? String(video.duration_seconds) : "");
     setAspectRatio(video.aspect_ratio || "16:9");
     setStory(video.story_detail);
+    setVideoType(video.video_type != null ? String(video.video_type) : "none");
     setOrder(video.story_detail ? String(video.order) : "");
     setCoverImageFile(null);
     setRemoveCoverImage(false);
@@ -132,6 +140,7 @@ const AdminVideos = () => {
       formData.append("aspect_ratio", aspectRatio);
       // An empty value detaches the video from its story (standalone).
       formData.append("story", story ? String(story.id) : "");
+      formData.append("video_type", videoType === "none" ? "" : videoType);
       // Left blank, the backend appends the video to the end of the story's list.
       if (story && order.trim()) formData.append("order", order.trim());
       if (coverImageFile) formData.append("cover_image_file", coverImageFile);
@@ -250,6 +259,23 @@ const AdminVideos = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="video-type">Video type</Label>
+                <Select value={videoType} onValueChange={setVideoType}>
+                  <SelectTrigger id="video-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {videoTypes.map((type) => (
+                      <SelectItem key={type.id} value={String(type.id)}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -472,6 +498,7 @@ const AdminVideos = () => {
                         {video.story_detail ? `${video.story_detail.title} · #${video.order}` : "Standalone"}
                         {" · "}
                         {video.aspect_ratio === "9:16" ? "Portrait" : "Landscape"}
+                        {video.video_type_detail && ` · ${video.video_type_detail.name}`}
                         {video.created_at && ` · Added ${formatCreatedAt(video.created_at)}`}
                       </p>
                     </div>

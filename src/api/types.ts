@@ -80,6 +80,12 @@ export interface Video {
   aspect_ratio: "16:9" | "9:16";
 }
 
+export interface AdminVideoType {
+  id: number;
+  name: string;
+  videos_count: number;
+}
+
 /** A video as listed on the Watch page — standalone or story-linked. */
 export interface PublicVideo {
   id: number;
@@ -986,6 +992,9 @@ export interface AdminVideo {
   /** Null for a standalone video that isn't attached to any story. */
   story: number | null;
   story_detail: { id: number; title: string; slug: string } | null;
+  /** Optional category (Narration, Trailer, ...). */
+  video_type: number | null;
+  video_type_detail: { id: number; name: string } | null;
   title: string;
   slug: string;
   youtube_url: string;
