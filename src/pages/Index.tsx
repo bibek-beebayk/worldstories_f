@@ -3,6 +3,7 @@ import ContinueListeningSection from "@/components/ContinueListeningSection";
 import RecommendedForYouSection from "@/components/RecommendedForYouSection";
 import QuickReadSection from "@/components/QuickReadSection";
 import RecentBlogsSection from "@/components/RecentBlogsSection";
+import RecentVideosSection from "@/components/RecentVideosSection";
 import ReadingJourneyCard from "@/components/ReadingJourneyCard";
 import StoryJourneysBanner from "@/components/StoryJourneysBanner";
 import NewEntriesSection from "@/components/NewEntriesSection";
@@ -215,6 +216,8 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
           <StoryJourneysBanner enabled />
 
           <QuickReadSection stories={quickReadStories} />
+
+          <RecentVideosSection />
 
           {/* The Story Map already existed as its own page but had no entry
               point on the homepage at all — the one place the brief asks for
