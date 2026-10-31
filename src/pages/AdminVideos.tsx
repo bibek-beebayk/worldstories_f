@@ -61,6 +61,9 @@ const AdminVideos = () => {
   const [story, setStory] = useState<StoryOption | null>(null);
   // "none" is the Select sentinel for no type (Radix items can't be "").
   const [videoType, setVideoType] = useState<string>("none");
+  const [showVideoTypeModal, setShowVideoTypeModal] = useState(false);
+  const [newVideoTypeName, setNewVideoTypeName] = useState("");
+  const [creatingVideoType, setCreatingVideoType] = useState(false);
   const { data: videoTypes = [] } = useQuery({
     queryKey: ["admin-video-types"],
     queryFn: () => storyApi.getAdminVideoTypes(),
@@ -125,6 +128,24 @@ const AdminVideos = () => {
   const closeForm = () => {
     setShowForm(false);
     resetForm();
+  };
+
+  const createVideoType = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!newVideoTypeName.trim()) return;
+    try {
+      setCreatingVideoType(true);
+      const created = await storyApi.createAdminVideoType(newVideoTypeName.trim());
+      await queryClient.invalidateQueries({ queryKey: ["admin-video-types"] });
+      setVideoType(String(created.id));
+      setShowVideoTypeModal(false);
+      setNewVideoTypeName("");
+      toast.success("Video type created.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create video type.");
+    } finally {
+      setCreatingVideoType(false);
+    }
   };
 
   const saveVideo = async (event: FormEvent) => {
@@ -262,7 +283,12 @@ const AdminVideos = () => {
               </div>
 
               <div>
-                <Label htmlFor="video-type">Video type</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="video-type">Video type</Label>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowVideoTypeModal(true)}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Select value={videoType} onValueChange={setVideoType}>
                   <SelectTrigger id="video-type">
                     <SelectValue />
@@ -419,6 +445,33 @@ const AdminVideos = () => {
             </form>
           </CardContent>
         </Card>
+
+        {showVideoTypeModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowVideoTypeModal(false)}>
+            <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+                <CardTitle className="text-base">Create Video Type</CardTitle>
+                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowVideoTypeModal(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-3" onSubmit={createVideoType}>
+                  <div>
+                    <Label htmlFor="new-video-type-name">Name *</Label>
+                    <Input id="new-video-type-name" value={newVideoTypeName} onChange={(e) => setNewVideoTypeName(e.target.value)} required />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setShowVideoTypeModal(false)}>Cancel</Button>
+                    <Button type="submit" disabled={creatingVideoType || !newVideoTypeName.trim()}>
+                      {creatingVideoType ? "Creating..." : "Create Video Type"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     );
   }

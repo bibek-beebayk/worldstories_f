@@ -810,6 +810,11 @@ export const storyApi = {
   deleteAdminCategory: (id: number) =>
     apiClient<void>(`/admin/categories/${id}/`, { method: "DELETE" }),
   getAdminVideoTypes: () => apiClient<AdminVideoType[]>("/admin/video-types/"),
+  createAdminVideoType: (name: string) =>
+    apiClient<AdminVideoType>("/admin/video-types/", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
   getAdminStoryTypes: () =>
     apiClient<StoryType[]>("/admin/story-types/"),
   createAdminStoryType: (name: string) =>
