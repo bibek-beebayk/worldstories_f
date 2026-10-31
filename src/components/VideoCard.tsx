@@ -21,7 +21,7 @@ export default function VideoCard({ video, horizontal = false }: VideoCardProps)
   const duration = formatDuration(video.duration_seconds);
   const thumb = (
     // Always 16:9, whatever the source image's own ratio.
-    <div className={`relative aspect-video overflow-hidden rounded-md bg-muted ${horizontal ? "w-40 shrink-0" : "w-full"}`}>
+    <div className={`relative aspect-video overflow-hidden rounded-md bg-muted ${horizontal ? "w-36 shrink-0 sm:w-40" : "w-full"}`}>
       <img src={video.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
       <span className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
         <Play className="h-8 w-8 text-white" />
@@ -42,7 +42,7 @@ export default function VideoCard({ video, horizontal = false }: VideoCardProps)
   return (
     <Link
       to={`/watch/${video.id}`}
-      className={`group ${horizontal ? "flex gap-3" : "flex flex-col gap-2"}`}
+      className={`group ${horizontal ? "flex gap-3 active:opacity-70" : "flex flex-col gap-2"}`}
     >
       {thumb}
       {text}

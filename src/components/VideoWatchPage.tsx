@@ -154,12 +154,13 @@ export default function VideoWatchPage({ video }: { video: PublicVideoDetail }) 
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto grid gap-6 px-3 py-4 sm:px-4 sm:py-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="container mx-auto grid gap-4 px-0 pb-6 sm:gap-6 sm:px-4 sm:py-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div>
-          <div className="overflow-hidden rounded-lg bg-black">
+          {/* Edge-to-edge on phones; rounded card from sm up. */}
+          <div className="overflow-hidden bg-black sm:rounded-lg">
             <div
               className="relative mx-auto w-full"
-              style={{ aspectRatio: portrait ? "9 / 16" : "16 / 9", maxHeight: portrait ? "80vh" : undefined }}
+              style={{ aspectRatio: portrait ? "9 / 16" : "16 / 9", maxHeight: portrait ? "70dvh" : undefined }}
             >
               {ready && (
                 <iframe
@@ -175,7 +176,8 @@ export default function VideoWatchPage({ video }: { video: PublicVideoDetail }) 
               )}
             </div>
           </div>
-          <h1 className="mt-4 text-xl font-bold tracking-tight sm:text-2xl">{video.title}</h1>
+          <div className="px-3 sm:px-0">
+          <h1 className="mt-3 text-lg font-bold leading-snug tracking-tight sm:mt-4 sm:text-2xl">{video.title}</h1>
           {video.story && (
             <p className="mt-1 text-sm text-muted-foreground">
               From the story{" "}
@@ -187,11 +189,12 @@ export default function VideoWatchPage({ video }: { video: PublicVideoDetail }) 
           {!isAuthenticated && (
             <p className="mt-3 text-xs text-muted-foreground">Log in to track your watch progress across devices.</p>
           )}
+          </div>
         </div>
 
-        <aside>
-          <h2 className="mb-3 text-base font-semibold">Suggested</h2>
-          <div className="flex flex-col gap-3">
+        <aside className="border-t px-3 pt-4 sm:border-t-0 sm:px-0 sm:pt-0">
+          <h2 className="mb-3 text-base font-semibold">Up next</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {video.suggested.map((item) => (
               <VideoCard key={item.id} video={item} horizontal />
             ))}
