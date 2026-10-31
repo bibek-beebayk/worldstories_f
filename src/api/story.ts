@@ -41,6 +41,7 @@ import {
   AdminVideo,
   PublicVideo,
   AdminVideoType,
+  VideoTypeOption,
   PublicVideoDetail,
   VideoProgress,
   AiGenerationInputField,
@@ -204,10 +205,11 @@ export const storyApi = {
   getStoryTypes: () => apiClient<StoryType[]>("/story-types/"),
   getAuthors: (page: number = 1) =>
     apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
-  getVideos: (page: number = 1, q: string = "") =>
+  getVideos: (page: number = 1, q: string = "", videoType: number | null = null) =>
     apiClient<PaginatedResponse<PublicVideo>>(
-      `/videos/?page=${page}&search=${encodeURIComponent(q)}`
+      `/videos/?page=${page}&search=${encodeURIComponent(q)}${videoType ? `&video_type=${videoType}` : ""}`
     ),
+  getVideoTypes: () => apiClient<VideoTypeOption[]>("/video-types/"),
   getVideo: (id: number | string) => apiClient<PublicVideoDetail>(`/videos/${id}/`),
   getWatchProgress: (video_id: number | string) =>
     apiClient<VideoProgress>(`/watch-progress/${video_id}/`),

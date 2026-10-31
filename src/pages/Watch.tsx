@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { storyApi } from "@/api/story";
 import { formatViews } from "@/lib/utils";
 import { Loader2, Search, Youtube } from "lucide-react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildMeta } from "@/lib/buildMeta";
 
@@ -20,10 +20,19 @@ const Watch = () => {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [videoType, setVideoType] = useState<number | null>(null);
+  const { data: videoTypes = [] } = useQuery({
+    queryKey: ["video-types"],
+    queryFn: () => storyApi.getVideoTypes(),
+  });
+
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["watch-videos", searchQuery],
-    queryFn: ({ pageParam }) => storyApi.getVideos(pageParam as number, searchQuery),
+    queryKey: ["watch-videos", searchQuery, videoType],
+    queryFn: ({ pageParam }) => storyApi.getVideos(pageParam as number, searchQuery, videoType),
     initialPageParam: 1,
+    // Keep the grid (and the filter chips) on screen while a new filter loads,
+    // instead of dropping back to the full-screen loader.
+    placeholderData: keepPreviousData,
     getNextPageParam: (last) =>
       last.pagination.page < last.pagination.pages ? last.pagination.page + 1 : undefined,
   });
@@ -98,6 +107,27 @@ const Watch = () => {
 
         </div>
 
+        {videoTypes.length > 0 && (
+          <div className="-mx-3 mb-5 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Filter by category">
+            {[{ id: null, name: "All" }, ...videoTypes].map((type) => {
+              const active = videoType === type.id;
+              return (
+                <button
+                  key={type.id ?? "all"}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setVideoType(type.id)}
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    active ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted"
+                  }`}
+                >
+                  {type.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <section className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {videos.map((video) => (
             <VideoCard key={video.id} video={video} />
@@ -106,7 +136,7 @@ const Watch = () => {
 
         {videos.length === 0 && (
           <div className="mt-6 rounded-lg border border-border p-6 text-center text-muted-foreground">
-            {searchQuery ? "No videos match your search." : "No videos available yet."}
+            {searchQuery || videoType ? "No videos match your filters." : "No videos available yet."}
           </div>
         )}
 

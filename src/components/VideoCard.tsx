@@ -26,6 +26,11 @@ export default function VideoCard({ video, horizontal = false }: VideoCardProps)
       <span className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
         <Play className="h-8 w-8 text-white" />
       </span>
+      {video.video_type && (
+        <span className="absolute left-1 top-1 max-w-[70%] truncate rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+          {video.video_type.name}
+        </span>
+      )}
       {duration && (
         <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 text-[11px] font-medium text-white">
           {duration}

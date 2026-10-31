@@ -80,6 +80,12 @@ export interface Video {
   aspect_ratio: "16:9" | "9:16";
 }
 
+export interface VideoTypeOption {
+  id: number;
+  name: string;
+  videos_count: number;
+}
+
 export interface AdminVideoType {
   id: number;
   name: string;
@@ -98,6 +104,7 @@ export interface PublicVideo {
   /** cover_image if set, otherwise YouTube's default thumbnail. */
   thumbnail: string;
   story: { id: number; title: string; slug: string } | null;
+  video_type: { id: number; name: string } | null;
   created_at: string;
 }
 
