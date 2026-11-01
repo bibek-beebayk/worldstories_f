@@ -36,13 +36,11 @@ const FeaturedStoryCard = ({ story, rank, lead = false }: FeaturedStoryCardProps
     <Link
       to={`/read/${story.slug}`}
       className={`group relative isolate flex overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-shadow duration-300 hover:shadow-lg ${
-        lead ? "gap-4 p-4 sm:gap-6 sm:p-6 md:col-span-2" : "gap-4 p-4"
+        lead ? "min-h-[14rem] gap-4 p-4 sm:gap-6 sm:p-6 md:col-span-2" : "min-h-[12rem] gap-4 p-4"
       }`}
     >
       <div
-        className={`relative aspect-[3/4] shrink-0 overflow-hidden rounded-md shadow-md transition-transform duration-300 group-hover:-translate-y-1 ${
-          lead ? "w-28 sm:w-40 md:w-44" : "w-24 sm:w-28"
-        }`}
+        className="relative aspect-[3/4] shrink-0 self-stretch overflow-hidden rounded-md shadow-md transition-transform duration-300 group-hover:-translate-y-1"
       >
         <CoverImage
           src={story.cover_image}
@@ -50,7 +48,7 @@ const FeaturedStoryCard = ({ story, rank, lead = false }: FeaturedStoryCardProps
           author={story.author}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
         />
         {story.is_original && (
           <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow">
