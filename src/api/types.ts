@@ -499,6 +499,8 @@ export interface FeaturedStory extends Story {
 
 /** Admin picker/list row for the Featured Stories screen — not the heavy AdminStory shape. */
 export interface AdminFeaturedStory {
+  /** Present on the Featured lineup, which mixes stories and videos. */
+  kind?: "story" | "video";
   id: number;
   title: string;
   slug: string;
@@ -508,23 +510,34 @@ export interface AdminFeaturedStory {
   featured_rank: number;
 }
 
+/** One entry of the homepage Featured lineup. */
+export type FeaturedItem =
+  | { kind: "story"; story: FeaturedStory }
+  | { kind: "video"; video: PublicVideo };
+
 export interface DailyStory {
   date: string;
-  story: FeaturedStory;
+  /** Exactly one of story / video is set. */
+  story: FeaturedStory | null;
+  video?: PublicVideo | null;
   featured_reason: string;
   configured: boolean;
 }
 
 export interface AdminDailyStory {
   date: string;
-  story: number;
-  story_detail: AdminFeaturedStory;
+  story: number | null;
+  story_detail: AdminFeaturedStory | null;
+  video: number | null;
+  video_detail: AdminFeaturedStory | null;
   featured_reason: string;
   active: boolean;
 }
 
 export interface HomeDataResponse {
   featured_stories: FeaturedStory[];
+  /** The ordered Featured lineup, stories and videos together. */
+  featured_items?: FeaturedItem[];
   daily_story: DailyStory | null;
   weekly_spotlight: Story[];
   new_trending: Story[];

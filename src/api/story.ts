@@ -391,14 +391,20 @@ export const storyApi = {
     apiClient<AdminStory>(`/admin/stories/${id}/`),
   getFeaturedStories: () =>
     apiClient<AdminFeaturedStory[]>("/admin/stories/featured/"),
-  setFeaturedStories: (storyIds: number[]) =>
+  setFeaturedItems: (items: { kind: "story" | "video"; id: number }[]) =>
     apiClient<AdminFeaturedStory[]>("/admin/stories/featured/", {
       method: "PUT",
-      body: JSON.stringify({ story_ids: storyIds }),
+      body: JSON.stringify({ items }),
     }),
   getDailyStory: (date: string) =>
     apiClient<AdminDailyStory | null>(`/admin/stories/daily/?date=${encodeURIComponent(date)}`),
-  setDailyStory: (payload: { date: string; story: number; featured_reason: string; active: boolean }) =>
+  setDailyStory: (payload: {
+    date: string;
+    story?: number;
+    video?: number;
+    featured_reason: string;
+    active: boolean;
+  }) =>
     apiClient<AdminDailyStory>("/admin/stories/daily/", {
       method: "PUT",
       body: JSON.stringify(payload),

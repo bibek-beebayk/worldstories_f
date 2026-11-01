@@ -10,10 +10,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, CalendarDays, Star, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, CalendarDays, Star, Trash2, X, Youtube } from "lucide-react";
 import CoverImage from "@/components/CoverImage";
 import { FeaturedStoryPickerModal } from "@/components/admin/FeaturedStoryPickerModal";
-import type { AdminStory } from "@/api/types";
+import { FeaturedVideoPickerModal } from "@/components/admin/FeaturedVideoPickerModal";
+import type { AdminFeaturedStory, AdminStory, PublicVideo } from "@/api/types";
+
+type Kind = "story" | "video";
+type Target = { kind: Kind; id: number };
+
+const kindOf = (item: AdminFeaturedStory): Kind => item.kind ?? "story";
+const targetOf = (item: AdminFeaturedStory): Target => ({ kind: kindOf(item), id: item.id });
+const keyOf = (item: AdminFeaturedStory) => `${kindOf(item)}-${item.id}`;
+
+/** First step of picking: is this slot a story or a video? */
+const KindChooser = ({ onChoose, onClose }: { onChoose: (kind: Kind) => void; onClose: () => void }) => (
+  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <Card className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">What do you want to feature?</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-2 gap-3">
+        <Button variant="outline" className="h-16" onClick={() => onChoose("story")}>
+          <BookOpen className="mr-2 h-4 w-4" /> Story
+        </Button>
+        <Button variant="outline" className="h-16" onClick={() => onChoose("video")}>
+          <Youtube className="mr-2 h-4 w-4" /> Video
+        </Button>
+      </CardContent>
+    </Card>
+  </div>
+);
 
 const MAX_FEATURED = 5;
 
@@ -38,7 +65,9 @@ const AdminFeatured = () => {
   // The slot a click opened the picker for — an existing slot (0..featured.length-1)
   // to swap it, or the next empty one (featured.length..MAX_FEATURED-1) to fill it.
   const [pickerSlotIndex, setPickerSlotIndex] = useState<number | null>(null);
+  const [pickerKind, setPickerKind] = useState<Kind | null>(null);
   const [dailyPickerOpen, setDailyPickerOpen] = useState(false);
+  const [dailyPickerKind, setDailyPickerKind] = useState<Kind | null>(null);
   const [dailyDate, setDailyDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dailyReason, setDailyReason] = useState("");
   const [dailyActive, setDailyActive] = useState(true);
@@ -55,69 +84,81 @@ const AdminFeatured = () => {
     setDailyActive(dailyStory?.active ?? true);
   }, [dailyStory]);
 
-  const persist = async (storyIds: number[], successMessage: string) => {
+  const persist = async (items: Target[], successMessage: string) => {
     try {
       setPending(true);
-      await storyApi.setFeaturedStories(storyIds);
+      await storyApi.setFeaturedItems(items);
       await queryClient.invalidateQueries({ queryKey: ["admin-featured-stories"] });
       await queryClient.invalidateQueries({ queryKey: ["home-data"] });
       toast.success(successMessage);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update featured stories.");
+      toast.error(error instanceof Error ? error.message : "Failed to update the featured lineup.");
     } finally {
       setPending(false);
     }
   };
 
-  const removeStory = (story: { id: number; title: string }) => {
+  const removeStory = (item: AdminFeaturedStory) => {
     persist(
-      featured.filter((s) => s.id !== story.id).map((s) => s.id),
-      `Removed "${story.title}" from Featured Stories.`
+      featured.filter((s) => keyOf(s) !== keyOf(item)).map(targetOf),
+      `Removed "${item.title}" from the Featured lineup.`
     );
   };
 
   const moveStory = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= featured.length) return;
-    const ids = featured.map((s) => s.id);
+    const ids = featured.map(targetOf);
     [ids[index], ids[target]] = [ids[target], ids[index]];
-    persist(ids, "Reordered Featured Stories.");
+    persist(ids, "Reordered the Featured lineup.");
   };
 
-  const handlePick = (story: AdminStory) => {
+  const closePicker = () => {
+    setPickerSlotIndex(null);
+    setPickerKind(null);
+  };
+
+  const handlePick = (kind: Kind, id: number, title: string) => {
     if (pickerSlotIndex === null) return;
-    const ids = featured.map((s) => s.id);
+    const ids = featured.map(targetOf);
     const isSwap = pickerSlotIndex < ids.length;
     if (isSwap) {
-      ids[pickerSlotIndex] = story.id;
+      ids[pickerSlotIndex] = { kind, id };
     } else {
-      ids.push(story.id);
+      ids.push({ kind, id });
     }
-    setPickerSlotIndex(null);
+    const slot = pickerSlotIndex;
+    closePicker();
     persist(
       ids,
-      isSwap
-        ? `Set "${story.title}" as featured story #${pickerSlotIndex + 1}.`
-        : `Added "${story.title}" to Featured Stories.`
+      isSwap ? `Set "${title}" as featured #${slot + 1}.` : `Added "${title}" to the Featured lineup.`
     );
   };
 
-  const saveDailyStory = async (storyId = dailyStory?.story) => {
-    if (!storyId) return;
+  const dailyCurrent: AdminFeaturedStory | null = dailyStory?.video_detail ?? dailyStory?.story_detail ?? null;
+  const dailyTarget: Target | null = dailyStory?.video
+    ? { kind: "video", id: dailyStory.video }
+    : dailyStory?.story
+      ? { kind: "story", id: dailyStory.story }
+      : null;
+
+  const saveDailyStory = async (target: Target | null = dailyTarget) => {
+    if (!target) return;
     try {
       setDailyPending(true);
       await storyApi.setDailyStory({
         date: dailyDate,
-        story: storyId,
+        ...(target.kind === "story" ? { story: target.id } : { video: target.id }),
         featured_reason: dailyReason.trim(),
         active: dailyActive,
       });
       await queryClient.invalidateQueries({ queryKey: ["admin-daily-story", dailyDate] });
       await queryClient.invalidateQueries({ queryKey: ["home-data"] });
       setDailyPickerOpen(false);
-      toast.success("Daily Story saved.");
+      setDailyPickerKind(null);
+      toast.success("Daily pick saved.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save the Daily Story.");
+      toast.error(error instanceof Error ? error.message : "Failed to save the Daily pick.");
     } finally {
       setDailyPending(false);
     }
@@ -129,9 +170,9 @@ const AdminFeatured = () => {
       await storyApi.deleteDailyStory(dailyDate);
       await queryClient.invalidateQueries({ queryKey: ["admin-daily-story", dailyDate] });
       await queryClient.invalidateQueries({ queryKey: ["home-data"] });
-      toast.success("Daily Story removed for this date.");
+      toast.success("Daily pick removed for this date.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to remove the Daily Story.");
+      toast.error(error instanceof Error ? error.message : "Failed to remove the Daily pick.");
     } finally {
       setDailyPending(false);
     }
@@ -159,10 +200,10 @@ const AdminFeatured = () => {
       <Card>
         <CardHeader className="space-y-0">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <CalendarDays className="h-5 w-5 text-primary" /> Daily Story
+            <CalendarDays className="h-5 w-5 text-primary" /> Daily Story / Video
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose one published story for a UTC calendar date. Everyone sees the same selection;
+            Choose one published story or video for a UTC calendar date. Everyone sees the same selection;
             when a date has none, the homepage keeps its existing Featured Story hero.
           </p>
         </CardHeader>
@@ -180,15 +221,17 @@ const AdminFeatured = () => {
 
           {dailyLoading ? (
             <p className="text-sm text-muted-foreground">Loading Daily Story…</p>
-          ) : dailyStory ? (
+          ) : dailyStory && dailyCurrent ? (
             <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
-              <div className="h-20 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                <CoverImage src={dailyStory.story_detail.cover_image || ""} alt={dailyStory.story_detail.title} author={dailyStory.story_detail.author} className="h-full w-full object-cover" />
+              <div className={`shrink-0 overflow-hidden rounded-md bg-muted ${dailyCurrent.kind === "video" ? "aspect-video w-28" : "h-20 w-16"}`}>
+                <CoverImage src={dailyCurrent.cover_image || ""} alt={dailyCurrent.title} author={dailyCurrent.author} className="h-full w-full object-cover" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{dailyStory.story_detail.title}</p>
-                <p className="truncate text-sm text-muted-foreground">{dailyStory.story_detail.author || "No author"}</p>
-                <button type="button" className="mt-2 text-sm font-medium text-primary hover:underline" onClick={() => setDailyPickerOpen(true)}>Change story</button>
+                <p className="truncate font-medium">{dailyCurrent.title}</p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {dailyCurrent.kind === "video" ? "Video" : "Story"} · {dailyCurrent.author || "No author"}
+                </p>
+                <button type="button" className="mt-2 text-sm font-medium text-primary hover:underline" onClick={() => setDailyPickerOpen(true)}>Change</button>
               </div>
               <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={dailyPending} onClick={deleteDailyStory} aria-label="Remove Daily Story for this date">
                 <Trash2 className="h-4 w-4" />
@@ -196,7 +239,7 @@ const AdminFeatured = () => {
             </div>
           ) : (
             <button type="button" disabled={dailyPending} onClick={() => setDailyPickerOpen(true)} className="flex min-h-20 w-full items-center justify-center rounded-lg border border-dashed p-4 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary">
-              No Daily Story configured — choose a story
+              No Daily pick configured — choose a story or video
             </button>
           )}
 
@@ -213,13 +256,13 @@ const AdminFeatured = () => {
         <CardHeader className="space-y-0">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Star className="h-5 w-5 text-amber-500" />
-            Featured Stories
+            Featured Lineup
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose up to {MAX_FEATURED} stories to lead the homepage hero, in the order they should
-            appear. Click a slot to add or change its story. The hero shows exactly what you select
-            here — pick just 1 or 2 and only those appear. Leave all slots empty and the hero falls
-            back to the site's most popular stories automatically.
+            Choose up to {MAX_FEATURED} stories and/or videos for the homepage Featured section, in
+            the order they should appear. Click a slot to add or change its item. The section shows
+            exactly what you select here — pick just 1 or 2 and only those appear. Leave all slots
+            empty and it falls back to the most popular stories automatically.
           </p>
         </CardHeader>
         <CardContent>
@@ -241,12 +284,12 @@ const AdminFeatured = () => {
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-medium">
                         {index + 1}
                       </span>
-                      Empty slot — click to add a story.
+                      Empty slot — click to add a story or video.
                     </button>
                   );
                 }
                 return (
-                  <div key={story.id} className="flex items-center gap-3 rounded-md border p-3">
+                  <div key={keyOf(story)} className="flex items-center gap-3 rounded-md border p-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                       {index + 1}
                     </span>
@@ -254,10 +297,10 @@ const AdminFeatured = () => {
                       type="button"
                       disabled={pending}
                       onClick={() => setPickerSlotIndex(index)}
-                      title="Click to change this story"
+                      title="Click to change this item"
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-md p-1 text-left transition-colors hover:bg-muted disabled:opacity-50"
                     >
-                      <div className="h-14 w-10 shrink-0 overflow-hidden rounded">
+                      <div className={`shrink-0 overflow-hidden rounded ${story.kind === "video" ? "aspect-video w-24" : "h-14 w-10"}`}>
                         <CoverImage
                           src={story.cover_image || ""}
                           alt={story.title}
@@ -268,10 +311,11 @@ const AdminFeatured = () => {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{story.title}</p>
                         <p className="truncate text-xs text-muted-foreground">
+                          {kindOf(story) === "video" ? "Video · " : ""}
                           {story.author || "No author"}
                           {!story.is_published && (
                             <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                              Draft — won't show until published
+                              {kindOf(story) === "video" ? "Story unpublished — won't show" : "Draft — won't show until published"}
                             </span>
                           )}
                         </p>
@@ -317,17 +361,42 @@ const AdminFeatured = () => {
         </CardContent>
       </Card>
 
+      {pickerSlotIndex !== null && pickerKind === null && (
+        <KindChooser onChoose={setPickerKind} onClose={closePicker} />
+      )}
       <FeaturedStoryPickerModal
-        open={pickerSlotIndex !== null}
-        onClose={() => setPickerSlotIndex(null)}
-        excludeIds={featured.map((s) => s.id)}
-        onSelect={handlePick}
+        open={pickerSlotIndex !== null && pickerKind === "story"}
+        onClose={closePicker}
+        excludeIds={featured.filter((s) => kindOf(s) === "story").map((s) => s.id)}
+        onSelect={(story: AdminStory) => handlePick("story", story.id, story.title)}
       />
+      <FeaturedVideoPickerModal
+        open={pickerSlotIndex !== null && pickerKind === "video"}
+        onClose={closePicker}
+        excludeIds={featured.filter((s) => kindOf(s) === "video").map((s) => s.id)}
+        onSelect={(video: PublicVideo) => handlePick("video", video.id, video.title)}
+      />
+
+      {dailyPickerOpen && dailyPickerKind === null && (
+        <KindChooser onChoose={setDailyPickerKind} onClose={() => setDailyPickerOpen(false)} />
+      )}
       <FeaturedStoryPickerModal
-        open={dailyPickerOpen}
-        onClose={() => setDailyPickerOpen(false)}
+        open={dailyPickerOpen && dailyPickerKind === "story"}
+        onClose={() => {
+          setDailyPickerOpen(false);
+          setDailyPickerKind(null);
+        }}
         excludeIds={[]}
-        onSelect={(story) => void saveDailyStory(story.id)}
+        onSelect={(story) => void saveDailyStory({ kind: "story", id: story.id })}
+      />
+      <FeaturedVideoPickerModal
+        open={dailyPickerOpen && dailyPickerKind === "video"}
+        onClose={() => {
+          setDailyPickerOpen(false);
+          setDailyPickerKind(null);
+        }}
+        excludeIds={[]}
+        onSelect={(video) => void saveDailyStory({ kind: "video", id: video.id })}
       />
     </div>
   );

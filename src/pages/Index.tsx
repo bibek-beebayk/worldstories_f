@@ -5,6 +5,7 @@ import { buildDefaultHero, heroFontsUrl } from "@/components/home/heroPresets";
 import { storyApi } from "@/api/story";
 import { useHomeData } from "@/hooks/useHomeData";
 import { buildMeta } from "@/lib/buildMeta";
+import type { FeaturedItem } from "@/api/types";
 import type { Route } from "./+types/Index";
 
 // The homepage is the single highest-traffic, most SEO-critical page on the
@@ -41,7 +42,17 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
   // shows every story the team marked as featured. It still reserves them, so
   // the sections below don't show the exact same story a second time.
   const configuredDaily = data?.daily_story?.configured ? data.daily_story : null;
-  const featuredStories = configuredDaily ? [configuredDaily.story] : data?.featured_stories ?? [];
+  const dailyItem: FeaturedItem | null = configuredDaily
+    ? configuredDaily.video
+      ? { kind: "video", video: configuredDaily.video }
+      : configuredDaily.story
+        ? { kind: "story", story: configuredDaily.story }
+        : null
+    : null;
+  const featuredItems: FeaturedItem[] = dailyItem
+    ? [dailyItem]
+    : data?.featured_items ?? (data?.featured_stories ?? []).map((story): FeaturedItem => ({ kind: "story", story }));
+  const featuredStories = featuredItems.flatMap((item) => (item.kind === "story" ? [item.story] : []));
   const hero = data?.hero ?? buildDefaultHero(data?.sidebar.stats);
 
   return (
@@ -51,8 +62,8 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
       <main>
         {!isLoading && data && (
           <FeaturedStoriesSection
-            stories={featuredStories}
-            isDaily={Boolean(configuredDaily)}
+            items={featuredItems}
+            isDaily={Boolean(dailyItem)}
             date={data.daily_story?.date}
             reason={configuredDaily?.featured_reason}
           />
