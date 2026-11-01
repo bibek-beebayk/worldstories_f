@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, ChevronDown, Earth, FileText, LogIn, LogOut, Menu, Search, Sparkles, User, UsersRound, X } from "lucide-react";
+import { BookOpen, ChevronDown, Compass, FileText, LogIn, LogOut, Menu, Search, Sparkles, User, UsersRound, X, Youtube } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -203,7 +203,7 @@ const Header = () => {
         </div>
 
         {/* Right Side */}
-        <div className="relative flex items-center gap-3">
+        <div className="relative flex items-center gap-1.5 md:gap-3">
           {/* Desktop Search */}
           <div className="hidden lg:flex items-center gap-2">
             <div className="relative">
@@ -365,9 +365,15 @@ const Header = () => {
             </>
           )}
 
-          <Button asChild variant="ghost" size="icon" className="md:hidden">
-            <Link to="/story-map" aria-label="Open Story Map" title="Story Map">
-              <Earth className="h-5 w-5" />
+          <Button asChild variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full bg-emerald-100 hover:bg-emerald-200">
+            <Link to="/discover" aria-label="Discover" title="Discover">
+              <Compass className="h-5 w-5 text-emerald-600" />
+            </Link>
+          </Button>
+
+          <Button asChild variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full bg-red-100 hover:bg-red-200">
+            <Link to="/watch" aria-label="Watch videos" title="Watch">
+              <Youtube className="h-5 w-5 text-red-600" />
             </Link>
           </Button>
 
@@ -377,7 +383,7 @@ const Header = () => {
               type="button"
               variant="ghost"
               size="icon"
-              className={mobileSearchOpen ? "invisible" : "visible"}
+              className={`h-9 w-9 rounded-full bg-sky-100 hover:bg-sky-200 ${mobileSearchOpen ? "invisible" : "visible"}`}
               onClick={() => {
                 setMobileMenuOpen(false);
                 setMobileSearchOpen(true);
@@ -385,7 +391,7 @@ const Header = () => {
               aria-label="Open site search"
               aria-expanded={mobileSearchOpen}
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-5 w-5 text-sky-600" />
             </Button>
 
             <form
@@ -526,8 +532,8 @@ const Header = () => {
           {/* Mobile Menu Trigger */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full bg-violet-100 hover:bg-violet-200">
+                <Menu className="h-5 w-5 text-violet-600" />
               </Button>
             </SheetTrigger>
 
