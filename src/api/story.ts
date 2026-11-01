@@ -69,6 +69,9 @@ import {
   PageThemeValues,
   PublicPageResponse,
   AdminHeroTemplateInput,
+  AdminHomeSection,
+  AdminHomeSectionInput,
+  HomeSectionTypesMeta,
   AdminJourneyItem,
   AdminMood,
   AdminStoryMood,
@@ -756,6 +759,20 @@ export const storyApi = {
     apiClient<AdminHeroTemplate>(`/admin/hero-templates/${id}/set-default/`, { method: "POST" }),
   duplicateAdminHeroTemplate: (id: number) =>
     apiClient<AdminHeroTemplate>(`/admin/hero-templates/${id}/duplicate/`, { method: "POST" }),
+
+  getAdminHomeSections: () => apiClient<AdminHomeSection[]>("/admin/home-sections/"),
+  getAdminHomeSectionTypes: () => apiClient<HomeSectionTypesMeta>("/admin/home-sections/types/"),
+  createAdminHomeSection: (payload: Partial<AdminHomeSectionInput>) =>
+    apiClient<AdminHomeSection>("/admin/home-sections/", { method: "POST", body: JSON.stringify(payload) }),
+  updateAdminHomeSection: (id: number, payload: Partial<AdminHomeSectionInput>) =>
+    apiClient<AdminHomeSection>(`/admin/home-sections/${id}/`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteAdminHomeSection: (id: number) => apiClient<void>(`/admin/home-sections/${id}/`, { method: "DELETE" }),
+  toggleAdminHomeSection: (id: number) =>
+    apiClient<AdminHomeSection>(`/admin/home-sections/${id}/toggle/`, { method: "POST" }),
+  duplicateAdminHomeSection: (id: number) =>
+    apiClient<AdminHomeSection>(`/admin/home-sections/${id}/duplicate/`, { method: "POST" }),
+  reorderAdminHomeSections: (ids: number[]) =>
+    apiClient<AdminHomeSection[]>("/admin/home-sections/reorder/", { method: "POST", body: JSON.stringify({ ids }) }),
 
   getAdminMoods: () => apiClient<AdminMood[]>("/admin/moods/"),
   createAdminMood: (payload: { name: string; icon?: string; description?: string }) =>

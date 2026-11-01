@@ -54,7 +54,7 @@ const ENTRY_TYPES: EntryType[] = [
  * per type). Mirrors the query shape Discover already uses for the same
  * newest-first-by-type data.
  */
-const NewEntriesSection = () => {
+const NewEntriesSection = ({ title = "New Entries", icon: Icon = Rss }: { title?: string; icon?: LucideIcon }) => {
   const { data: readData } = useQuery({
     queryKey: ["home-new-entry", "read"],
     queryFn: () => storyApi.getStories(1, [], "recent", "all"),
@@ -96,8 +96,8 @@ const NewEntriesSection = () => {
   return (
     <section>
       <h2 className="mb-5 flex items-center gap-2.5 text-xl font-bold tracking-tight sm:mb-6 sm:text-2xl">
-        <Rss className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />
-        New Entries
+        <Icon className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />
+        {title}
       </h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {entries.map(({ type, story }) => (

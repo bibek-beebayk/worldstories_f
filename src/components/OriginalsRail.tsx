@@ -19,6 +19,11 @@ interface OriginalsRailProps {
    * sits above 6 other sections and shouldn't dominate the page the way it
    * does as the sole featured band on Home/Discover. */
   compact?: boolean;
+  /** Overrides the badge text, blurb and "See all" target — set per section by the homepage manager. */
+  title?: string;
+  description?: string;
+  seeAllHref?: string;
+  seeAllLabel?: string;
 }
 
 /**
@@ -26,7 +31,15 @@ interface OriginalsRailProps {
  * the homepage, library and discover pages. Renders nothing until there is at
  * least one flagged story.
  */
-export function OriginalsRail({ stories, className, compact = false }: OriginalsRailProps) {
+export function OriginalsRail({
+  stories,
+  className,
+  compact = false,
+  title = "WorldStories Originals",
+  description = "Exclusive stories published in-house for the WorldStories community.",
+  seeAllHref = "/originals",
+  seeAllLabel = "See all",
+}: OriginalsRailProps) {
   const query = useOriginals({ enabled: !stories });
   const list = stories ?? query.data?.results ?? [];
 
@@ -44,20 +57,22 @@ export function OriginalsRail({ stories, className, compact = false }: Originals
               compact ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-xs"
             }`}
           >
-            <Sparkles className="h-3.5 w-3.5" /> WorldStories Originals
+            <Sparkles className="h-3.5 w-3.5" /> {title}
           </p>
           {!compact && (
             <p id="originals-rail-heading" className="text-xs text-muted-foreground sm:text-sm">
-              Exclusive stories published in-house for the WorldStories community.
+              {description}
             </p>
           )}
         </div>
+        {seeAllHref && (
         <Link
-          to="/originals"
+          to={seeAllHref}
           className="tinted-chip mb-1 inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 hover:scale-105 hover:!bg-indigo-600 hover:!text-white sm:text-sm"
         >
-          See all <ArrowRight className="h-3 w-3" />
+          {seeAllLabel} <ArrowRight className="h-3 w-3" />
         </Link>
+        )}
       </div>
       <Carousel opts={{ align: "start", loop: list.length > 4 }} className="w-full">
         <CarouselContent className="-ml-3">

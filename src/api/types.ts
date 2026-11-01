@@ -536,6 +536,8 @@ export interface HomeDataResponse {
   /** The hero template showing right now, or null when none applies — the
    *  homepage then falls back to its built-in default. */
   hero?: HeroConfig | null;
+  /** Admin-managed homepage body, already ordered and resolved. */
+  sections?: HomeSectionData[];
 }
 
 export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "christmas" | "none";
@@ -2240,4 +2242,103 @@ export interface AdminPageInput {
   noindex: boolean;
   theme: number | null;
   blocks: PageBlockData[];
+}
+
+
+export type HomeSectionType =
+  | "stories_query"
+  | "stories_manual"
+  | "videos"
+  | "blogs"
+  | "banner"
+  | "ad_slot"
+  | "new_entries"
+  | "continue_shelf"
+  | "reading_journey"
+  | "recommended"
+  | "journeys_banner";
+export type HomeSectionVariant = "standard" | "quick_read" | "originals";
+export type HomeSectionLayout = "grid" | "rail";
+export type HomeSectionCardStyle = "default" | "compact";
+
+/** One resolved section from /home/ (apps/story/home_sections.py). `items` is
+ *  stories, videos or blog cards depending on `section_type`. */
+export interface HomeSectionData {
+  id: number;
+  section_type: HomeSectionType;
+  variant: HomeSectionVariant;
+  title: string;
+  subtitle: string;
+  icon: string;
+  layout: HomeSectionLayout;
+  columns_mobile: number;
+  columns_desktop: number;
+  card_style: HomeSectionCardStyle;
+  item_limit: number;
+  allow_repeats: boolean;
+  see_all_url: string;
+  see_all_label: string;
+  config: Record<string, unknown>;
+  items: unknown[];
+}
+
+export interface HomeSectionConfig {
+  sort?: string;
+  genres?: number[];
+  categories?: number[];
+  tags?: number[];
+  themes?: number[];
+  moods?: string[];
+  story_type?: number | null;
+  language?: string;
+  original_only?: boolean;
+  has_summary?: boolean;
+  has_audio?: boolean;
+  has_video?: boolean;
+  has_read_along?: boolean;
+  story_ids?: number[];
+  video_type?: number | null;
+  standalone_only?: boolean;
+  button_label?: string;
+  button_url?: string;
+  theme?: string;
+  ad_size?: string;
+}
+
+export interface AdminHomeSection {
+  id: number;
+  title: string;
+  subtitle: string;
+  section_type: HomeSectionType;
+  variant: HomeSectionVariant;
+  position: number;
+  is_enabled: boolean;
+  icon: string;
+  layout: HomeSectionLayout;
+  columns_mobile: number;
+  columns_desktop: number;
+  card_style: HomeSectionCardStyle;
+  item_limit: number;
+  allow_repeats: boolean;
+  show_see_all: boolean;
+  see_all_label: string;
+  see_all_url: string;
+  config: HomeSectionConfig;
+  stories_detail: { id: number; title: string }[];
+  updated_at: string;
+}
+
+export type AdminHomeSectionInput = Omit<AdminHomeSection, "id" | "position" | "stories_detail" | "updated_at"> & {
+  position?: number;
+};
+
+export interface HomeSectionTypesMeta {
+  types: { value: HomeSectionType; label: string; content: boolean; fields: string[] }[];
+  variants: { value: HomeSectionVariant; label: string }[];
+  layouts: { value: HomeSectionLayout; label: string }[];
+  card_styles: { value: HomeSectionCardStyle; label: string }[];
+  sorts: string[];
+  banner_themes: string[];
+  ad_sizes: string[];
+  icons: string[];
 }

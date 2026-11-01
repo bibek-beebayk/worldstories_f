@@ -1,24 +1,37 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Story } from "@/api/types";
-import { ArrowRight, Clock3, Headphones, Zap } from "lucide-react";
+import { ArrowRight, Clock3, Headphones, Zap, type LucideIcon } from "lucide-react";
 import CoverImage from "@/components/CoverImage";
 import AuthGatedLink from "@/components/AuthGatedLink";
 import { availableTimeBuckets, filterByTimeBucket } from "@/lib/quickReadTime";
 
 interface QuickReadSectionProps {
   stories: Story[];
+  title?: string;
+  /** Where "See all" leads; the section manager's value, or the quick-reads page. */
+  seeAllHref?: string;
+  seeAllLabel?: string;
+  icon?: LucideIcon;
+  limit?: number;
 }
 
 // Homepage entry point into Quick Read — not personalized: any published
 // story with a summary is eligible, so (unlike Continue Reading) this
 // renders nothing at all rather than an empty-state message when there's
 // nothing to show yet.
-const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
+const QuickReadSection = ({
+  stories,
+  title = "Quick Reads",
+  seeAllHref = "/quick-reads",
+  seeAllLabel = "See all",
+  icon: Icon = Zap,
+  limit = 6,
+}: QuickReadSectionProps) => {
   const [timeBucket, setTimeBucket] = useState<string | null>(null);
   const buckets = useMemo(() => availableTimeBuckets(stories), [stories]);
   const visibleStories = useMemo(
-    () => filterByTimeBucket(stories, timeBucket).slice(0, 6),
+    () => filterByTimeBucket(stories, timeBucket).slice(0, limit),
     [stories, timeBucket]
   );
 
@@ -28,16 +41,18 @@ const QuickReadSection = ({ stories }: QuickReadSectionProps) => {
     <section>
       <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
         <h2 className="flex items-center gap-2.5 text-xl font-bold tracking-tight sm:text-2xl">
-          <Zap className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />
-          Quick Reads
+          <Icon className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />
+          {title}
         </h2>
+        {seeAllHref && (
         <Link
-          to="/quick-reads"
+          to={seeAllHref}
           className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:text-sm"
         >
-          See all
+          {seeAllLabel}
           <ArrowRight className="h-3 w-3" />
         </Link>
+        )}
       </div>
 
       {/* Time-intent navigation (§3.4), filtering the rail already on the page

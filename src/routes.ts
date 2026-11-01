@@ -73,6 +73,7 @@ export default [
         route("content", "pages/AdminContent.tsx"),
         route("featured", "pages/AdminFeatured.tsx"),
         route("hero", "pages/AdminHero.tsx"),
+        route("home-sections", "pages/AdminHomeSections.tsx"),
         route("pages", "pages/AdminPages.tsx"),
         route("site-themes", "pages/AdminSiteThemes.tsx"),
         route("site-settings", "pages/AdminSiteSettings.tsx"),
