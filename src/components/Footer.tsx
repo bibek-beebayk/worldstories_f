@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { useSiteIdentity } from "@/lib/siteIdentity";
+import { useFeedback } from "@/context/FeedbackContext";
 
 const footerLinks = [
   { to: "/originals", label: "WorldStories Originals" },
@@ -12,6 +13,7 @@ const footerLinks = [
 
 const Footer = () => {
     const identity = useSiteIdentity();
+    const { openFeedback } = useFeedback();
     return (
         <footer className="border-t border-border bg-muted/50 mt-8">
         <div className="container px-4 py-8">
@@ -28,6 +30,9 @@ const Footer = () => {
                   {link.label}
                 </Link>
               ))}
+              <button type="button" onClick={openFeedback} className="hover:text-foreground hover:underline">
+                Send Feedback
+              </button>
             </nav>
 
             <div className="text-sm text-muted-foreground">

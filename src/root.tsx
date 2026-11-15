@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { AuthModalProvider } from "@/context/AuthModalContext";
 import { ImmersiveReaderProvider } from "@/context/ImmersiveReaderContext";
+import { FeedbackProvider } from "@/context/FeedbackContext";
 import { getQueryClient } from "@/lib/queryClient";
 import PwaUpdatePrompt from "@/components/PwaUpdatePrompt";
 import NavigationProgress from "@/components/NavigationProgress";
@@ -180,12 +181,14 @@ export default function Root() {
       <TooltipProvider>
         <AuthModalProvider>
           <ImmersiveReaderProvider>
-            <AnalyticsRouteGate />
-            <NavigationProgress />
-            <Toaster />
-            <Sonner />
-            <PwaUpdatePrompt />
-            <Outlet />
+            <FeedbackProvider>
+              <AnalyticsRouteGate />
+              <NavigationProgress />
+              <Toaster />
+              <Sonner />
+              <PwaUpdatePrompt />
+              <Outlet />
+            </FeedbackProvider>
           </ImmersiveReaderProvider>
         </AuthModalProvider>
       </TooltipProvider>

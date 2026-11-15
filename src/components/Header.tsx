@@ -9,6 +9,7 @@ import { useSearchStories } from "@/hooks/useSearchStories";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useFeedback } from "@/context/FeedbackContext";
 import {
   Sheet,
   SheetClose,
@@ -35,6 +36,7 @@ const Header = () => {
   const navigate = useNavigate();
   const isLoggedIn = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
+  const { openFeedback } = useFeedback();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -193,6 +195,9 @@ const Header = () => {
                     Install app
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem className="cursor-pointer" onSelect={openFeedback}>
+                  Send feedback
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Link to="/contest" className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 hover:bg-amber-500 transition-colors">

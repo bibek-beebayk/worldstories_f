@@ -2355,3 +2355,36 @@ export interface HomeSectionTypesMeta {
   ad_sizes: string[];
   icons: string[];
 }
+
+export type FeedbackCategory = "bug" | "idea" | "content" | "praise" | "other";
+export type FeedbackStatus = "new" | "reviewed" | "resolved";
+
+export interface FeedbackInput {
+  category: FeedbackCategory;
+  message: string;
+  rating?: number | null;
+  email?: string;
+  page_url?: string;
+  images?: File[];
+}
+
+export interface AdminFeedback {
+  id: number;
+  user_email: string | null;
+  user_name: string | null;
+  email: string;
+  category: FeedbackCategory;
+  rating: number | null;
+  message: string;
+  page_url: string;
+  user_agent: string;
+  images: { id: number; url: string }[];
+  status: FeedbackStatus;
+  admin_notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminFeedbackListResponse extends PaginatedResponse<AdminFeedback> {
+  status_counts: Record<FeedbackStatus, number>;
+}

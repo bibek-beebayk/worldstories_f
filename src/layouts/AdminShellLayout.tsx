@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { useEffect, useState, type ComponentType } from "react";
-import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Route, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star, PanelTop, LayoutList, FileText, Paintbrush, ChevronDown, FolderOpen, SwatchBook, Settings2, Clapperboard } from "lucide-react";
+import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Route, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star, PanelTop, LayoutList, FileText, Paintbrush, ChevronDown, FolderOpen, SwatchBook, Settings2, Clapperboard, MessageSquare } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
@@ -8,6 +8,8 @@ import { authApi } from "@/api/auth";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useQuery } from "@tanstack/react-query";
+import { feedbackApi } from "@/api/feedback";
 
 type MenuIcon = ComponentType<{ className?: string }>;
 type MenuLink = { to: string; label: string; icon: MenuIcon; exact: boolean };
@@ -54,6 +56,7 @@ const menuItems: MenuEntry[] = [
   { to: "/admin/users", label: "Users", icon: UserCog, exact: false },
   { to: "/admin/ai-settings", label: "AI Settings", icon: Sparkles, exact: false },
   { to: "/admin/submissions", label: "Submissions", icon: Inbox, exact: false },
+  { to: "/admin/feedback", label: "Feedback", icon: MessageSquare, exact: false },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3, exact: false },
 ];
 
@@ -83,6 +86,17 @@ export default function AdminShellLayout() {
     if (active.length) setOpenGroups((current) => [...new Set([...current, ...active])]);
   }, [location.pathname]);
 
+  // Unread feedback count for the sidebar badge. Shares the inbox's query key
+  // prefix, so triaging there refreshes the badge too.
+  const { data: feedbackSummary } = useQuery({
+    queryKey: ["admin-feedback", "summary"],
+    queryFn: () => feedbackApi.getAdminFeedback(1),
+    refetchInterval: 5 * 60_000,
+  });
+  const badges: Record<string, number | undefined> = {
+    "/admin/feedback": feedbackSummary?.status_counts.new,
+  };
+
   const toggleGroup = (label: string) =>
     setOpenGroups((current) => (current.includes(label) ? current.filter((l) => l !== label) : [...current, label]));
 
@@ -101,18 +115,25 @@ export default function AdminShellLayout() {
     const renderLink = (item: MenuLink, nested = false) => {
       const active = isActive(location.pathname, item.to, item.exact);
       const Icon = item.icon;
+      const badge = badges[item.to];
       return (
         <Link
           key={item.to}
           to={item.to}
           onClick={onNavigate}
-          className={`flex items-center rounded-md px-3 py-2 text-sm transition-colors ${
+          className={`relative flex items-center rounded-md px-3 py-2 text-sm transition-colors ${
             active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
           } ${iconsOnly ? "justify-center" : "gap-2"} ${nested && !iconsOnly ? "pl-8" : ""}`}
-          title={item.label}
+          title={badge ? `${item.label} (${badge} new)` : item.label}
         >
           <Icon className="h-4 w-4" />
-          {!iconsOnly && <span>{item.label}</span>}
+          {!iconsOnly && <span className="flex-1">{item.label}</span>}
+          {Boolean(badge) &&
+            (iconsOnly ? (
+              <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-red-500" aria-label={`${badge} new`} />
+            ) : (
+              <span className="rounded-full bg-red-500 px-1.5 text-[10px] font-semibold leading-4 text-white">{badge}</span>
+            ))}
         </Link>
       );
     };
