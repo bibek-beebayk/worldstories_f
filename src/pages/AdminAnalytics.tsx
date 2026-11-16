@@ -22,6 +22,7 @@ import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog";
 import { RANGE_OPTIONS, parseRangeDays } from "@/components/admin/analyticsRange";
 import { ContentTab, ContentTabSkeleton } from "@/components/admin/ContentTab";
+import { EngagementTab, EngagementTabSkeleton } from "@/components/admin/EngagementTab";
 import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
 import { BookOpen, Eye, Heart, Star } from "lucide-react";
@@ -41,7 +42,6 @@ const formatAnalyticsPeriod = (interval: AdminAnalyticsTimeInterval) => (value: 
 const TAB_OPTIONS: Array<{ value: TabKey; label: string }> = [
   { value: "content", label: "Content" },
   { value: "engagement", label: "Engagement" },
-  { value: "metrics", label: "Metrics" },
   { value: "audience", label: "Audience" },
   { value: "users", label: "Users" },
   { value: "geography", label: "Geography" },
@@ -52,7 +52,6 @@ const TAB_OPTIONS: Array<{ value: TabKey; label: string }> = [
 type TabKey =
   | "content"
   | "engagement"
-  | "metrics"
   | "audience"
   | "users"
   | "geography"
@@ -65,7 +64,8 @@ const AdminAnalytics = () => {
   // on the matching tab and range.
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
-    const requested = searchParams.get("tab");
+    // The Metrics tab was merged into Engagement; keep old links working.
+    const requested = searchParams.get("tab") === "metrics" ? "engagement" : searchParams.get("tab");
     return TAB_OPTIONS.find((option) => option.value === requested)?.value ?? "content";
   });
   const [days, setDays] = useState<AdminAnalyticsRangeDays>(() => parseRangeDays(searchParams.get("days")) ?? 30);
@@ -90,6 +90,7 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "engagement", days],
     queryFn: () => storyApi.getAdminAnalyticsEngagement(days),
     enabled: canFetch && activeTab === "engagement",
+    placeholderData: keepPreviousData,
   });
   const usersQuery = useQuery({
     queryKey: ["admin-analytics", "users", days],
@@ -110,12 +111,6 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "geography", days],
     queryFn: () => storyApi.getAdminAnalyticsGeography(days),
     enabled: canFetch && activeTab === "geography",
-  });
-
-  const metricsQuery = useQuery({
-    queryKey: ["admin-analytics-engagement-metrics", days],
-    queryFn: () => storyApi.getAdminAnalyticsEngagementMetrics(days),
-    enabled: canFetch && activeTab === "metrics",
   });
 
   const cumulativeSignups = useMemo(() => {
@@ -198,7 +193,6 @@ const AdminAnalytics = () => {
           <TabsList className="w-max">
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="engagement">Engagement</TabsTrigger>
-            <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="audience">Audience</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="geography">Geography</TabsTrigger>
@@ -228,95 +222,20 @@ const AdminAnalytics = () => {
         </TabsContent>
 
         <TabsContent value="engagement" className="space-y-4">
-          {engagementQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-          {engagementQuery.isError && (
+          {engagementQuery.isLoading && <EngagementTabSkeleton />}
+          {engagementQuery.isError && !engagementQuery.data && (
             <p className="text-sm text-red-600">Failed to load engagement analytics.</p>
           )}
-          {engagementQuery.data && (
-            <>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
-                <StatTile
-                  label="View → read conversion"
-                  value={formatPercent(engagementQuery.data.view_to_read_conversion.conversion_rate)}
-                />
-                <StatTile
-                  label="Story views"
-                  value={formatNumber(engagementQuery.data.view_to_read_conversion.views)}
-                  current={engagementQuery.data.view_to_read_conversion.views}
-                  previous={engagementQuery.data.comparison?.view_to_read_conversion.views}
-                  average={averagePerDay(engagementQuery.data.view_to_read_conversion.views)}
-                />
-                <StatTile
-                  label="Readers who started"
-                  value={formatNumber(engagementQuery.data.view_to_read_conversion.readers)}
-                  current={engagementQuery.data.view_to_read_conversion.readers}
-                  previous={engagementQuery.data.comparison?.view_to_read_conversion.readers}
-                  average={averagePerDay(engagementQuery.data.view_to_read_conversion.readers)}
-                />
-                <StatTile
-                  label="Audio listen-through"
-                  value={formatPercent(engagementQuery.data.audio_listen_through.avg_progress)}
-                />
-                <StatTile
-                  label="Video watch-through"
-                  value={formatPercent(engagementQuery.data.video_watch_through.avg_progress)}
-                />
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="Reading progress distribution" subtitle="How far readers get into a story">
-                  <BreakdownBarChart
-                    data={engagementQuery.data.reading_progress_buckets}
-                    xKey="bucket"
-                    series={[{ key: "count", label: "Readers" }]}
-                  />
-                </ChartCard>
-                <ChartCard title="Chapter drop-off" subtitle="Avg. progress by chapter position, across all stories">
-                  <TrendLineChart
-                    data={engagementQuery.data.chapter_dropoff}
-                    xKey="position_bucket"
-                    series={[{ key: "avg_progress", label: "Avg progress" }]}
-                    formatX={(v) => v}
-                    formatY={(v) => `${Math.round(v * 100)}%`}
-                    yDomain={[0, 1]}
-                    yAxisWidth={44}
-                    previousData={engagementQuery.data.comparison?.chapter_dropoff}
-                  />
-                </ChartCard>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="Favorites over time">
-                  <TrendLineChart
-                    data={engagementQuery.data.favorites_over_time}
-                    xKey="day"
-                    series={[{ key: "count", label: "Favorites" }]}
-                    formatX={formatAnalyticsPeriod(engagementQuery.data.time_interval)}
-                    previousData={engagementQuery.data.comparison?.favorites_over_time}
-                  />
-                </ChartCard>
-                <ChartCard title="Rating trend" subtitle={`Average rating of reviews submitted per ${engagementQuery.data.time_interval}`}>
-                  <TrendLineChart
-                    data={engagementQuery.data.rating_trend}
-                    xKey="day"
-                    series={[{ key: "avg_rating", label: "Avg rating" }]}
-                    formatX={formatAnalyticsPeriod(engagementQuery.data.time_interval)}
-                    previousData={engagementQuery.data.comparison?.rating_trend}
-                  />
-                </ChartCard>
-              </div>
-
-              <ChartCard title="Rating distribution">
-                <BreakdownBarChart
-                  data={engagementQuery.data.rating_distribution.map((row) => ({
-                    ...row,
-                    rating: `${row.rating}★`,
-                  }))}
-                  xKey="rating"
-                  series={[{ key: "count", label: "Reviews" }]}
-                />
-              </ChartCard>
-            </>
+          {/* An API that predates the rewritten Engagement tab answers with the old
+              shape (no kpis); say so rather than crash the page. */}
+          {engagementQuery.data && !engagementQuery.data.kpis && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              The API returned an older Engagement analytics format. Deploy or restart the backend so it matches this
+              version of the admin panel.
+            </p>
+          )}
+          {engagementQuery.data?.kpis && (
+            <EngagementTab data={engagementQuery.data} days={days} isRefreshing={engagementQuery.isPlaceholderData} />
           )}
         </TabsContent>
 
@@ -672,91 +591,6 @@ const AdminAnalytics = () => {
                       )}
                     </tbody>
                   </table>
-                </div>
-              </ChartCard>
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="metrics" className="space-y-4">
-          {metricsQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-          {metricsQuery.isError && (
-            <p className="text-sm text-muted-foreground">Could not load these metrics.</p>
-          )}
-          {metricsQuery.data && (
-            <>
-              <ChartCard
-                title="Engagement funnel"
-                subtitle="Rates over the events the reading lifecycle emits."
-              >
-                <div className="space-y-3">
-                  {metricsQuery.data.funnel.map((row) => (
-                    <div key={row.key} className="rounded-lg border p-3">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <p className="text-sm font-medium">{row.label}</p>
-                        {/* A dash, not 0% — an empty denominator means "no data
-                            yet", which is not the same as a bad rate. */}
-                        <p className="text-lg font-semibold">
-                          {row.rate === null ? "—" : `${Math.round(row.rate * 100)}%`}
-                        </p>
-                      </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{row.help}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {row.numerator} of {row.denominator}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </ChartCard>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <ChartCard title="Per reader" subtitle="Averages across the selected range.">
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    {[
-                      ["Stories / session", metricsQuery.data.averages.stories_per_session],
-                      ["Avg session (min)", metricsQuery.data.averages.average_session_minutes],
-                      ["Countries / reader", metricsQuery.data.averages.countries_per_reader],
-                    ].map(([label, value]) => (
-                      <div key={String(label)} className="rounded-lg border bg-muted/30 p-3">
-                        <p className="text-lg font-semibold">{value ?? "—"}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </ChartCard>
-
-                <ChartCard
-                  title="Retention"
-                  subtitle="Readers who came back, of those old enough to have had the chance."
-                >
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    {(["d1", "d7", "d30"] as const).map((key) => {
-                      const bucket = metricsQuery.data!.retention[key];
-                      return (
-                        <div key={key} className="rounded-lg border bg-muted/30 p-3">
-                          <p className="text-lg font-semibold">
-                            {bucket.rate === null ? "—" : `${Math.round(bucket.rate * 100)}%`}
-                          </p>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {key.toUpperCase()} · {bucket.returned}/{bucket.eligible}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ChartCard>
-              </div>
-
-              <ChartCard title="Discovery and progression" subtitle="Raw counts in this range.">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                  {Object.entries(metricsQuery.data.discovery).map(([key, value]) => (
-                    <div key={key} className="rounded-lg border bg-muted/30 p-3 text-center">
-                      <p className="text-lg font-semibold">{value}</p>
-                      <p className="mt-1 text-[11px] leading-tight text-muted-foreground">
-                        {key.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                  ))}
                 </div>
               </ChartCard>
             </>

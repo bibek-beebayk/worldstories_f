@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkedTrendChart } from "./charts/MarkedTrendChart";
+import { ChangeChip, formatCountChange, type GoodDirection } from "./charts/changeFormat";
 import type {
   AdminAnalyticsRangeDays,
   AdminAnalyticsTimeInterval,
@@ -90,7 +91,7 @@ export const NeedsAttention = ({ items }: { items: AdminOverviewAttentionItem[] 
   );
 };
 
-const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
+export const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
   if (data.length < 2) return <div className="h-9" />;
   const points = data.map((value, index) => ({ index, value }));
   return (
@@ -116,11 +117,30 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
 export const ChangeBadge = ({
   kpi,
   days,
+  goodDirection = "up",
 }: {
-  kpi: Pick<AdminOverviewKpi, "change_pct" | "previous_value">;
+  kpi: Pick<AdminOverviewKpi, "change_pct" | "previous_value"> & { value?: number };
   days: AdminAnalyticsRangeDays;
+  goodDirection?: GoodDirection;
 }) => {
-  if (kpi.change_pct === null) {
+  // The current value lets small previous counts show an absolute change; a
+  // caller that doesn't have it falls back to the server's percentage.
+  const display =
+    kpi.value !== undefined
+      ? formatCountChange(kpi.value, kpi.previous_value, { goodDirection })
+      : kpi.change_pct === null
+        ? null
+        : {
+            arrow: (kpi.change_pct > 0 ? "▲" : kpi.change_pct < 0 ? "▼" : "•") as "▲" | "▼" | "•",
+            text: `${Math.abs(kpi.change_pct).toFixed(1)}%`,
+            tone: (kpi.change_pct === 0 || goodDirection === "neutral"
+              ? "neutral"
+              : (kpi.change_pct > 0) === (goodDirection === "up")
+                ? "good"
+                : "bad") as "good" | "bad" | "neutral",
+            title: `${formatNumber(kpi.previous_value ?? 0)} in the ${rangeLabel(days)}`,
+          };
+  if (!display) {
     return (
       <span
         className="text-xs text-muted-foreground"
@@ -130,14 +150,7 @@ export const ChangeBadge = ({
       </span>
     );
   }
-  const up = kpi.change_pct > 0;
-  const down = kpi.change_pct < 0;
-  const tone = up ? "text-emerald-600" : down ? "text-rose-600" : "text-muted-foreground";
-  return (
-    <span className={`text-xs font-semibold ${tone}`} title={`${formatNumber(kpi.previous_value ?? 0)} in the ${rangeLabel(days)}`}>
-      {up ? "▲" : down ? "▼" : "•"} {Math.abs(kpi.change_pct).toFixed(1)}%
-    </span>
-  );
+  return <ChangeChip display={{ ...display, title: `${display.title} (${rangeLabel(days)})` }} />;
 };
 
 export const KpiTile = ({

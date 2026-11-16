@@ -176,7 +176,7 @@ const AdminHome = () => {
           <Section
             title="Reader funnel"
             subtitle="Each step's rate is its share of the step above."
-            analyticsTab="metrics"
+            analyticsTab="engagement"
             days={days}
             accent="border-t-sky-500"
           >

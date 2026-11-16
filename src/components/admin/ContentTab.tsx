@@ -71,7 +71,7 @@ const KpiCard = ({
   label: string;
   hint: string;
   value: string;
-  kpi: { change_pct: number | null; previous_value: number | null };
+  kpi: { value: number; change_pct: number | null; previous_value: number | null };
   days: AdminAnalyticsRangeDays;
 }) => (
   <div className="min-w-0 rounded-xl border bg-card px-3 py-3 shadow-sm" title={hint}>
@@ -299,7 +299,10 @@ export function ContentTab({
         <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-2xl font-bold leading-none">{formatNumber(chart.total)}</span>
           <span className="text-xs text-muted-foreground">views this period</span>
-          <ChangeBadge kpi={{ change_pct: chart.change_pct, previous_value: chart.previous_total }} days={days} />
+          <ChangeBadge
+            kpi={{ value: chart.total, change_pct: chart.change_pct, previous_value: chart.previous_total }}
+            days={days}
+          />
           {days !== "all" && chart.previous_total !== null && (
             <span className="text-xs text-muted-foreground">
               vs {formatNumber(chart.previous_total)} in the {rangeLabel(days)}

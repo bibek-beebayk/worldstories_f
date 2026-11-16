@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChangeChip, formatCountChange, type GoodDirection } from "./changeFormat";
 
 // Shared by AdminAnalytics.tsx's site-wide dashboard and the per-title
 // (story/blog) analytics dialogs — pulled out here rather than kept as
@@ -11,34 +12,25 @@ export const StatTile = ({
   current,
   previous,
   average,
+  goodDirection = "up",
 }: {
   label: string;
   value: string;
   current?: number;
   previous?: number | null;
   average?: string;
+  /** Which direction of change is good for this metric (colours the badge). */
+  goodDirection?: GoodDirection;
 }) => {
-  const change = current !== undefined && previous != null && previous !== 0
-    ? ((current - previous) / Math.abs(previous)) * 100
-    : null;
-  const isNew = current !== undefined && current > 0 && previous === 0;
+  const change = current !== undefined ? formatCountChange(current, previous, { goodDirection }) : null;
   return (
   <div className="group relative min-w-0 overflow-hidden rounded-xl border border-primary/10 bg-gradient-to-br from-primary/[0.07] via-card to-card px-2.5 py-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md sm:px-3 sm:py-3">
     <span className="absolute inset-y-0 left-0 w-0.5 bg-primary/70" aria-hidden="true" />
     <p className="line-clamp-2 text-[10px] uppercase leading-tight tracking-wide text-muted-foreground sm:text-[11px]">{label}</p>
     <p className="mt-1.5 truncate text-base font-bold leading-none tracking-tight sm:text-lg">{value}</p>
-    {(change !== null || isNew || average) && (
+    {(change || average) && (
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
-        {change !== null && (
-          <span className={`rounded-full px-1.5 py-0.5 font-semibold ${change >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"}`}>
-            {change >= 0 ? "↑" : "↓"} {Math.abs(change).toFixed(1)}%
-          </span>
-        )}
-        {isNew && (
-          <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-600">
-            New vs previous
-          </span>
-        )}
+        {change && <ChangeChip display={change} />}
         {average && <span className="text-muted-foreground">Avg {average}</span>}
       </div>
     )}

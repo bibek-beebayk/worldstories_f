@@ -1299,42 +1299,111 @@ export interface AdminAnalyticsContentResponse {
   };
 }
 
-export interface AdminAnalyticsProgressBucket {
-  bucket: string;
-  count: number;
+export type AdminEngagementKpiKey =
+  | "start_rate"
+  | "completion_rate"
+  | "minutes_per_reader"
+  | "returning_rate"
+  | "audio_listen_through"
+  | "video_watch_through";
+
+export interface AdminEngagementKpi {
+  /** null when fewer than `min_sample` people stand behind it. */
+  value: number | null;
+  previous_value: number | null;
+  /** How many people (or pairs) the value is a rate over. */
+  sample_size: number;
+  previous_sample_size: number | null;
+  sample_label: string;
+  min_sample: number;
 }
 
-export interface AdminAnalyticsChapterDropoff {
-  position_bucket: string;
-  avg_progress: number;
-  readers: number;
+export interface AdminEngagementFunnelStep {
+  key: string;
+  label: string;
+  count: number;
+  /** "signed_in" steps (completion, video progress) can only be seen for signed-in people. */
+  population: "everyone" | "signed_in";
+  /** Share of the previous step, within the same population; null for the first step. */
+  rate: number | null;
+  base: number | null;
+  partial: boolean;
+  previous_count: number | null;
+  previous_rate: number | null;
 }
 
-export interface AdminAnalyticsRatingCount {
-  rating: number;
-  count: number;
+export type AdminEngagementFormat = "read" | "listen" | "watch";
+export type AdminEngagementLength = "short" | "medium" | "long";
+
+export interface AdminEngagementDepthPoint {
+  pct: number;
+  /** Share of starters at this depth, 0-1; null when there are none. */
+  rate: number | null;
+  reached: number;
+  of: number;
+  population: "everyone" | "signed_in";
+  previous_rate: number | null;
 }
 
-export interface AdminAnalyticsRatingTrendPoint {
-  day: string;
-  // null for a bucket with no reviews — an average has no zero, so the chart
-  // draws a break there rather than a dip to the axis.
-  avg_rating: number | null;
-  count: number;
+export interface AdminEngagementDropOffStory {
+  id: number;
+  title: string;
+  slug: string;
+  starters: number;
+  /** Reached the last quarter or finished — observable for anonymous readers too. */
+  finish_rate: number | null;
+  /** Actually completed — signed-in readers only. */
+  completion_rate: number | null;
+  signed_in_starters: number;
+  stop_at: string | null;
+  stop_share: number | null;
+  stop_chapter: { order: number; title: string } | null;
+}
+
+export interface AdminEngagementRetentionBucket {
+  eligible: number;
+  returned: number;
+  rate: number | null;
+  previous_rate: number | null;
+}
+
+export interface AdminEngagementFeedbackBlock {
+  total: number;
+  previous_total: number | null;
+  sparkline: number[];
+}
+
+export interface AdminEngagementOtherRate {
+  key: string;
+  label: string;
+  help: string;
+  numerator: number;
+  denominator: number;
+  rate: number | null;
 }
 
 export interface AdminAnalyticsEngagementResponse {
-  comparison?: Omit<AdminAnalyticsEngagementResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
-  reading_progress_buckets: AdminAnalyticsProgressBucket[];
-  chapter_dropoff: AdminAnalyticsChapterDropoff[];
-  audio_listen_through: { avg_progress: number; listeners: number };
-  video_watch_through: { avg_progress: number; watchers: number };
-  favorites_over_time: AdminAnalyticsDayCount[];
-  rating_distribution: AdminAnalyticsRatingCount[];
-  rating_trend: AdminAnalyticsRatingTrendPoint[];
-  view_to_read_conversion: { views: number; readers: number; conversion_rate: number };
+  min_sample: number;
+  kpis: Record<AdminEngagementKpiKey, AdminEngagementKpi>;
+  funnels: Record<AdminEngagementFormat, AdminEngagementFunnelStep[]>;
+  depth_curve: Record<AdminEngagementLength, { starters: number; points: AdminEngagementDepthPoint[] }>;
+  drop_off_stories: AdminEngagementDropOffStory[];
+  retention: Record<"d1" | "d7" | "d30", AdminEngagementRetentionBucket>;
+  feedback: {
+    favorites: AdminEngagementFeedbackBlock;
+    reviews: AdminEngagementFeedbackBlock & {
+      avg_rating: number | null;
+      previous_avg_rating: number | null;
+      distribution: { rating: number; count: number }[];
+    };
+    reactions: AdminEngagementFeedbackBlock;
+  };
+  other_signals: {
+    rates: AdminEngagementOtherRate[];
+    discovery: Record<string, number>;
+  };
 }
 
 export interface AdminAnalyticsLoginBucket {
@@ -2093,36 +2162,6 @@ export interface WeeklyRecapResponse {
   has_activity: boolean;
 }
 
-
-export interface EngagementFunnelRow {
-  key: string;
-  label: string;
-  help: string;
-  numerator: number;
-  denominator: number;
-  /** Null when the denominator is empty — "no data yet" and "0%" mean
-   *  opposite things and must not look identical. */
-  rate: number | null;
-}
-
-export interface RetentionBucket {
-  eligible: number;
-  returned: number;
-  rate: number | null;
-}
-
-export interface EngagementMetricsResponse {
-  comparison?: Omit<EngagementMetricsResponse, "comparison"> | null;
-  range_days: number;
-  funnel: EngagementFunnelRow[];
-  averages: {
-    stories_per_session: number | null;
-    average_session_minutes: number | null;
-    countries_per_reader: number | null;
-  };
-  retention: { d1: RetentionBucket; d7: RetentionBucket; d30: RetentionBucket };
-  discovery: Record<string, number>;
-}
 
 export interface NepalikathaAnalytics {
   range_days: AdminAnalyticsRangeDays;
