@@ -1055,77 +1055,88 @@ export interface AdminSubmission {
   updated_at: string;
 }
 
-export interface AdminOverviewSummary {
-  stories: number;
-  chapters: number;
-  audios: number;
-  videos: number;
-  users: number;
-  submissions_pending: number;
-  submissions_approved: number;
-  submissions_rejected: number;
-  reviews: number;
-  favorites: number;
-  total_story_views: number;
-  active_readers: number;
-  active_listeners: number;
-  active_watchers: number;
+export type AdminOverviewKpiKey =
+  | "unique_visitors"
+  | "stories_started"
+  | "stories_completed"
+  | "engagement_minutes"
+  | "new_signups"
+  | "ad_impressions";
+
+export interface AdminOverviewKpi {
+  value: number;
+  /** null when there is no previous period to compare with (all-time). */
+  previous_value: number | null;
+  /** null when the previous value was 0 (nothing to compare against). */
+  change_pct: number | null;
+  sparkline: number[];
 }
 
-export interface AdminMostReadStory {
+export interface AdminOverviewPublishMarker {
+  date: string;
+  /** The traffic-series `day` this marker sits on; null when the series can't place it. */
+  bucket: string | null;
+  title: string;
+  slug: string;
+}
+
+export interface AdminOverviewFunnelStep {
+  key: "visits" | "story_opened" | "started" | "completed";
+  label: string;
+  count: number;
+  /** Share of the previous step (0-1); null for the first step or an empty denominator. */
+  rate: number | null;
+  rate_label: string | null;
+}
+
+export interface AdminOverviewFormat {
+  minutes: number;
+  unique_users: number;
+  /** 0-1; null when nobody made progress in the range. */
+  avg_completion: number | null;
+}
+
+export interface AdminOverviewMover {
   id: number;
   title: string;
   slug: string;
-  cover_image: string | null;
-  readers_count: number;
+  performance_score: number;
   views: number;
-  rating: number;
+  starts: number;
+  completions: number;
+  completion_rate: number | null;
+  /** Trending only. Places moved up (+) or down (-); null if not ranked last period. */
+  rank_change?: number | null;
 }
 
-export interface AdminMostListenedAudio {
-  id: number;
-  title: string;
-  slug: string;
-  story_id: number;
-  story_title: string;
-  story_slug: string;
-  listeners_count: number;
-  avg_progress: number;
-}
-
-export interface AdminMostWatchedVideo {
-  id: number;
-  title: string;
-  slug: string;
-  story_id: number;
-  story_title: string;
-  story_slug: string;
-  watchers_count: number;
-  avg_progress: number;
-}
-
-export interface AdminTopFavoritedStory {
-  id: number;
-  title: string;
-  slug: string;
-  favorites_count: number;
-}
-
-export interface AdminTopRatedStory {
-  id: number;
-  title: string;
-  slug: string;
-  rating: number;
-  views: number;
+export interface AdminOverviewAttentionItem {
+  key: string;
+  label: string;
+  count: number;
+  link: string;
 }
 
 export interface AdminOverviewResponse {
-  summary: AdminOverviewSummary;
-  most_read_stories: AdminMostReadStory[];
-  most_listened_audios: AdminMostListenedAudio[];
-  most_watched_videos: AdminMostWatchedVideo[];
-  top_favorited_stories: AdminTopFavoritedStory[];
-  top_rated_stories: AdminTopRatedStory[];
+  range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
+  kpis: Record<AdminOverviewKpiKey, AdminOverviewKpi>;
+  traffic: {
+    series: { day: string; visitors: number }[];
+    publish_markers: AdminOverviewPublishMarker[];
+  };
+  funnel: AdminOverviewFunnelStep[];
+  formats: Record<"read" | "listen" | "watch", AdminOverviewFormat>;
+  movers: {
+    trending: AdminOverviewMover[];
+    hidden_gems: AdminOverviewMover[];
+    leaky: AdminOverviewMover[];
+  };
+  needs_attention: AdminOverviewAttentionItem[];
+  sources: {
+    referrers: { referral_source: string; count: number }[];
+    countries: { country_code: string; visitors: number }[];
+  };
+  catalog: { stories: number; chapters: number; audios: number; videos: number; users: number };
 }
 
 export type AdminAnalyticsRangeDays = 1 | 7 | 30 | 90 | 365 | "all";

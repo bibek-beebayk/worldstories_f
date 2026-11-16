@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { ChevronDown, Download, Search } from "lucide-react";
 import StoryQueueManager from "@/components/admin/StoryQueueManager";
 import { TitleAnalyticsDialog } from "@/components/admin/TitleAnalyticsDialog";
@@ -41,8 +41,10 @@ const AdminStoryReport = () => {
 
   const [activeTab, setActiveTab] = useState<TabKey>("report");
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  // The Overview links here with ?search=<title> to land on a single story.
+  const [searchParams] = useSearchParams();
+  const [searchInput, setSearchInput] = useState(() => searchParams.get("search") ?? "");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [publicationFilter, setPublicationFilter] = useState<TriStateFilter>("all");
   const [completionFilter, setCompletionFilter] = useState<TriStateFilter>("all");
   const [originalFilter, setOriginalFilter] = useState<TriStateFilter>("all");

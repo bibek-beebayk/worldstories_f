@@ -1,5 +1,6 @@
 import NepalikathaAnalytics from "@/components/admin/NepalikathaAnalytics";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { getAccessToken } from "@/api/client";
@@ -19,6 +20,7 @@ import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
 import { CountryHeatmapMap } from "@/components/admin/charts/CountryHeatmapMap";
 import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog";
+import { RANGE_OPTIONS, parseRangeDays } from "@/components/admin/analyticsRange";
 import { ContentPerformanceTable } from "@/components/admin/ContentPerformanceTable";
 import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
@@ -35,15 +37,6 @@ const formatAnalyticsPeriod = (interval: AdminAnalyticsTimeInterval) => (value: 
   const label = date.toLocaleDateString([], { month: "short", day: "numeric" });
   return interval === "week" ? `Week of ${label}` : label;
 };
-
-const RANGE_OPTIONS: { value: AdminAnalyticsRangeDays; label: string }[] = [
-  { value: 1, label: "Last 24 hours" },
-  { value: 7, label: "Last 7 days" },
-  { value: 30, label: "Last 30 days" },
-  { value: 90, label: "Last 90 days" },
-  { value: 365, label: "Last year" },
-  { value: "all", label: "All time" },
-];
 
 const TAB_OPTIONS: Array<{ value: TabKey; label: string }> = [
   { value: "content", label: "Content" },
@@ -68,8 +61,14 @@ type TabKey =
 
 const AdminAnalytics = () => {
   const isAuthenticated = Boolean(getAccessToken());
-  const [activeTab, setActiveTab] = useState<TabKey>("content");
-  const [days, setDays] = useState<AdminAnalyticsRangeDays>(30);
+  // The Overview links here with ?tab= and ?days= so "View in Analytics" lands
+  // on the matching tab and range.
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const requested = searchParams.get("tab");
+    return TAB_OPTIONS.find((option) => option.value === requested)?.value ?? "content";
+  });
+  const [days, setDays] = useState<AdminAnalyticsRangeDays>(() => parseRangeDays(searchParams.get("days")) ?? 30);
   const averagePerDay = (value: number) => days === "all" ? undefined : `${(value / days).toFixed(1)}/day`;
 
   const { data: me, isLoading: meLoading } = useQuery({

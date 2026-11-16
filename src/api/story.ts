@@ -550,8 +550,8 @@ export const storyApi = {
     ),
   getAdminSubmission: (id: number) =>
     apiClient<AdminSubmission>(`/admin/submissions/${id}/`),
-  getAdminOverview: () =>
-    apiClient<AdminOverviewResponse>("/admin/overview/"),
+  getAdminOverview: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminOverviewResponse>(`/admin/overview/?days=${days}`),
   getAdminAnalyticsContent: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsContentResponse>(`/admin/analytics/content/?days=${days}`),
   getAdminContentPerformance: (
