@@ -1073,6 +1073,7 @@ export interface AdminOverviewKpi {
 }
 
 export interface AdminOverviewPublishMarker {
+  type?: "story" | "blog";
   date: string;
   /** The traffic-series `day` this marker sits on; null when the series can't place it. */
   bucket: string | null;
@@ -1156,55 +1157,13 @@ export interface AdminAnalyticsDayCount {
 
 export type AdminAnalyticsTimeInterval = "hour" | "day" | "week" | "month";
 
-export interface AdminAnalyticsGenrePerformance {
-  id: number;
-  name: string;
-  stories_count: number;
-  avg_rating: number;
-  total_views: number;
-  total_favorites: number;
-}
-
-export interface AdminAnalyticsStoryTypeBreakdown {
-  story_type: string;
-  count: number;
-  avg_rating: number;
-  avg_views: number;
-}
-
-export interface AdminAnalyticsCompletionSplit {
-  is_completed: boolean;
-  count: number;
-  avg_rating: number;
-  avg_views: number;
-}
-
-export interface AdminAnalyticsContentResponse {
-  comparison?: Omit<AdminAnalyticsContentResponse, "comparison"> | null;
-  range_days: AdminAnalyticsRangeDays;
-  time_interval: AdminAnalyticsTimeInterval;
-  publishing_interval: AdminAnalyticsTimeInterval;
-  views_over_time: AdminAnalyticsDayCount[];
-  genre_performance: AdminAnalyticsGenrePerformance[];
-  story_type_breakdown: AdminAnalyticsStoryTypeBreakdown[];
-  completion_split: AdminAnalyticsCompletionSplit[];
-  publishing_over_time: AdminAnalyticsDayCount[];
-  blog_publishing_over_time: AdminAnalyticsDayCount[];
-  blog_posts_count: number;
-  stories_count: number;
-  audiobooks_count: number;
-  watchable_count: number;
-  quick_read_count: number;
-  top_stories: AdminContentPerformanceRow[];
-  top_audiobooks: AdminContentPerformanceRow[];
-  top_quick_reads: AdminContentPerformanceRow[];
-  top_blogs: AdminContentPerformanceRow[];
-}
+export type AdminContentKind = "story" | "audiobook" | "quick_read" | "blog";
 
 export type AdminContentPerformanceSort =
   | "performance_score"
   | "views"
   | "reads"
+  | "unique_people"
   | "unique_readers"
   | "listens"
   | "unique_listeners"
@@ -1212,38 +1171,132 @@ export type AdminContentPerformanceSort =
   | "listening_minutes"
   | "engagement_minutes"
   | "interactions"
-  | "completions";
+  | "completions"
+  | "completion_rate";
 
 export interface AdminContentPerformanceRow {
   id: number;
   title: string;
   slug: string;
-  content_type: "story" | "audiobook" | "quick_read" | "blog";
+  content_type: AdminContentKind;
   views: number;
   reads: number;
+  /** Distinct people who read / listened / watched (listeners only for audiobooks). */
+  unique_people: number;
   unique_readers: number;
   listens: number;
   unique_listeners: number;
   reading_minutes: number;
   listening_minutes: number;
   watching_minutes: number;
+  /** Session-capped minutes (listening only for audiobooks). */
   engagement_minutes: number;
   interactions: number;
+  actions: number;
   completions: number;
+  /** 0-1, or null when no signed-in reader's progress is tracked. */
+  completion_rate: number | null;
+  tracked_people: number;
   downloads: number;
   favorites: number;
   reviews: number;
+  reactions: number;
+  /** 0-100, normalised within the content type for the range. */
   performance_score: number;
+  /** Fewer than 2 unique people: the score says little. */
+  low_sample: boolean;
+  previous_score: number | null;
+  /** Places moved up (+) or down (-); null if unranked last period. */
+  rank_change: number | null;
+}
+
+export interface AdminContentScoreFormula {
+  range: [number, number];
+  weights: Record<"people" | "minutes" | "completion" | "actions", number>;
+  completion_confidence_people: number;
+  low_sample_people: number;
+  summary: string;
 }
 
 export interface AdminContentPerformanceResponse {
   range_days: AdminAnalyticsRangeDays;
-  content_type: "story" | "audiobook" | "quick_read" | "blog";
+  content_type: AdminContentKind;
   sort: AdminContentPerformanceSort;
+  score_formula: AdminContentScoreFormula;
   count: number;
   page: number;
   page_size: number;
   results: AdminContentPerformanceRow[];
+}
+
+export interface AdminContentKpi {
+  value: number;
+  previous_value: number | null;
+  /** null when the previous value was 0 or there is no previous period. */
+  change_pct: number | null;
+}
+
+export type AdminContentKpiKey =
+  | "views"
+  | "unique_readers"
+  | "engagement_minutes"
+  | "completions"
+  | "titles_published";
+
+export interface AdminContentPublishMarker {
+  date: string;
+  /** The series `day` this marker sits on; null when the series can't place it. */
+  bucket: string | null;
+  title: string;
+  slug: string;
+  type?: "story" | "blog";
+}
+
+export interface AdminContentGroupPerformance {
+  name: string;
+  stories_in_catalogue: number;
+  stories_with_activity: number;
+  views: number;
+  unique_readers: number;
+  engagement_minutes: number;
+  completion_rate: number | null;
+  views_per_story: number;
+}
+
+export type AdminContentGapKey = "no_audio" | "no_quick_read" | "no_cover" | "no_video";
+
+export interface AdminContentGapRow {
+  id: number;
+  title: string;
+  slug: string;
+  missing: ("audio" | "quick_read" | "cover" | "video")[];
+  views: number;
+}
+
+export interface AdminAnalyticsContentResponse {
+  range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
+  kpis: Record<AdminContentKpiKey, AdminContentKpi>;
+  views_over_time: {
+    series: AdminAnalyticsDayCount[];
+    previous_series: AdminAnalyticsDayCount[] | null;
+    total: number;
+    previous_total: number | null;
+    change_pct: number | null;
+    publish_markers: AdminContentPublishMarker[];
+  };
+  top_content: Record<AdminContentKind, { count: number; rows: AdminContentPerformanceRow[] }>;
+  score_formula: AdminContentScoreFormula;
+  genre_performance: AdminContentGroupPerformance[];
+  story_type_performance: AdminContentGroupPerformance[];
+  catalogue_gaps: Record<AdminContentGapKey, { total: number; rows: AdminContentGapRow[] }>;
+  publishing: {
+    stories: number;
+    blogs: number;
+    previous_stories: number | null;
+    previous_blogs: number | null;
+    series: { day: string; stories: number; blogs: number }[];
+  };
 }
 
 export interface AdminAnalyticsProgressBucket {

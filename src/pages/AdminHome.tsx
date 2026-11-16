@@ -83,6 +83,18 @@ const AdminHome = () => {
     );
   }
 
+  if (data && !data.kpis) {
+    return (
+      <div className="h-full space-y-4 overflow-y-auto pr-1">
+        {header}
+        <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          The API returned an older Overview format. Deploy or restart the backend so it matches this version of the
+          admin panel.
+        </p>
+      </div>
+    );
+  }
+
   if (isLoading || !data) {
     return (
       <div className="h-full space-y-4 overflow-y-auto pr-1" aria-busy="true" aria-label="Loading overview">

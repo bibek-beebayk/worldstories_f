@@ -1,7 +1,7 @@
 import NepalikathaAnalytics from "@/components/admin/NepalikathaAnalytics";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { getAccessToken } from "@/api/client";
 import { authApi } from "@/api/auth";
@@ -21,7 +21,7 @@ import { CountryHeatmapMap } from "@/components/admin/charts/CountryHeatmapMap";
 import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog";
 import { RANGE_OPTIONS, parseRangeDays } from "@/components/admin/analyticsRange";
-import { ContentPerformanceTable } from "@/components/admin/ContentPerformanceTable";
+import { ContentTab, ContentTabSkeleton } from "@/components/admin/ContentTab";
 import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
 import { formatBytes } from "@/lib/utils";
 import { BookOpen, Eye, Heart, Star } from "lucide-react";
@@ -83,6 +83,8 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "content", days],
     queryFn: () => storyApi.getAdminAnalyticsContent(days),
     enabled: canFetch && activeTab === "content",
+    // Keep the previous range on screen (dimmed) while the next one loads.
+    placeholderData: keepPreviousData,
   });
   const engagementQuery = useQuery({
     queryKey: ["admin-analytics", "engagement", days],
@@ -208,180 +210,20 @@ const AdminAnalytics = () => {
         <TabsContent value="nepalikatha"><NepalikathaAnalytics days={days} /></TabsContent>
 
         <TabsContent value="content" className="space-y-4">
-          {contentQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-          {contentQuery.isError && (
+          {contentQuery.isLoading && <ContentTabSkeleton />}
+          {contentQuery.isError && !contentQuery.data && (
             <p className="text-sm text-red-600">Failed to load content analytics.</p>
           )}
-          {contentQuery.data && (
-            <>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">
-                <StatTile label="Stories" value={formatNumber(contentQuery.data.stories_count)} />
-                <StatTile label="Audiobooks" value={formatNumber(contentQuery.data.audiobooks_count)} />
-                <StatTile label="Watchable Stories" value={formatNumber(contentQuery.data.watchable_count)} />
-                <StatTile label="Quick Reads" value={formatNumber(contentQuery.data.quick_read_count)} />
-                <StatTile label="Blog posts" value={formatNumber(contentQuery.data.blog_posts_count)} />
-              </div>
-
-              <ContentPerformanceTable
-                title="Top performing content"
-                rows={contentQuery.data.top_stories}
-                kind="story"
-                days={days}
-                viewAllHref={`/admin/analytics/content-performance?kind=story&days=${days}`}
-              />
-
-              <ContentPerformanceTable
-                title="Top performing audiobooks"
-                rows={contentQuery.data.top_audiobooks}
-                kind="audiobook"
-                days={days}
-                viewAllHref={`/admin/analytics/content-performance?kind=audiobook&days=${days}`}
-              />
-
-              <ContentPerformanceTable
-                title="Top performing Quick Reads"
-                rows={contentQuery.data.top_quick_reads}
-                kind="quick_read"
-                days={days}
-                viewAllHref={`/admin/analytics/content-performance?kind=quick_read&days=${days}`}
-              />
-
-              <ContentPerformanceTable
-                title="Top performing blogs"
-                rows={contentQuery.data.top_blogs}
-                kind="blog"
-                days={days}
-                viewAllHref={`/admin/analytics/content-performance?kind=blog&days=${days}`}
-              />
-
-              <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="Views over time" subtitle="Real, de-duplicated story views">
-                  <TrendLineChart
-                    data={contentQuery.data.views_over_time}
-                    xKey="day"
-                    series={[{ key: "count", label: "Views" }]}
-                    formatX={formatAnalyticsPeriod(contentQuery.data.time_interval)}
-                    previousData={contentQuery.data.comparison?.views_over_time}
-                  />
-                </ChartCard>
-                <ChartCard title="Publishing velocity" subtitle={`Stories added per ${contentQuery.data.publishing_interval}`}>
-                  <TrendLineChart
-                    data={contentQuery.data.publishing_over_time}
-                    xKey="day"
-                    series={[{ key: "count", label: "Stories published" }]}
-                    formatX={formatAnalyticsPeriod(contentQuery.data.publishing_interval)}
-                    previousData={contentQuery.data.comparison?.publishing_over_time}
-                  />
-                </ChartCard>
-                <ChartCard title="Blog publishing velocity" subtitle={`Blog posts published per ${contentQuery.data.time_interval}`}>
-                  <TrendLineChart
-                    data={contentQuery.data.blog_publishing_over_time}
-                    xKey="day"
-                    series={[{ key: "count", label: "Posts published" }]}
-                    formatX={formatAnalyticsPeriod(contentQuery.data.time_interval)}
-                    previousData={contentQuery.data.comparison?.blog_publishing_over_time}
-                  />
-                </ChartCard>
-              </div>
-
-              <ChartCard title="Genre performance" subtitle="Across the whole published catalogue">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {contentQuery.data.genre_performance.map((genre) => (
-                    <div
-                      key={genre.id}
-                      className="relative overflow-hidden rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.08] via-card to-card p-3 shadow-sm"
-                    >
-                      <div className="absolute inset-y-0 left-0 w-1 bg-primary/70" />
-                      <div className="flex items-center justify-between gap-3 pl-1">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary ring-1 ring-primary/15">
-                            {genre.name.slice(0, 1).toUpperCase()}
-                          </div>
-                          <p className="min-w-0 flex-1 truncate text-sm font-semibold">{genre.name}</p>
-                        </div>
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-700">
-                          <Star className="h-3 w-3 fill-current" />
-                          {genre.avg_rating.toFixed(1)}
-                        </span>
-                      </div>
-                      <div className="mt-3 grid grid-cols-3 gap-1.5 pl-1">
-                        <div className="rounded-lg border bg-background/70 px-2 py-2 text-center">
-                          <BookOpen className="mx-auto mb-1 h-3.5 w-3.5 text-primary" />
-                          <p className="text-sm font-bold">{formatNumber(genre.stories_count)}</p>
-                          <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Stories</p>
-                        </div>
-                        <div className="rounded-lg border bg-background/70 px-2 py-2 text-center">
-                          <Eye className="mx-auto mb-1 h-3.5 w-3.5 text-sky-600" />
-                          <p className="text-sm font-bold">{formatNumber(genre.total_views)}</p>
-                          <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Views</p>
-                        </div>
-                        <div className="rounded-lg border bg-background/70 px-2 py-2 text-center">
-                          <Heart className="mx-auto mb-1 h-3.5 w-3.5 text-rose-500" />
-                          <p className="text-sm font-bold">{formatNumber(genre.total_favorites)}</p>
-                          <p className="text-[9px] uppercase tracking-wide text-muted-foreground">Favorites</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {contentQuery.data.genre_performance.length === 0 && (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      No published stories with genres yet.
-                    </p>
-                  )}
-                </div>
-                <div className="hidden">
-                  <table className="w-full min-w-[520px] text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                        <th className="py-2 pr-4">Genre</th>
-                        <th className="py-2 pr-4">Stories</th>
-                        <th className="py-2 pr-4">Avg rating</th>
-                        <th className="py-2 pr-4">Total views</th>
-                        <th className="py-2 pr-4">Favorites</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contentQuery.data.genre_performance.map((genre) => (
-                        <tr key={genre.id} className="border-b last:border-0">
-                          <td className="py-2 pr-4 font-medium">{genre.name}</td>
-                          <td className="py-2 pr-4">{formatNumber(genre.stories_count)}</td>
-                          <td className="py-2 pr-4">{genre.avg_rating.toFixed(1)}★</td>
-                          <td className="py-2 pr-4">{formatNumber(genre.total_views)}</td>
-                          <td className="py-2 pr-4">{formatNumber(genre.total_favorites)}</td>
-                        </tr>
-                      ))}
-                      {contentQuery.data.genre_performance.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                            No published stories with genres yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </ChartCard>
-
-              <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="Story type breakdown">
-                  <BreakdownBarChart
-                    data={contentQuery.data.story_type_breakdown}
-                    xKey="story_type"
-                    series={[{ key: "count", label: "Stories" }]}
-                  />
-                </ChartCard>
-                <ChartCard title="Completion status" subtitle="Completed vs. ongoing stories">
-                  <BreakdownBarChart
-                    data={contentQuery.data.completion_split.map((row) => ({
-                      ...row,
-                      label: row.is_completed ? "Completed" : "Ongoing",
-                    }))}
-                    xKey="label"
-                    series={[{ key: "count", label: "Stories" }]}
-                  />
-                </ChartCard>
-              </div>
-            </>
+          {/* An API that predates the rewritten Content tab answers with the old
+              shape (no top_content); say so rather than crash the page. */}
+          {contentQuery.data && !contentQuery.data.top_content && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              The API returned an older Content analytics format. Deploy or restart the backend so it matches this
+              version of the admin panel.
+            </p>
+          )}
+          {contentQuery.data?.top_content && (
+            <ContentTab data={contentQuery.data} days={days} isRefreshing={contentQuery.isPlaceholderData} />
           )}
         </TabsContent>
 

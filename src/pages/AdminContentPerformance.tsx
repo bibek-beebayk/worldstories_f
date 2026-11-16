@@ -23,14 +23,12 @@ const RANGES: { value: AdminAnalyticsRangeDays; label: string }[] = [
 const SORTS: { value: AdminContentPerformanceSort; label: string }[] = [
   { value: "performance_score", label: "Performance score" },
   { value: "views", label: "Views" },
-  { value: "reads", label: "Reads" },
-  { value: "unique_readers", label: "Unique readers" },
-  { value: "listens", label: "Listens" },
-  { value: "unique_listeners", label: "Unique listeners" },
-  { value: "reading_minutes", label: "Reading time" },
-  { value: "listening_minutes", label: "Listening time" },
-  { value: "engagement_minutes", label: "All engagement time" },
+  { value: "unique_people", label: "Unique people" },
+  { value: "engagement_minutes", label: "Time spent" },
+  { value: "completion_rate", label: "Completion rate" },
   { value: "interactions", label: "Interactions" },
+  { value: "reads", label: "Reading sessions" },
+  { value: "listens", label: "Listening sessions" },
   { value: "completions", label: "Completions" },
 ];
 
@@ -88,8 +86,8 @@ export default function AdminContentPerformance() {
           <h2 className="text-base font-semibold">
             {kind === "story" ? "Story performance" : kind === "audiobook" ? "Audiobook performance" : kind === "quick_read" ? "Quick Read performance" : "Blog performance"}
           </h2>
-          <p className="text-xs text-muted-foreground">
-            Score = views + 2× {kind === "audiobook" ? "listens" : "reads"} + 3× interactions + {kind === "audiobook" ? "listening" : "engaged"} minutes.
+          <p className="max-w-2xl text-xs text-muted-foreground">
+            {rankingQuery.data?.score_formula.summary ?? "Scored 0-100 within this content type for the range."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -122,7 +120,12 @@ export default function AdminContentPerformance() {
       {rankingQuery.data && (
         <Card>
           <CardContent className="pt-6">
-            <ContentPerformanceTable rows={rankingQuery.data.results} kind={kind} days={days} />
+            <ContentPerformanceTable
+              rows={rankingQuery.data.results}
+              kind={kind}
+              days={days}
+              scoreSummary={rankingQuery.data.score_formula.summary}
+            />
             <div className="mt-4 flex items-center justify-between border-t pt-4 text-sm">
               <span className="text-muted-foreground">
                 {rankingQuery.data.count.toLocaleString()} titles · Page {page} of {totalPages}

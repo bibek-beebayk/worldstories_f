@@ -1,17 +1,8 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ComposedChart,
-  ReferenceDot,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MarkedTrendChart } from "./charts/MarkedTrendChart";
 import type {
   AdminAnalyticsRangeDays,
   AdminAnalyticsTimeInterval,
@@ -30,15 +21,6 @@ export const formatMinutes = (minutes: number) =>
 
 export const rangeLabel = (days: AdminAnalyticsRangeDays) =>
   days === 1 ? "previous 24 hours" : days === "all" ? "all time" : `previous ${days} days`;
-
-const formatPeriod = (interval: AdminAnalyticsTimeInterval) => (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  if (interval === "hour") return date.toLocaleTimeString([], { hour: "numeric" });
-  if (interval === "month") return date.toLocaleDateString([], { month: "short", year: "numeric" });
-  const label = date.toLocaleDateString([], { month: "short", day: "numeric" });
-  return interval === "week" ? `Week of ${label}` : label;
-};
 
 export const Skeleton = ({ className = "" }: { className?: string }) => (
   <div className={`animate-pulse rounded-md bg-muted ${className}`} aria-hidden="true" />
@@ -131,7 +113,13 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
   );
 };
 
-const ChangeBadge = ({ kpi, days }: { kpi: AdminOverviewKpi; days: AdminAnalyticsRangeDays }) => {
+export const ChangeBadge = ({
+  kpi,
+  days,
+}: {
+  kpi: Pick<AdminOverviewKpi, "change_pct" | "previous_value">;
+  days: AdminAnalyticsRangeDays;
+}) => {
   if (kpi.change_pct === null) {
     return (
       <span
@@ -197,103 +185,14 @@ export const TrafficChart = ({
   series: { day: string; visitors: number }[];
   markers: AdminOverviewPublishMarker[];
   interval: AdminAnalyticsTimeInterval;
-}) => {
-  const formatX = formatPeriod(interval);
-  const visitorsByDay = new Map(series.map((row) => [row.day, row.visitors]));
-  const markersByDay = new Map<string, AdminOverviewPublishMarker[]>();
-  markers.forEach((marker) => {
-    if (marker.bucket && visitorsByDay.has(marker.bucket)) {
-      markersByDay.set(marker.bucket, [...(markersByDay.get(marker.bucket) ?? []), marker]);
-    }
-  });
-
-  if (series.length === 0 || series.every((row) => row.visitors === 0)) return <EmptyNote />;
-
-  return (
-    <div>
-      <div className="h-[240px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={series} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis
-              dataKey="day"
-              tickFormatter={formatX}
-              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-              tickLine={false}
-              axisLine={{ stroke: "hsl(var(--border))" }}
-              minTickGap={24}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-              tickLine={false}
-              axisLine={false}
-              width={36}
-            />
-            <Tooltip
-              content={({ active, label }) => {
-                if (!active || typeof label !== "string") return null;
-                const published = markersByDay.get(label) ?? [];
-                return (
-                  <div className="max-w-[260px] rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
-                    <p className="font-medium">{formatX(label)}</p>
-                    <p className="mt-1">
-                      Unique visitors: <span className="font-semibold">{formatNumber(visitorsByDay.get(label) ?? 0)}</span>
-                    </p>
-                    {published.length > 0 && (
-                      <div className="mt-1.5 border-t pt-1.5">
-                        <p className="text-muted-foreground">Published</p>
-                        {published.map((marker) => (
-                          <p key={marker.slug} className="font-medium">{marker.title}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="visitors"
-              name="Unique visitors"
-              stroke="hsl(var(--primary))"
-              strokeWidth={2}
-              fill="hsl(var(--primary))"
-              fillOpacity={0.1}
-              dot={series.length <= 32}
-              activeDot={{ r: 4 }}
-            />
-            {[...markersByDay.entries()].map(([day, published]) => (
-              <ReferenceDot
-                key={day}
-                x={day}
-                y={visitorsByDay.get(day) ?? 0}
-                r={6}
-                fill="#f59e0b"
-                stroke="hsl(var(--background))"
-                strokeWidth={2}
-                ifOverflow="visible"
-                // Native hover text, for when the pointer is on the dot itself.
-                shape={(props: { cx?: number; cy?: number }) => (
-                  <g>
-                    <title>{`Published: ${published.map((marker) => marker.title).join(", ")}`}</title>
-                    <circle cx={props.cx} cy={props.cy} r={6} fill="#f59e0b" stroke="hsl(var(--background))" strokeWidth={2} />
-                  </g>
-                )}
-              />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-      {markersByDay.size > 0 && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" aria-hidden="true" />
-          A story was published — hover the dot to see which
-        </p>
-      )}
-    </div>
-  );
-};
+}) => (
+  <MarkedTrendChart
+    data={series.map((row) => ({ day: row.day, value: row.visitors }))}
+    markers={markers}
+    interval={interval}
+    label="Unique visitors"
+  />
+);
 
 export const Funnel = ({ steps }: { steps: AdminOverviewFunnelStep[] }) => {
   const max = Math.max(...steps.map((step) => step.count), 0);
@@ -378,7 +277,7 @@ export const FormatCard = ({
 const storyReportLink = (story: { title: string }) =>
   `/admin/story-report?search=${encodeURIComponent(story.title)}`;
 
-const RankChange = ({ change }: { change: number | null | undefined }) => {
+export const RankChange = ({ change }: { change: number | null | undefined }) => {
   if (change === null || change === undefined) {
     return <span className="rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-600" title="Not ranked in the previous period">NEW</span>;
   }
