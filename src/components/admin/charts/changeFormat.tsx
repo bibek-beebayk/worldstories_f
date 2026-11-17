@@ -33,17 +33,17 @@ const number = (value: number, decimals: number) =>
 export function formatCountChange(
   current: number,
   previous: number | null | undefined,
-  options: { goodDirection?: GoodDirection; unit?: string; decimals?: number } = {}
+  options: { goodDirection?: GoodDirection; unit?: string; decimals?: number; minForPercent?: number } = {}
 ): ChangeDisplay | null {
   if (previous === null || previous === undefined) return null;
-  const { goodDirection = "up", unit = "", decimals = 0 } = options;
+  const { goodDirection = "up", unit = "", decimals = 0, minForPercent = MIN_PREVIOUS_FOR_PERCENT } = options;
   const delta = current - previous;
   const rounded = Number(delta.toFixed(decimals));
   if (rounded === 0) {
     return { arrow: "•", text: "no change", tone: "neutral", title: `Same as the previous period (${number(previous, decimals)}${unit})` };
   }
   const sign = delta > 0 ? "+" : "−";
-  if (Math.abs(previous) < MIN_PREVIOUS_FOR_PERCENT) {
+  if (Math.abs(previous) < minForPercent) {
     return {
       arrow: arrowFor(delta),
       text: `${sign}${number(Math.abs(delta), decimals)}${unit} (was ${number(previous, decimals)}${unit})`,

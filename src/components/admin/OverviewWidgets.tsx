@@ -207,7 +207,11 @@ export const TrafficChart = ({
   />
 );
 
-export const Funnel = ({ steps }: { steps: AdminOverviewFunnelStep[] }) => {
+export const Funnel = ({
+  steps,
+}: {
+  steps: { key: string; label: string; count: number; rate: number | null; rate_label: string | null }[];
+}) => {
   const max = Math.max(...steps.map((step) => step.count), 0);
   if (max === 0) return <EmptyNote />;
   return (

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { Pencil, Search, X } from "lucide-react";
 import { AdminUser } from "@/api/types";
 
@@ -28,8 +29,10 @@ const AdminUsers = () => {
   const isSuperuser = Boolean(me?.is_superuser);
 
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  // The Users analytics drawer links here with ?search=<email> to land on one account.
+  const [searchParams] = useSearchParams();
+  const [searchInput, setSearchInput] = useState(() => searchParams.get("search") ?? "");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ["admin-users", page, search],

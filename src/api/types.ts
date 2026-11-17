@@ -1406,20 +1406,127 @@ export interface AdminAnalyticsEngagementResponse {
   };
 }
 
-export interface AdminAnalyticsLoginBucket {
-  bucket: string;
+export type AdminUserStatus = "new" | "active" | "at_risk" | "dormant" | "unverified";
+
+export type AdminUsersKpiKey =
+  | "registered_users"
+  | "new_users"
+  | "active_users"
+  | "activation_rate"
+  | "visitor_to_signup_rate"
+  | "signed_in_minutes_share";
+
+export interface AdminUsersKpi {
+  /** null when fewer than `min_sample` people stand behind a rate. */
+  value: number | null;
+  previous_value: number | null;
+  sample_size: number;
+  previous_sample_size: number | null;
+  min_sample: number;
+  /** registered_users only: the running total at the end of each of the last 12 weeks. */
+  sparkline?: number[];
+}
+
+export interface AdminUsersFunnelStep {
+  key: string;
+  label: string;
   count: number;
+  /** Share of the step above; null for the first step. */
+  rate: number | null;
+  previous_count: number | null;
+}
+
+export interface AdminUserRow {
+  id: string;
+  username: string;
+  display_name: string | null;
+  email: string;
+  avatar_url: string | null;
+  date_joined: string;
+  last_login: string | null;
+  login_count: number;
+  last_active: string | null;
+  otp_verified: boolean;
+  status: AdminUserStatus;
+  signup_source: string | null;
+  signup_method: "before_signup" | "after_signup" | "none";
+  signup_landing: { path: string; title: string; type: AdminAudiencePageType; resolved: boolean } | null;
+  signup_story: { title: string; slug: string } | null;
+  active_days: number;
+  stories_started: number;
+  stories_completed: number;
+  reading_minutes: number;
+  listening_minutes: number;
+  watching_minutes: number;
+  favorites: number;
+  reviews: number;
+  reactions: number;
+  current_streak: number;
+  longest_streak: number;
+  achievements_count: number;
+  passport_countries: number;
+  journeys_completed: number;
+  country: string | null;
+}
+
+export interface AdminUsersCohortRow {
+  cohort: string;
+  size: number;
+  weeks: { week: number; eligible: number; active: number; rate: number | null }[];
 }
 
 export interface AdminAnalyticsUsersResponse {
-  comparison?: Omit<AdminAnalyticsUsersResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
-  signups_over_time: AdminAnalyticsDayCount[];
-  total_users: number;
-  active_users: number;
-  login_frequency_buckets: AdminAnalyticsLoginBucket[];
-  otp_conversion: { joined: number; verified: number; rate: number };
+  min_sample: number;
+  kpis: Record<AdminUsersKpiKey, AdminUsersKpi>;
+  signup_funnel: AdminUsersFunnelStep[];
+  users: AdminUserRow[];
+  users_total: number;
+  users_page: number;
+  users_pages: number;
+  segments: Record<AdminUserStatus, number>;
+  signups_over_time: {
+    interval: "day" | "week";
+    sources: string[];
+    series: { day: string; total: number; by_source: Record<string, number> }[];
+  };
+  cohorts: {
+    available: boolean;
+    min_users: number;
+    total_users: number;
+    weeks: number;
+    rows: AdminUsersCohortRow[];
+  };
+  attribution: { attributed: number; total: number; before_signup: number; after_signup: number; none: number };
+}
+
+export type AdminUserTimelineKind =
+  | "story_session"
+  | "quick_read_session"
+  | "blog_session"
+  | "audio_session"
+  | "video_session"
+  | "completion"
+  | "favorite"
+  | "review"
+  | "achievement";
+
+export interface AdminUserTimelineItem {
+  kind: AdminUserTimelineKind;
+  at: string;
+  title: string;
+  minutes?: number;
+  sessions?: number;
+  progress?: number | null;
+  rating?: number;
+  source?: string;
+}
+
+export interface AdminUserTimelineResponse {
+  user_id: string;
+  total: number;
+  items: AdminUserTimelineItem[];
 }
 
 export interface AdminAnalyticsSubmissionsOverTimePoint {

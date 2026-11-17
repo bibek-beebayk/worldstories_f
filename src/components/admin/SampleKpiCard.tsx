@@ -16,6 +16,7 @@ export function SampleKpiCard({
   change,
   days,
   emptyHint,
+  footer,
 }: {
   label: string;
   hint: string;
@@ -26,6 +27,8 @@ export function SampleKpiCard({
   days: AdminAnalyticsRangeDays;
   /** Shown as a tooltip on the "—" when the sample is too small. */
   emptyHint: string;
+  /** Optional extra content under the change line, e.g. a sparkline. */
+  footer?: ReactNode;
 }) {
   const enough = value !== null;
   return (
@@ -42,6 +45,7 @@ export function SampleKpiCard({
         {change ? <ChangeChip display={change} /> : <span className="text-xs text-muted-foreground">—</span>}
         {days !== "all" && change && <span className="text-[11px] leading-tight text-muted-foreground">vs {rangeLabel(days)}</span>}
       </div>
+      {footer && <div className="mt-2">{footer}</div>}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { ContentTab, ContentTabSkeleton } from "@/components/admin/ContentTab";
 import { EngagementTab, EngagementTabSkeleton } from "@/components/admin/EngagementTab";
 import { AudienceTab, AudienceTabSkeleton } from "@/components/admin/AudienceTab";
 import { MonetizationTab, MonetizationTabSkeleton } from "@/components/admin/MonetizationTab";
+import { UsersTab, UsersTabSkeleton } from "@/components/admin/UsersTab";
 import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
 
 const formatNumber = (value: number) => value.toLocaleString();
@@ -98,6 +99,7 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "users", days],
     queryFn: () => storyApi.getAdminAnalyticsUsers(days),
     enabled: canFetch && activeTab === "users",
+    placeholderData: keepPreviousData,
   });
   const audienceQuery = useQuery({
     queryKey: ["admin-analytics", "audience", days],
@@ -121,17 +123,6 @@ const AdminAnalytics = () => {
     queryFn: () => storyApi.getAdminAnalyticsGeography(days),
     enabled: canFetch && activeTab === "geography",
   });
-
-  const cumulativeSignups = useMemo(() => {
-    const data = usersQuery.data;
-    if (!data) return [];
-    const rangeTotal = data.signups_over_time.reduce((sum, row) => sum + row.count, 0);
-    let running = data.total_users - rangeTotal;
-    return data.signups_over_time.map((row) => {
-      running += row.count;
-      return { day: row.day, cumulative: running };
-    });
-  }, [usersQuery.data]);
 
   const submissionsByDay = useMemo(() => {
     const data = submissionsQuery.data;
@@ -283,60 +274,20 @@ const AdminAnalytics = () => {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-4">
-          {usersQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-          {usersQuery.isError && <p className="text-sm text-red-600">Failed to load user analytics.</p>}
-          {usersQuery.data && (
-            <>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
-                <StatTile label="Total users" value={formatNumber(usersQuery.data.total_users)} />
-                <StatTile
-                  label={`Active in range`}
-                  value={formatNumber(usersQuery.data.active_users)}
-                  current={usersQuery.data.active_users}
-                  previous={usersQuery.data.comparison?.active_users}
-                  average={averagePerDay(usersQuery.data.active_users)}
-                />
-                <StatTile
-                  label="OTP verification rate"
-                  value={formatPercent(usersQuery.data.otp_conversion.rate)}
-                />
-                <StatTile
-                  label="New signups in range"
-                  value={formatNumber(usersQuery.data.otp_conversion.joined)}
-                  current={usersQuery.data.otp_conversion.joined}
-                  previous={usersQuery.data.comparison?.otp_conversion.joined}
-                  average={averagePerDay(usersQuery.data.otp_conversion.joined)}
-                />
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="New signups" subtitle={`New accounts per ${usersQuery.data.time_interval}`}>
-                  <TrendLineChart
-                    data={usersQuery.data.signups_over_time}
-                    xKey="day"
-                    series={[{ key: "count", label: "Signups" }]}
-                    formatX={formatAnalyticsPeriod(usersQuery.data.time_interval)}
-                    previousData={usersQuery.data.comparison?.signups_over_time}
-                  />
-                </ChartCard>
-                <ChartCard title="Cumulative user growth">
-                  <TrendLineChart
-                    data={cumulativeSignups}
-                    xKey="day"
-                    series={[{ key: "cumulative", label: "Total users" }]}
-                    formatX={formatAnalyticsPeriod(usersQuery.data.time_interval)}
-                  />
-                </ChartCard>
-              </div>
-
-              <ChartCard title="Login frequency" subtitle="All-time login count per user">
-                <BreakdownBarChart
-                  data={usersQuery.data.login_frequency_buckets}
-                  xKey="bucket"
-                  series={[{ key: "count", label: "Users" }]}
-                />
-              </ChartCard>
-            </>
+          {usersQuery.isLoading && <UsersTabSkeleton />}
+          {usersQuery.isError && !usersQuery.data && (
+            <p className="text-sm text-red-600">Failed to load users analytics.</p>
+          )}
+          {/* An API that predates the rewritten Users tab answers with the old
+              shape (no kpis); say so rather than crash the page. */}
+          {usersQuery.data && !usersQuery.data.kpis && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              The API returned an older Users analytics format. Deploy or restart the backend so it matches this
+              version of the admin panel.
+            </p>
+          )}
+          {usersQuery.data?.kpis && (
+            <UsersTab data={usersQuery.data} days={days} isRefreshing={usersQuery.isPlaceholderData} />
           )}
         </TabsContent>
 

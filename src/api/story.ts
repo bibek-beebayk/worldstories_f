@@ -84,6 +84,7 @@ import {
   AdminContentPerformanceSort,
   AdminAnalyticsEngagementResponse,
   AdminAnalyticsUsersResponse,
+  AdminUserTimelineResponse,
   AdminAnalyticsSubmissionsResponse,
   AdminAnalyticsAudienceResponse,
   AdminAnalyticsMonetizationResponse,
@@ -567,6 +568,8 @@ export const storyApi = {
     apiClient<AdminAnalyticsEngagementResponse>(`/admin/analytics/engagement/?days=${days}`),
   getAdminAnalyticsUsers: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsUsersResponse>(`/admin/analytics/users/?days=${days}`),
+  getAdminUserTimeline: (userId: string) =>
+    apiClient<AdminUserTimelineResponse>(`/admin/analytics/users/${userId}/timeline/`),
 
   getAdminAnalyticsSubmissions: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsSubmissionsResponse>(`/admin/analytics/submissions/?days=${days}`),
