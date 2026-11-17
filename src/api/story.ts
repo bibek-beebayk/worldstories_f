@@ -86,6 +86,7 @@ import {
   AdminAnalyticsUsersResponse,
   AdminAnalyticsSubmissionsResponse,
   AdminAnalyticsAudienceResponse,
+  AdminAnalyticsMonetizationResponse,
   AdminAnalyticsGeographyResponse,
   AdminAnalyticsExportSection,
   AdminAnalyticsExportFileFormat,
@@ -571,6 +572,8 @@ export const storyApi = {
     apiClient<AdminAnalyticsSubmissionsResponse>(`/admin/analytics/submissions/?days=${days}`),
   getAdminAnalyticsAudience: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsAudienceResponse>(`/admin/analytics/audience/?days=${days}`),
+  getAdminAnalyticsMonetization: (days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminAnalyticsMonetizationResponse>(`/admin/analytics/monetization/?days=${days}`),
   getAdminAnalyticsGeography: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsGeographyResponse>(`/admin/analytics/geography/?days=${days}`),
   getAdminStoryDetailAnalytics: (storySlug: string, days: AdminAnalyticsRangeDays) =>

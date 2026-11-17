@@ -250,7 +250,7 @@ const AdminHome = () => {
               rows={data.sources.referrers.map((row) => ({
                 label: row.referral_source,
                 value: row.count,
-                unit: "visits",
+                unit: "visitors",
               }))}
             />
             <RankedList

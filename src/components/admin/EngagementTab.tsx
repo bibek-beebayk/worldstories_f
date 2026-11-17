@@ -21,6 +21,7 @@ import type {
   AdminEngagementLength,
 } from "@/api/types";
 import { CHART_PALETTE } from "@/components/admin/charts/palette";
+import { SampleKpiCard } from "@/components/admin/SampleKpiCard";
 import {
   ChangeChip,
   formatCountChange,
@@ -89,29 +90,22 @@ const KPI_TILES: {
   },
 ];
 
-const KpiCard = ({ tile, kpi, days }: { tile: (typeof KPI_TILES)[number]; kpi: AdminEngagementKpi; days: AdminAnalyticsRangeDays }) => {
-  const enough = kpi.value !== null;
-  const change = tile.change(kpi);
-  return (
-    <div className="min-w-0 rounded-xl border bg-card px-3 py-3 shadow-sm" title={tile.hint}>
-      <p className="truncate text-[11px] uppercase tracking-wide text-muted-foreground">{tile.label}</p>
-      <p
-        className={`mt-1.5 truncate text-2xl font-bold leading-none tracking-tight ${enough ? "" : "text-muted-foreground"}`}
-        title={enough ? undefined : `Not enough data: fewer than ${kpi.min_sample} ${kpi.sample_label} in this range (${kpi.sample_size} so far).`}
-      >
-        {enough ? tile.format(kpi.value as number) : "—"}
-      </p>
-      <p className="mt-1.5 text-[11px] text-muted-foreground">
-        {enough ? "of " : "only "}
+const KpiCard = ({ tile, kpi, days }: { tile: (typeof KPI_TILES)[number]; kpi: AdminEngagementKpi; days: AdminAnalyticsRangeDays }) => (
+  <SampleKpiCard
+    label={tile.label}
+    hint={tile.hint}
+    value={kpi.value === null ? null : tile.format(kpi.value)}
+    sample={
+      <>
+        {kpi.value === null ? "only " : "of "}
         <span className="font-medium text-foreground">{formatNumber(kpi.sample_size)}</span> {kpi.sample_label}
-      </p>
-      <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-        {change ? <ChangeChip display={change} /> : <span className="text-xs text-muted-foreground">—</span>}
-        {days !== "all" && change && <span className="text-[11px] leading-tight text-muted-foreground">vs {rangeLabel(days)}</span>}
-      </div>
-    </div>
-  );
-};
+      </>
+    }
+    change={tile.change(kpi)}
+    days={days}
+    emptyHint={`Not enough data: fewer than ${kpi.min_sample} ${kpi.sample_label} in this range (${kpi.sample_size} so far).`}
+  />
+);
 
 const FORMAT_META: Record<AdminEngagementFormat, { title: string; note: string }> = {
   read: {

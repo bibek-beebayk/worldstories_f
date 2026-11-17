@@ -23,9 +23,9 @@ import { AnalyticsExportDialog } from "@/components/admin/AnalyticsExportDialog"
 import { RANGE_OPTIONS, parseRangeDays } from "@/components/admin/analyticsRange";
 import { ContentTab, ContentTabSkeleton } from "@/components/admin/ContentTab";
 import { EngagementTab, EngagementTabSkeleton } from "@/components/admin/EngagementTab";
+import { AudienceTab, AudienceTabSkeleton } from "@/components/admin/AudienceTab";
+import { MonetizationTab, MonetizationTabSkeleton } from "@/components/admin/MonetizationTab";
 import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
-import { formatBytes } from "@/lib/utils";
-import { BookOpen, Eye, Heart, Star } from "lucide-react";
 
 const formatNumber = (value: number) => value.toLocaleString();
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
@@ -43,6 +43,7 @@ const TAB_OPTIONS: Array<{ value: TabKey; label: string }> = [
   { value: "content", label: "Content" },
   { value: "engagement", label: "Engagement" },
   { value: "audience", label: "Audience" },
+  { value: "monetization", label: "Monetization" },
   { value: "users", label: "Users" },
   { value: "geography", label: "Geography" },
   { value: "submissions", label: "Submissions" },
@@ -53,6 +54,7 @@ type TabKey =
   | "content"
   | "engagement"
   | "audience"
+  | "monetization"
   | "users"
   | "geography"
   | "submissions"
@@ -101,7 +103,14 @@ const AdminAnalytics = () => {
     queryKey: ["admin-analytics", "audience", days],
     queryFn: () => storyApi.getAdminAnalyticsAudience(days),
     enabled: canFetch && activeTab === "audience",
+    placeholderData: keepPreviousData,
+  });  const monetizationQuery = useQuery({
+    queryKey: ["admin-analytics", "monetization", days],
+    queryFn: () => storyApi.getAdminAnalyticsMonetization(days),
+    enabled: canFetch && activeTab === "monetization",
+    placeholderData: keepPreviousData,
   });
+
   const submissionsQuery = useQuery({
     queryKey: ["admin-analytics", "submissions", days],
     queryFn: () => storyApi.getAdminAnalyticsSubmissions(days),
@@ -194,6 +203,7 @@ const AdminAnalytics = () => {
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="engagement">Engagement</TabsTrigger>
             <TabsTrigger value="audience">Audience</TabsTrigger>
+            <TabsTrigger value="monetization">Monetization</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="geography">Geography</TabsTrigger>
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
@@ -240,227 +250,35 @@ const AdminAnalytics = () => {
         </TabsContent>
 
         <TabsContent value="audience" className="space-y-4">
-          {audienceQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-          {audienceQuery.isError && (
+          {audienceQuery.isLoading && <AudienceTabSkeleton />}
+          {audienceQuery.isError && !audienceQuery.data && (
             <p className="text-sm text-red-600">Failed to load audience analytics.</p>
           )}
-          {audienceQuery.data && (
-            <>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5">
-                <StatTile label="Visitors" value={formatNumber(audienceQuery.data.summary.visitors)} current={audienceQuery.data.summary.visitors} previous={audienceQuery.data.comparison?.summary.visitors} average={averagePerDay(audienceQuery.data.summary.visitors)} />
-                <StatTile label="Returning visitors" value={formatNumber(audienceQuery.data.summary.returning_visitors)} current={audienceQuery.data.summary.returning_visitors} previous={audienceQuery.data.comparison?.summary.returning_visitors} average={averagePerDay(audienceQuery.data.summary.returning_visitors)} />
-                <StatTile label="Return rate" value={formatPercent(audienceQuery.data.summary.returning_rate)} />
-                <StatTile label="Readers" value={formatNumber(audienceQuery.data.summary.readers)} current={audienceQuery.data.summary.readers} previous={audienceQuery.data.comparison?.summary.readers} average={averagePerDay(audienceQuery.data.summary.readers)} />
-                <StatTile label="Returning readers" value={formatNumber(audienceQuery.data.summary.returning_readers)} />
-                <StatTile label="Reader retention" value={formatPercent(audienceQuery.data.summary.reader_retention_rate)} />
-                <StatTile label="Ad impressions" value={formatNumber(audienceQuery.data.summary.ad_impressions)} current={audienceQuery.data.summary.ad_impressions} previous={audienceQuery.data.comparison?.summary.ad_impressions} average={averagePerDay(audienceQuery.data.summary.ad_impressions)} />
-                <StatTile label="Downloads" value={formatNumber(audienceQuery.data.summary.downloads)} current={audienceQuery.data.summary.downloads} previous={audienceQuery.data.comparison?.summary.downloads} average={averagePerDay(audienceQuery.data.summary.downloads)} />
-                <StatTile label="Unique downloaders" value={formatNumber(audienceQuery.data.summary.unique_downloaders)} />
-                <StatTile label="Completions" value={formatNumber(audienceQuery.data.summary.completions)} current={audienceQuery.data.summary.completions} previous={audienceQuery.data.comparison?.summary.completions} average={averagePerDay(audienceQuery.data.summary.completions)} />
-                <StatTile label="Completion rate" value={formatPercent(audienceQuery.data.summary.completion_rate)} />
-                <StatTile label="Reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.reading_minutes))}m`} />
-                <StatTile label="Listening time" value={`${formatNumber(Math.round(audienceQuery.data.summary.listening_minutes))}m`} />
-                <StatTile label="Read Along time" value={`${formatNumber(Math.round(audienceQuery.data.summary.read_along_listening_minutes))}m`} />
-                <StatTile label="Watching time" value={`${formatNumber(Math.round(audienceQuery.data.summary.watching_minutes))}m`} />
-                <StatTile label="Blog reading time" value={`${formatNumber(Math.round(audienceQuery.data.summary.blog_reading_minutes))}m`} />
-                <StatTile label="Quick Read time" value={`${formatNumber(Math.round(audienceQuery.data.summary.quick_read_reading_minutes))}m`} />
-                <StatTile label="Avg session" value={`${audienceQuery.data.summary.avg_session_minutes}m`} />
-                <StatTile label="Page views" value={formatNumber(audienceQuery.data.summary.total_page_views)} />
-                <StatTile
-                  label="Median browsing session"
-                  value={`${audienceQuery.data.summary.median_browsing_session_minutes}m`}
-                />
-              </div>
+          {/* An API that predates the rewritten Audience tab answers with the old
+              shape (no kpis); say so rather than crash the page. */}
+          {audienceQuery.data && !audienceQuery.data.kpis && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              The API returned an older Audience analytics format. Deploy or restart the backend so it matches this
+              version of the admin panel.
+            </p>
+          )}
+          {audienceQuery.data?.kpis && (
+            <AudienceTab data={audienceQuery.data} days={days} isRefreshing={audienceQuery.isPlaceholderData} />
+          )}
+        </TabsContent>
 
-              <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="New vs. returning visitors" subtitle="Anonymous browsers and signed-in users, de-duplicated by day">
-                  <TrendLineChart
-                    data={audienceQuery.data.visitor_retention}
-                    xKey="day"
-                    series={[
-                      { key: "new_visitors", label: "New" },
-                      { key: "returning_visitors", label: "Returning" },
-                    ]}
-                    formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
-                    previousData={audienceQuery.data.comparison?.visitor_retention}
-                  />
-                </ChartCard>
-                <ChartCard title="Reading, listening & watching time" subtitle="Measured active session minutes">
-                  <TrendLineChart
-                    data={audienceQuery.data.daily_activity}
-                    xKey="day"
-                    series={[
-                      { key: "reading_minutes", label: "Reading minutes" },
-                      { key: "listening_minutes", label: "Listening minutes" },
-                      { key: "watching_minutes", label: "Watching minutes" },
-                    ]}
-                    formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
-                    previousData={audienceQuery.data.comparison?.daily_activity}
-                  />
-                </ChartCard>
-              </div>
-
-              <ChartCard title="Monetization and engagement signals" subtitle="Viewable ads, successful offline saves, and completion milestones">
-                <TrendLineChart
-                  data={audienceQuery.data.daily_activity}
-                  xKey="day"
-                  series={[
-                    { key: "ad_impressions", label: "Ad impressions" },
-                    { key: "downloads", label: "Downloads" },
-                    { key: "completions", label: "Completions" },
-                  ]}
-                  formatX={formatAnalyticsPeriod(audienceQuery.data.time_interval)}
-                  previousData={audienceQuery.data.comparison?.daily_activity}
-                />
-              </ChartCard>
-
-              <div className="grid gap-4 xl:grid-cols-3">
-                <ChartCard title="Downloads by format">
-                  <BreakdownBarChart
-                    data={audienceQuery.data.download_types}
-                    xKey="content_type"
-                    series={[{ key: "count", label: "Downloads" }]}
-                  />
-                </ChartCard>
-                <ChartCard title="Completions by format">
-                  <BreakdownBarChart
-                    data={audienceQuery.data.completion_types}
-                    xKey="content_type"
-                    series={[{ key: "count", label: "Completions" }]}
-                  />
-                </ChartCard>
-                <ChartCard title="Ad impressions by content type">
-                  <BreakdownBarChart
-                    data={audienceQuery.data.ad_impressions_by_content_type}
-                    xKey="content_type"
-                    series={[{ key: "count", label: "Impressions" }]}
-                  />
-                </ChartCard>
-                <ChartCard title="Referral sources">
-                  <BreakdownBarChart
-                    data={audienceQuery.data.referral_sources}
-                    xKey="referral_source"
-                    series={[{ key: "count", label: "Visits" }]}
-                  />
-                </ChartCard>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-3">
-                <ChartCard title="Ad placements" subtitle="Impressions require 50% visibility for one second">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Path</th><th className="py-2 pr-3">Size</th><th className="py-2 text-right">Views</th></tr></thead>
-                      <tbody>
-                        {audienceQuery.data.ad_placements.map((row) => (
-                          <tr key={`${row.path}-${row.size}`} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.path}</td><td className="py-2 pr-3 capitalize">{row.size}</td><td className="py-2 text-right">{formatNumber(row.count)}</td></tr>
-                        ))}
-                        {audienceQuery.data.ad_placements.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No ad impressions yet.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </ChartCard>
-
-                <ChartCard title="Top downloaded titles">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Items</th><th className="py-2 text-right">Data</th></tr></thead>
-                      <tbody>
-                        {audienceQuery.data.top_downloads.map((row) => (
-                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.count)}</td><td className="py-2 text-right">{formatBytes(row.bytes)}</td></tr>
-                        ))}
-                        {audienceQuery.data.top_downloads.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No downloads yet.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </ChartCard>
-
-                <ChartCard title="Top listening titles">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
-                      <tbody>
-                        {audienceQuery.data.top_listened.map((row) => (
-                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
-                        ))}
-                        {audienceQuery.data.top_listened.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No listening sessions yet.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </ChartCard>
-
-                <ChartCard title="Top Read Along titles">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
-                      <tbody>
-                        {audienceQuery.data.top_read_along.map((row) => (
-                          <tr key={row.story_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
-                        ))}
-                        {audienceQuery.data.top_read_along.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No Read Along sessions yet.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </ChartCard>
-
-                <ChartCard title="Top watching titles">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
-                      <tbody>
-                        {audienceQuery.data.top_watched.map((row) => (
-                          <tr key={row.video_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3" title={row.story_title ?? undefined}>{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
-                        ))}
-                        {audienceQuery.data.top_watched.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No watching sessions yet.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </ChartCard>
-
-                <ChartCard title="Top read blog posts">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground"><th className="py-2 pr-3">Title</th><th className="py-2 pr-3 text-right">Sessions</th><th className="py-2 text-right">Minutes</th></tr></thead>
-                      <tbody>
-                        {audienceQuery.data.top_blogs_read.map((row) => (
-                          <tr key={row.blog_id} className="border-b last:border-0"><td className="max-w-44 truncate py-2 pr-3">{row.title}</td><td className="py-2 pr-3 text-right">{formatNumber(row.sessions)}</td><td className="py-2 text-right">{row.minutes}</td></tr>
-                        ))}
-                        {audienceQuery.data.top_blogs_read.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No blog reading sessions yet.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </ChartCard>
-              </div>
-
-              <ChartCard title="Top pages visited" subtitle="By page views, this range">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                        <th className="py-2 pr-3">Path</th>
-                        <th className="py-2 pr-3 text-right">Views</th>
-                        <th className="py-2 text-right">Unique visitors</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {audienceQuery.data.top_pages.map((row) => (
-                        <tr key={row.path} className="border-b last:border-0">
-                          <td className="max-w-xs truncate py-2 pr-3 font-mono text-xs">{row.path}</td>
-                          <td className="py-2 pr-3 text-right">{formatNumber(row.views)}</td>
-                          <td className="py-2 text-right">{formatNumber(row.unique_visitors)}</td>
-                        </tr>
-                      ))}
-                      {audienceQuery.data.top_pages.length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="py-6 text-center text-muted-foreground">
-                            No page views yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </ChartCard>
-            </>
+        <TabsContent value="monetization" className="space-y-4">
+          {monetizationQuery.isLoading && <MonetizationTabSkeleton />}
+          {monetizationQuery.isError && !monetizationQuery.data && (
+            <p className="text-sm text-red-600">Failed to load monetization analytics.</p>
+          )}
+          {monetizationQuery.data?.kpis && (
+            <MonetizationTab data={monetizationQuery.data} days={days} isRefreshing={monetizationQuery.isPlaceholderData} />
+          )}
+          {monetizationQuery.data && !monetizationQuery.data.kpis && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              The API doesn't have the Monetization endpoint yet. Deploy or restart the backend.
+            </p>
           )}
         </TabsContent>
 

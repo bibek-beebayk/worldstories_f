@@ -1456,89 +1456,125 @@ export interface AdminAnalyticsSubmissionsResponse {
   by_genre: AdminAnalyticsGenreCount[];
 }
 
+export type AdminAudienceKpiKey =
+  | "unique_visitors"
+  | "engaged_visitors"
+  | "engaged_rate"
+  | "returning_rate"
+  | "median_engaged_minutes"
+  | "signed_in_share";
+
+export interface AdminAudienceKpi {
+  /** null when fewer than `min_sample` people stand behind a rate. */
+  value: number | null;
+  previous_value: number | null;
+  sample_size: number;
+  previous_sample_size: number | null;
+  min_sample: number;
+}
+
+export interface AdminAudienceTrafficQuality {
+  /** Flagged visit events over all visit events in the range (0-1). */
+  bot_share: number | null;
+  previous_bot_share: number | null;
+  flagged_visit_events: number;
+  visit_events: number;
+  /** Visitors who arrived from a source we can name, over visitors we could attribute (0-1). */
+  referrer_coverage: number | null;
+  direct_share: number | null;
+  last_bot_flag_run: {
+    ran_at: string;
+    flagged_events: number;
+    flagged_visitors: number;
+    rules: string;
+    hours_ago: number;
+  } | null;
+}
+
+export interface AdminAudiencePoint {
+  day: string;
+  new_visitors: number;
+  returning_visitors: number;
+}
+
+export interface AdminAudienceAcquisitionRow {
+  source: string;
+  unique_visitors: number;
+  previous_unique_visitors: number | null;
+  engaged_visitors: number;
+  engaged_rate: number | null;
+  unique_starters: number;
+  story_completions: number;
+  returning_visitors: number;
+  returning_rate: number | null;
+}
+
+export type AdminAudiencePageType = "story" | "read" | "listen" | "watch" | "blog" | "page" | "home" | "library" | "other";
+
+export interface AdminAudienceLandingPage {
+  path: string;
+  type: AdminAudiencePageType;
+  title: string;
+  admin_link: string | null;
+  resolved: boolean;
+  unique_visitors: number;
+  sessions: number;
+  /** Share of sessions with a single page view and no reading, listening or watching (0-1). */
+  bounce_rate: number | null;
+  /** Share of sessions that started reading, listening or watching (0-1). */
+  started_rate: number | null;
+}
+
+export type AdminAudienceFormat = "read" | "listen" | "watch" | "quick_read" | "blog";
+
+export interface AdminAudienceBehaviour {
+  format_split: { format: AdminAudienceFormat; unique_people: number; minutes: number }[];
+  devices: { ua_family: string; visitors: number }[];
+  countries: { country_code: string; visitors: number }[];
+  completions: {
+    stories: number;
+    chapters: number;
+    read_along: number;
+    other: number;
+    story_starters: number;
+    story_completion_rate: number | null;
+  };
+}
+
 export interface AdminAnalyticsAudienceResponse {
-  comparison?: Omit<AdminAnalyticsAudienceResponse, "comparison"> | null;
   range_days: AdminAnalyticsRangeDays;
   time_interval: AdminAnalyticsTimeInterval;
-  summary: {
-    visitors: number;
-    returning_visitors: number;
-    returning_rate: number;
-    readers: number;
-    returning_readers: number;
-    reader_retention_rate: number;
-    ad_impressions: number;
-    downloads: number;
-    unique_downloaders: number;
-    completions: number;
-    completion_rate: number;
-    reading_minutes: number;
-    listening_minutes: number;
-    watching_minutes: number;
-    blog_reading_minutes: number;
-    quick_read_reading_minutes: number;
-    read_along_listening_minutes: number;
-    read_along_sessions: number;
-    avg_session_minutes: number;
-    total_page_views: number;
-    median_browsing_session_minutes: number;
+  min_sample: number;
+  traffic_quality: AdminAudienceTrafficQuality;
+  kpis: Record<AdminAudienceKpiKey, AdminAudienceKpi>;
+  visitors_over_time: {
+    series: AdminAudiencePoint[];
+    previous_series: AdminAudiencePoint[] | null;
+    publish_markers: AdminContentPublishMarker[];
   };
-  daily_activity: Array<{
-    day: string;
-    ad_impressions: number;
-    downloads: number;
-    completions: number;
-    reading_minutes: number;
-    listening_minutes: number;
-    watching_minutes: number;
-    read_along_minutes: number;
-  }>;
-  visitor_retention: Array<{
-    day: string;
-    new_visitors: number;
-    returning_visitors: number;
-  }>;
-  ad_placements: Array<{ path: string; size: string; count: number }>;
-  ad_impressions_by_content_type: Array<{ content_type: string; count: number }>;
-  referral_sources: Array<{ referral_source: string; count: number }>;
-  download_types: Array<{ content_type: string; count: number; bytes: number }>;
-  completion_types: Array<{ content_type: string; count: number }>;
-  top_downloads: Array<{
-    story_id: number;
-    title: string;
-    slug: string;
-    count: number;
-    bytes: number;
-  }>;
-  top_listened: Array<{
-    story_id: number;
-    title: string;
-    slug: string;
-    sessions: number;
-    minutes: number;
-  }>;
-  top_watched: Array<{
-    video_id: number;
-    title: string;
-    story_title: string | null;
-    sessions: number;
-    minutes: number;
-  }>;
-  top_blogs_read: Array<{
-    blog_id: number;
-    title: string;
-    slug: string;
-    sessions: number;
-    minutes: number;
-  }>;
-  top_read_along: Array<{
-    story_id: number;
-    title: string;
-    slug: string;
-    sessions: number;
-    minutes: number;
-  }>;
-  top_pages: Array<{ path: string; views: number; unique_visitors: number }>;
+  acquisition: AdminAudienceAcquisitionRow[];
+  landing_pages: AdminAudienceLandingPage[];
+  slug_warnings: {
+    total: number;
+    stories: { id: number; title: string; slug: string; admin_link: string }[];
+  };
+  behaviour: AdminAudienceBehaviour;
+}
+
+export interface AdminMonetizationKpi {
+  value: number;
+  previous_value: number | null;
+  change_pct: number | null;
+}
+
+export interface AdminAnalyticsMonetizationResponse {
+  range_days: AdminAnalyticsRangeDays;
+  has_data: boolean;
+  kpis: Record<"ad_impressions" | "downloads" | "unique_downloaders", AdminMonetizationKpi>;
+  ad_placements: { path: string; title: string; type: AdminAudiencePageType; size: string; count: number }[];
+  ad_by_content_type: { content_type: string; count: number }[];
+  download_types: { content_type: string; count: number; bytes: number }[];
+  top_downloads: { story_id: number; title: string; slug: string; count: number; bytes: number }[];
 }
 
 export interface AdminAnalyticsCountryRow {
