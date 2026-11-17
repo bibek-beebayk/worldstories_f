@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,11 +11,16 @@ import type { HeroConfig } from "@/api/types";
 
 afterEach(cleanup);
 
-const renderHero = (hero: HeroConfig) =>
+const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+client.setQueryData(["profile-me"], { display_name: "Asha", username: "asha" });
+
+const renderHero = (hero: HeroConfig, compact = false) =>
   render(
-    <MemoryRouter>
-      <HomeHero hero={hero} />
-    </MemoryRouter>
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <HomeHero hero={hero} compact={compact} />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 describe("HomeHero", () => {
@@ -50,5 +56,30 @@ describe("HomeHero", () => {
     const cta = screen.getByRole("link", { name: /enter if you dare/i });
     expect(cta).toHaveAttribute("href", "https://example.com/halloween");
     expect(cta).toHaveAttribute("target", "_blank");
+  });
+
+  it("shows honest live stats and leaves out ones with nothing to report", () => {
+    renderHero(
+      buildDefaultHero({ stories: 120, readers_30d: 4200, countries: 38, languages: 0, audio_hours: 310, creators: 340, readers: 56000 })
+    );
+    expect(screen.getByText("readers this month")).toBeInTheDocument();
+    expect(screen.getByText("countries")).toBeInTheDocument();
+    expect(screen.getByText("hours of audiobooks")).toBeInTheDocument();
+    expect(screen.queryByText("languages")).not.toBeInTheDocument();
+    // The misleading legacy figures are no longer the default.
+    expect(screen.queryByText("creators")).not.toBeInTheDocument();
+    expect(screen.queryByText("readers")).not.toBeInTheDocument();
+  });
+
+  it("compact hero greets the reader by name with the call to action, no search, stats or description", () => {
+    renderHero(
+      buildDefaultHero({ stories: 120, readers_30d: 4200, countries: 38, languages: 9, audio_hours: 3, creators: 1, readers: 2 }),
+      true
+    );
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Welcome back, Asha");
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /start reading/i })).toHaveAttribute("href", "/library");
+    expect(screen.queryByText("readers this month")).not.toBeInTheDocument();
+    expect(screen.queryByText(/home for stories from around the world/i)).not.toBeInTheDocument();
   });
 });

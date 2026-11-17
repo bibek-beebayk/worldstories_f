@@ -208,12 +208,17 @@ export const buildDefaultHero = (stats?: HomeStats): HeroConfig => ({
     { icon: "BookOpenText", text: "Full novels, quick reads & poetry" },
     { icon: "Headphones", text: "Audiobooks & read-along narration" },
   ],
+  // Honest figures only: people who actually read in the last 30 days and what
+  // the catalogue covers. A zero (or a backend that predates the stat) is left
+  // out rather than shown as "0 readers".
   stats: stats
     ? [
         { label: "stories", value: stats.stories },
-        { label: "creators", value: stats.creators },
-        { label: "readers", value: stats.readers },
-      ]
+        { label: "readers this month", value: stats.readers_30d ?? 0 },
+        { label: "countries", value: stats.countries ?? 0 },
+        { label: "languages", value: stats.languages ?? 0 },
+        { label: "hours of audiobooks", value: stats.audio_hours ?? 0 },
+      ].filter((stat) => stat.value > 0)
     : [],
   cta: { label: "Start Reading", url: "/library", bg_from: "#ed405a", bg_to: "#f97316", text_color: "#ffffff" },
   background: { color: "#1a212d", image: "", accent: "#ed405a", animation: "classic", icons: [] },
@@ -237,7 +242,7 @@ export const heroConfigFromTemplate = (
     .filter((stat) => template.show_stats && stat.label)
     .map((stat) => ({
       label: stat.label,
-      value: stat.source === "custom" ? stat.value : liveStats[stat.source],
+      value: stat.source === "custom" ? stat.value : (liveStats[stat.source] ?? 0),
     }));
 
   return {

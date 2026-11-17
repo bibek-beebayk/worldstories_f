@@ -34,13 +34,25 @@ type Draft = AdminHeroTemplateInput;
 
 const STAT_SOURCES: { value: HeroStatSource; label: string }[] = [
   { value: "stories", label: "Live: published stories" },
-  { value: "creators", label: "Live: creators" },
-  { value: "readers", label: "Live: readers" },
+  { value: "readers_30d", label: "Live: readers in the last 30 days" },
+  { value: "countries", label: "Live: countries covered" },
+  { value: "languages", label: "Live: languages" },
+  { value: "audio_hours", label: "Live: hours of audiobooks" },
+  { value: "creators", label: "Live: authors (legacy)" },
+  { value: "readers", label: "Live: lifetime story views (legacy)" },
   { value: "custom", label: "Custom value" },
 ];
 
 // Used for the preview only when the live counts haven't loaded.
-const SAMPLE_STATS: HomeStats = { stories: 1200, creators: 340, readers: 56000 };
+const SAMPLE_STATS: HomeStats = {
+  stories: 1200,
+  readers_30d: 4200,
+  countries: 38,
+  languages: 9,
+  audio_hours: 310,
+  creators: 340,
+  readers: 56000,
+};
 
 const MAX_BACKGROUND_ICONS = 10;
 

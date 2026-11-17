@@ -477,8 +477,15 @@ export interface FavoriteStatusResponse {
 }
 
 export interface HomeStats {
-  creators: number;
   stories: number;
+  /** Unique people who read, listened or watched in the last 30 days. */
+  readers_30d?: number;
+  countries?: number;
+  languages?: number;
+  audio_hours?: number;
+  /** Legacy: Author rows. Not a reader/creator count a visitor should see. */
+  creators: number;
+  /** Legacy: lifetime story views. */
   readers: number;
 }
 
@@ -554,7 +561,15 @@ export interface HomeDataResponse {
 }
 
 export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "christmas" | "none";
-export type HeroStatSource = "stories" | "creators" | "readers" | "custom";
+export type HeroStatSource =
+  | "stories"
+  | "readers_30d"
+  | "countries"
+  | "languages"
+  | "audio_hours"
+  | "creators"
+  | "readers"
+  | "custom";
 export type HeroTitleSize = "small" | "medium" | "large" | "xlarge";
 export type HeroLetterSpacing = "tight" | "normal" | "wide" | "wider";
 export type HeroTextSize = "small" | "medium" | "large";
@@ -2515,9 +2530,11 @@ export type HomeSectionType =
   | "continue_shelf"
   | "reading_journey"
   | "recommended"
-  | "journeys_banner";
+  | "journeys_banner"
+  | "explore_tiles";
 export type HomeSectionVariant = "standard" | "quick_read" | "originals";
-export type HomeSectionLayout = "grid" | "rail";
+export type HomeSectionLayout = "grid" | "rail" | "trending";
+export type HomeSectionShowTo = "all" | "signed_in" | "signed_out";
 export type HomeSectionCardStyle = "default" | "compact";
 
 /** One resolved section from /home/ (apps/story/home_sections.py). `items` is
@@ -2555,6 +2572,7 @@ export interface HomeSectionConfig {
   has_audio?: boolean;
   has_video?: boolean;
   has_read_along?: boolean;
+  require_cover?: boolean;
   story_ids?: number[];
   video_type?: number | null;
   standalone_only?: boolean;
@@ -2585,6 +2603,26 @@ export interface AdminHomeSection {
   config: HomeSectionConfig;
   stories_detail: { id: number; title: string }[];
   updated_at: string;
+  show_to: HomeSectionShowTo;
+  starts_at: string | null;
+  ends_at: string | null;
+}
+
+export interface HomeSectionClickWindow {
+  clicks: number;
+  /** clicks ÷ homepage visits in the window; null with no visits. */
+  click_through: number | null;
+}
+
+export interface HomeSectionAnalytics {
+  windows: number[];
+  visits: Record<string, number>;
+  sections: Record<string, Record<string, HomeSectionClickWindow>>;
+}
+
+export interface MissingCoverStories {
+  total: number;
+  results: { id: number; title: string; slug: string; views: number }[];
 }
 
 export type AdminHomeSectionInput = Omit<AdminHomeSection, "id" | "position" | "stories_detail" | "updated_at"> & {
@@ -2596,6 +2634,7 @@ export interface HomeSectionTypesMeta {
   variants: { value: HomeSectionVariant; label: string }[];
   layouts: { value: HomeSectionLayout; label: string }[];
   card_styles: { value: HomeSectionCardStyle; label: string }[];
+  show_to?: { value: HomeSectionShowTo; label: string }[];
   sorts: string[];
   banner_themes: string[];
   ad_sizes: string[];

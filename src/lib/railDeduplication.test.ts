@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRailDeduplicator } from "./railDeduplication";
+import { createRailDeduplicator, storiesBehindVideos } from "./railDeduplication";
 
 const stories = (...ids: number[]) => ids.map((id) => ({ id }));
 
@@ -68,5 +68,22 @@ describe("createRailDeduplicator", () => {
     const dedupe = createRailDeduplicator();
 
     expect(dedupe.claim(stories(5, 3, 1))).toEqual(stories(5, 3, 1));
+  });
+});
+
+describe("storiesBehindVideos", () => {
+  it("lets Featured, Watch and a story rail share a story only once", () => {
+    const dedupe = createRailDeduplicator();
+    // A featured video of story 7 and a Watch row with a video of story 8 and
+    // a standalone video: all on screen before the story rails.
+    dedupe.reserve(storiesBehindVideos([{ story: { id: 7 } }]));
+    dedupe.reserve(storiesBehindVideos([{ story: { id: 8 } }, { story: null }]));
+
+    expect(dedupe.claim(stories(7, 8, 9, 10), 3)).toEqual(stories(9, 10));
+  });
+
+  it("is empty for no videos or only standalone ones", () => {
+    expect(storiesBehindVideos(undefined)).toEqual([]);
+    expect(storiesBehindVideos([{ story: null }])).toEqual([]);
   });
 });

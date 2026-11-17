@@ -32,7 +32,9 @@ export type AnalyticsEventType =
   | "daily_story_completed"
   // Advanced discovery (§8).
   | "surprise_me_clicked"
-  | "mood_selected";
+  | "mood_selected"
+  // A click on an item inside a homepage section (see lib/homeClicks.ts).
+  | "home_section_click";
 
 interface AnalyticsEventInput {
   event_type: AnalyticsEventType;

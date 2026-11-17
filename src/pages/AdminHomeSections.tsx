@@ -1,11 +1,13 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, ImageOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { storyApi } from "@/api/story";
 import type {
   AdminHomeSection,
   AdminHomeSectionInput,
+  HomeSectionAnalytics,
   HomeSectionConfig,
+  HomeSectionShowTo,
   HomeSectionTypesMeta,
 } from "@/api/types";
 import { FeaturedStoryPickerModal } from "@/components/admin/FeaturedStoryPickerModal";
@@ -18,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
+import { isoToLocalInput, localInputToIso } from "@/lib/datetimeLocal";
+import { audienceBadges } from "@/lib/homeSectionSchedule";
 
 type Draft = AdminHomeSectionInput & { stories_detail: { id: number; title: string }[] };
 
@@ -28,7 +32,14 @@ const LABELS: Record<string, string> = {
   recently_added: "Recently added",
   popular: "Most viewed",
   top_rated: "Top rated",
+  trending: "Trending (unique readers, last 7 days)",
 };
+
+const SHOW_TO_OPTIONS: { value: HomeSectionShowTo; label: string }[] = [
+  { value: "all", label: "Everyone" },
+  { value: "signed_in", label: "Signed-in readers only" },
+  { value: "signed_out", label: "Signed-out visitors only" },
+];
 
 const blankDraft = (type: AdminHomeSection["section_type"] = "stories_query"): Draft => ({
   title: "",
@@ -47,6 +58,9 @@ const blankDraft = (type: AdminHomeSection["section_type"] = "stories_query"): D
   see_all_label: "",
   see_all_url: "",
   config: type === "stories_query" ? { sort: "newest" } : {},
+  show_to: "all",
+  starts_at: null,
+  ends_at: null,
   stories_detail: [],
 });
 
@@ -355,6 +369,7 @@ const SectionEditor = ({
               <Check label="Has audio" checked={!!config.has_audio} onChange={(v) => setConfig({ has_audio: v })} />
               <Check label="Has video" checked={!!config.has_video} onChange={(v) => setConfig({ has_video: v })} />
               <Check label="Has read-along" checked={!!config.has_read_along} onChange={(v) => setConfig({ has_read_along: v })} />
+              <Check label="Only stories with a cover" checked={!!config.require_cover} onChange={(v) => setConfig({ require_cover: v })} />
             </div>
           </div>
         )}
@@ -478,6 +493,25 @@ const SectionEditor = ({
               )}
             </div>
           )}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Show to">
+              <Pick value={draft.show_to} onChange={(v) => v && set("show_to", v)} options={meta.show_to ?? SHOW_TO_OPTIONS} />
+            </Field>
+            <Field label="Starts (optional)" hint="Your local time">
+              <Input
+                type="datetime-local"
+                value={isoToLocalInput(draft.starts_at)}
+                onChange={(e) => set("starts_at", localInputToIso(e.target.value))}
+              />
+            </Field>
+            <Field label="Ends (optional)" hint="Hidden from this moment">
+              <Input
+                type="datetime-local"
+                value={isoToLocalInput(draft.ends_at)}
+                onChange={(e) => set("ends_at", localInputToIso(e.target.value))}
+              />
+            </Field>
+          </div>
           <Check label="Show on the homepage" checked={draft.is_enabled} onChange={(v) => set("is_enabled", v)} />
         </div>
 
@@ -495,10 +529,37 @@ const SectionEditor = ({
   );
 };
 
+const percent = (value: number | null) => (value === null ? "-" : `${(value * 100).toFixed(1)}%`);
+
+/** Clicks and click-through (clicks / homepage visits) for the last 7 and 30 days. */
+const SectionClicks = ({ stats, sectionId }: { stats: HomeSectionAnalytics | undefined; sectionId: number }) => {
+  if (!stats) return null;
+  const mine = stats.sections[String(sectionId)] ?? {};
+  return (
+    <div
+      className="hidden shrink-0 gap-3 text-right text-[11px] leading-tight text-muted-foreground md:flex"
+      title="Clicks on this section's items, and clicks divided by homepage visits. Audience only (staff and bots excluded)."
+    >
+      {[7, 30].map((days) => {
+        const row = mine[String(days)];
+        return (
+          <div key={days}>
+            <p className="font-medium text-foreground">{(row?.clicks ?? 0).toLocaleString()} clicks</p>
+            <p>
+              {percent(row?.click_through ?? (stats.visits[String(days)] ? 0 : null))} CTR · {days}d
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const AdminHomeSections = () => {
   const queryClient = useQueryClient();
   const [editor, setEditor] = useState<{ draft: Draft; id: number | null } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<AdminHomeSection | null>(null);
+  const [coversOpen, setCoversOpen] = useState(false);
 
   const { data: sections, isLoading } = useQuery({
     queryKey: ["admin-home-sections"],
@@ -508,6 +569,17 @@ const AdminHomeSections = () => {
     queryKey: ["admin-home-section-types"],
     queryFn: storyApi.getAdminHomeSectionTypes,
     staleTime: Infinity,
+  });
+
+  const { data: clickStats } = useQuery({
+    queryKey: ["admin-home-section-analytics"],
+    queryFn: storyApi.getAdminHomeSectionAnalytics,
+    staleTime: 60_000,
+  });
+  const covers = useQuery({
+    queryKey: ["admin-home-missing-covers"],
+    queryFn: storyApi.getAdminMissingCovers,
+    enabled: coversOpen,
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-home-sections"] });
@@ -559,9 +631,14 @@ const AdminHomeSections = () => {
               minute.
             </p>
           </div>
-          <Button onClick={() => meta && setEditor({ draft: blankDraft(), id: null })} disabled={!meta}>
-            <Plus className="mr-1 h-4 w-4" /> Add section
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setCoversOpen(true)}>
+              <ImageOff className="mr-1 h-4 w-4" /> Missing covers
+            </Button>
+            <Button onClick={() => meta && setEditor({ draft: blankDraft(), id: null })} disabled={!meta}>
+              <Plus className="mr-1 h-4 w-4" /> Add section
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {isLoading && <Loader2 className="h-5 w-5 animate-spin" />}
@@ -593,6 +670,12 @@ const AdminHomeSections = () => {
                       ` · ${section.item_limit} items · ${section.layout}`}
                   </p>
                 </div>
+                {audienceBadges(section).map((badge) => (
+                  <span key={badge} className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                    {badge}
+                  </span>
+                ))}
+                <SectionClicks stats={clickStats} sectionId={section.id} />
                 {!section.is_enabled && (
                   <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">Hidden</span>
                 )}
@@ -623,6 +706,28 @@ const AdminHomeSections = () => {
           onClose={() => setEditor(null)}
         />
       )}
+
+      <Dialog open={coversOpen} onOpenChange={setCoversOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Published stories without a cover</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            These show a placeholder tile, and are skipped by any section set to "Only stories with a cover". Most
+            viewed first.
+          </p>
+          {covers.isLoading && <Loader2 className="h-5 w-5 animate-spin" />}
+          {covers.data && covers.data.total === 0 && <p className="text-sm">Every published story has a cover.</p>}
+          <ul className="space-y-1">
+            {covers.data?.results.map((story) => (
+              <li key={story.id} className="flex items-center justify-between gap-3 rounded border px-2 py-1 text-sm">
+                <span className="truncate">{story.title}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{story.views.toLocaleString()} views</span>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <DialogContent>

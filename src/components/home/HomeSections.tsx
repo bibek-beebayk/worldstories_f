@@ -3,15 +3,16 @@ import { Link } from "react-router";
 import { ArrowRight, MapPin } from "lucide-react";
 import AdSpace from "@/components/AdSpace";
 import BlogCard from "@/components/BlogCard";
-import ContinueListeningSection from "@/components/ContinueListeningSection";
-import ContinueReadingSection from "@/components/ContinueReadingSection";
 import NewEntriesSection from "@/components/NewEntriesSection";
 import QuickReadSection from "@/components/QuickReadSection";
-import ReadingJourneyCard from "@/components/ReadingJourneyCard";
 import RecommendedForYouSection from "@/components/RecommendedForYouSection";
 import StoryCard from "@/components/StoryCard";
 import StoryJourneysBanner from "@/components/StoryJourneysBanner";
+import TrendingList from "@/components/TrendingList";
 import VideoCard from "@/components/VideoCard";
+import ContinueShelf from "@/components/home/ContinueShelf";
+import ExploreTiles from "@/components/home/ExploreTiles";
+import SectionClickTracker from "@/components/home/SectionClickTracker";
 import { OriginalsRail } from "@/components/OriginalsRail";
 import {
   Carousel,
@@ -25,7 +26,9 @@ import { useContinueListening } from "@/hooks/useContinueListening";
 import { useContinueReading } from "@/hooks/useContinueReading";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useRecommendations } from "@/hooks/useRecommendations";
-import { createRailDeduplicator } from "@/lib/railDeduplication";
+import { mergeContinueItems } from "@/lib/continueShelf";
+import type { ClickableItem } from "@/lib/homeClicks";
+import { createRailDeduplicator, storiesBehindVideos } from "@/lib/railDeduplication";
 import type { Blog, HomeSectionData, PublicVideo, Story } from "@/api/types";
 
 // Tailwind only emits classes it can see as whole strings, so the column
@@ -160,9 +163,29 @@ const HomeBanner = ({ section }: { section: HomeSectionData }) => {
   );
 };
 
+/** What a click inside a section can resolve to (see lib/homeClicks.ts). */
+const clickItemsFor = (section: HomeSectionData, recommended: Story[] | undefined): ClickableItem[] => {
+  const withSlug = (rows: unknown[], type: ClickableItem["type"]): ClickableItem[] =>
+    (rows as { id: number; slug?: string }[]).map((row) => ({ id: row.id, slug: row.slug, type }));
+  switch (section.section_type) {
+    case "stories_query":
+    case "stories_manual":
+      return withSlug(section.items, "story");
+    case "videos":
+      return withSlug(section.items, "video");
+    case "blogs":
+      return withSlug(section.items, "blog");
+    case "recommended":
+      return withSlug(recommended ?? [], "story");
+    default:
+      return [];
+  }
+};
+
 interface HomeSectionsProps {
   sections: HomeSectionData[];
-  /** Stories already on screen above the sections (the featured band). */
+  /** Stories already on screen above the sections (the featured band, including
+   *  the stories behind featured videos). */
   reservedStories: { id: number }[];
 }
 
@@ -186,28 +209,22 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
   rails.reserve(listening.data?.results.map((item) => item.story));
   rails.reserve(reservedStories);
 
-  const body = sections.map((section) => {
+  const renderSection = (section: HomeSectionData) => {
     const key = section.id;
 
     switch (section.section_type) {
       case "continue_shelf": {
         if (!isLoggedIn) return null;
-        const readingItems = reading.data?.results ?? [];
-        const listeningItems = listening.data?.results ?? [];
-        if (readingItems.length === 0 && listeningItems.length === 0) return null;
-        return (
-          <div key={key} className="grid gap-4 sm:grid-cols-2">
-            {!reading.isLoading && !reading.isError && readingItems.length > 0 && (
-              <ContinueReadingSection items={readingItems} isLoading={false} isError={false} />
-            )}
-            {!listening.isLoading && !listening.isError && listeningItems.length > 0 && (
-              <ContinueListeningSection items={listeningItems} isLoading={false} isError={false} />
-            )}
-          </div>
-        );
+        // Reading and listening in one row, newest first; the streak is a chip
+        // in the row header (so there is no separate streak banner).
+        const entries = mergeContinueItems(reading.data?.results, listening.data?.results);
+        if (entries.length === 0) return null;
+        return <ContinueShelf key={key} entries={entries} title={section.title || undefined} />;
       }
       case "reading_journey":
-        return isLoggedIn ? <ReadingJourneyCard key={key} enabled /> : null;
+        // Folded into the Continue row as a streak chip. The type stays valid
+        // so existing layouts keep loading; it just draws nothing now.
+        return null;
       case "recommended": {
         if (!isLoggedIn || recommendations.isLoading || recommendations.isError) return null;
         const stories = section.allow_repeats
@@ -218,6 +235,8 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
       }
       case "journeys_banner":
         return <StoryJourneysBanner key={key} enabled />;
+      case "explore_tiles":
+        return <ExploreTiles key={key} title={section.title || undefined} />;
       case "new_entries":
         return <NewEntriesSection key={key} title={section.title} icon={sectionIcon(section.icon)} />;
       case "ad_slot":
@@ -232,6 +251,9 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
         return <HomeBanner key={key} section={section} />;
       case "videos": {
         const videos = section.items as PublicVideo[];
+        // A video's story is on screen here, so rails further down must not
+        // offer it again as a story.
+        rails.reserve(storiesBehindVideos(videos));
         return (
           <section key={key}>
             <SectionHeader section={section} />
@@ -280,6 +302,16 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
             />
           );
         }
+        if (section.layout === "trending") {
+          return (
+            <section key={key}>
+              <SectionHeader section={section} />
+              <div className="rounded-sm border border-border bg-card p-4 shadow-sm sm:p-5">
+                <TrendingList stories={stories} />
+              </div>
+            </section>
+          );
+        }
         return (
           <section key={key}>
             <SectionHeader section={section} />
@@ -296,6 +328,22 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
         // A section type from a newer backend than this build knows — skip it.
         return null;
     }
+  };
+
+  const body = sections.map((section, index) => {
+    const node = renderSection(section);
+    if (!node) return null;
+    return (
+      <SectionClickTracker
+        key={section.id}
+        sectionId={section.id}
+        sectionType={section.section_type}
+        position={index + 1}
+        items={clickItemsFor(section, recommendations.data)}
+      >
+        {node}
+      </SectionClickTracker>
+    );
   });
 
   return <>{body}</>;

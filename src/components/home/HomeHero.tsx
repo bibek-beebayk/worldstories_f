@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
+import { authApi } from "@/api/auth";
 import type { HeroConfig, HeroLetterSpacing, HeroTextSize, HeroTitleSize } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { formatViews } from "@/lib/utils";
@@ -28,6 +30,69 @@ const DESCRIPTION_SIZE_CLASS: Record<HeroTextSize, string> = {
 };
 
 /**
+ * The signed-in hero: one slim line greeting the reader by name, with the
+ * template's call to action. Site search already lives in the header, so it is
+ * not repeated here. Uses the template's colours; the description, info lines,
+ * stats and animation belong to the full hero a signed-out visitor sees.
+ */
+const CompactHero = ({ hero }: { hero: HeroConfig }) => {
+  const { title, cta, background } = hero;
+  const typography = hero.typography ?? DEFAULT_HERO_TYPOGRAPHY;
+  // Same query the profile pages use, so it is usually already cached.
+  const { data: profile } = useQuery({ queryKey: ["profile-me"], queryFn: authApi.getMe, retry: false });
+  const name = (profile?.display_name || profile?.username || "").trim();
+
+  return (
+    <section className="relative overflow-hidden" style={{ backgroundColor: background.color }}>
+      <div
+        className="container relative flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-3 py-4 sm:px-4 sm:py-5"
+        style={typography.body_font ? { fontFamily: fontStack(typography.body_font) } : undefined}
+      >
+        <h1
+          className="text-2xl sm:text-3xl"
+          style={{
+            ...(typography.title_font ? { fontFamily: fontStack(typography.title_font) } : {}),
+            fontWeight: typography.title_weight,
+            letterSpacing: LETTER_SPACING[typography.title_letter_spacing] ?? LETTER_SPACING.tight,
+            fontStyle: typography.title_italic ? "italic" : undefined,
+          }}
+        >
+          <span className="text-white">{name ? "Welcome back, " : "Welcome back"}</span>
+          {name && (
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage: `linear-gradient(to right, ${title.highlight_from}, ${title.highlight_to})`,
+                paddingRight: "0.15em",
+              }}
+            >
+              {name}
+            </span>
+          )}
+        </h1>
+
+        {cta.label && cta.url && (
+          <Button
+            asChild
+            size="sm"
+            className="shrink-0 rounded-full px-4 font-semibold shadow-md"
+            style={{ backgroundImage: `linear-gradient(to right, ${cta.bg_from}, ${cta.bg_to})`, color: cta.text_color }}
+          >
+            {isExternal(cta.url) ? (
+              <a href={cta.url} target="_blank" rel="noopener noreferrer">
+                {cta.label}
+              </a>
+            ) : (
+              <Link to={cta.url}>{cta.label}</Link>
+            )}
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+};
+
+/**
  * The homepage hero. The layout is fixed here; every piece of content —
  * text, stats, CTA, colours, background and its animation — comes from a
  * backend hero template (see heroPresets.ts for the animation presets).
@@ -38,7 +103,17 @@ const DESCRIPTION_SIZE_CLASS: Record<HeroTextSize, string> = {
  * The homepage loads the hero's fonts from its meta() (so they're in <head>
  * on first paint); `loadFonts` adds them in place instead, for the admin preview.
  */
-const HomeHero = ({ hero, loadFonts = false }: { hero: HeroConfig; loadFonts?: boolean }) => {
+const HomeHero = ({
+  hero,
+  loadFonts = false,
+  compact = false,
+}: {
+  hero: HeroConfig;
+  loadFonts?: boolean;
+  /** The slim signed-in version (see CompactHero). */
+  compact?: boolean;
+}) => {
+  if (compact) return <CompactHero hero={hero} />;
   const { title, cta, background } = hero;
   const typography = hero.typography ?? DEFAULT_HERO_TYPOGRAPHY;
   const fontsUrl = loadFonts ? heroFontsUrl(hero) : null;

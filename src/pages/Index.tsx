@@ -4,7 +4,9 @@ import HomeSections from "@/components/home/HomeSections";
 import { buildDefaultHero, heroFontsUrl } from "@/components/home/heroPresets";
 import { storyApi } from "@/api/story";
 import { useHomeData } from "@/hooks/useHomeData";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { buildMeta } from "@/lib/buildMeta";
+import { storiesBehindVideos } from "@/lib/railDeduplication";
 import type { FeaturedItem } from "@/api/types";
 import type { Route } from "./+types/Index";
 
@@ -36,7 +38,12 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 const Index = ({ loaderData }: Route.ComponentProps) => {
-  const { data, isLoading, isError } = useHomeData(loaderData);
+  const { data, isLoading, isError, isPlaceholderData } = useHomeData(loaderData);
+  const isLoggedIn = useIsLoggedIn();
+  // The server-rendered payload is the signed-out page. For a signed-in reader
+  // it is only a stand-in until their own payload arrives; showing its sections
+  // for that moment would flash guest-only content.
+  const awaitingMemberData = isLoggedIn && isPlaceholderData;
 
   // Featured Stories is exempt from the dedup system entirely — it always
   // shows every story the team marked as featured. It still reserves them, so
@@ -52,15 +59,21 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
   const featuredItems: FeaturedItem[] = dailyItem
     ? [dailyItem]
     : data?.featured_items ?? (data?.featured_stories ?? []).map((story): FeaturedItem => ({ kind: "story", story }));
-  const featuredStories = featuredItems.flatMap((item) => (item.kind === "story" ? [item.story] : []));
+  // The Featured band is the signed-out showcase; signed-in readers get their
+  // own shelves first instead, so it is hidden for them and reserves nothing.
+  // Featured videos reserve the story behind them too, so the same story is
+  // not offered again below as a story rail.
+  const featuredStories = featuredItems.flatMap((item) =>
+    item.kind === "story" ? [item.story] : storiesBehindVideos([item.video])
+  );
   const hero = data?.hero ?? buildDefaultHero(data?.sidebar.stats);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,var(--theme-page-wash,#f8fafc),transparent_320px)]">
-      <HomeHero hero={hero} />
+      <HomeHero hero={hero} compact={isLoggedIn} />
 
       <main>
-        {!isLoading && data && (
+        {!isLoading && data && !awaitingMemberData && !isLoggedIn && (
           <FeaturedStoriesSection
             items={featuredItems}
             isDaily={Boolean(dailyItem)}
@@ -71,7 +84,7 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
 
         <div className="container px-3 py-8 sm:px-4 sm:py-10 md:py-12">
           <div className="space-y-8 md:space-y-10">
-            {isLoading && (
+            {(isLoading || awaitingMemberData) && (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
                 <p className="text-sm text-muted-foreground">Loading today's stories…</p>
@@ -89,8 +102,8 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
             {/* Everything below the featured band is the admin-managed section
                 list (Admin → Homepage Sections): which sections exist, their
                 order, content and layout all come from the server. */}
-            {!isLoading && data && (
-              <HomeSections sections={data.sections ?? []} reservedStories={featuredStories} />
+            {!isLoading && data && !awaitingMemberData && (
+              <HomeSections sections={data.sections ?? []} reservedStories={isLoggedIn ? [] : featuredStories} />
             )}
           </div>
         </div>

@@ -16,6 +16,18 @@ export interface DedupableStory {
 }
 
 /**
+ * The stories behind a list of videos. A video that belongs to a story puts
+ * that story on screen, so the story must be reserved the same as if it had
+ * been shown as a story card — otherwise Featured, Watch and a story rail can
+ * all offer the same story at once. Standalone videos have none.
+ */
+export function storiesBehindVideos(
+  videos: Array<{ story: DedupableStory | null }> | undefined
+): DedupableStory[] {
+  return (videos ?? []).flatMap((video) => (video.story ? [video.story] : []));
+}
+
+/**
  * Claims stories for a rail, skipping any already claimed by a higher-priority
  * one, and records what it kept.
  *
