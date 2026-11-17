@@ -1718,6 +1718,75 @@ export interface AdminAnalyticsGeographyResponse {
   logins_over_time: Array<{ day: string; count: number; users: number }>;
 }
 
+export type AdminGeographyScope = "visitors" | "signed_in";
+
+export interface AdminGeographyKpi<T = number> {
+  /** null when too few visitors stand behind it. */
+  value: T | null;
+  previous_value: T | null;
+  sample_size: number;
+  previous_sample_size: number | null;
+  min_sample: number;
+}
+
+export interface AdminGeographyCountryRow {
+  country_code: string;
+  country: string;
+  visitors: number;
+  previous_visitors: number | null;
+  engaged_visitors: number;
+  engaged_rate: number | null;
+  readers: number;
+  minutes: number;
+  completions: number;
+  signed_in_users: number;
+  top_story: { id: number; title: string; slug: string } | null;
+  top_format: "read" | "listen" | "watch" | "quick_read" | "blog" | null;
+  top_source: string | null;
+  /** Suspected-bot share of this country's visit events, taken before bots are excluded. */
+  bot_share: number | null;
+  bot_visit_events: number;
+}
+
+export interface AdminGeographyVisitorsResponse {
+  scope: "visitors";
+  range_days: AdminAnalyticsRangeDays;
+  time_interval: AdminAnalyticsTimeInterval;
+  min_sample: number;
+  has_previous: boolean;
+  kpis: {
+    countries_reached: AdminGeographyKpi;
+    top_country: AdminGeographyKpi<{ country_code: string; country: string; visitors: number; share: number | null }>;
+    outside_top_country_share: AdminGeographyKpi;
+    country_coverage: AdminGeographyKpi;
+    bot_share: AdminGeographyKpi;
+  };
+  by_country: AdminGeographyCountryRow[];
+  series: { key: string; label: string }[];
+  over_time: Array<{ day: string } & Record<string, number | string>>;
+  cities: Array<{ city: string; region: string; country_code: string; country: string; visitors: number }>;
+  /** "events" = measured for everyone; "signed_in_only" = the login-based fallback. */
+  cities_source: "events" | "signed_in_only";
+  /** Earliest event that carries a country (ISO), or null. */
+  data_since: string | null;
+}
+
+export type AdminGeographyResponse =
+  | AdminGeographyVisitorsResponse
+  | (AdminAnalyticsGeographyResponse & { scope: "signed_in" });
+
+export interface AdminGeographyCountryDetail {
+  country_code: string;
+  country: string;
+  range_days: AdminAnalyticsRangeDays;
+  visitors: number;
+  top_stories: Array<{ id: number; title: string; slug: string; visitors: number; readers: number; minutes: number }>;
+  landing_pages: Array<{ path: string; title: string; type: string; resolved: boolean; admin_link: string | null; visitors: number }>;
+  referral_sources: Array<{ referral_source: string; count: number }>;
+  devices: Array<{ ua_family: string; visitors: number }>;
+  languages: Array<{ language: string; name: string; readers: number }>;
+}
+
 export interface AdminStoryDetailAnalyticsResponse {
   range_days: AdminAnalyticsRangeDays;
   story: { id: number; title: string; slug: string };

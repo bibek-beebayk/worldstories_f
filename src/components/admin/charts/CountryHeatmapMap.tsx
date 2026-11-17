@@ -5,16 +5,37 @@ import worldGeography from "world-atlas/countries-110m.json";
 import { EMPTY_COUNTRY_COLOR, HEAT_COLORS, heatColor, numericCountryCode } from "@/lib/geoMapColors";
 import { emptyStateClass } from "./palette";
 
-interface CountryHeatmapRow {
+export interface CountryHeatmapRow {
   country: string;
   country_code: string;
-  logins: number;
-  users: number;
+  /** The number the map is coloured by. Whole numbers, so the legend can show exact ranges. */
+  value: number;
+  /** The tooltip's second line, e.g. "12 users · 30 sign-ins". */
+  detail?: string;
 }
 
 interface CountryHeatmapMapProps {
   data: CountryHeatmapRow[];
   emptyLabel?: string;
+  /** What `value` counts, for the aria labels, e.g. "visitors". */
+  metricLabel?: string;
+  /** Called with a country code when a coloured country is clicked. */
+  onSelect?: (countryCode: string) => void;
+}
+
+/** The value range each of the heat colours stands for, e.g. 1–12, 13–24. */
+export function legendBins(maximum: number, bins = HEAT_COLORS.length) {
+  const rows: { color: string; label: string }[] = [];
+  for (let index = 0; index < bins; index += 1) {
+    const low = Math.floor((index * maximum) / bins) + 1;
+    const high = Math.floor(((index + 1) * maximum) / bins);
+    if (low > high) continue; // a tiny maximum has fewer distinct steps than colours
+    rows.push({
+      color: HEAT_COLORS[index],
+      label: low === high ? low.toLocaleString() : `${low.toLocaleString()}–${high.toLocaleString()}`,
+    });
+  }
+  return rows;
 }
 
 const MAP_BORDER_COLOR = "hsl(var(--background))";
@@ -33,6 +54,8 @@ const DEFAULT_MAP_CENTER: [number, number] = [0, 4];
 export function CountryHeatmapMap({
   data,
   emptyLabel = "No resolved sign-in locations for this range yet.",
+  metricLabel = "users",
+  onSelect,
 }: CountryHeatmapMapProps) {
   const [tooltip, setTooltip] = useState<{ row: CountryHeatmapRow | null; name: string; x: number; y: number } | null>(
     null
@@ -52,7 +75,7 @@ export function CountryHeatmapMap({
     return map;
   }, [data]);
 
-  const maxUsers = Math.max(...data.map((row) => row.users), 1);
+  const maxValue = Math.max(...data.map((row) => row.value), 1);
 
   const changeZoom = (factor: number) => {
     setTooltip(null);
@@ -87,7 +110,7 @@ export function CountryHeatmapMap({
           className="h-auto w-full"
           style={{ touchAction: "none" }}
           role="img"
-          aria-label="World map colored by the number of signed-in users per country"
+          aria-label={`World map colored by ${metricLabel} per country`}
         >
           <ZoomableGroup
             center={mapPosition.coordinates}
@@ -112,18 +135,19 @@ export function CountryHeatmapMap({
                     <Geography
                       key={geography.rsmKey}
                       geography={geography}
-                      aria-label={`${countryName}: ${row?.users || 0} ${row?.users === 1 ? "user" : "users"}`}
+                      aria-label={`${countryName}: ${row?.value || 0} ${metricLabel}`}
                       onMouseMove={(event) => {
                         const bounds = containerRef.current?.getBoundingClientRect();
                         if (!bounds) return;
                         setTooltip({ row: row || null, name: countryName, x: event.clientX - bounds.left, y: event.clientY - bounds.top });
                       }}
                       onMouseLeave={() => setTooltip(null)}
-                      fill={heatColor(row?.users || 0, maxUsers)}
+                      fill={heatColor(row?.value || 0, maxValue)}
+                      onClick={() => row && onSelect?.(row.country_code)}
                       stroke={MAP_BORDER_COLOR}
                       strokeWidth={0.65}
                       style={{
-                        default: { outline: "none" },
+                        default: { outline: "none", cursor: row && onSelect ? "pointer" : "default" },
                         hover: { fill: row ? "hsl(var(--primary) / 0.85)" : EMPTY_COUNTRY_COLOR, outline: "none" },
                         pressed: { outline: "none" },
                       }}
@@ -176,18 +200,26 @@ export function CountryHeatmapMap({
           >
             <p className="text-xs font-semibold">{tooltip.name}</p>
             <p className="text-[11px] text-slate-300">
-              {tooltip.row ? `${tooltip.row.users} user${tooltip.row.users === 1 ? "" : "s"} · ${tooltip.row.logins} sign-in${tooltip.row.logins === 1 ? "" : "s"}` : "No sign-ins"}
+              {tooltip.row ? tooltip.row.detail ?? `${tooltip.row.value.toLocaleString()} ${metricLabel}` : `No ${metricLabel}`}
             </p>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground" aria-label="Map color scale">
-        <span>Fewer</span>
-        {HEAT_COLORS.map((color) => (
-          <span key={color} className="h-3 w-4 rounded-sm" style={{ backgroundColor: color }} />
+      <div
+        className="flex flex-wrap items-start justify-end gap-x-3 gap-y-1 text-[10px] text-muted-foreground"
+        aria-label={`Map color scale, ${metricLabel} per country`}
+      >
+        <span className="inline-flex items-center gap-1">
+          <span className="h-3 w-4 rounded-sm" style={{ backgroundColor: EMPTY_COUNTRY_COLOR }} />
+          None
+        </span>
+        {legendBins(maxValue).map((bin) => (
+          <span key={bin.color} className="inline-flex items-center gap-1">
+            <span className="h-3 w-4 rounded-sm" style={{ backgroundColor: bin.color }} />
+            {bin.label}
+          </span>
         ))}
-        <span>More</span>
       </div>
     </div>
   );

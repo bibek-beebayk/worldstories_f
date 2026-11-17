@@ -90,7 +90,9 @@ import {
   AdminAnalyticsSubmissionsResponse,
   AdminAnalyticsAudienceResponse,
   AdminAnalyticsMonetizationResponse,
-  AdminAnalyticsGeographyResponse,
+  AdminGeographyCountryDetail,
+  AdminGeographyResponse,
+  AdminGeographyScope,
   AdminAnalyticsExportSection,
   AdminAnalyticsExportFileFormat,
   AdminStoryDetailAnalyticsResponse,
@@ -579,8 +581,12 @@ export const storyApi = {
     apiClient<AdminAnalyticsAudienceResponse>(`/admin/analytics/audience/?days=${days}`),
   getAdminAnalyticsMonetization: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsMonetizationResponse>(`/admin/analytics/monetization/?days=${days}`),
-  getAdminAnalyticsGeography: (days: AdminAnalyticsRangeDays) =>
-    apiClient<AdminAnalyticsGeographyResponse>(`/admin/analytics/geography/?days=${days}`),
+  getAdminAnalyticsGeography: (days: AdminAnalyticsRangeDays, scope: AdminGeographyScope = "visitors") =>
+    apiClient<AdminGeographyResponse>(`/admin/analytics/geography/?days=${days}&scope=${scope}`),
+  getAdminAnalyticsGeographyCountry: (countryCode: string, days: AdminAnalyticsRangeDays) =>
+    apiClient<AdminGeographyCountryDetail>(
+      `/admin/analytics/geography/${encodeURIComponent(countryCode)}/?days=${days}`
+    ),
   getAdminStoryDetailAnalytics: (storySlug: string, days: AdminAnalyticsRangeDays) =>
     apiClient<AdminStoryDetailAnalyticsResponse>(`/admin/analytics/stories/${storySlug}/?days=${days}`),
   getAdminBlogDetailAnalytics: (blogSlug: string, days: AdminAnalyticsRangeDays) =>

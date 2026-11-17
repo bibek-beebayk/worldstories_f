@@ -26,7 +26,8 @@ import { EngagementTab, EngagementTabSkeleton } from "@/components/admin/Engagem
 import { AudienceTab, AudienceTabSkeleton } from "@/components/admin/AudienceTab";
 import { MonetizationTab, MonetizationTabSkeleton } from "@/components/admin/MonetizationTab";
 import { UsersTab, UsersTabSkeleton } from "@/components/admin/UsersTab";
-import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval } from "@/api/types";
+import { GeographyTab, GeographyTabSkeleton } from "@/components/admin/GeographyTab";
+import type { AdminAnalyticsRangeDays, AdminAnalyticsTimeInterval, AdminGeographyScope } from "@/api/types";
 
 const formatNumber = (value: number) => value.toLocaleString();
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
@@ -118,11 +119,16 @@ const AdminAnalytics = () => {
     queryFn: () => storyApi.getAdminAnalyticsSubmissions(days),
     enabled: canFetch && activeTab === "submissions",
   });
+  const [geographyScope, setGeographyScope] = useState<AdminGeographyScope>("visitors");
   const geographyQuery = useQuery({
-    queryKey: ["admin-analytics", "geography", days],
-    queryFn: () => storyApi.getAdminAnalyticsGeography(days),
+    queryKey: ["admin-analytics", "geography", days, geographyScope],
+    queryFn: () => storyApi.getAdminAnalyticsGeography(days, geographyScope),
     enabled: canFetch && activeTab === "geography",
+    placeholderData: keepPreviousData,
   });
+  // The response for the scope on screen. While the other scope loads, the
+  // previous one is held as placeholder data and must not be drawn as this one.
+  const geography = geographyQuery.data?.scope === geographyScope ? geographyQuery.data : undefined;
 
   const submissionsByDay = useMemo(() => {
     const data = submissionsQuery.data;
@@ -292,22 +298,60 @@ const AdminAnalytics = () => {
         </TabsContent>
 
         <TabsContent value="geography" className="space-y-4">
-          {geographyQuery.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="inline-flex rounded-lg border bg-muted/30 p-0.5" role="group" aria-label="Who to include">
+              {(
+                [
+                  ["visitors", "All visitors"],
+                  ["signed_in", "Signed-in users"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={geographyScope === value}
+                  onClick={() => setGeographyScope(value)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    geographyScope === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {geographyScope === "visitors"
+                ? "Everyone who visited, placed by Cloudflare's visitor country."
+                : "Only people who signed in, placed by where they logged in from."}
+            </p>
+          </div>
+
+          {!geography && geographyQuery.isLoading && <GeographyTabSkeleton />}
+          {!geography && !geographyQuery.isLoading && geographyQuery.isFetching && <GeographyTabSkeleton />}
           {geographyQuery.isError && (
             <p className="text-sm text-red-600">Failed to load geography analytics.</p>
           )}
-          {geographyQuery.data && (
+          {geography?.scope === "visitors" && !geography.kpis && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              The API returned an older Geography format. Deploy or restart the backend so it matches this version of
+              the admin panel.
+            </p>
+          )}
+          {geography?.scope === "visitors" && geography.kpis && (
+            <GeographyTab data={geography} days={days} isRefreshing={geographyQuery.isPlaceholderData} />
+          )}
+          {geography?.scope === "signed_in" && (
             <>
               <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
-                <StatTile label="Sign-ins" value={formatNumber(geographyQuery.data.total_logins)} current={geographyQuery.data.total_logins} previous={geographyQuery.data.comparison?.total_logins} average={averagePerDay(geographyQuery.data.total_logins)} />
-                <StatTile label="Countries reached" value={formatNumber(geographyQuery.data.countries_reached)} />
+                <StatTile label="Sign-ins" value={formatNumber(geography.total_logins)} current={geography.total_logins} previous={geography.comparison?.total_logins} average={averagePerDay(geography.total_logins)} />
+                <StatTile label="Countries reached" value={formatNumber(geography.countries_reached)} />
                 <StatTile
                   label="Top country"
-                  value={geographyQuery.data.by_country[0]?.country ?? "—"}
+                  value={geography.by_country[0]?.country ?? "—"}
                 />
                 <StatTile
                   label="Unresolved locations"
-                  value={formatNumber(geographyQuery.data.unresolved_logins)}
+                  value={formatNumber(geography.unresolved_logins)}
                 />
               </div>
 
@@ -315,19 +359,26 @@ const AdminAnalytics = () => {
                 title="Sign-ins by country"
                 subtitle="Unique signed-in users per country, this range — hover a country for details"
               >
-                <CountryHeatmapMap data={geographyQuery.data.by_country} />
+                <CountryHeatmapMap
+                  data={geography.by_country.map((row) => ({
+                    country: row.country,
+                    country_code: row.country_code,
+                    value: row.users,
+                    detail: `${row.users} user${row.users === 1 ? "" : "s"} · ${row.logins} sign-in${row.logins === 1 ? "" : "s"}`,
+                  }))}
+                />
               </ChartCard>
 
               <ChartCard title="Sign-ins over time">
                 <TrendLineChart
-                  data={geographyQuery.data.logins_over_time}
+                  data={geography.logins_over_time}
                   xKey="day"
                   series={[
                     { key: "count", label: "Sign-ins" },
                     { key: "users", label: "Unique users" },
                   ]}
-                  formatX={formatAnalyticsPeriod(geographyQuery.data.time_interval)}
-                  previousData={geographyQuery.data.comparison?.logins_over_time}
+                  formatX={formatAnalyticsPeriod(geography.time_interval)}
+                  previousData={geography.comparison?.logins_over_time}
                 />
               </ChartCard>
 
@@ -343,7 +394,7 @@ const AdminAnalytics = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {geographyQuery.data.by_city.map((row) => (
+                      {geography.by_city.map((row) => (
                         <tr key={`${row.city}-${row.country}`} className="border-b last:border-0">
                           <td className="py-2 pr-3">{row.city}</td>
                           <td className="py-2 pr-3 text-muted-foreground">{row.country}</td>
@@ -351,7 +402,7 @@ const AdminAnalytics = () => {
                           <td className="py-2 text-right">{formatNumber(row.logins)}</td>
                         </tr>
                       ))}
-                      {geographyQuery.data.by_city.length === 0 && (
+                      {geography.by_city.length === 0 && (
                         <tr>
                           <td colSpan={4} className="py-6 text-center text-muted-foreground">
                             No resolved sign-in cities for this range yet.
