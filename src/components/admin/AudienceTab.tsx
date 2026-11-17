@@ -123,7 +123,7 @@ const TrafficQualityBanner = ({ quality }: { quality: AdminAnalyticsAudienceResp
     <div
       className={`rounded-lg border px-4 py-3 text-sm ${
         warn
-          ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
+          ? "border-amber-300 bg-amber-50 text-amber-950"
           : "bg-muted/30"
       }`}
       role={warn ? "alert" : undefined}
@@ -397,11 +397,11 @@ const AcquisitionTable = ({ rows, days }: { rows: AdminAudienceAcquisitionRow[];
 
 const PAGE_TYPE_STYLE: Record<AdminAudiencePageType, { label: string; className: string }> = {
   story: { label: "Story", className: "bg-primary/10 text-primary" },
-  read: { label: "Reader", className: "bg-sky-500/10 text-sky-700 dark:text-sky-300" },
-  listen: { label: "Listen", className: "bg-violet-500/10 text-violet-700 dark:text-violet-300" },
-  watch: { label: "Watch", className: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300" },
-  blog: { label: "Blog", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
-  page: { label: "Page", className: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
+  read: { label: "Reader", className: "bg-sky-500/10 text-sky-700" },
+  listen: { label: "Listen", className: "bg-violet-500/10 text-violet-700" },
+  watch: { label: "Watch", className: "bg-indigo-500/10 text-indigo-700" },
+  blog: { label: "Blog", className: "bg-emerald-500/10 text-emerald-700" },
+  page: { label: "Page", className: "bg-amber-500/10 text-amber-700" },
   home: { label: "Home", className: "bg-muted text-foreground" },
   library: { label: "Library", className: "bg-muted text-foreground" },
   other: { label: "Other", className: "bg-muted text-muted-foreground" },
@@ -418,7 +418,7 @@ const LandingPages = ({ data }: { data: AdminAnalyticsAudienceResponse }) => {
   return (
     <div className="space-y-3">
       {warnings.total > 0 && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">
           <p className="font-medium">
             {formatNumber(warnings.total)} published {warnings.total === 1 ? "story has" : "stories have"} a placeholder URL
             like <code>story-12</code>, which says nothing in analytics or in search results:

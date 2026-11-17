@@ -69,8 +69,8 @@ export const Section = ({
 export const NeedsAttention = ({ items }: { items: AdminOverviewAttentionItem[] }) => {
   if (items.length === 0) return null;
   return (
-    <div className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-3 dark:border-amber-500/30 dark:bg-amber-500/10">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+    <div className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-800">
         Needs attention
       </p>
       <div className="flex flex-wrap gap-2">
@@ -78,7 +78,7 @@ export const NeedsAttention = ({ items }: { items: AdminOverviewAttentionItem[] 
           <Link
             key={item.key}
             to={item.link}
-            className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-background px-3 py-1 text-sm transition-colors hover:bg-amber-100 dark:border-amber-500/40 dark:hover:bg-amber-500/20"
+            className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-background px-3 py-1 text-sm transition-colors hover:bg-amber-100"
           >
             <span className="min-w-[1.25rem] rounded-full bg-amber-500 px-1.5 text-center text-xs font-semibold leading-5 text-white">
               {formatNumber(item.count)}
