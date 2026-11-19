@@ -4,6 +4,13 @@ import { Link } from "react-router";
 import { ArrowRight, BookOpenText, ChevronDown, Flame, Headphones } from "lucide-react";
 import { authApi } from "@/api/auth";
 import CoverImage from "@/components/CoverImage";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { splitContinueEntries, type ContinueEntry } from "@/lib/continueShelf";
 import { formatRemainingMinutes } from "@/lib/readingTime";
 
@@ -15,7 +22,7 @@ const ContinueCard = ({ entry }: { entry: ContinueEntry }) => {
   return (
     <Link
       to={entry.href}
-      className="group flex w-64 shrink-0 snap-start items-center gap-3 rounded-sm border border-border bg-card p-2.5 shadow-sm transition-colors hover:bg-muted/50 sm:w-72"
+      className="group flex w-64 items-center gap-3 rounded-sm border border-border bg-card p-2.5 shadow-sm transition-colors hover:bg-muted/50 sm:w-72"
     >
       <div className="relative aspect-[3/4] w-16 shrink-0 overflow-hidden rounded-sm shadow-sm sm:w-[72px]">
         <CoverImage
@@ -94,11 +101,17 @@ const ContinueShelf = ({ entries, title = "Continue" }: { entries: ContinueEntry
       </div>
 
       {visible.length > 0 && (
-        <div className="-mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:px-0">
-          {visible.map((entry) => (
-            <ContinueCard key={`${entry.kind}-${entry.story.id}`} entry={entry} />
-          ))}
-        </div>
+        <Carousel opts={{ align: "start", containScroll: "trimSnaps", slidesToScroll: "auto" }} className="-mx-3 sm:mx-0">
+          <CarouselContent className="-ml-3 px-3 pb-2 sm:px-0">
+            {visible.map((entry) => (
+              <CarouselItem key={`${entry.kind}-${entry.story.id}`} className="basis-auto pl-3">
+                <ContinueCard entry={entry} />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious aria-label="Scroll continue shelf left" className="left-1 hidden disabled:invisible sm:flex" />
+          <CarouselNext aria-label="Scroll continue shelf right" className="right-1 hidden disabled:invisible sm:flex" />
+        </Carousel>
       )}
 
       {older.length > 0 && (

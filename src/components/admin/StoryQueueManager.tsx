@@ -812,7 +812,7 @@ const StoryQueueManager = () => {
           onClick={closeAddModal}
         >
           <Card
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}
           >
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
@@ -850,7 +850,7 @@ const StoryQueueManager = () => {
                   autoComplete="off"
                 />
                 {filteredAuthorSuggestions.length > 0 && (
-                  <div className="mt-2 max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                  <div className="mt-2 max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                     {filteredAuthorSuggestions.map((author) => (
                       <button
                         key={author.id}
@@ -1075,7 +1075,7 @@ const StoryQueueManager = () => {
                   </Button>
                 </div>
                 {filteredGenreSuggestions.length > 0 && (
-                  <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                  <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                     {filteredGenreSuggestions.map((genre) => (
                       <button
                         key={genre.id}
@@ -1141,7 +1141,7 @@ const StoryQueueManager = () => {
                   </Button>
                 </div>
                 {filteredCategorySuggestions.length > 0 && (
-                  <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                  <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                     {filteredCategorySuggestions.map((category) => (
                       <button
                         key={category.id}
@@ -1207,7 +1207,7 @@ const StoryQueueManager = () => {
                   </Button>
                 </div>
                 {filteredTagSuggestions.length > 0 && (
-                  <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                  <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                     {filteredTagSuggestions.map((tag) => (
                       <button
                         key={tag.id}
@@ -1273,7 +1273,7 @@ const StoryQueueManager = () => {
                   </Button>
                 </div>
                 {filteredThemeSuggestions.length > 0 && (
-                  <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                  <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                     {filteredThemeSuggestions.map((theme) => (
                       <button
                         key={theme.id}
@@ -1382,7 +1382,7 @@ const StoryQueueManager = () => {
           ) : (queueData?.results?.length || 0) === 0 ? (
             <p className="text-sm text-muted-foreground">The queue is empty. Add a book above to get started.</p>
           ) : (
-            <div className="overflow-x-auto rounded-md border">
+            <div className="overflow-x-auto scrollbar-thin rounded-md border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -1498,7 +1498,7 @@ const StoryQueueManager = () => {
           onClick={() => setDetailsItem(null)}
         >
           <Card
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto scrollbar-thin"
             onClick={(e) => e.stopPropagation()}
           >
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
@@ -1558,7 +1558,7 @@ const StoryQueueManager = () => {
                     Content <span className="italic">(becomes "Chapter 1" when added to Stories)</span>
                   </p>
                   <div
-                    className="prose prose-sm max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
+                    className="prose prose-sm max-h-48 max-w-none overflow-y-auto scrollbar-thin rounded-md border bg-muted/20 p-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(detailsItem.content) }}
                   />
                 </div>
@@ -1567,7 +1567,7 @@ const StoryQueueManager = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Notes</p>
                   <div
-                    className="prose prose-sm max-h-48 max-w-none overflow-y-auto rounded-md border bg-muted/20 p-2"
+                    className="prose prose-sm max-h-48 max-w-none overflow-y-auto scrollbar-thin rounded-md border bg-muted/20 p-2"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(detailsItem.notes) }}
                   />
                 </div>

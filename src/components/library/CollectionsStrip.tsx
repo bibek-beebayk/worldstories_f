@@ -1,5 +1,12 @@
 import type { LibraryCollection } from "@/api/types";
 import CoverImage from "@/components/CoverImage";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const Collage = ({ covers, label }: { covers: string[]; label: string }) => {
   // Three overlapping covers; a missing one falls back to the generated
@@ -37,26 +44,37 @@ const CollectionsStrip = ({
   return (
     <section aria-label="Collections" className="mb-6">
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Collections</h2>
-      <div className="-mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:px-0">
-        {isLoading &&
-          [0, 1, 2, 3, 4, 5].map((key) => (
-            <div key={key} className="h-[140px] w-40 shrink-0 animate-pulse rounded-lg bg-muted" aria-hidden="true" />
-          ))}
-        {collections?.map((collection) => (
-          <button
-            key={collection.key}
-            type="button"
-            onClick={() => onSelect(collection)}
-            className="group w-40 shrink-0 snap-start rounded-lg border bg-card p-2 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-          >
-            <Collage covers={collection.covers} label={collection.label} />
-            <p className="mt-2 line-clamp-1 text-sm font-semibold group-hover:text-primary">{collection.label}</p>
-            <p className="text-xs text-muted-foreground">
-              {collection.count.toLocaleString()} {collection.count === 1 ? "story" : "stories"}
-            </p>
-          </button>
-        ))}
-      </div>
+      <Carousel opts={{ align: "start", containScroll: "trimSnaps", slidesToScroll: "auto" }} className="-mx-3 sm:mx-0">
+        <div className="fade-x">
+          <CarouselContent className="-ml-3 pl-6 pb-2">
+            {isLoading &&
+              [0, 1, 2, 3, 4, 5].map((key) => (
+                <CarouselItem key={key} className="basis-auto pl-3">
+                  <div className="h-[140px] w-40 animate-pulse rounded-lg bg-muted" aria-hidden="true" />
+                </CarouselItem>
+              ))}
+            {collections?.map((collection, index) => (
+              <CarouselItem key={collection.key} className={`basis-auto pl-3 ${index === collections.length - 1 ? "pr-6" : ""}`}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(collection)}
+                  className="group w-40 rounded-lg border bg-card p-2 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <Collage covers={collection.covers} label={collection.label} />
+                  <p className="mt-2 line-clamp-1 text-sm font-semibold group-hover:text-primary" title={collection.label}>
+                    {collection.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {collection.count.toLocaleString()} {collection.count === 1 ? "story" : "stories"}
+                  </p>
+                </button>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </div>
+        <CarouselPrevious aria-label="Scroll collections left" className="left-1 top-[42%] hidden disabled:invisible sm:flex" />
+        <CarouselNext aria-label="Scroll collections right" className="right-1 top-[42%] hidden disabled:invisible sm:flex" />
+      </Carousel>
     </section>
   );
 };

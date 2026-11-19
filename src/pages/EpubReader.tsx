@@ -1431,7 +1431,7 @@ const EpubReader = ({ loaderData }: Route.ComponentProps) => {
           <SheetHeader>
             <SheetTitle>Contents</SheetTitle>
           </SheetHeader>
-          <div className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto">
+          <div className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto scrollbar-thin">
             {toc.length === 0 ? (
               <p className="text-sm text-muted-foreground">No table of contents available.</p>
             ) : (

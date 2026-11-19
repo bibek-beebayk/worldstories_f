@@ -19,7 +19,7 @@ export default function PwaInstallDialog({ open, onOpenChange }: PwaInstallDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <div className="flex items-center gap-3 pr-6">
             <div className="rounded-full bg-primary/10 p-2 text-primary"><Smartphone className="h-5 w-5" /></div>

@@ -159,7 +159,7 @@ const AdminFeedbackPage = () => {
                 <> · <span className="font-medium text-foreground">{counts.new}</span> new</>
               )}
             </p>
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-md border p-2">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-thin rounded-md border p-2">
               {listLoading && <p className="text-sm text-muted-foreground">Loading feedback...</p>}
               {(listData?.results || []).map((item) => (
                 <button
@@ -226,7 +226,7 @@ const AdminFeedbackPage = () => {
           <CardHeader>
             <CardTitle className="text-base">Feedback Details</CardTitle>
           </CardHeader>
-          <CardContent className="h-full min-h-0 overflow-y-auto pb-4">
+          <CardContent className="h-full min-h-0 overflow-y-auto scrollbar-thin pb-4">
             {!selected ? (
               <p className="text-sm text-muted-foreground">Select feedback from the list.</p>
             ) : (

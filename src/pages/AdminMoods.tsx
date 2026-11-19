@@ -94,7 +94,7 @@ const AdminMoods = () => {
     // The admin shell's content section is overflow-hidden, so every page owns
     // its own scroll area — same wrapper as AdminThemes/Tags/Genres/Categories.
     // Without it this page's content is simply clipped at the viewport.
-    <div className="h-full space-y-6 overflow-y-auto pr-1">
+    <div className="h-full space-y-6 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">

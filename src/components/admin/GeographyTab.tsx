@@ -118,7 +118,7 @@ const CountriesTable = ({
   if (rows.length === 0) return <EmptyNote>No located visitors in this range.</EmptyNote>;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-thin">
       <table className="w-full min-w-[900px] text-sm">
         <thead>
           <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
@@ -244,7 +244,7 @@ const CitiesTable = ({ data }: { data: AdminGeographyVisitorsResponse }) => {
           </span>
         </p>
       )}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full min-w-[420px] text-sm">
           <thead>
             <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -310,7 +310,7 @@ const CountryDrawer = ({
   const data = detail.data;
   return (
     <Sheet open={Boolean(code)} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent side="right" className="w-full overflow-y-auto scrollbar-thin sm:max-w-md">
         <SheetHeader className="text-left">
           <SheetTitle className="flex items-center gap-2">
             <span aria-hidden="true">{code ? flagEmoji(code) : ""}</span>

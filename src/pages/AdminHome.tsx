@@ -69,7 +69,7 @@ const AdminHome = () => {
 
   if (isError && !data) {
     return (
-      <div className="h-full space-y-4 overflow-y-auto pr-1">
+      <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
         {header}
         <Card>
           <CardHeader>
@@ -85,7 +85,7 @@ const AdminHome = () => {
 
   if (data && !data.kpis) {
     return (
-      <div className="h-full space-y-4 overflow-y-auto pr-1">
+      <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
         {header}
         <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           The API returned an older Overview format. Deploy or restart the backend so it matches this version of the
@@ -97,7 +97,7 @@ const AdminHome = () => {
 
   if (isLoading || !data) {
     return (
-      <div className="h-full space-y-4 overflow-y-auto pr-1" aria-busy="true" aria-label="Loading overview">
+      <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1" aria-busy="true" aria-label="Loading overview">
         {header}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {KPI_TILES.map((tile) => (
@@ -125,7 +125,7 @@ const AdminHome = () => {
   const { catalog } = data;
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto pr-1">
+    <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       {header}
 
       <div className={`space-y-4 transition-opacity ${isPlaceholderData ? "opacity-60" : ""}`}>

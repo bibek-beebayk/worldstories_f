@@ -77,7 +77,7 @@ export default function AdminContentPerformance() {
     : 1;
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto pr-1">
+    <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-gradient-to-r from-muted/60 via-muted/20 to-transparent px-4 py-3">
         <div>
           <Button asChild variant="ghost" size="sm" className="mb-1 -ml-3">

@@ -200,7 +200,7 @@ const ThemeEditor = ({ theme, onClose }: { theme: AdminPageTheme; onClose: () =>
           <p className="border-b bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
             Live preview — unsaved changes included
           </p>
-          <div className="max-h-[75vh] overflow-y-auto">
+          <div className="max-h-[75vh] overflow-y-auto scrollbar-thin">
             <ThemedPage theme={draft} scope={`ws-page-theme-preview-${theme.id}`} loadFonts>
               <PageBody title="Your page title" blocks={SAMPLE_BLOCKS} />
             </ThemedPage>

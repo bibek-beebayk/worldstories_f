@@ -691,26 +691,57 @@ export interface AdminHeroTemplate {
 
 export type AdminHeroTemplateInput = Omit<AdminHeroTemplate, "id" | "is_default" | "status" | "updated_at">;
 
-export interface TrendingDataResponse {
-  most_viewed: Story[];
-  highest_rated: Story[];
-  most_favorited: Story[];
-  most_discussed: Story[];
+export interface DiscoverTrendingItem {
+  story: Story;
+  /** Unique readers, listeners and watchers in the window (staff and bots excluded). */
+  readers: number;
+  /** 7, or 30 when the week was too quiet to rank. */
+  window_days: number;
+  /** Places gained since the window before (negative = fell); null if it was not ranked then. */
+  rank_change: number | null;
 }
 
-export interface DiscoverFacet {
-  value: string;
-  label: string;
-  stories_count: number;
+export interface DiscoverHiddenGem {
+  story: Story;
+  /** Ready to show, e.g. "82% of readers finish it". */
+  reason: string;
 }
 
-export interface DiscoverDataResponse extends TrendingDataResponse {
-  genres: Genre[];
-  categories: Category[];
-  story_types: StoryType[];
-  languages: DiscoverFacet[];
-  new_releases: Story[];
-  hidden_gems: Story[];
+export type JustAddedFormat = "read" | "listen" | "read_along" | "watch" | "quick_read";
+
+export interface DiscoverJustAdded {
+  story: Story;
+  format: JustAddedFormat;
+}
+
+export interface DiscoverCountry {
+  code: string;
+  name: string;
+  count: number;
+  covers: string[];
+}
+
+export interface DiscoverGenre {
+  id: number;
+  name: string;
+  slug: string;
+  count: number;
+}
+
+export interface DiscoverDataResponse {
+  trending: DiscoverTrendingItem[];
+  hidden_gems: DiscoverHiddenGem[];
+  just_added: DiscoverJustAdded[];
+  countries: DiscoverCountry[];
+  popular_genres: DiscoverGenre[];
+}
+
+export interface DiscoverSurpriseResponse {
+  story: Story | null;
+  /** One plain-text line from the story's description. */
+  blurb: string;
+  /** True when every qualifying story had already been shown and the pool restarted. */
+  recycled: boolean;
 }
 
 export interface StoryMapCountry {
@@ -2331,6 +2362,8 @@ export interface JourneySummary {
   type: string;
   /** The journey's own artwork, or the first story's cover. */
   cover_image: string;
+  /** Up to two story covers, for a collage. */
+  covers?: string[];
   /** Required stories finished, out of the total required. */
   completed: number;
   total: number;

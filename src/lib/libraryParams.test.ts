@@ -40,6 +40,14 @@ describe("parseLibraryParams", () => {
     expect(parse(buildLibraryParams(filters).toString())).toEqual(filters);
   });
 
+  it("carries the finder's time limit as max_minutes", () => {
+    expect(parse("max_minutes=20").maxMinutes).toBe("20");
+    expect(parse("max_minutes=abc").maxMinutes).toBe("");
+    expect(buildLibraryParams(parse("max_minutes=20")).toString()).toBe("max_minutes=20");
+    expect(toApiParams(parse("max_minutes=20")).max_minutes).toBe("20");
+    expect(activeFilterCount(parse("max_minutes=20&mood=scary"))).toBe(2);
+  });
+
   it("keeps old links working", () => {
     expect(parse("mode=read").format).toBe("read");
     expect(parse("mode=read-along").format).toBe("read_along");

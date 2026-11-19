@@ -24,6 +24,8 @@ export interface LibraryFilters {
   category: string[];
   language: string;
   length: LibraryLength | "";
+  /** At most this many minutes (the Discover finder's time chips). */
+  maxMinutes: string;
   country: string;
   /** Story type id. */
   type: string;
@@ -44,6 +46,7 @@ export const EMPTY_FILTERS: LibraryFilters = {
   category: [],
   language: "",
   length: "",
+  maxMinutes: "",
   country: "",
   type: "",
   status: "",
@@ -91,6 +94,7 @@ export function parseLibraryParams(params: URLSearchParams): LibraryFilters {
     category: list(params.get("category")),
     language: params.get("language") && params.get("language") !== "all" ? (params.get("language") as string) : "",
     length: oneOf(params.get("length"), LENGTH_KEYS),
+    maxMinutes: /^\d+$/.test(params.get("max_minutes") ?? "") ? (params.get("max_minutes") as string) : "",
     country: params.get("country") && params.get("country") !== "all" ? (params.get("country") as string).toUpperCase() : "",
     type: params.get("type") ?? (params.get("story_type") && params.get("story_type") !== "all" ? (params.get("story_type") as string) : ""),
     status: status === "completed" || status === "ongoing" ? status : "",
@@ -111,6 +115,7 @@ export function buildLibraryParams(filters: LibraryFilters): URLSearchParams {
   if (filters.category.length) out.set("category", filters.category.join(","));
   if (filters.language) out.set("language", filters.language);
   if (filters.length) out.set("length", filters.length);
+  if (filters.maxMinutes) out.set("max_minutes", filters.maxMinutes);
   if (filters.country) out.set("country", filters.country);
   if (filters.type) out.set("type", filters.type);
   if (filters.status) out.set("status", filters.status);
@@ -132,6 +137,7 @@ export function toApiParams(filters: LibraryFilters, options: { includeFormat?: 
   if (filters.category.length) api.category = filters.category.join(",");
   if (filters.language) api.language = filters.language;
   if (filters.length) api.length = filters.length;
+  if (filters.maxMinutes) api.max_minutes = filters.maxMinutes;
   if (filters.country) api.country = filters.country;
   if (filters.type) api.story_type = filters.type;
   if (filters.status) api.status = filters.status;
@@ -150,6 +156,7 @@ export function activeFilterCount(filters: LibraryFilters): number {
     filters.mood.length +
     (filters.language ? 1 : 0) +
     (filters.length ? 1 : 0) +
+    (filters.maxMinutes ? 1 : 0) +
     (filters.country ? 1 : 0) +
     (filters.type ? 1 : 0) +
     (filters.status ? 1 : 0) +

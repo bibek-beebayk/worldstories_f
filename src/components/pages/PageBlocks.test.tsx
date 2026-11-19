@@ -3,7 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { PageBlock, pageExcerpt } from "./PageBlocks";
 import type { PublicPageBlock, Story } from "@/api/types";
 
@@ -16,6 +16,30 @@ const renderBlock = (block: PublicPageBlock, asPageHeading = false) =>
       <PageBlock block={block} asPageHeading={asPageHeading} />
     </MemoryRouter>
   );
+
+// Embla (the rail carousel) observes with these; jsdom has none of them.
+beforeAll(() => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+    }),
+  });
+  class NoopResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = NoopResizeObserver;
+  (window as unknown as { ResizeObserver: unknown }).ResizeObserver = NoopResizeObserver;
+  (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = NoopResizeObserver;
+  (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = NoopResizeObserver;
+});
 
 afterEach(cleanup);
 

@@ -164,7 +164,7 @@ const AdminAnalytics = () => {
   }
 
   return (
-    <div className="h-full space-y-3 overflow-y-auto sm:space-y-4 sm:pr-1">
+    <div className="h-full space-y-3 overflow-y-auto scrollbar-thin sm:space-y-4 sm:pr-1">
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border bg-gradient-to-r from-muted/60 via-muted/20 to-transparent p-2 sm:flex sm:justify-end sm:px-4 sm:py-3">
         <Select value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
           <SelectTrigger aria-label="Analytics section" className="min-w-0 bg-card sm:hidden">
@@ -195,7 +195,7 @@ const AdminAnalytics = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
-        <div className="hidden -mx-1 overflow-x-auto px-1 pb-1 sm:block">
+        <div className="hidden -mx-1 overflow-x-auto scrollbar-thin px-1 pb-1 sm:block">
           <TabsList className="w-max">
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="engagement">Engagement</TabsTrigger>
@@ -383,7 +383,7 @@ const AdminAnalytics = () => {
               </ChartCard>
 
               <ChartCard title="Top cities" subtitle="Where sign-ins are concentrated within each country">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto scrollbar-thin">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">

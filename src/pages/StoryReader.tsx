@@ -762,7 +762,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   return (
     <div
       ref={readerContainerRef}
-      className="flex h-[100dvh] min-h-screen flex-col overflow-y-auto bg-background"
+      className="flex h-[100dvh] min-h-screen flex-col overflow-y-auto scrollbar-thin bg-background"
     >
       {/* Stays put in distraction-free mode: two pixels is not chrome, and
           losing your place is more distracting than a hairline. The precise
@@ -965,7 +965,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
             aria-labelledby="reader-settings-title"
             tabIndex={-1}
           >
-            <CardContent className="max-h-[calc(100vh-4rem)] space-y-4 overflow-y-auto p-4">
+            <CardContent className="max-h-[calc(100vh-4rem)] space-y-4 overflow-y-auto scrollbar-thin p-4">
               <div className="flex items-center justify-between">
                 <h2 id="reader-settings-title" className="text-sm font-semibold">
                   Reader Settings
@@ -1081,7 +1081,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
 
               <div>
                 <div className="mb-2 text-xs font-medium text-muted-foreground">Font</div>
-                <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto pr-1">
+                <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto scrollbar-thin pr-1">
                   {(Object.keys(FONTS) as ReaderFontKey[]).map((key) => (
                     <Button
                       key={key}
@@ -1130,7 +1130,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
           <SheetHeader>
             <SheetTitle>Contents</SheetTitle>
           </SheetHeader>
-          <div className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto">
+          <div className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto scrollbar-thin">
             {orderedChapters.length === 0 ? (
               <p className="text-sm text-muted-foreground">No chapters available.</p>
             ) : (

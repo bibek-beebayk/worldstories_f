@@ -87,7 +87,7 @@ export function FeaturedVideoPickerModal({ open, onClose, excludeIds, onSelect }
           </div>
         </div>
 
-        <CardContent className="flex-1 overflow-y-auto p-4">
+        <CardContent className="flex-1 overflow-y-auto scrollbar-thin p-4">
           {isLoading ? (
             <p className="py-8 text-center text-sm text-muted-foreground">Loading videos...</p>
           ) : videos.length === 0 ? (

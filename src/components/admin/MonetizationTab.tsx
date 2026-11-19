@@ -64,7 +64,7 @@ export function MonetizationTab({
           {data.ad_placements.length === 0 ? (
             <EmptyNote>No ad impressions in this range</EmptyNote>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <table className="w-full min-w-[420px] text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">

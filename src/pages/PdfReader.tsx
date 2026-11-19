@@ -863,7 +863,7 @@ const PdfReader = ({ loaderData }: Route.ComponentProps) => {
           )}
           <div
             ref={pageViewportRef}
-            className={`h-full w-full overflow-auto px-3 py-16 md:px-6 md:py-20 ${
+            className={`h-full w-full overflow-auto scrollbar-thin px-3 py-16 md:px-6 md:py-20 ${
               viewMode === "page" ? "flex flex-col" : ""
             }`}
             style={{ touchAction: "manipulation" }}

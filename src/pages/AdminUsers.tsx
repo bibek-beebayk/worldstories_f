@@ -101,7 +101,7 @@ const AdminUsers = () => {
   const pagination = usersData?.pagination;
 
   return (
-    <div className="h-full overflow-y-auto space-y-4 pr-1">
+    <div className="h-full overflow-y-auto scrollbar-thin space-y-4 pr-1">
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <div>

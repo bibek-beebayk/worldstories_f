@@ -1,4 +1,11 @@
 import { Link } from "react-router";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import type { PageStoryLayout, PublicPageBlock, Story } from "@/api/types";
 import StoryCard from "@/components/StoryCard";
@@ -44,13 +51,19 @@ const StoryCollection = ({
         </div>
       )}
       {layout === "rail" ? (
-        <div className="-mx-3 flex gap-3 overflow-x-auto px-3 pb-2 sm:-mx-4 sm:gap-4 sm:px-4">
-          {stories.map((story) => (
-            <div key={story.id} className="w-36 shrink-0 sm:w-44">
-              <StoryCard {...story} />
-            </div>
-          ))}
-        </div>
+        <Carousel opts={{ align: "start", containScroll: "trimSnaps", slidesToScroll: "auto" }} className="-mx-3 sm:-mx-4">
+          <CarouselContent className="-ml-3 px-3 pb-2 sm:-ml-4 sm:px-4">
+            {stories.map((story) => (
+              <CarouselItem key={story.id} className="basis-auto pl-3 sm:pl-4">
+                <div className="w-36 sm:w-44">
+                  <StoryCard {...story} />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious aria-label="Scroll left" className="left-2 hidden disabled:invisible sm:flex" />
+          <CarouselNext aria-label="Scroll right" className="right-2 hidden disabled:invisible sm:flex" />
+        </Carousel>
       ) : (
         <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {stories.map((story) => (

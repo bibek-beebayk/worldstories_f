@@ -193,7 +193,7 @@ const BulkTaxonomyImportModal = ({ onClose, onImported }: BulkTaxonomyImportModa
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <Card className="max-h-[90vh] w-full max-w-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <Card className="max-h-[90vh] w-full max-w-3xl overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-base">Bulk Update Taxonomy</CardTitle>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
@@ -237,7 +237,7 @@ const BulkTaxonomyImportModal = ({ onClose, onImported }: BulkTaxonomyImportModa
               </p>
 
               {matchedRows.length > 0 && (
-                <div className="max-h-72 space-y-2 overflow-y-auto rounded-md border p-2">
+                <div className="max-h-72 space-y-2 overflow-y-auto scrollbar-thin rounded-md border p-2">
                   {matchedRows.map((row) => (
                     <div key={row.story_id} className="rounded-md border p-2 text-sm">
                       <label className="flex items-start gap-2">
@@ -300,7 +300,7 @@ const BulkTaxonomyImportModal = ({ onClose, onImported }: BulkTaxonomyImportModa
                   <summary className="cursor-pointer text-amber-700">
                     {ambiguousRows.length} ambiguous — matched more than one story, not applied
                   </summary>
-                  <div className="mt-2 max-h-48 space-y-2 overflow-y-auto">
+                  <div className="mt-2 max-h-48 space-y-2 overflow-y-auto scrollbar-thin">
                     {ambiguousRows.map((row, index) => (
                       <div key={index} className="text-xs">
                         <p className="font-medium">
@@ -325,7 +325,7 @@ const BulkTaxonomyImportModal = ({ onClose, onImported }: BulkTaxonomyImportModa
                   <summary className="cursor-pointer text-muted-foreground">
                     {notFoundRows.length} not found — no published story with that title
                   </summary>
-                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto scrollbar-thin">
                     {notFoundRows.map((row, index) => (
                       <p key={index} className="text-xs text-muted-foreground">
                         {row.title}
@@ -341,7 +341,7 @@ const BulkTaxonomyImportModal = ({ onClose, onImported }: BulkTaxonomyImportModa
                   <summary className="cursor-pointer text-destructive">
                     {preview.errors.length} row error{preview.errors.length === 1 ? "" : "s"}
                   </summary>
-                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto scrollbar-thin">
                     {preview.errors.map((message, index) => (
                       <p key={index} className="text-xs text-destructive">
                         {message}

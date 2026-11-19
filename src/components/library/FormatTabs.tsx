@@ -27,7 +27,7 @@ const FormatTabs = ({
   ];
 
   return (
-    <div role="tablist" aria-label="Format" className="-mx-3 flex gap-1 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+    <div role="tablist" aria-label="Format" className="-mx-3 flex gap-1 overflow-x-auto px-3 scrollbar-none sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
       {tabs.map(({ key, label, icon: Icon }) => {
         const selected = value === key;
         const count = countFor(facets, key === "" ? "all" : key);

@@ -119,7 +119,7 @@ function Chips<T extends string | number>({
 }) {
   if (options.length === 0) return <p className="text-xs text-muted-foreground">None created yet.</p>;
   return (
-    <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+    <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto scrollbar-thin">
       {options.map((o) => {
         const on = selected.includes(o.value);
         return (
@@ -217,7 +217,7 @@ const SectionEditor = ({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto scrollbar-thin">
         <DialogHeader>
           <DialogTitle>{editingId ? "Edit section" : "New section"}</DialogTitle>
         </DialogHeader>
@@ -621,7 +621,7 @@ const AdminHomeSections = () => {
   const typeLabel = (type: string) => meta?.types.find((t) => t.value === type)?.label ?? type;
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto pr-1">
+    <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <div>
@@ -708,7 +708,7 @@ const AdminHomeSections = () => {
       )}
 
       <Dialog open={coversOpen} onOpenChange={setCoversOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-thin">
           <DialogHeader>
             <DialogTitle>Published stories without a cover</DialogTitle>
           </DialogHeader>

@@ -143,7 +143,7 @@ const AdminStoryReport = () => {
   const startSerial = ((pagination?.page || 1) - 1) * pageSize;
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto pr-1">
+    <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
         <TabsList>
           <TabsTrigger value="report">Story Report</TabsTrigger>
@@ -278,7 +278,7 @@ const AdminStoryReport = () => {
               ) : (storiesData?.results?.length || 0) === 0 ? (
                 <p className="text-sm text-muted-foreground">No stories match your filters.</p>
               ) : (
-                <div className="overflow-x-auto rounded-md border">
+                <div className="overflow-x-auto scrollbar-thin rounded-md border">
                   <table className="w-full min-w-[820px] text-sm">
                     <thead>
                       <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">

@@ -669,7 +669,7 @@ const ProfileCreator = () => {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="max-h-[75vh] space-y-3 overflow-y-auto">
+            <CardContent className="max-h-[75vh] space-y-3 overflow-y-auto scrollbar-thin">
               <div className="flex flex-wrap items-center gap-2">
                 <SubmissionStatusBadge status={activeSubmissionData.status} />
                 <span className="text-sm text-muted-foreground">Type: {activeSubmissionData.story_type}</span>

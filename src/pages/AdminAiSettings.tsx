@@ -142,7 +142,7 @@ const AdminAiSettings = () => {
   }
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto pr-1">
+    <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">AI Generation Settings</CardTitle>

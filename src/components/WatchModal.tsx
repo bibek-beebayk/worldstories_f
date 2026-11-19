@@ -267,7 +267,7 @@ export default function WatchModal({
         </div>
 
         {orderedVideos.length > 1 && (
-          <div className="max-h-56 overflow-y-auto border-t">
+          <div className="max-h-56 overflow-y-auto scrollbar-thin border-t">
             {orderedVideos.map((video, index) => {
               const active = video.slug === currentVideo.slug;
               return (

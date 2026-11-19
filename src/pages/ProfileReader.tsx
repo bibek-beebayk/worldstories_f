@@ -122,8 +122,8 @@ const ProfileReader = () => {
 
       <Card className="hidden min-w-0 overflow-hidden sm:block">
         <CardContent className="min-w-0 overflow-hidden p-3 sm:p-4">
-          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
-            <div className="flex w-max gap-2">
+          <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap">
               {readerNavItems.map((item) => (
                 <Button
                   key={item.key}

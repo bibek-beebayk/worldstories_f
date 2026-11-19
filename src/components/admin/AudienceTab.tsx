@@ -330,7 +330,7 @@ const AcquisitionTable = ({ rows, days }: { rows: AdminAudienceAcquisitionRow[];
   if (rows.length === 0) return <EmptyNote />;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-thin">
       <table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
@@ -439,7 +439,7 @@ const LandingPages = ({ data }: { data: AdminAnalyticsAudienceResponse }) => {
       {pages.length === 0 ? (
         <EmptyNote />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full min-w-[620px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">

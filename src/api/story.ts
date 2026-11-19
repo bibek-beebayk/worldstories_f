@@ -72,6 +72,7 @@ import {
   AdminHomeSection,
   AdminHomeSectionInput,
   HomeSectionTypesMeta,
+  DiscoverSurpriseResponse,
   LibraryCollection,
   LibraryFacets,
   HomeSectionAnalytics,
@@ -250,6 +251,8 @@ export const storyApi = {
   getOriginals: (page: number = 1) =>
     apiClient<StoryListResponse>(`/stories/?is_original=true&page=${page}&sort=recent`),
   getDiscoverData: () => apiClient<DiscoverDataResponse>("/discover/"),
+  getDiscoverSurprise: (exclude: number[]) =>
+    apiClient<DiscoverSurpriseResponse>(`/discover/surprise/?exclude=${exclude.join(",")}`),
   getStoryMap: () => apiClient<StoryMapResponse>("/story-map/"),
   searchStories: (
     q: string,

@@ -1783,7 +1783,7 @@ const AdminContent = () => {
         </Card>
 
         <div
-          className={`min-h-0 flex-col gap-6 overflow-y-auto pr-1 lg:flex lg:h-full ${
+          className={`min-h-0 flex-col gap-6 overflow-y-auto scrollbar-thin pr-1 lg:flex lg:h-full ${
             isMobileDetailActive ? "flex flex-1" : "hidden"
           }`}
         >
@@ -1807,7 +1807,7 @@ const AdminContent = () => {
               <CardHeader>
                 <CardTitle className="text-base">{mode === "edit" ? "Edit Story" : "Create Story"}</CardTitle>
               </CardHeader>
-              <CardContent className="min-h-0 flex-1 overflow-y-auto">
+              <CardContent className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
                 {pendingTranslationSourceId && (
                   <div className="mb-4 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary">
                     Adding a new translation of <span className="font-medium">{pendingTranslationSourceTitle}</span>.
@@ -2226,7 +2226,7 @@ const AdminContent = () => {
                       </Button>
                     </div>
                     {filteredGenreSuggestions.length > 0 && (
-                      <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                      <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                         {filteredGenreSuggestions.map((genre) => (
                           <button
                             key={genre.id}
@@ -2295,7 +2295,7 @@ const AdminContent = () => {
                       </Button>
                     </div>
                     {filteredCategorySuggestions.length > 0 && (
-                      <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                      <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                         {filteredCategorySuggestions.map((category) => (
                           <button
                             key={category.id}
@@ -2364,7 +2364,7 @@ const AdminContent = () => {
                       </Button>
                     </div>
                     {filteredTagSuggestions.length > 0 && (
-                      <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                      <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                         {filteredTagSuggestions.map((tag) => (
                           <button
                             key={tag.id}
@@ -2435,7 +2435,7 @@ const AdminContent = () => {
                       </Button>
                     </div>
                     {filteredThemeSuggestions.length > 0 && (
-                      <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
+                      <div className="max-h-36 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                         {filteredThemeSuggestions.map((theme) => (
                           <button
                             key={theme.id}
@@ -2534,7 +2534,7 @@ const AdminContent = () => {
                   Back to Details
                 </Button>
               </CardHeader>
-              <CardContent className="min-h-0 flex-1 overflow-y-auto">
+              <CardContent className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
                 <form className="space-y-3" onSubmit={createChapter}>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div className="sm:col-span-2">
@@ -2846,7 +2846,7 @@ const AdminContent = () => {
                     />
                   </div>
                   {debouncedTranslationQuery.length >= 2 && (
-                    <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
+                    <div className="mt-2 max-h-48 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-1">
                       {(translationSearchResults?.results || [])
                         .filter((story) => story.id !== selectedStoryId)
                         .map((story) => (
@@ -3219,7 +3219,7 @@ const AdminContent = () => {
 
       {showAudioModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setShowAudioModal(false)}>
-          <Card className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <Card className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">{editingAudioId ? "Edit Audio" : "Add New Audio"}</CardTitle>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowAudioModal(false)}>

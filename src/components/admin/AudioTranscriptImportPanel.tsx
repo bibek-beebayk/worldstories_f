@@ -230,7 +230,7 @@ export function AudioTranscriptImportPanel({
           <p className="text-xs text-muted-foreground">Loading cues…</p>
         ) : isEditing ? (
           <div className="space-y-3">
-            <div className="max-h-80 space-y-2 overflow-y-auto rounded border bg-muted/30 p-2">
+            <div className="max-h-80 space-y-2 overflow-y-auto scrollbar-thin rounded border bg-muted/30 p-2">
               {editableCues.length === 0 && (
                 <p className="text-xs text-muted-foreground">Add the first timed cue below.</p>
               )}
@@ -302,7 +302,7 @@ export function AudioTranscriptImportPanel({
             Import a .vtt or .srt file to synchronize the transcript with the audio.
           </p>
         ) : (
-          <div className="max-h-64 space-y-1 overflow-y-auto rounded border bg-muted/30 p-2">
+          <div className="max-h-64 space-y-1 overflow-y-auto scrollbar-thin rounded border bg-muted/30 p-2">
             {cues.map((cue) => (
               <div key={cue.id} className="flex gap-2 text-xs">
                 <span className="shrink-0 tabular-nums text-muted-foreground">

@@ -69,7 +69,7 @@ export function ContentPerformanceTable({
   const completionHint = "Share of signed-in readers who finished. Anonymous readers' progress isn't tracked.";
 
   const table = (
-    <div className="hidden overflow-x-auto sm:block">
+    <div className="hidden overflow-x-auto scrollbar-thin sm:block">
       <table className="w-full min-w-[820px] text-sm">
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground">

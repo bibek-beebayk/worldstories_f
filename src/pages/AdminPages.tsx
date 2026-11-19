@@ -700,7 +700,7 @@ const PageEditor = ({ pageId, onClose }: { pageId: number; onClose: () => void }
 const AdminPages = () => (
   // The admin shell's content section is overflow-hidden, so every page owns
   // its own scroll area.
-  <div className="h-full overflow-y-auto pr-1">
+  <div className="h-full overflow-y-auto scrollbar-thin pr-1">
     <Tabs defaultValue="pages" className="space-y-6">
       <TabsList>
         <TabsTrigger value="pages">Pages</TabsTrigger>

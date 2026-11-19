@@ -302,7 +302,7 @@ const SiteThemeEditor = ({ theme, onClose }: { theme: AdminSiteTheme; onClose: (
               {(pages || []).length > 0 && (
                 <div>
                   <Label className="text-xs">Your custom pages</Label>
-                  <div className="mt-1.5 grid max-h-48 gap-1.5 overflow-y-auto sm:grid-cols-2">
+                  <div className="mt-1.5 grid max-h-48 gap-1.5 overflow-y-auto scrollbar-thin sm:grid-cols-2">
                     {(pages || []).map((page) => (
                       <label key={page.id} className="flex items-center gap-2 text-sm">
                         <Checkbox checked={checkedPaths.has(page.path)} onCheckedChange={(c) => togglePath(page.path, c === true)} />
@@ -468,7 +468,7 @@ const AdminSiteThemes = () => {
   return (
     // The admin shell's content section is overflow-hidden, so every page owns
     // its own scroll area.
-    <div className="h-full space-y-6 overflow-y-auto pr-1">
+    <div className="h-full space-y-6 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">New site theme</CardTitle>

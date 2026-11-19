@@ -755,7 +755,7 @@ const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="-mx-1 overflow-x-auto px-1 pb-1">
+              <div className="-mx-1 overflow-x-auto px-1 pb-1 scrollbar-none">
                 <TabsList className="w-max">
                   {story.chapters.length > 1 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
                   {story.audios.length > 1 && <TabsTrigger value="audios">Audios</TabsTrigger>}

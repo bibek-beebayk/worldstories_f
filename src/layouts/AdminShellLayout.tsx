@@ -139,7 +139,7 @@ export default function AdminShellLayout() {
     };
 
     return (
-      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto scrollbar-thin">
         {menuItems.map((entry) => {
           if (!isGroup(entry)) return renderLink(entry);
 

@@ -79,7 +79,7 @@ const JourneyEditor = ({ journey }: { journey: AdminJourney }) => {
         />
         {isFetching && <p className="mt-1 text-xs text-muted-foreground">Searching…</p>}
         {search.trim().length > 1 && results && (
-          <div className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
+          <div className="mt-2 max-h-40 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
             {results.results.length === 0 && (
               <p className="text-xs text-muted-foreground">No stories match that.</p>
             )}
@@ -260,7 +260,7 @@ const AdminJourneys = () => {
   return (
     // The admin shell's content section is overflow-hidden, so every page owns
     // its own scroll area — see the layout contract in the engagement tracker.
-    <div className="h-full space-y-6 overflow-y-auto pr-1">
+    <div className="h-full space-y-6 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">New journey</CardTitle>

@@ -159,11 +159,11 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
       >
         {kind === "quick_read" ? <Zap className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
       </Button>
-      {/* overflow-auto (not overflow-x-hidden) is deliberate: it's a safety
+      {/* overflow-auto scrollbar-thin (not overflow-x-hidden) is deliberate: it's a safety
           net, not the actual fix — if anything below ever still ends up
           wider than the dialog, it becomes scrollable instead of silently
           clipped and inaccessible. */}
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-auto">
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-auto scrollbar-thin">
         <DialogHeader className="flex-row items-start justify-between gap-3 space-y-0 pr-6">
           {/* min-w-0 lets this flex item actually shrink below the title's
               own intrinsic width — flex items default to min-width:auto,
@@ -248,7 +248,7 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
               {storyQuery.data.chapter_breakdown.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No chapter activity in this range yet.</p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto scrollbar-thin">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">

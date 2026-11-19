@@ -84,7 +84,7 @@ const FeedbackDialog = ({ open, onOpenChange }: FeedbackDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto scrollbar-thin sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Send feedback</DialogTitle>
           <DialogDescription>Found a bug or have an idea? We read every message.</DialogDescription>

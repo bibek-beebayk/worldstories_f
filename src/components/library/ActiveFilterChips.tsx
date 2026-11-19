@@ -28,7 +28,7 @@ export function buildFilterChips(
   facets: LibraryFacets | undefined,
   authorName?: string,
   /** Full taxonomy lists, so a chip is still named when the current filters leave its facet at zero. */
-  names: { genres?: NamedTaxon[]; categories?: NamedTaxon[] } = {}
+  names: { genres?: NamedTaxon[]; categories?: NamedTaxon[]; moods?: { slug: string; name: string }[] } = {}
 ): FilterChip[] {
   const chips: FilterChip[] = [];
   for (const token of filters.genre) {
@@ -45,6 +45,14 @@ export function buildFilterChips(
   }
   if (filters.language) chips.push({ key: "language", label: getLanguageLabel(filters.language), remove: { language: "" } });
   if (filters.length) chips.push({ key: "length", label: LENGTH_LABELS[filters.length] ?? filters.length, remove: { length: "" } });
+  if (filters.maxMinutes) {
+    const minutes = Number(filters.maxMinutes);
+    chips.push({
+      key: "maxMinutes",
+      label: minutes >= 60 ? `Up to ${minutes / 60} hr` : `Up to ${minutes} min`,
+      remove: { maxMinutes: "" },
+    });
+  }
   if (filters.country) {
     chips.push({
       key: "country",
@@ -64,7 +72,7 @@ export function buildFilterChips(
   for (const slug of filters.mood) {
     chips.push({
       key: `mood:${slug}`,
-      label: facets?.moods.find((mood) => mood.slug === slug)?.name ?? slug,
+      label: facets?.moods.find((mood) => mood.slug === slug)?.name ?? names.moods?.find((mood) => mood.slug === slug)?.name ?? slug,
       remove: { mood: filters.mood.filter((value) => value !== slug) },
     });
   }

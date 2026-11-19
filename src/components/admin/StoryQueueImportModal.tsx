@@ -81,7 +81,7 @@ const StoryQueueImportModal = ({ onClose, onImported }: StoryQueueImportModalPro
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto scrollbar-thin" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-base">Import Book Data</CardTitle>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
@@ -126,7 +126,7 @@ const StoryQueueImportModal = ({ onClose, onImported }: StoryQueueImportModalPro
               </p>
 
               {preview.to_add.length > 0 && (
-                <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
+                <div className="max-h-48 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-2">
                   {preview.to_add.map((record, index) => (
                     <label key={index} className="flex items-center gap-2 text-sm">
                       <input type="checkbox" checked={selected.has(index)} onChange={() => toggleSelected(index)} />
@@ -147,7 +147,7 @@ const StoryQueueImportModal = ({ onClose, onImported }: StoryQueueImportModalPro
                   <summary className="cursor-pointer text-muted-foreground">
                     {preview.duplicate_count} duplicate{preview.duplicate_count === 1 ? "" : "s"} (not addable)
                   </summary>
-                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto scrollbar-thin">
                     {preview.duplicates.map((duplicate, index) => (
                       <p key={index} className="text-xs text-muted-foreground">
                         {duplicate.title}
@@ -164,7 +164,7 @@ const StoryQueueImportModal = ({ onClose, onImported }: StoryQueueImportModalPro
                   <summary className="cursor-pointer text-destructive">
                     {preview.error_count} row error{preview.error_count === 1 ? "" : "s"}
                   </summary>
-                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+                  <div className="mt-2 max-h-40 space-y-1 overflow-y-auto scrollbar-thin">
                     {preview.errors.map((message, index) => (
                       <p key={index} className="text-xs text-destructive">
                         {message}

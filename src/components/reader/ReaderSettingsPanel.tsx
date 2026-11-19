@@ -87,7 +87,7 @@ export function ReaderSettingsPanel({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="max-h-[calc(100vh-6rem)] w-80 space-y-4 overflow-y-auto motion-reduce:animate-none motion-reduce:transition-none"
+        className="max-h-[calc(100vh-6rem)] w-80 space-y-4 overflow-y-auto scrollbar-thin motion-reduce:animate-none motion-reduce:transition-none"
         container={isFullscreen ? containerRef.current ?? undefined : undefined}
       >
         <div>
@@ -227,7 +227,7 @@ export function ReaderSettingsPanel({
 
         <div>
           <div className="mb-2 text-xs font-medium text-muted-foreground">Font</div>
-          <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto pr-1">
+          <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto scrollbar-thin pr-1">
             {Object.keys(FONTS).map((key) => (
               <Button
                 key={key}

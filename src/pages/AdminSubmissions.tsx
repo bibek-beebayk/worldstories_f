@@ -172,7 +172,7 @@ const AdminSubmissions = () => {
             <p className="text-xs text-muted-foreground">
               Total submissions: <span className="font-medium text-foreground">{listData?.pagination?.count ?? 0}</span>
             </p>
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-md border p-2">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-thin rounded-md border p-2">
               {listLoading && <p className="text-sm text-muted-foreground">Loading submissions...</p>}
               {(listData?.results || []).map((item) => (
                 <button
@@ -223,7 +223,7 @@ const AdminSubmissions = () => {
           <CardHeader>
             <CardTitle className="text-base">Submission Details</CardTitle>
           </CardHeader>
-          <CardContent className="h-full min-h-0 overflow-y-auto pb-4">
+          <CardContent className="h-full min-h-0 overflow-y-auto scrollbar-thin pb-4">
             {!selectedSubmissionId ? (
               <p className="text-sm text-muted-foreground">Select a submission from the list.</p>
             ) : selectedLoading ? (
@@ -263,7 +263,7 @@ const AdminSubmissions = () => {
 
                 <div>
                   <p className="mb-1 text-sm text-muted-foreground">Content</p>
-                  <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm">
+                  <div className="max-h-64 overflow-y-auto scrollbar-thin rounded-md border bg-muted/30 p-3 text-sm">
                     {selectedSubmission.content ? (
                       <div
                         className="prose prose-sm max-w-none"

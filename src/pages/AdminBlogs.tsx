@@ -372,7 +372,7 @@ const AdminBlogs = () => {
 
   if (showForm) {
     return (
-      <div className="h-full space-y-4 overflow-y-auto pr-1">
+      <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
         <div className="flex items-center gap-2">
           <Button type="button" variant="ghost" size="icon" onClick={() => { setShowForm(false); resetForm(); }}>
             <ArrowLeft className="h-4 w-4" />
@@ -658,7 +658,7 @@ const AdminBlogs = () => {
                   />
                 </div>
                 {debouncedStorySearchQuery.length >= 2 && (
-                  <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
+                  <div className="mt-2 max-h-48 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-1">
                     {(storySearchResults?.results || [])
                       .filter((story) => !linkedStories.some((selected) => selected.id === story.id))
                       .map((story) => (
@@ -718,7 +718,7 @@ const AdminBlogs = () => {
                   />
                 </div>
                 {debouncedBlogSearchQuery.length >= 2 && (
-                  <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
+                  <div className="mt-2 max-h-48 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-1">
                     {(blogSearchResults?.results || [])
                       .filter(
                         (blog) =>
@@ -789,7 +789,7 @@ const AdminBlogs = () => {
                   <div className="space-y-2">
                     <p className="text-sm font-medium">This story has a retrospective. Use it as the blog content?</p>
                     <div
-                      className="prose prose-sm max-h-40 max-w-none overflow-y-auto rounded-md border bg-muted/30 px-3 py-2"
+                      className="prose prose-sm max-h-40 max-w-none overflow-y-auto scrollbar-thin rounded-md border bg-muted/30 px-3 py-2"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(linkStoryOffer.retrospective) }}
                     />
                     <div className="flex justify-end">
@@ -831,7 +831,7 @@ const AdminBlogs = () => {
   }
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto pr-1">
+    <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <div>

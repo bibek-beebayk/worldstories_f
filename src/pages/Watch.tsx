@@ -108,7 +108,7 @@ const Watch = () => {
         </div>
 
         {videoTypes.length > 0 && (
-          <div className="-mx-3 mb-5 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Filter by category">
+          <div className="-mx-3 mb-5 flex gap-2 overflow-x-auto px-3 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="group" aria-label="Filter by category">
             {[{ id: null, name: "All" }, ...videoTypes].map((type) => {
               const active = videoType === type.id;
               return (

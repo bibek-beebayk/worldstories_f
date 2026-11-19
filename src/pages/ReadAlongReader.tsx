@@ -597,7 +597,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
         role="region"
         aria-label="Transcript"
         tabIndex={0}
-        className="flex-1 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        className="flex-1 overflow-y-auto scrollbar-thin focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
       >
         <div
           className={cn(appearance.activeTheme.cardClass, "min-h-full border-0")}
@@ -795,7 +795,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
               Choose another audio track with a Read Along transcript.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto">
+          <div className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto scrollbar-thin">
             {(compatibleTracks.length > 0
               ? compatibleTracks
               : [

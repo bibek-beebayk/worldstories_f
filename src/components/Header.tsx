@@ -438,7 +438,7 @@ const Header = () => {
             </form>
 
             {mobileSearchOpen && mobileQuery.trim().length >= 2 && debouncedQuery.length >= 2 && (
-              <div className="absolute right-0 top-[calc(50%+1.5rem)] z-20 max-h-[min(70vh,28rem)] w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border bg-background p-2 shadow-xl">
+              <div className="absolute right-0 top-[calc(50%+1.5rem)] z-20 max-h-[min(70vh,28rem)] w-[calc(100vw-2rem)] overflow-y-auto scrollbar-thin rounded-xl border bg-background p-2 shadow-xl">
                 {storySuggestions.length > 0 || authorSuggestions.length > 0 || chapterSuggestions.length > 0 ? (
                   <>
                     {authorSuggestions.length > 0 && (
@@ -570,7 +570,7 @@ const Header = () => {
               {/* min-h-0 is what actually lets this shrink below its content
                   height — a flex child defaults to min-height:auto, and
                   overflow-y-auto on its own would do nothing. */}
-              <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+              <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin pr-1">
                 <SheetClose asChild>
                   <Link to="/originals" className="flex w-fit items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
                     <Sparkles className="h-4 w-4" /> Originals

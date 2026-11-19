@@ -299,7 +299,7 @@ const DepthCurve = ({ data }: { data: AdminAnalyticsEngagementResponse["depth_cu
 const DropOffTable = ({ rows }: { rows: AdminAnalyticsEngagementResponse["drop_off_stories"] }) => {
   if (rows.length === 0) return <EmptyNote>No story has 5 or more starters in this range yet.</EmptyNote>;
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-thin">
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">

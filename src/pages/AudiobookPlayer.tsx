@@ -360,7 +360,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
       ref={playerContainerRef}
       className={`${
         isFullscreen
-          ? "fixed inset-0 z-[200] h-[100dvh] overflow-y-auto bg-background"
+          ? "fixed inset-0 z-[200] h-[100dvh] overflow-y-auto scrollbar-thin bg-background"
           : "min-h-screen"
       } bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_55%),linear-gradient(to_bottom,var(--theme-page-wash,#f8fafc),transparent_280px)]`}
     >
@@ -562,7 +562,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                 <Badge variant="secondary">{story.audios.length}</Badge>
               </div>
 
-              <div className="max-h-[65vh] overflow-y-auto">{renderPlaylistItems()}</div>
+              <div className="max-h-[65vh] overflow-y-auto scrollbar-thin">{renderPlaylistItems()}</div>
             </CardContent>
           </Card>
         </aside>
@@ -596,7 +596,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
             <Badge variant="secondary">{story.audios.length}</Badge>
           </SheetHeader>
 
-          <div className="overflow-y-auto">
+          <div className="overflow-y-auto scrollbar-thin">
             {renderPlaylistItems(() => setPlaylistOpen(false), true)}
           </div>
         </SheetContent>

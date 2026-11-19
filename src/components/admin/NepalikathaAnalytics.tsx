@@ -48,7 +48,7 @@ export default function NepalikathaAnalytics({ days }: { days: AdminAnalyticsRan
       </ChartCard>
       <ChartCard title="Most read Nepalikatha stories">
         {data.top_stories.length === 0 ? <p className="text-sm text-muted-foreground">No reading activity in this range.</p> : (
-          <div className="overflow-x-auto"><table className="w-full text-left text-sm">
+          <div className="overflow-x-auto scrollbar-thin"><table className="w-full text-left text-sm">
             <thead><tr className="border-b"><th className="py-3">Story</th><th>Readers</th><th>Reading sessions</th><th>Active time</th></tr></thead>
             <tbody>{data.top_stories.map((story) => <tr key={story.slug} className="border-b"><td className="py-3 pr-4">{story.title}</td><td>{story.readers.toLocaleString()}</td><td>{story.reads.toLocaleString()}</td><td>{duration(story.reading_seconds)}</td></tr>)}</tbody>
           </table></div>

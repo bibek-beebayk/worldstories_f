@@ -307,7 +307,7 @@ const UsersTable = ({
       {rows.length === 0 ? (
         <EmptyNote>{data.users.length === 0 ? "No registered users yet" : "No users match"}</EmptyNote>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full min-w-[1180px] text-sm">
             <thead>
               <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
@@ -426,7 +426,7 @@ const UserDrawer = ({ user, onClose }: { user: AdminUserRow | null; onClose: () 
   });
   return (
     <Sheet open={Boolean(user)} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent side="right" className="w-full overflow-y-auto scrollbar-thin sm:max-w-md">
         {user && (
           <>
             <SheetHeader className="space-y-3 text-left">
@@ -601,7 +601,7 @@ const CohortGrid = ({ cohorts }: { cohorts: AdminAnalyticsUsersResponse["cohorts
     );
   }
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto scrollbar-thin">
       <table className="w-full min-w-[420px] text-sm">
         <thead>
           <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">

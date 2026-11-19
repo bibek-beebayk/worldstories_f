@@ -61,7 +61,7 @@ const ExploreTiles = ({ title = "Explore" }: { title?: string }) => {
       </div>
 
       <Dialog open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto p-0 sm:rounded-xl">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto scrollbar-thin p-0 sm:rounded-xl">
           <DialogHeader className="sr-only">
             <DialogTitle>{open === "mood" ? "Pick a mood" : "Surprise me"}</DialogTitle>
             <DialogDescription>

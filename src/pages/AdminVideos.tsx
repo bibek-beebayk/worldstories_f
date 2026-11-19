@@ -220,7 +220,7 @@ const AdminVideos = () => {
 
   if (showForm) {
     return (
-      <div className="h-full space-y-4 overflow-y-auto pr-1">
+      <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
         <div className="flex items-center gap-2">
           <Button type="button" variant="ghost" size="icon" onClick={closeForm}>
             <ArrowLeft className="h-4 w-4" />
@@ -406,7 +406,7 @@ const AdminVideos = () => {
                       />
                     </div>
                     {debouncedStorySearchQuery.length >= 2 && (
-                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1">
+                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-1">
                         {(storySearchResults?.results || []).map((result) => (
                           <button
                             key={result.id}
@@ -477,7 +477,7 @@ const AdminVideos = () => {
   }
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto pr-1">
+    <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <div>

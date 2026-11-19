@@ -111,9 +111,10 @@ const Library = () => {
   const progress = useStoryProgressMap(results, isLoggedIn);
   const { data: genreList } = useGenres();
   const { data: categoryList } = useCategories();
+  const { data: moodList } = useQuery({ queryKey: ["moods"], queryFn: storyApi.getMoods, staleTime: 5 * 60 * 1000 });
   const chips = useMemo(
-    () => buildFilterChips(filters, facets.data, authorData?.name, { genres: genreList, categories: categoryList }),
-    [filters, facets.data, authorData, genreList, categoryList]
+    () => buildFilterChips(filters, facets.data, authorData?.name, { genres: genreList, categories: categoryList, moods: moodList?.moods }),
+    [filters, facets.data, authorData, genreList, categoryList, moodList]
   );
   const filterCount = activeFilterCount(filters);
   const linkFor = filters.format ? FORMAT_META[filters.format].route : undefined;
@@ -255,7 +256,7 @@ const Library = () => {
           aria-label="Filters"
         >
           <div
-            className="sticky max-h-[calc(100vh-9rem)] overflow-y-auto rounded-lg border bg-card px-4 py-2 shadow-sm"
+            className="sticky max-h-[calc(100vh-9rem)] overflow-y-auto scrollbar-thin rounded-lg border bg-card px-4 py-2 shadow-sm"
             style={{ top: headerBottom > 0 ? headerBottom + 64 : 96 }}
           >
             <FilterPanel filters={filters} facets={facets.data} onChange={(patch) => update(patch)} />
@@ -342,7 +343,7 @@ const Library = () => {
             <SheetTitle>Filters</SheetTitle>
             <SheetDescription className="sr-only">Narrow the library by genre, language, length and more.</SheetDescription>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4">
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-4">
             <FilterPanel filters={draft} facets={draftFacets.data} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
           </div>
           <div className="flex gap-2 border-t bg-background p-3">

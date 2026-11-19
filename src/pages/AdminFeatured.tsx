@@ -196,7 +196,7 @@ const AdminFeatured = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto space-y-4 pr-1">
+    <div className="h-full overflow-y-auto scrollbar-thin space-y-4 pr-1">
       <Card>
         <CardHeader className="space-y-0">
           <CardTitle className="flex items-center gap-2 text-lg">

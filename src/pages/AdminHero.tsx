@@ -621,7 +621,7 @@ const AdminHero = () => {
   return (
     // The admin shell's content section is overflow-hidden, so every page owns
     // its own scroll area.
-    <div className="h-full space-y-6 overflow-y-auto pr-1">
+    <div className="h-full space-y-6 overflow-y-auto scrollbar-thin pr-1">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">New hero template</CardTitle>
