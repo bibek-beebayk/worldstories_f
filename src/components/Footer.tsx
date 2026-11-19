@@ -3,7 +3,6 @@ import { useSiteIdentity } from "@/lib/siteIdentity";
 import { useFeedback } from "@/context/FeedbackContext";
 
 const footerLinks = [
-  { to: "/originals", label: "WorldStories Originals" },
   { to: "/story-map", label: "Story Map" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },

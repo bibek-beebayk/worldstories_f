@@ -1,14 +1,19 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Search, X } from "lucide-react";
 import BlogCard from "@/components/BlogCard";
-import FullScreenLoader from "@/components/FullScreenLoader";
+import { BlogToolbar, BooksBand, FeaturedPost, MostRead } from "@/components/blog/BlogSections";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { storyApi } from "@/api/story";
 import { useInfiniteBlogs } from "@/hooks/useInfiniteBlogs";
+import { buildBlogParams, isBlogFiltered, parseBlogParams, type BlogListState } from "@/lib/blogParams";
 import { buildMeta, SITE_URL } from "@/lib/buildMeta";
-import { Loader2, Newspaper, PenLine, Search } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
 import type { Route } from "./+types/BlogList";
+
+const SERIF_FONT_URL = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap";
+const SEARCH_DEBOUNCE_MS = 350;
 
 // Fetched here purely to supply meta() with real data (for the Blog/
 // blogPost structured data) server-side — the component below still fetches
@@ -24,9 +29,9 @@ export async function loader() {
 
 export function meta({ data }: Route.MetaArgs) {
   const posts = data?.results || [];
-  return buildMeta({
+  const tags = buildMeta({
     title: "Blog | WorldStories",
-    description: "Reading recommendations, author spotlights, and news from the WorldStories team.",
+    description: "Reading guides, author spotlights and deep dives into the stories on WorldStories.",
     path: "/blog",
     structuredData:
       posts.length > 0
@@ -46,138 +51,149 @@ export function meta({ data }: Route.MetaArgs) {
           }
         : undefined,
   });
+  // The serif the post titles are set in.
+  return [...tags, { tagName: "link", rel: "stylesheet", href: SERIF_FONT_URL }];
 }
-
-const LINKED_FILTER_VALUES = ["all", "linked", "general"] as const;
-type LinkedFilter = (typeof LINKED_FILTER_VALUES)[number];
 
 const BlogList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const state = useMemo(() => parseBlogParams(searchParams), [searchParams]);
 
-  const [searchInput, setSearchInput] = useState(() => searchParams.get("q") || "");
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "");
-  const [sort, setSort] = useState(() => searchParams.get("sort") || "newest");
-  const [linkedFilter, setLinkedFilter] = useState<LinkedFilter>(() => {
-    const value = searchParams.get("linked");
-    return value === "linked" || value === "general" ? value : "all";
-  });
+  const update = useCallback(
+    (patch: Partial<BlogListState>, options: { replace?: boolean } = {}) => {
+      setSearchParams(buildBlogParams({ ...state, page: 1, ...patch }), { replace: options.replace });
+    },
+    [state, setSearchParams]
+  );
 
+  // --- search: typed locally, written to the URL after a pause ---
+  const [searchInput, setSearchInput] = useState(state.q);
   useEffect(() => {
-    const timer = window.setTimeout(() => setSearchQuery(searchInput.trim()), 300);
+    setSearchInput(state.q);
+  }, [state.q]);
+  useEffect(() => {
+    const next = searchInput.trim();
+    if (next === state.q) return;
+    const timer = window.setTimeout(() => update({ q: next }, { replace: true }), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, state.q, update]);
 
+  // --- data ---
+  const overview = useQuery({ queryKey: ["blog-overview"], queryFn: storyApi.getBlogOverview, staleTime: 5 * 60_000 });
+  const posts = useInfiniteBlogs(state.q, state.sort, undefined, state.topic);
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isFetching } = posts;
+  const blogs = useMemo(() => posts.data?.pages.flatMap((page) => page.results) ?? [], [posts.data]);
+  const loadedPages = posts.data?.pages.length ?? 0;
+  const total = posts.data?.pages[0]?.pagination.count ?? 0;
+  const remaining = Math.max(0, total - blogs.length);
+
+  // A URL with ?page=3 should show three pages: fetch the missing ones once the first has loaded.
   useEffect(() => {
-    const next = new URLSearchParams();
-    if (searchQuery) next.set("q", searchQuery);
-    if (sort !== "newest") next.set("sort", sort);
-    if (linkedFilter !== "all") next.set("linked", linkedFilter);
-    setSearchParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, sort, linkedFilter]);
+    if (loadedPages > 0 && loadedPages < state.page && hasNextPage && !isFetching) void fetchNextPage();
+  }, [loadedPages, state.page, hasNextPage, isFetching, fetchNextPage]);
 
-  const linkedToStory = linkedFilter === "all" ? undefined : linkedFilter === "linked";
+  const loadMore = async () => {
+    await fetchNextPage();
+    setSearchParams(buildBlogParams({ ...state, page: loadedPages + 1 }), { replace: true });
+  };
 
-  const {
-    data: blogsData,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteBlogs(searchQuery, sort, linkedToStory);
-
-  const blogs = useMemo(() => blogsData?.pages.flatMap((page) => page.results) || [], [blogsData]);
-
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage();
-      },
-      { rootMargin: "400px" }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  const filtered = isBlogFiltered(state);
+  const data = overview.data;
+  const topics = (data?.topics ?? []).filter((topic) => topic.post_count > 0);
+  const activeTopicName = topics.find((topic) => topic.slug === state.topic)?.name;
+  const heading = state.q ? `Results for “${state.q}”` : activeTopicName ?? "All posts";
+  const clearAll = () => {
+    setSearchInput("");
+    setSearchParams(new URLSearchParams());
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative overflow-hidden themed-banner [--banner-from:#334155] [--banner-via:#1e293b] [--banner-to:#18181b]">
-        <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-
-        {/* Decorative only — a big flickering newspaper watermark plus small
-            drifting pen-line icons, echoing the "editorial" theme the way
-            Quick Reads' bolt echoes "fast". */}
-        <Newspaper className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 animate-flicker text-white/10" style={{ animationDuration: "3.5s" }} />
-        <PenLine className="pointer-events-none absolute bottom-5 left-[16%] h-6 w-6 animate-float text-white/25" style={{ animationDuration: "4.5s" }} />
-        <PenLine className="pointer-events-none absolute right-[26%] top-8 h-5 w-5 animate-float text-white/20" style={{ animationDelay: "1s", animationDuration: "5.5s" }} />
-
-        <div className="container relative mx-auto px-4 py-8 sm:py-12">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-            <Newspaper className="h-3.5 w-3.5" />
-            The WorldStories Blog
+      <div className="container mx-auto px-3 pb-12 pt-6 sm:px-4 sm:pt-8">
+        {/* Compact header: title and one line on the left, search on the right. */}
+        <header className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div className="min-w-0">
+            <h1 className="!font-serif text-3xl font-bold tracking-tight sm:text-4xl">The WorldStories Blog</h1>
+            <p className="mt-1.5 max-w-xl text-sm text-muted-foreground sm:text-base">
+              Reading guides, author spotlights and deep dives into the stories you can read here.
+            </p>
           </div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Blog</h1>
-          <p className="mt-2 max-w-xl text-sm opacity-85 sm:text-base">
-            Reading recommendations, author spotlights, and news from the WorldStories team.
-          </p>
-        </div>
-      </div>
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search posts"
+              aria-label="Search posts"
+              className="h-10 pl-9 pr-9"
+            />
+            {searchInput && (
+              <button type="button" aria-label="Clear search" onClick={() => setSearchInput("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </header>
 
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex items-center gap-2 sm:flex-wrap sm:gap-3">
-        <div className="relative min-w-0 flex-1 sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search posts"
-            className="h-9 pl-8 text-sm sm:h-10 sm:text-base"
-          />
-        </div>
-        <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger className="h-9 w-[104px] shrink-0 px-2 text-xs sm:h-10 sm:w-[160px] sm:px-3 sm:text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="oldest">Oldest First</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={linkedFilter} onValueChange={(value) => setLinkedFilter(value as LinkedFilter)}>
-          <SelectTrigger className="h-9 w-[112px] shrink-0 px-2 text-xs sm:h-10 sm:w-[200px] sm:px-3 sm:text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Posts</SelectItem>
-            <SelectItem value="linked">Linked to a Story</SelectItem>
-            <SelectItem value="general">General Posts</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        {/* The front page: hidden once a topic or a search narrows the list. */}
+        {!filtered && data && (data.featured || data.most_read.length > 0) && (
+          <section className="mb-10 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]" aria-label="Featured">
+            {data.featured && <FeaturedPost blog={data.featured} pinned={data.featured_is_pinned} />}
+            <MostRead posts={data.most_read} />
+          </section>
+        )}
 
-      {isLoading ? (
-        <FullScreenLoader />
-      ) : blogs.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">No posts match your filters yet.</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {blogs.map((blog, index) => (
-            <Fragment key={blog.id}>
-              {index > 0 && <div className="h-px bg-border sm:hidden" aria-hidden="true" />}
-              <BlogCard blog={blog} />
-            </Fragment>
-          ))}
-        </div>
-      )}
+        <BlogToolbar
+          heading={heading}
+          sort={state.sort}
+          onSort={(sort) => update({ sort, topic: state.topic, q: state.q })}
+          topics={topics}
+          totalPosts={data?.total_posts ?? null}
+          activeTopic={state.topic}
+          onTopic={(topic) => update({ topic, sort: state.sort, q: state.q })}
+        />
 
-      <div ref={sentinelRef} className="flex justify-center py-8">
-        {isFetchingNextPage && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-      </div>
+        {posts.isLoading ? (
+          <div className="grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading posts">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index}>
+                <div className="aspect-video animate-pulse rounded-xl bg-muted" />
+                <div className="mt-3 h-3 w-1/4 animate-pulse rounded bg-muted" />
+                <div className="mt-2 h-5 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="mt-2 h-3 w-full animate-pulse rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        ) : posts.isError ? (
+          <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-muted-foreground">We couldn't load the posts. Please try again.</p>
+        ) : blogs.length === 0 ? (
+          <div className="rounded-xl border p-10 text-center">
+            <p className="font-medium">No posts match.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Try another topic or a different search.</p>
+            {filtered && (
+              <Button className="mt-4" variant="outline" onClick={clearAll}>
+                Show all posts
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className={`grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 ${posts.isPlaceholderData ? "opacity-60" : ""}`}>
+            {blogs.map((blog) => (
+              <BlogCard key={blog.id} blog={blog} />
+            ))}
+          </div>
+        )}
+
+        {hasNextPage && (
+          <div className="mt-10 flex justify-center">
+            <Button variant="outline" size="lg" className="rounded-full px-8" disabled={isFetchingNextPage} onClick={() => void loadMore()}>
+              {isFetchingNextPage ? "Loading…" : `Load more posts (${remaining})`}
+            </Button>
+          </div>
+        )}
+
+        {data && <BooksBand books={data.linked_books} />}
       </div>
     </div>
   );

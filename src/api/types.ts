@@ -1992,10 +1992,56 @@ export interface Blog {
   author_name: string | null;
   linked_stories?: BlogLinkedStory[];
   linked_blogs?: BlogLinkedBlog[];
-  /** Temporary compatibility with API responses from before linked_stories became many-to-many. */
+  /** The first book the post links to, for the card's book chip. The blog list sends just its
+   *  title and slug; older responses carried the full story. */
   linked_story?: BlogLinkedStory | null;
+  topics?: BlogTopicRef[];
+  /** Whole minutes to read, from the post's word count; null on posts saved before it existed. */
+  reading_time_minutes?: number | null;
+  /** Unique readers in the last 30 days; only on the blog list and overview. */
+  reads_30d?: number | null;
   published_at: string;
   updated_at: string;
+}
+
+export interface BlogTopicRef {
+  name: string;
+  slug: string;
+}
+
+export interface BlogTopicCount extends BlogTopicRef {
+  id: number;
+  post_count: number;
+}
+
+export interface BlogLinkedBook {
+  id: number;
+  title: string;
+  slug: string;
+  author: string | null;
+  cover_image: string;
+  /** How many published posts link to it. */
+  post_count: number;
+}
+
+/** GET /blog/overview/ — the top of the blog page. */
+export interface BlogOverview {
+  featured: Blog | null;
+  /** True when an editor pinned it; false when it is simply the newest post. */
+  featured_is_pinned: boolean;
+  most_read: Blog[];
+  topics: BlogTopicCount[];
+  total_posts: number;
+  linked_books: BlogLinkedBook[];
+}
+
+export interface AdminBlogTopic {
+  id: number;
+  name: string;
+  slug: string;
+  order: number;
+  description: string;
+  post_count?: number;
 }
 
 export interface AdminBlog {
@@ -2016,6 +2062,16 @@ export interface AdminBlog {
   linked_story_details?: { id: number; title: string; slug: string }[];
   linked_blogs?: number[];
   linked_blog_details?: { id: number; title: string; slug: string }[];
+  topics?: number[];
+  topic_details?: { id: number; name: string; slug: string }[];
+  topics_status?: AiGenerationStatus | null;
+  topics_source?: AiGenerationSource | null;
+  topics_confident?: boolean | null;
+  topics_confidence_note?: string | null;
+  topics_error?: string | null;
+  /** Computed from the content on save; read-only. */
+  reading_time_minutes?: number | null;
+  is_featured?: boolean;
   /** Temporary compatibility with API responses from before linked_stories became many-to-many. */
   linked_story?: number | null;
   linked_story_detail?: { id: number; title: string; slug: string } | null;

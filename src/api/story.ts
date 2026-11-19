@@ -72,6 +72,8 @@ import {
   AdminHomeSection,
   AdminHomeSectionInput,
   HomeSectionTypesMeta,
+  AdminBlogTopic,
+  BlogOverview,
   DiscoverSurpriseResponse,
   LibraryCollection,
   LibraryFacets,
@@ -481,11 +483,16 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  getBlogs: (page: number = 1, q: string = "", sort: string = "newest", linkedToStory?: boolean) =>
+  getBlogs: (page: number = 1, q: string = "", sort: string = "newest", linkedToStory?: boolean, topic: string = "") =>
     apiClient<PaginatedResponse<Blog>>(
-      `/blog/?page=${page}&search=${encodeURIComponent(q)}&sort=${sort}` +
-        (linkedToStory !== undefined ? `&linked_to_story=${linkedToStory}` : "")
+      `/blog/?page=${page}&q=${encodeURIComponent(q)}&sort=${sort}` +
+        (linkedToStory !== undefined ? `&linked_to_story=${linkedToStory}` : "") +
+        (topic ? `&topic=${encodeURIComponent(topic)}` : "")
     ),
+  getBlogOverview: () => apiClient<BlogOverview>("/blog/overview/"),
+  getAdminBlogTopics: () => apiClient<AdminBlogTopic[]>("/admin/blog-topics/"),
+  suggestBlogTopics: (id: number) =>
+    apiClient<AdminBlog>(`/admin/blog/${id}/suggest-topics/`, { method: "POST" }),
   getBlog: (slug: string) => apiClient<Blog>(`/blog/${slug}/`),
   getBlogsForStory: (storySlug: string) =>
     apiClient<PaginatedResponse<Blog>>(`/blog/?linked_story=${encodeURIComponent(storySlug)}`),

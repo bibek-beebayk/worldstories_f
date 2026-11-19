@@ -18,7 +18,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BookOpen, ChevronDown, Compass, FileText, LogIn, LogOut, Menu, Search, Sparkles, User, UsersRound, X, Youtube } from "lucide-react";
+import { BookOpen, ChevronDown, Compass, FileText, LogIn, LogOut, Menu, Search, User, UsersRound, X, Youtube } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -157,9 +157,6 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-4 xl:gap-6">
-            <Link to="/originals" className="flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-700">
-              <Sparkles className="h-3 w-3" /> Originals
-            </Link>
             <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Library
             </Link>
@@ -571,12 +568,6 @@ const Header = () => {
                   height — a flex child defaults to min-height:auto, and
                   overflow-y-auto on its own would do nothing. */}
               <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin pr-1">
-                <SheetClose asChild>
-                  <Link to="/originals" className="flex w-fit items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
-                    <Sparkles className="h-4 w-4" /> Originals
-                  </Link>
-                </SheetClose>
-
                 <SheetClose asChild>
                   <Link
                     to="/library"

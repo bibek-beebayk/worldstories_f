@@ -2,10 +2,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { storyApi } from "../api/story";
 import { Blog, PaginatedResponse } from "@/api/types";
 
-export function useInfiniteBlogs(q: string = "", sort: string = "newest", linkedToStory?: boolean) {
+export function useInfiniteBlogs(q: string = "", sort: string = "newest", linkedToStory?: boolean, topic: string = "") {
   return useInfiniteQuery<PaginatedResponse<Blog>>({
-    queryKey: ["infinite-blogs", q, sort, linkedToStory],
-    queryFn: ({ pageParam }) => storyApi.getBlogs(pageParam as number, q, sort, linkedToStory),
+    queryKey: ["infinite-blogs", q, sort, linkedToStory, topic],
+    queryFn: ({ pageParam }) => storyApi.getBlogs(pageParam as number, q, sort, linkedToStory, topic),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.pagination.page < lastPage.pagination.pages ? lastPage.pagination.page + 1 : undefined,

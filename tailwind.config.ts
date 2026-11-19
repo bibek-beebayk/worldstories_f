@@ -16,6 +16,8 @@ export default {
     extend: {
       fontFamily: {
         display: ["'Space Grotesk'", "Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        // Blog titles. Playfair Display is loaded by the blog list page; elsewhere this falls back to Georgia.
+        serif: ["'Playfair Display'", "Georgia", "'Times New Roman'", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",

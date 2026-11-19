@@ -90,6 +90,9 @@ const AdminBlogs = () => {
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
   const [isPublished, setIsPublished] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [topicIds, setTopicIds] = useState<number[]>([]);
+  const [topicsBannerDismissed, setTopicsBannerDismissed] = useState(false);
   const [publishAt, setPublishAt] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [removeCoverImage, setRemoveCoverImage] = useState(false);
@@ -114,9 +117,18 @@ const AdminBlogs = () => {
     enabled: isAuthenticated && isSuperuser && showForm && editingBlog !== null,
     refetchInterval: (query) => {
       const s = query.state.data;
-      return s?.excerpt_status === "pending" || s?.excerpt_status === "processing" ? 2000 : false;
+      const busy = (status?: string | null) => status === "pending" || status === "processing";
+      return busy(s?.excerpt_status) || busy(s?.topics_status) ? 2000 : false;
     },
   });
+
+  const { data: topicOptions } = useQuery({
+    queryKey: ["admin-blog-topics"],
+    queryFn: storyApi.getAdminBlogTopics,
+    enabled: isAuthenticated && isSuperuser && showForm,
+    staleTime: 5 * 60_000,
+  });
+  const lastAppliedTopicsStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!liveEditingBlog) return;
@@ -124,7 +136,15 @@ const AdminBlogs = () => {
       setExcerpt(liveEditingBlog.excerpt || "");
     }
     lastAppliedExcerptStatusRef.current = liveEditingBlog.excerpt_status;
+    // Topics the model just suggested land in the form the same way a generated excerpt does.
+    if (liveEditingBlog.topics_status === "completed" && lastAppliedTopicsStatusRef.current !== "completed") {
+      setTopicIds(liveEditingBlog.topics ?? []);
+    }
+    lastAppliedTopicsStatusRef.current = liveEditingBlog.topics_status ?? null;
   }, [liveEditingBlog]);
+
+  const topicsSuggestionBusy =
+    liveEditingBlog?.topics_status === "pending" || liveEditingBlog?.topics_status === "processing";
 
   const excerptGenerationBusy =
     liveEditingBlog?.excerpt_status === "pending" || liveEditingBlog?.excerpt_status === "processing";
@@ -201,6 +221,10 @@ const AdminBlogs = () => {
     setAuthorName("");
     setContent("");
     setIsPublished(true);
+    setIsFeatured(false);
+    setTopicIds([]);
+    setTopicsBannerDismissed(false);
+    lastAppliedTopicsStatusRef.current = null;
     setPublishAt("");
     setCoverImageFile(null);
     setRemoveCoverImage(false);
@@ -229,6 +253,10 @@ const AdminBlogs = () => {
     setAuthorName(blog.author_name || "");
     setContent(blog.content);
     setIsPublished(blog.is_published);
+    setIsFeatured(Boolean(blog.is_featured));
+    setTopicIds(blog.topics ?? []);
+    setTopicsBannerDismissed(false);
+    lastAppliedTopicsStatusRef.current = blog.topics_status ?? null;
     setPublishAt(toDatetimeLocalValue(blog.publish_at));
     setCoverImageFile(null);
     setRemoveCoverImage(false);
@@ -295,6 +323,9 @@ const AdminBlogs = () => {
       formData.append("author_name", authorName);
       formData.append("content", content);
       formData.append("is_published", String(isPublished));
+      formData.append("is_featured", String(isFeatured));
+      if (topicIds.length > 0) topicIds.forEach((id) => formData.append("topics", String(id)));
+      else formData.append("topics", "");
       formData.append("publish_at", publishAt ? fromDatetimeLocalValue(publishAt) : "");
       if (linkedStories.length > 0) {
         linkedStories.forEach((story) => formData.append("linked_stories", String(story.id)));
@@ -337,6 +368,20 @@ const AdminBlogs = () => {
       toast.error(error instanceof Error ? error.message : "Failed to start excerpt generation.");
     }
   };
+
+  const handleSuggestTopics = async () => {
+    if (!editingBlog) return;
+    setTopicsBannerDismissed(false);
+    try {
+      await storyApi.suggestBlogTopics(editingBlog.id);
+      await queryClient.invalidateQueries({ queryKey: ["admin-blog", editingBlog.id] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start topic suggestion.");
+    }
+  };
+
+  const toggleTopic = (id: number) =>
+    setTopicIds((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]));
 
   const deleteBlog = async () => {
     if (!pendingDeleteBlog) return;
@@ -455,6 +500,57 @@ const AdminBlogs = () => {
                   maxLength={300}
                   placeholder="Short summary shown on the blog list page and used as the SEO description."
                 />
+              </div>
+
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label>Topics</Label>
+                  {editingBlog && (
+                    <Button type="button" size="sm" variant="outline" disabled={topicsSuggestionBusy} onClick={handleSuggestTopics}>
+                      {topicsSuggestionBusy && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                      {topicsSuggestionBusy ? "Suggesting..." : "Suggest topics"}
+                    </Button>
+                  )}
+                </div>
+                {editingBlog && (
+                  <div className="mt-2">
+                    <AiGenerationResultBanner
+                      label="Topics"
+                      status={liveEditingBlog?.topics_status ?? null}
+                      source={liveEditingBlog?.topics_source ?? null}
+                      confident={liveEditingBlog?.topics_confident ?? null}
+                      confidenceNote={liveEditingBlog?.topics_confidence_note ?? null}
+                      error={liveEditingBlog?.topics_error ?? null}
+                      dismissed={topicsBannerDismissed}
+                      onDismiss={() => setTopicsBannerDismissed(true)}
+                      onRetryWithContent={handleSuggestTopics}
+                      onTryAgain={handleSuggestTopics}
+                    />
+                  </div>
+                )}
+                <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Topics">
+                  {(topicOptions ?? []).map((topic) => {
+                    const on = topicIds.includes(topic.id);
+                    return (
+                      <button
+                        key={topic.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleTopic(topic.id)}
+                        className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                          on ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
+                        }`}
+                      >
+                        {topic.name}
+                      </button>
+                    );
+                  })}
+                  {topicOptions?.length === 0 && <p className="text-xs text-muted-foreground">No topics exist yet.</p>}
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Shown as chips on the blog page. Pick one or two.
+                  {editingBlog?.reading_time_minutes ? ` Reading time (automatic): ${editingBlog.reading_time_minutes} min.` : ""}
+                </p>
               </div>
 
               <div>
@@ -758,6 +854,16 @@ const AdminBlogs = () => {
                 <Label htmlFor="blog-published" className="cursor-pointer font-normal">
                   Published
                 </Label>
+                <Checkbox
+                  id="blog-featured"
+                  className="ml-6"
+                  checked={isFeatured}
+                  onCheckedChange={(checked) => setIsFeatured(checked === true)}
+                />
+                <Label htmlFor="blog-featured" className="cursor-pointer font-normal">
+                  Featured on the blog page
+                </Label>
+                <span className="text-xs text-muted-foreground">(only one at a time)</span>
               </div>
 
               <div className="flex justify-end gap-2">
@@ -870,7 +976,23 @@ const AdminBlogs = () => {
               {(blogsData?.results || []).map((blog) => (
                 <div key={blog.id} className="flex items-center justify-between gap-3 p-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{blog.title}</p>
+                    <p className="truncate text-sm font-medium">
+                      {blog.title}
+                      {blog.is_featured && (
+                        <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">Featured</span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap gap-1.5 empty:hidden">
+                      {!(blog.excerpt ?? "").trim() && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">No excerpt</span>
+                      )}
+                      {(blog.topics ?? []).length === 0 && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">No topics</span>
+                      )}
+                      {!blog.cover_image_url && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">No cover</span>
+                      )}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
                       /{blog.slug} &middot; {blog.is_published ? "Published" : "Draft"}
                       {adminBlogLinkedStoryDetails(blog).length > 0 && ` · ${adminBlogLinkedStoryDetails(blog).length} linked ${adminBlogLinkedStoryDetails(blog).length === 1 ? "story" : "stories"}`}
