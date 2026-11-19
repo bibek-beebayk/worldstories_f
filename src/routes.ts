@@ -20,7 +20,7 @@ export default [
     route("watch", "pages/Watch.tsx"),
     route("quick-reads", "pages/QuickReads.tsx"),
     route("authors", "pages/Authors.tsx"),
-    route("authors/:id", "pages/AuthorDetail.tsx"),
+    route("authors/:slug", "pages/AuthorDetail.tsx"),
     route("contest", "pages/Contest.tsx"),
     route("search", "pages/Search.tsx"),
     route("publish", "pages/Publish.tsx"),

@@ -246,7 +246,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                         <span className="text-sm text-muted-foreground">
                           by{" "}
                           <Link
-                            to={`/authors/${story.author.id}`}
+                            to={`/authors/${story.author.slug}`}
                             className="font-medium text-foreground transition-colors hover:text-primary hover:underline"
                           >
                             {story.author.name}
@@ -390,7 +390,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
               <Card>
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">About the Author</h3>
-                  <Link to={`/authors/${story.author.id}`} className="group mb-3 flex w-fit items-center gap-3">
+                  <Link to={`/authors/${story.author.slug}`} className="group mb-3 flex w-fit items-center gap-3">
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={story.author.image || ""} />
                       <AvatarFallback>SC</AvatarFallback>

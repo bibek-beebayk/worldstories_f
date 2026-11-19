@@ -32,44 +32,64 @@ const AdminAuthors = () => {
   });
 
   const [searchInput, setSearchInput] = useState("");
+  const [missingPortraitOnly, setMissingPortraitOnly] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingAuthor, setEditingAuthor] = useState<AdminAuthor | null>(null);
   const [name, setName] = useState("");
+  const [sortName, setSortName] = useState("");
   const [bio, setBio] = useState("");
   const [image, setImage] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [deathYear, setDeathYear] = useState("");
+  const [yearsLabel, setYearsLabel] = useState("");
+  const [country, setCountry] = useState("");
+  const [countryLabel, setCountryLabel] = useState("");
+  const [era, setEra] = useState("");
+  const [knownFor, setKnownFor] = useState("");
+  const [isTraditional, setIsTraditional] = useState(false);
+  const [isHouse, setIsHouse] = useState(false);
+  const [mergeTarget, setMergeTarget] = useState("");
+  const [merging, setMerging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pendingDeleteAuthor, setPendingDeleteAuthor] = useState<AdminAuthor | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const filteredAuthors = useMemo(() => {
     const query = searchInput.trim().toLowerCase();
-    if (!query) return authors || [];
-    return (authors || []).filter(
+    const pool = missingPortraitOnly ? (authors || []).filter((author) => !author.image) : (authors || []);
+    if (!query) return pool;
+    return pool.filter(
       (author) =>
         author.name.toLowerCase().includes(query) || (author.bio || "").toLowerCase().includes(query)
     );
-  }, [authors, searchInput]);
+  }, [authors, searchInput, missingPortraitOnly]);
 
   const openCreateModal = () => {
     setEditingAuthor(null);
     setName("");
+    setSortName("");
     setBio("");
     setImage("");
+    setBirthYear(""); setDeathYear(""); setYearsLabel(""); setCountry(""); setCountryLabel(""); setEra(""); setKnownFor(""); setIsTraditional(false); setIsHouse(false); setMergeTarget("");
     setShowModal(true);
   };
 
   const openEditModal = (author: AdminAuthor) => {
     setEditingAuthor(author);
     setName(author.name);
+    setSortName(author.sort_name || "");
     setBio(author.bio || "");
     setImage(author.image || "");
+    setBirthYear(author.birth_year != null ? String(author.birth_year) : "");
+    setDeathYear(author.death_year != null ? String(author.death_year) : "");
+    setYearsLabel(author.years_label || ""); setCountry(author.country || ""); setCountryLabel(author.country_label || ""); setEra(author.era || ""); setKnownFor(author.known_for || ""); setIsTraditional(author.is_traditional); setIsHouse(author.is_house); setMergeTarget("");
     setShowModal(true);
   };
 
   const saveAuthor = async (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
-    const payload = { name: name.trim(), bio: bio.trim(), image: image.trim() };
+    const payload = { name: name.trim(), sort_name: sortName.trim(), bio: bio.trim(), image: image.trim(), birth_year: birthYear ? Number(birthYear) : null, death_year: deathYear ? Number(deathYear) : null, years_label: yearsLabel.trim(), country: country.trim().toUpperCase(), country_label: countryLabel.trim(), era, known_for: knownFor.trim(), is_traditional: isTraditional, is_house: isHouse };
     try {
       setSaving(true);
       if (editingAuthor) {
@@ -104,6 +124,19 @@ const AdminAuthors = () => {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const mergeAuthor = async () => {
+    if (!editingAuthor || !mergeTarget) return;
+    try {
+      setMerging(true);
+      const result = await storyApi.mergeAdminAuthor(editingAuthor.id, Number(mergeTarget));
+      await queryClient.invalidateQueries({ queryKey: ["admin-authors"] });
+      toast.success(`Merged into ${result.target.name}.`);
+      setShowModal(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to merge authors.");
+    } finally { setMerging(false); }
   };
 
   if (meLoading) {
@@ -148,6 +181,7 @@ const AdminAuthors = () => {
               className="pl-8"
             />
           </div>
+          <label className="flex min-h-11 w-fit items-center gap-2 text-sm"><input type="checkbox" checked={missingPortraitOnly} onChange={(e) => setMissingPortraitOnly(e.target.checked)} />Missing portrait only</label>
 
           {authorsLoading ? (
             <p className="text-sm text-muted-foreground">Loading authors...</p>
@@ -206,7 +240,7 @@ const AdminAuthors = () => {
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           onClick={() => setShowModal(false)}
         >
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <Card className="max-h-[90vh] w-full max-w-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base">{editingAuthor ? "Edit Author" : "Create Author"}</CardTitle>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowModal(false)}>
@@ -219,6 +253,7 @@ const AdminAuthors = () => {
                   <Label htmlFor="author-name">Name *</Label>
                   <Input id="author-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
                 </div>
+                <div><Label htmlFor="author-sort-name">Sort name</Label><Input id="author-sort-name" value={sortName} onChange={(e) => setSortName(e.target.value)} placeholder="Doyle, Arthur Conan" /></div>
                 <div>
                   <Label htmlFor="author-image">Image URL</Label>
                   <Input id="author-image" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." />
@@ -227,6 +262,13 @@ const AdminAuthors = () => {
                   <Label htmlFor="author-bio">Bio</Label>
                   <Textarea id="author-bio" value={bio} onChange={(e) => setBio(e.target.value)} className="min-h-24" />
                 </div>
+                <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="author-birth">Birth year</Label><Input id="author-birth" type="number" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} /></div><div><Label htmlFor="author-death">Death year</Label><Input id="author-death" type="number" value={deathYear} onChange={(e) => setDeathYear(e.target.value)} /></div></div>
+                <div><Label htmlFor="author-years-label">Years label</Label><Input id="author-years-label" value={yearsLabel} onChange={(e) => setYearsLabel(e.target.value)} placeholder="Optional display override" /></div>
+                <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="author-country">Country code</Label><Input id="author-country" maxLength={2} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="GB" /></div><div><Label htmlFor="author-country-label">Country label</Label><Input id="author-country-label" value={countryLabel} onChange={(e) => setCountryLabel(e.target.value)} placeholder="Ancient Greece" /></div></div>
+                <div><Label htmlFor="author-era">Era</Label><select id="author-era" className="flex h-10 w-full rounded-md border bg-background px-3 text-sm" value={era} onChange={(e) => setEra(e.target.value)}><option value="">Unknown</option><option value="ancient">Ancient</option><option value="pre_1800">Before 1800</option><option value="1800s">1800s</option><option value="1900s">1900s</option><option value="contemporary">Contemporary</option></select></div>
+                <div><Label htmlFor="author-known-for">Known for</Label><Input id="author-known-for" value={knownFor} onChange={(e) => setKnownFor(e.target.value)} /></div>
+                <div className="flex flex-wrap gap-5"><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={isTraditional} onChange={(e) => setIsTraditional(e.target.checked)} />Traditional attribution</label><label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={isHouse} onChange={(e) => setIsHouse(e.target.checked)} />House byline</label></div>
+                {editingAuthor && <div className="rounded-md border border-destructive/30 p-3"><Label htmlFor="merge-target">Merge this author into</Label><div className="mt-2 flex gap-2"><select id="merge-target" className="h-10 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm" value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)}><option value="">Choose target…</option>{(authors || []).filter((item) => item.id !== editingAuthor.id).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><Button type="button" variant="destructive" disabled={!mergeTarget || merging} onClick={mergeAuthor}>{merging ? "Merging…" : "Merge"}</Button></div></div>}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                     Cancel

@@ -35,6 +35,7 @@ export interface LibraryFilters {
   mood: string[];
   /** Author id, set by the featured-author collection. */
   author: string;
+  traditional: boolean;
   sort: LibrarySort;
   view: LibraryView;
 }
@@ -53,6 +54,7 @@ export const EMPTY_FILTERS: LibraryFilters = {
   original: false,
   mood: [],
   author: "",
+  traditional: false,
   sort: DEFAULT_SORT,
   view: DEFAULT_VIEW,
 };
@@ -101,6 +103,7 @@ export function parseLibraryParams(params: URLSearchParams): LibraryFilters {
     original: params.get("original") === "true" || params.get("original") === "1",
     mood: list(params.get("mood") ?? params.get("moods")),
     author: params.get("author") ?? "",
+    traditional: params.get("traditional") === "1" || params.get("traditional") === "true",
     sort,
     view: params.get("view") === "list" ? "list" : DEFAULT_VIEW,
   };
@@ -122,6 +125,7 @@ export function buildLibraryParams(filters: LibraryFilters): URLSearchParams {
   if (filters.original) out.set("original", "true");
   if (filters.mood.length) out.set("mood", filters.mood.join(","));
   if (filters.author) out.set("author", filters.author);
+  if (filters.traditional) out.set("traditional", "true");
   if (filters.sort !== DEFAULT_SORT) out.set("sort", filters.sort);
   if (filters.view !== DEFAULT_VIEW) out.set("view", filters.view);
   return out;
@@ -144,6 +148,7 @@ export function toApiParams(filters: LibraryFilters, options: { includeFormat?: 
   if (filters.original) api.original = "true";
   if (filters.mood.length) api.moods = filters.mood.join(",");
   if (filters.author) api.author = filters.author;
+  if (filters.traditional) api.traditional = "true";
   api.sort = filters.sort;
   return api;
 }
@@ -162,6 +167,7 @@ export function activeFilterCount(filters: LibraryFilters): number {
     (filters.status ? 1 : 0) +
     (filters.original ? 1 : 0) +
     (filters.author ? 1 : 0)
+    + (filters.traditional ? 1 : 0)
   );
 }
 
@@ -186,6 +192,7 @@ export function applyCollectionParams(current: LibraryFilters, params: Record<st
     length: oneOf(params.length ?? null, LENGTH_KEYS),
     country: params.country ?? "",
     author: params.author ?? "",
+    traditional: params.traditional === "true" || params.traditional === "1",
     genre: list(params.genre ?? null),
     category: list(params.category ?? null),
   };

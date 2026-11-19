@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AuthorPortraitProps {
@@ -29,7 +28,7 @@ export default function AuthorPortrait({
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center overflow-hidden tinted-panel [--tint:#8b5cf6] [--tint-2:#0ea5e9]",
+        "relative flex items-center justify-center overflow-hidden bg-[#f3ead8] text-[#6f5940]",
         className
       )}
     >
@@ -40,12 +39,11 @@ export default function AuthorPortrait({
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
-          className={cn("h-full w-full object-cover", imageClassName)}
+          className={cn("h-full w-full object-cover object-top", imageClassName)}
         />
       ) : (
-        <div className="flex flex-col items-center gap-2 text-primary/70" aria-label={`${name} portrait unavailable`}>
-          <UserRound className="h-10 w-10" aria-hidden="true" />
-          <span className="text-xl font-bold tracking-wide">{initials || "A"}</span>
+        <div className="flex items-center justify-center" aria-label={`${name} portrait unavailable`}>
+          <span className="font-serif text-3xl font-semibold tracking-wide">{initials || "A"}</span>
         </div>
       )}
     </div>

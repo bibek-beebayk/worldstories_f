@@ -97,7 +97,7 @@ const Search = () => {
                     {authors.map((author) => (
                       <Link
                         key={author.id}
-                        to={`/authors/${author.id}`}
+                        to={`/authors/${author.slug}`}
                         className="group flex items-center gap-4 rounded-xl border bg-card p-3 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                       >
                         <AuthorPortrait src={author.image} name={author.name} className="h-24 w-20 shrink-0 rounded-lg" />

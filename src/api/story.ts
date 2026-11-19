@@ -108,6 +108,7 @@ import {
   BlogReadingProgress,
   QuickReadProgress,
   Author,
+  AuthorsOverview,
   AuthorDetail,
   SearchResponse,
   StoryQueueItem,
@@ -228,8 +229,12 @@ export const storyApi = {
   getThemes: () => apiClient<Theme[]>("/themes/"),
   getTheme: (slug: string) => apiClient<ThemeDetail>(`/themes/${slug}/`),
   getStoryTypes: () => apiClient<StoryType[]>("/story-types/"),
-  getAuthors: (page: number = 1) =>
-    apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
+  getAuthors: (filters: { q?: string; letter?: string; country?: string; era?: string; genre?: string; sort?: string } = {}) => {
+    const params = new URLSearchParams({ page_size: "all" });
+    Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+    return apiClient<PaginatedResponse<Author>>(`/authors/?${params.toString()}`);
+  },
+  getAuthorsOverview: () => apiClient<AuthorsOverview>("/authors/overview/"),
   getVideos: (
     page: number = 1,
     filters: { q?: string; series?: string; length?: string; sort?: string; videoType?: number | null } = {}
@@ -258,7 +263,7 @@ export const storyApi = {
       method: "PUT",
       body: JSON.stringify({ progress, position_seconds, duration_seconds }),
     }),
-  getAuthor: (id: number) => apiClient<AuthorDetail>(`/authors/${id}/`),
+  getAuthor: (id: number | string) => apiClient<AuthorDetail>(`/authors/${id}/`),
   getLibraryShelves: (page: number) =>
     apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
   getHomeData: () => apiClient<HomeDataResponse>("/home/"),
@@ -640,18 +645,23 @@ export const storyApi = {
     ),
   getAdminAuthors: () =>
     apiClient<AdminAuthor[]>("/admin/authors/"),
-  createAdminAuthor: (payload: { name: string; bio?: string; image?: string }) =>
+  createAdminAuthor: (payload: Partial<AdminAuthor> & { name: string }) =>
     apiClient<AdminAuthor>("/admin/authors/", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  updateAdminAuthor: (id: number, payload: { name: string; bio?: string; image?: string }) =>
+  updateAdminAuthor: (id: number, payload: Partial<AdminAuthor> & { name: string }) =>
     apiClient<AdminAuthor>(`/admin/authors/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
   deleteAdminAuthor: (id: number) =>
     apiClient<void>(`/admin/authors/${id}/`, { method: "DELETE" }),
+  mergeAdminAuthor: (id: number, target: number) =>
+    apiClient<{ target: AdminAuthor; moved: Array<{ relation: string; count: number }> }>(`/admin/authors/${id}/merge/`, {
+      method: "POST",
+      body: JSON.stringify({ target }),
+    }),
   getAdminUsers: (page: number = 1, q: string = "") =>
     apiClient<PaginatedResponse<AdminUser>>(
       `/admin/users/?page=${page}&search=${encodeURIComponent(q)}`

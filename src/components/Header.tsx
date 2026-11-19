@@ -241,7 +241,7 @@ const Header = () => {
                             if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
                           }}
                           onClick={() => {
-                            navigate(`/authors/${author.id}`);
+                            navigate(`/authors/${author.slug}`);
                             setShowSuggestions(false);
                           }}
                           className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
@@ -447,7 +447,7 @@ const Header = () => {
                       <button
                         key={`mobile-author-${author.id}`}
                         type="button"
-                        onClick={() => openMobileSearchResult(`/authors/${author.id}`)}
+                        onClick={() => openMobileSearchResult(`/authors/${author.slug}`)}
                         className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
                       >
                         <AuthorPortrait src={author.image} name={author.name} className="h-11 w-9 shrink-0 rounded" />

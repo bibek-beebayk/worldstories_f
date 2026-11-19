@@ -298,10 +298,30 @@ export interface LibraryShelvesResponse {
 
 export interface Author{
   id: number;
+  slug: string;
   name: string;
+  sort_name: string;
   bio: string | null;
   image: string | null;
+  birth_year: number | null;
+  death_year: number | null;
+  years_label: string;
+  country: string;
+  country_label: string;
+  era: "ancient" | "pre_1800" | "1800s" | "1900s" | "contemporary" | "";
+  known_for: string;
+  is_traditional: boolean;
+  titles_count: number;
   stories_count: number;
+  formats: { audio: boolean; video: boolean; read_along: boolean };
+}
+
+export interface AuthorsOverview {
+  featured: Author[];
+  letters: string[];
+  countries: Array<{ country: string; label: string; count: number }>;
+  eras: Array<{ era: string; count: number }>;
+  traditional_count: number;
 }
 
 export interface AuthorDetail extends Author {
@@ -999,9 +1019,20 @@ export interface PromptSettings {
 
 export interface AdminAuthor {
   id: number;
+  slug: string;
   name: string;
+  sort_name: string;
   bio?: string | null;
   image?: string | null;
+  birth_year: number | null;
+  death_year: number | null;
+  years_label: string;
+  country: string;
+  country_label: string;
+  era: string;
+  known_for: string;
+  is_traditional: boolean;
+  is_house: boolean;
   stories_count?: number;
 }
 
