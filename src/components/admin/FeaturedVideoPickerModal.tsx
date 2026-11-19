@@ -35,7 +35,7 @@ export function FeaturedVideoPickerModal({ open, onClose, excludeIds, onSelect }
 
   const { data, isLoading, isFetchingNextPage, fetchNextPage, hasNextPage } = useInfiniteQuery({
     queryKey: ["admin-featured-video-picker", query],
-    queryFn: ({ pageParam }) => storyApi.getVideos(pageParam as number, query),
+    queryFn: ({ pageParam }) => storyApi.getVideos(pageParam as number, { q: query }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.pagination.page < lastPage.pagination.pages ? lastPage.pagination.page + 1 : undefined,

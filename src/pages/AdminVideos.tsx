@@ -45,15 +45,17 @@ const AdminVideos = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [storyFilter, setStoryFilter] = useState<StoryFilter>("all");
+  const [seriesFilter, setSeriesFilter] = useState("all");
   const { data: videosData, isLoading: videosLoading } = useQuery({
-    queryKey: ["admin-videos-list", page, search, storyFilter],
-    queryFn: () => storyApi.listAdminVideos(page, search, STORY_FILTER_TO_PARAM[storyFilter]),
+    queryKey: ["admin-videos-list", page, search, storyFilter, seriesFilter],
+    queryFn: () => storyApi.listAdminVideos(page, search, STORY_FILTER_TO_PARAM[storyFilter], seriesFilter === "all" ? undefined : seriesFilter),
     enabled: isAuthenticated && isSuperuser,
   });
 
   const [showForm, setShowForm] = useState(false);
   const [editingVideo, setEditingVideo] = useState<AdminVideo | null>(null);
   const [title, setTitle] = useState("");
+  const [displayTitle, setDisplayTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [duration, setDuration] = useState("");
@@ -61,6 +63,8 @@ const AdminVideos = () => {
   const [story, setStory] = useState<StoryOption | null>(null);
   // "none" is the Select sentinel for no type (Radix items can't be "").
   const [videoType, setVideoType] = useState<string>("none");
+  const [series, setSeries] = useState<string>("none");
+  const [featuredRank, setFeaturedRank] = useState("");
   const [showVideoTypeModal, setShowVideoTypeModal] = useState(false);
   const [newVideoTypeName, setNewVideoTypeName] = useState("");
   const [creatingVideoType, setCreatingVideoType] = useState(false);
@@ -68,6 +72,7 @@ const AdminVideos = () => {
     queryKey: ["admin-video-types"],
     queryFn: () => storyApi.getAdminVideoTypes(),
   });
+  const { data: videoSeries = [] } = useQuery({ queryKey: ["video-series"], queryFn: storyApi.getVideoSeries });
   const [order, setOrder] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [removeCoverImage, setRemoveCoverImage] = useState(false);
@@ -92,12 +97,15 @@ const AdminVideos = () => {
   const resetForm = () => {
     setEditingVideo(null);
     setTitle("");
+    setDisplayTitle("");
     setSlug("");
     setYoutubeUrl("");
     setDuration("");
     setAspectRatio("16:9");
     setStory(null);
     setVideoType("none");
+    setSeries("none");
+    setFeaturedRank("");
     setOrder("");
     setCoverImageFile(null);
     setRemoveCoverImage(false);
@@ -112,12 +120,15 @@ const AdminVideos = () => {
   const openEditForm = (video: AdminVideo) => {
     setEditingVideo(video);
     setTitle(video.title);
+    setDisplayTitle(video.display_title || "");
     setSlug(video.slug || "");
     setYoutubeUrl(video.youtube_url || "");
     setDuration(video.duration_seconds != null ? String(video.duration_seconds) : "");
     setAspectRatio(video.aspect_ratio || "16:9");
     setStory(video.story_detail);
     setVideoType(video.video_type != null ? String(video.video_type) : "none");
+    setSeries(video.series != null ? String(video.series) : "none");
+    setFeaturedRank(video.featured_rank != null ? String(video.featured_rank) : "");
     setOrder(video.story_detail ? String(video.order) : "");
     setCoverImageFile(null);
     setRemoveCoverImage(false);
@@ -155,6 +166,7 @@ const AdminVideos = () => {
       setSaving(true);
       const formData = new FormData();
       formData.append("title", title.trim());
+      formData.append("display_title", displayTitle.trim());
       if (slug.trim()) formData.append("slug", slug.trim());
       formData.append("youtube_url", youtubeUrl.trim());
       formData.append("duration_seconds", duration.trim());
@@ -162,6 +174,8 @@ const AdminVideos = () => {
       // An empty value detaches the video from its story (standalone).
       formData.append("story", story ? String(story.id) : "");
       formData.append("video_type", videoType === "none" ? "" : videoType);
+      formData.append("series", series === "none" ? "" : series);
+      formData.append("featured_rank", featuredRank.trim());
       // Left blank, the backend appends the video to the end of the story's list.
       if (story && order.trim()) formData.append("order", order.trim());
       if (coverImageFile) formData.append("cover_image_file", coverImageFile);
@@ -248,6 +262,19 @@ const AdminVideos = () => {
               </div>
 
               <div>
+                <Label htmlFor="video-display-title">Display title</Label>
+                <Input
+                  id="video-display-title"
+                  value={displayTitle}
+                  onChange={(e) => setDisplayTitle(e.target.value)}
+                  placeholder={title.split(" | ", 1)[0].trim() || "Short viewer-facing title"}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Suggested: {title.split(" | ", 1)[0].trim() || "enter the YouTube title first"}
+                </p>
+              </div>
+
+              <div>
                 <Label htmlFor="video-url">YouTube URL *</Label>
                 <Input
                   id="video-url"
@@ -302,6 +329,23 @@ const AdminVideos = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="video-series">Series</Label>
+                  <Select value={series} onValueChange={setSeries}>
+                    <SelectTrigger id="video-series"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {videoSeries.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="video-featured-rank">Featured rank</Label>
+                  <Input id="video-featured-rank" type="number" min={1} value={featuredRank} onChange={(e) => setFeaturedRank(e.target.value)} placeholder="Not featured" />
+                </div>
               </div>
 
               <div>
@@ -523,6 +567,12 @@ const AdminVideos = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-full sm:w-56">
+              <Select value={seriesFilter} onValueChange={(value) => { setSeriesFilter(value); setPage(1); }}>
+                <SelectTrigger aria-label="Filter by series"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">All series</SelectItem>{videoSeries.map((item) => <SelectItem key={item.slug} value={item.slug}>{item.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           </div>
 
           {videosLoading ? (
@@ -546,14 +596,21 @@ const AdminVideos = () => {
                       />
                     )}
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{video.title}</p>
+                      <p className="truncate text-sm font-medium">{video.display_title || video.title}</p>
                       <p className="truncate text-xs text-muted-foreground">
                         {video.story_detail ? `${video.story_detail.title} · #${video.order}` : "Standalone"}
                         {" · "}
                         {video.aspect_ratio === "9:16" ? "Portrait" : "Landscape"}
                         {video.video_type_detail && ` · ${video.video_type_detail.name}`}
+                        {video.series_detail && ` · ${video.series_detail.name}`}
                         {video.created_at && ` · Added ${formatCreatedAt(video.created_at)}`}
                       </p>
+                      {(!video.duration_seconds || !video.story_detail) && (
+                        <div className="mt-1 flex gap-1">
+                          {!video.duration_seconds && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">Missing duration</span>}
+                          {!video.story_detail && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">Missing story</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">

@@ -96,6 +96,7 @@ export interface AdminVideoType {
 export interface PublicVideo {
   id: number;
   title: string;
+  display_title: string;
   slug: string;
   youtube_id: string;
   duration_seconds: number | null;
@@ -103,9 +104,42 @@ export interface PublicVideo {
   cover_image: string;
   /** cover_image if set, otherwise YouTube's default thumbnail. */
   thumbnail: string;
-  story: { id: number; title: string; slug: string } | null;
+  story: {
+    id: number;
+    title: string;
+    slug: string;
+    author: string;
+    formats: { read: boolean; listen: boolean; read_along: boolean };
+  } | null;
   video_type: { id: number; name: string } | null;
+  series: { slug: string; name: string; layout: "wide" | "tall" } | null;
+  description: string;
+  other_versions: Array<{
+    id: number;
+    slug: string;
+    display_title: string;
+    duration_seconds: number | null;
+    series_name: string;
+  }>;
   created_at: string;
+}
+
+export interface VideoSeries {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  order: number;
+  layout: "wide" | "tall";
+  is_story_content: boolean;
+  is_active: boolean;
+}
+
+export interface WatchOverview {
+  featured: PublicVideo | null;
+  count: number;
+  continue_watching: Array<{ video: PublicVideo; progress_percent: number; seconds_left: number }>;
+  shelves: Array<{ series: VideoSeries; videos: PublicVideo[] }>;
 }
 
 export interface PublicVideoDetail extends PublicVideo {
@@ -1094,7 +1128,10 @@ export interface AdminVideo {
   /** Optional category (Narration, Trailer, ...). */
   video_type: number | null;
   video_type_detail: { id: number; name: string } | null;
+  series: number | null;
+  series_detail: VideoSeries | null;
   title: string;
+  display_title: string;
   slug: string;
   youtube_url: string;
   youtube_id: string;
@@ -1104,6 +1141,7 @@ export interface AdminVideo {
   cover_image_file: string | null;
   cover_image_url: string;
   created_at: string;
+  featured_rank: number | null;
 }
 
 export interface AdminSubmission {

@@ -44,6 +44,8 @@ import {
   VideoTypeOption,
   PublicVideoDetail,
   VideoProgress,
+  VideoSeries,
+  WatchOverview,
   AiGenerationInputField,
   EpubImportJob,
   BookFetchJob,
@@ -228,11 +230,21 @@ export const storyApi = {
   getStoryTypes: () => apiClient<StoryType[]>("/story-types/"),
   getAuthors: (page: number = 1) =>
     apiClient<PaginatedResponse<Author>>(`/authors/?page=${page}`),
-  getVideos: (page: number = 1, q: string = "", videoType: number | null = null) =>
-    apiClient<PaginatedResponse<PublicVideo>>(
-      `/videos/?page=${page}&search=${encodeURIComponent(q)}${videoType ? `&video_type=${videoType}` : ""}`
-    ),
+  getVideos: (
+    page: number = 1,
+    filters: { q?: string; series?: string; length?: string; sort?: string; videoType?: number | null } = {}
+  ) => {
+    const params = new URLSearchParams({ page: String(page) });
+    if (filters.q) params.set("q", filters.q);
+    if (filters.series) params.set("series", filters.series);
+    if (filters.length) params.set("length", filters.length);
+    if (filters.sort) params.set("sort", filters.sort);
+    if (filters.videoType) params.set("video_type", String(filters.videoType));
+    return apiClient<PaginatedResponse<PublicVideo>>(`/videos/?${params.toString()}`);
+  },
   getVideoTypes: () => apiClient<VideoTypeOption[]>("/video-types/"),
+  getVideoSeries: () => apiClient<VideoSeries[]>("/video-series/"),
+  getWatchOverview: () => apiClient<WatchOverview>("/videos/overview/"),
   getVideo: (id: number | string) => apiClient<PublicVideoDetail>(`/videos/${id}/`),
   getWatchProgress: (video_id: number | string) =>
     apiClient<VideoProgress>(`/watch-progress/${video_id}/`),
@@ -958,10 +970,11 @@ export const storyApi = {
     apiClient<PaginatedResponse<AdminVideo>>(`/admin/videos/?story=${storyId}`),
   // Videos admin page: paged, newest first. `hasStory` narrows to videos
   // attached to a story (true) or standalone ones (false).
-  listAdminVideos: (page: number = 1, q: string = "", hasStory?: boolean) =>
+  listAdminVideos: (page: number = 1, q: string = "", hasStory?: boolean, series?: string) =>
     apiClient<PaginatedResponse<AdminVideo>>(
       `/admin/videos/?page=${page}&search=${encodeURIComponent(q)}` +
-        (hasStory === undefined ? "" : `&has_story=${hasStory}`)
+        (hasStory === undefined ? "" : `&has_story=${hasStory}`) +
+        (series ? `&series=${encodeURIComponent(series)}` : "")
     ),
   createAdminVideoForm: (formData: FormData) =>
     apiClient<AdminVideo>("/admin/videos/", { method: "POST", body: formData }),
