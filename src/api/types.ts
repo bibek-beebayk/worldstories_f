@@ -208,6 +208,37 @@ export interface Story {
   // is genuinely unknown (no chapters and no cached file estimate), which is
   // the signal to omit the label rather than render "0 min read".
   reading_time_minutes?: number | null;
+  /** True/false in the Library list (there is text to read here); absent or null elsewhere. */
+  has_text?: boolean | null;
+}
+
+export interface LibraryFacetCount {
+  count: number;
+}
+
+/** GET /stories/facets/ — counts per filter value, each under the other active filters. */
+export interface LibraryFacets {
+  total: number;
+  genres: Array<LibraryFacetCount & { id: number; slug: string; name: string }>;
+  categories: Array<LibraryFacetCount & { id: number; slug: string; name: string }>;
+  languages: Array<LibraryFacetCount & { value: string }>;
+  lengths: Array<LibraryFacetCount & { value: string; label: string }>;
+  countries: Array<LibraryFacetCount & { value: string; label: string }>;
+  types: Array<LibraryFacetCount & { id: number; name: string }>;
+  statuses: Array<LibraryFacetCount & { value: string; label: string }>;
+  /** "all" plus one entry per format. */
+  formats: Array<LibraryFacetCount & { value: string }>;
+  originals: LibraryFacetCount;
+  moods: Array<LibraryFacetCount & { slug: string; name: string }>;
+}
+
+/** One tile of the Library's collections strip. `params` is what to apply to the list. */
+export interface LibraryCollection {
+  key: string;
+  label: string;
+  params: Record<string, string>;
+  count: number;
+  covers: string[];
 }
 
 export interface StoryListResponse {
