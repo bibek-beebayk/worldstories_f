@@ -1,10 +1,10 @@
 export interface Pagination {
-    count: number;
-    page: number;
-    pages: number;
-    previous: string | null;
-    next: string | null;
-    size: number;
+  count: number;
+  page: number;
+  pages: number;
+  previous: string | null;
+  next: string | null;
+  size: number;
 }
 
 export interface PaginatedResponse<T> {
@@ -155,7 +155,7 @@ export interface VideoProgress {
   updated_at: string | null;
 }
 
-export interface Genre{
+export interface Genre {
   id: number;
   name: string;
   slug: string;
@@ -276,8 +276,8 @@ export interface LibraryCollection {
 }
 
 export interface StoryListResponse {
-    pagination: Pagination;
-    results: Story[];
+  pagination: Pagination;
+  results: Story[];
 }
 
 export interface LibraryShelf {
@@ -295,8 +295,7 @@ export interface LibraryShelvesResponse {
   };
 }
 
-
-export interface Author{
+export interface Author {
   id: number;
   slug: string;
   name: string;
@@ -603,9 +602,7 @@ export interface AdminFeaturedStory {
 }
 
 /** One entry of the homepage Featured lineup. */
-export type FeaturedItem =
-  | { kind: "story"; story: FeaturedStory }
-  | { kind: "video"; video: PublicVideo };
+export type FeaturedItem = { kind: "story"; story: FeaturedStory } | { kind: "video"; video: PublicVideo };
 
 export interface DailyStory {
   date: string;
@@ -647,14 +644,7 @@ export interface HomeDataResponse {
 
 export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "christmas" | "none";
 export type HeroStatSource =
-  | "stories"
-  | "readers_30d"
-  | "countries"
-  | "languages"
-  | "audio_hours"
-  | "creators"
-  | "readers"
-  | "custom";
+  "stories" | "readers_30d" | "countries" | "languages" | "audio_hours" | "creators" | "readers" | "custom";
 export type HeroTitleSize = "small" | "medium" | "large" | "xlarge";
 export type HeroLetterSpacing = "tight" | "normal" | "wide" | "wider";
 export type HeroTextSize = "small" | "medium" | "large";
@@ -1225,12 +1215,7 @@ export interface AdminSubmission {
 }
 
 export type AdminOverviewKpiKey =
-  | "unique_visitors"
-  | "stories_started"
-  | "stories_completed"
-  | "engagement_minutes"
-  | "new_signups"
-  | "ad_impressions";
+  "unique_visitors" | "stories_started" | "stories_completed" | "engagement_minutes" | "new_signups" | "ad_impressions";
 
 export interface AdminOverviewKpi {
   value: number;
@@ -1310,13 +1295,7 @@ export interface AdminOverviewResponse {
 }
 
 export type AdminAnalyticsRangeDays = 1 | 7 | 30 | 90 | 365 | "all";
-export type AdminAnalyticsExportSection =
-  | "content"
-  | "engagement"
-  | "audience"
-  | "users"
-  | "geography"
-  | "submissions";
+export type AdminAnalyticsExportSection = "content" | "engagement" | "audience" | "users" | "geography" | "submissions";
 export type AdminAnalyticsExportFileFormat = "csv" | "xlsx";
 
 export interface AdminAnalyticsDayCount {
@@ -1405,12 +1384,7 @@ export interface AdminContentKpi {
   change_pct: number | null;
 }
 
-export type AdminContentKpiKey =
-  | "views"
-  | "unique_readers"
-  | "engagement_minutes"
-  | "completions"
-  | "titles_published";
+export type AdminContentKpiKey = "views" | "unique_readers" | "engagement_minutes" | "completions" | "titles_published";
 
 export interface AdminContentPublishMarker {
   date: string;
@@ -1785,7 +1759,8 @@ export interface AdminAudienceAcquisitionRow {
   returning_rate: number | null;
 }
 
-export type AdminAudiencePageType = "story" | "read" | "listen" | "watch" | "blog" | "page" | "home" | "library" | "other";
+export type AdminAudiencePageType =
+  "story" | "read" | "listen" | "watch" | "blog" | "page" | "home" | "library" | "other";
 
 export interface AdminAudienceLandingPage {
   path: string;
@@ -1926,8 +1901,7 @@ export interface AdminGeographyVisitorsResponse {
 }
 
 export type AdminGeographyResponse =
-  | AdminGeographyVisitorsResponse
-  | (AdminAnalyticsGeographyResponse & { scope: "signed_in" });
+  AdminGeographyVisitorsResponse | (AdminAnalyticsGeographyResponse & { scope: "signed_in" });
 
 export interface AdminGeographyCountryDetail {
   country_code: string;
@@ -1935,7 +1909,14 @@ export interface AdminGeographyCountryDetail {
   range_days: AdminAnalyticsRangeDays;
   visitors: number;
   top_stories: Array<{ id: number; title: string; slug: string; visitors: number; readers: number; minutes: number }>;
-  landing_pages: Array<{ path: string; title: string; type: string; resolved: boolean; admin_link: string | null; visitors: number }>;
+  landing_pages: Array<{
+    path: string;
+    title: string;
+    type: string;
+    resolved: boolean;
+    admin_link: string | null;
+    visitors: number;
+  }>;
   referral_sources: Array<{ referral_source: string; count: number }>;
   devices: Array<{ ua_family: string; visitors: number }>;
   languages: Array<{ language: string; name: string; readers: number }>;
@@ -2136,6 +2117,29 @@ export interface AdminBlogTopic {
   post_count?: number;
 }
 
+export interface AdminBlogStats {
+  total: number;
+  published: number;
+  draft: number;
+  scheduled: number;
+  missing_excerpt: number;
+  missing_topics: number;
+  missing_cover: number;
+  no_linked_stories: number;
+}
+
+export interface AdminBlogListParams {
+  page?: number;
+  search?: string;
+  status?: "published" | "draft" | "scheduled";
+  has_excerpt?: boolean;
+  has_topics?: boolean;
+  has_cover?: boolean;
+  has_linked_stories?: boolean;
+  topic?: number;
+  sort?: "newest" | "oldest" | "updated" | "title_asc" | "title_desc";
+}
+
 export interface AdminBlog {
   id: number;
   title: string;
@@ -2146,7 +2150,8 @@ export interface AdminBlog {
   excerpt_confident: boolean | null;
   excerpt_confidence_note: string | null;
   excerpt_error: string | null;
-  content: string;
+  /** Omitted on list responses; populated on retrieve/create/update. */
+  content?: string;
   cover_image_file: string | null;
   cover_image_url: string;
   author_name: string | null;
@@ -2240,10 +2245,7 @@ export interface StoryQueueItemPayload {
 }
 
 export type StoryQueueImportDuplicateReason =
-  | "already_a_story"
-  | "already_in_queue"
-  | "duplicate_in_file"
-  | "missing_title";
+  "already_a_story" | "already_in_queue" | "duplicate_in_file" | "missing_title";
 
 export interface StoryQueueImportRecord {
   title: string;
@@ -2353,7 +2355,6 @@ export interface TaxonomyImportPreview {
   total_rows: number;
 }
 
-
 export interface StoryCompletionSection {
   key: "more_like_this" | "more_from_country" | "similar_length";
   title: string;
@@ -2376,7 +2377,6 @@ export interface StoryCompletionResponse {
   sections: StoryCompletionSection[];
 }
 
-
 export interface ReadingHistoryItem {
   story: Story;
   last_read_at: string;
@@ -2391,7 +2391,6 @@ export interface ReadingHistoryResponse {
   pagination: Pagination;
   results: ReadingHistoryItem[];
 }
-
 
 export interface PassportCountry {
   code: string;
@@ -2423,7 +2422,6 @@ export interface PassportCountryDetail {
   continue_exploring: Story[];
 }
 
-
 export interface EarnedAchievement {
   slug: string;
   name: string;
@@ -2446,7 +2444,6 @@ export interface AchievementsResponse {
   results: AchievementProgress[];
 }
 
-
 export interface Mood {
   id: number;
   slug: string;
@@ -2467,7 +2464,6 @@ export interface SurpriseResponse {
    *  which is answered honestly rather than with something longer. */
   story: Story | null;
 }
-
 
 export interface AdminMood {
   id: number;
@@ -2502,7 +2498,6 @@ export interface AdminStoryMood {
   created_at: string;
 }
 
-
 export interface JourneySummary {
   slug: string;
   title: string;
@@ -2536,7 +2531,6 @@ export interface JourneyDetail extends JourneySummary {
   items: JourneyItem[];
 }
 
-
 export interface AdminJourneyItem {
   id: number;
   story: number;
@@ -2565,13 +2559,7 @@ export interface AdminJourney {
   created_at: string;
 }
 
-
-export type ReactionType =
-  | "loved"
-  | "funny"
-  | "surprising"
-  | "emotional"
-  | "thought_provoking";
+export type ReactionType = "loved" | "funny" | "surprising" | "emotional" | "thought_provoking";
 
 export interface ReactionCount {
   type: ReactionType;
@@ -2588,7 +2576,6 @@ export interface StoryReactionsResponse {
   my_reaction: ReactionType | null;
 }
 
-
 export interface WeeklyRecapResponse {
   days: number;
   stories_completed: number;
@@ -2601,7 +2588,6 @@ export interface WeeklyRecapResponse {
    *  nothing, so the card renders nothing at all in that case. */
   has_activity: boolean;
 }
-
 
 export interface NepalikathaAnalytics {
   range_days: AdminAnalyticsRangeDays;
@@ -2623,8 +2609,14 @@ export interface NepalikathaAnalytics {
 
 export type PageStoryLayout = "grid" | "rail";
 
-export interface RichTextBlockConfig { html: string }
-export interface StoryListBlockConfig { heading: string; story_ids: number[]; layout: PageStoryLayout }
+export interface RichTextBlockConfig {
+  html: string;
+}
+export interface StoryListBlockConfig {
+  heading: string;
+  story_ids: number[];
+  layout: PageStoryLayout;
+}
 export interface StoryQueryBlockConfig {
   heading: string;
   genre: string;
@@ -2644,9 +2636,22 @@ export interface BannerBlockConfig {
   cta_url: string;
   background_color: string;
 }
-export interface ImageBlockConfig { url: string; alt: string; caption: string }
-export interface FaqBlockConfig { heading: string; items: { question: string; answer: string }[] }
-export interface CtaBlockConfig { text: string; label: string; url: string; bg_color: string; text_color: string }
+export interface ImageBlockConfig {
+  url: string;
+  alt: string;
+  caption: string;
+}
+export interface FaqBlockConfig {
+  heading: string;
+  items: { question: string; answer: string }[];
+}
+export interface CtaBlockConfig {
+  text: string;
+  label: string;
+  url: string;
+  bg_color: string;
+  text_color: string;
+}
 
 export type PageBlockData =
   | { type: "rich_text"; config: RichTextBlockConfig }
@@ -2799,7 +2804,6 @@ export interface AdminPageInput {
   theme: number | null;
   blocks: PageBlockData[];
 }
-
 
 export type HomeSectionType =
   | "stories_query"

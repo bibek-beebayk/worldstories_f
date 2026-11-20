@@ -2,19 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatTile, ChartCard } from "@/components/admin/charts/AnalyticsCards";
 import { BreakdownBarChart } from "@/components/admin/charts/BreakdownBarChart";
 import { storyApi } from "@/api/story";
@@ -112,19 +101,35 @@ interface TitleAnalyticsDialogProps {
   slug: string;
   title: string;
   initialDays?: AdminAnalyticsRangeDays;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 // One dialog handles both stories and blogs since the shell (trigger,
 // header, time-range picker) is identical — only the stat tiles and the
 // breakdown table underneath differ enough to warrant branching rather
 // than two near-duplicate components.
-export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: TitleAnalyticsDialogProps) {
-  const [open, setOpen] = useState(false);
+export function TitleAnalyticsDialog({
+  kind,
+  slug,
+  title,
+  initialDays = 30,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger = false,
+}: TitleAnalyticsDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen;
   const [days, setDays] = useState<AdminAnalyticsRangeDays>(initialDays);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) setDays(initialDays);
-    setOpen(nextOpen);
+    if (controlledOnOpenChange) {
+      controlledOnOpenChange(nextOpen);
+    } else {
+      setUncontrolledOpen(nextOpen);
+    }
   };
 
   const storyQuery = useQuery({
@@ -149,16 +154,18 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => setOpen(true)}
-        aria-label={`View ${kind === "quick_read" ? "Quick Read " : ""}analytics for ${title}`}
-        title={kind === "quick_read" ? "View Quick Read analytics" : "View analytics"}
-      >
-        {kind === "quick_read" ? <Zap className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
-      </Button>
+      {!hideTrigger && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => handleOpenChange(true)}
+          aria-label={`View ${kind === "quick_read" ? "Quick Read " : ""}analytics for ${title}`}
+          title={kind === "quick_read" ? "View Quick Read analytics" : "View analytics"}
+        >
+          {kind === "quick_read" ? <Zap className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+        </Button>
+      )}
       {/* overflow-auto scrollbar-thin (not overflow-x-hidden) is deliberate: it's a safety
           net, not the actual fix — if anything below ever still ends up
           wider than the dialog, it becomes scrollable instead of silently
@@ -173,11 +180,12 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
               being cut off, while the range filter stays put on the right
               (shrink-0, so it never gets squeezed by the wrapped title). */}
           <DialogTitle className="min-w-0 flex-1 leading-snug">
-            {title}{kind === "quick_read" ? " — Quick Read" : ""}
+            {title}
+            {kind === "quick_read" ? " — Quick Read" : ""}
           </DialogTitle>
           <Select
             value={String(days)}
-            onValueChange={(value) => setDays(value === "all" ? "all" : Number(value) as AdminAnalyticsRangeDays)}
+            onValueChange={(value) => setDays(value === "all" ? "all" : (Number(value) as AdminAnalyticsRangeDays))}
           >
             <SelectTrigger className="w-[150px] shrink-0">
               <SelectValue />
@@ -237,9 +245,7 @@ export function TitleAnalyticsDialog({ kind, slug, title, initialDays = 30 }: Ti
 
             <MetricBarCharts timeSeries={storyQuery.data.time_series} />
 
-            {storyQuery.data.has_audio && (
-              <AudioMetricBarCharts timeSeries={storyQuery.data.time_series} />
-            )}
+            {storyQuery.data.has_audio && <AudioMetricBarCharts timeSeries={storyQuery.data.time_series} />}
 
             <ChartCard
               title="Chapter breakdown"

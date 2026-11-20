@@ -52,6 +52,8 @@ import {
   PromptSettings,
   Blog,
   AdminBlog,
+  AdminBlogListParams,
+  AdminBlogStats,
   AdminSubmission,
   AdminOverviewResponse,
   AdminAuthor,
@@ -128,7 +130,7 @@ export const storyApi = {
     apiClient<NepalikathaAnalytics>(`/admin/analytics/nepalikatha/?days=${days}`),
   getReadAlong: (storySlug: string, audioSlug: string) =>
     apiClient<ReadAlongResponse>(
-      `/stories/${encodeURIComponent(storySlug)}/read-along/${encodeURIComponent(audioSlug)}/`
+      `/stories/${encodeURIComponent(storySlug)}/read-along/${encodeURIComponent(audioSlug)}/`,
     ),
   getStories: (
     page: number,
@@ -151,10 +153,10 @@ export const storyApi = {
     hasReadAlong: boolean = false,
     // Text-only filtering for map/library explorers. Appended to preserve the
     // long-standing positional call contract above.
-    format: string = "all"
+    format: string = "all",
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}${hasReadAlong ? "&has_read_along=true" : ""}${format !== "all" ? `&format=${encodeURIComponent(format)}` : ""}`
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}${hasReadAlong ? "&has_read_along=true" : ""}${format !== "all" ? `&format=${encodeURIComponent(format)}` : ""}`,
     ),
 
   // The Library page: every filter travels as a named param (see lib/libraryParams.ts).
@@ -167,8 +169,7 @@ export const storyApi = {
   getStoryProgress: (ids: number[]) =>
     apiClient<{ progress: Record<string, number> }>(`/stories/progress/?ids=${ids.join(",")}`),
 
-  getStory: (slug: string) =>
-    apiClient<StoryDetail>(`/stories/${slug}/`),
+  getStory: (slug: string) => apiClient<StoryDetail>(`/stories/${slug}/`),
 
   // Explicit view beacon. The story detail GET above is issued by the SSR
   // render server, so counting a view there recorded the render host's IP and
@@ -203,20 +204,16 @@ export const storyApi = {
   // Progress comes back derived from the reader's completions, so there is no
   // enrolment step and nothing to sync.
   getJourneys: () => apiClient<JourneyListResponse>("/journeys/"),
-  getJourney: (slug: string) =>
-    apiClient<JourneyDetail>(`/journeys/${encodeURIComponent(slug)}/`),
+  getJourney: (slug: string) => apiClient<JourneyDetail>(`/journeys/${encodeURIComponent(slug)}/`),
 
-  getBecauseFinished: (slug: string) =>
-    apiClient<Story[]>(`/stories/${slug}/because-finished/`),
+  getBecauseFinished: (slug: string) => apiClient<Story[]>(`/stories/${slug}/because-finished/`),
 
   // The end-of-story screen's payload — one primary "read next" pick plus the
   // themed sections. Composed from the same recommendation path as
   // because-finished above; open to anonymous readers, who get the generic
   // similarity ranking rather than a personalized one.
   getStoryCompletion: (slug: string) =>
-    apiClient<StoryCompletionResponse>(
-      `/stories/${encodeURIComponent(slug)}/completion/`
-    ),
+    apiClient<StoryCompletionResponse>(`/stories/${encodeURIComponent(slug)}/completion/`),
 
   getChapter: (story_slug: string, chapter_slug: string, type: string) =>
     apiClient<Chapter>(`/stories/${story_slug}/chapters/${chapter_slug}/?type=${type}`),
@@ -233,15 +230,19 @@ export const storyApi = {
   getThemes: () => apiClient<Theme[]>("/themes/"),
   getTheme: (slug: string) => apiClient<ThemeDetail>(`/themes/${slug}/`),
   getStoryTypes: () => apiClient<StoryType[]>("/story-types/"),
-  getAuthors: (filters: { q?: string; letter?: string; country?: string; era?: string; genre?: string; sort?: string } = {}) => {
+  getAuthors: (
+    filters: { q?: string; letter?: string; country?: string; era?: string; genre?: string; sort?: string } = {},
+  ) => {
     const params = new URLSearchParams({ page_size: "all" });
-    Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
     return apiClient<PaginatedResponse<Author>>(`/authors/?${params.toString()}`);
   },
   getAuthorsOverview: () => apiClient<AuthorsOverview>("/authors/overview/"),
   getVideos: (
     page: number = 1,
-    filters: { q?: string; series?: string; length?: string; sort?: string; videoType?: number | null } = {}
+    filters: { q?: string; series?: string; length?: string; sort?: string; videoType?: number | null } = {},
   ) => {
     const params = new URLSearchParams({ page: String(page) });
     if (filters.q) params.set("q", filters.q);
@@ -255,21 +256,19 @@ export const storyApi = {
   getVideoSeries: () => apiClient<VideoSeries[]>("/video-series/"),
   getWatchOverview: () => apiClient<WatchOverview>("/videos/overview/"),
   getVideo: (id: number | string) => apiClient<PublicVideoDetail>(`/videos/${id}/`),
-  getWatchProgress: (video_id: number | string) =>
-    apiClient<VideoProgress>(`/watch-progress/${video_id}/`),
+  getWatchProgress: (video_id: number | string) => apiClient<VideoProgress>(`/watch-progress/${video_id}/`),
   saveWatchProgress: (
     video_id: number | string,
     progress: number,
     position_seconds: number,
-    duration_seconds: number
+    duration_seconds: number,
   ) =>
     apiClient<VideoProgress>(`/watch-progress/${video_id}/`, {
       method: "PUT",
       body: JSON.stringify({ progress, position_seconds, duration_seconds }),
     }),
   getAuthor: (id: number | string) => apiClient<AuthorDetail>(`/authors/${id}/`),
-  getLibraryShelves: (page: number) =>
-    apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
+  getLibraryShelves: (page: number) => apiClient<LibraryShelvesResponse>(`/library-shelves/?page=${page}`),
   getHomeData: () => apiClient<HomeDataResponse>("/home/"),
   getOriginals: (page: number = 1) =>
     apiClient<StoryListResponse>(`/stories/?is_original=true&page=${page}&sort=recent`),
@@ -283,11 +282,11 @@ export const storyApi = {
     sort: string = "popular",
     language: string = "all",
     authorPage: number = 1,
-    chapterPage: number = 1
+    chapterPage: number = 1,
   ) =>
     apiClient<SearchResponse>(
       `/search/?q=${encodeURIComponent(q)}&page=${page}&author_page=${authorPage}&chapter_page=${chapterPage}` +
-        `&sort=${sort}&language=${encodeURIComponent(language)}`
+        `&sort=${sort}&language=${encodeURIComponent(language)}`,
     ),
   getStoryReviews: (slug: string, page: number = 1) =>
     apiClient<ReviewListResponse>(`/stories/${slug}/reviews/?page=${page}`),
@@ -296,8 +295,7 @@ export const storyApi = {
       method: "POST",
       body: JSON.stringify({ rating, comment }),
     }),
-  getMyStoryReview: (slug: string) =>
-    apiClient<Review>(`/stories/${slug}/reviews/me/`),
+  getMyStoryReview: (slug: string) => apiClient<Review>(`/stories/${slug}/reviews/me/`),
   updateMyStoryReview: (slug: string, rating: number, comment: string) =>
     apiClient<Review>(`/stories/${slug}/reviews/me/`, {
       method: "PATCH",
@@ -307,26 +305,19 @@ export const storyApi = {
     apiClient<void>(`/stories/${slug}/reviews/me/`, {
       method: "DELETE",
     }),
-  getReadingProgress: (story_slug: string) =>
-    apiClient<ReadingProgress>(`/reading-progress/${story_slug}/`),
-  saveReadingProgress: (
-    story_slug: string,
-    chapter_slug: string,
-    progress: number,
-    last_element_id: string = ""
-  ) =>
+  getReadingProgress: (story_slug: string) => apiClient<ReadingProgress>(`/reading-progress/${story_slug}/`),
+  saveReadingProgress: (story_slug: string, chapter_slug: string, progress: number, last_element_id: string = "") =>
     apiClient<ReadingProgress>(`/reading-progress/${story_slug}/`, {
       method: "PUT",
       body: JSON.stringify({ chapter_slug, progress, last_element_id }),
     }),
-  getAudioProgress: (story_slug: string) =>
-    apiClient<AudioReadingProgress>(`/audio-progress/${story_slug}/`),
+  getAudioProgress: (story_slug: string) => apiClient<AudioReadingProgress>(`/audio-progress/${story_slug}/`),
   saveAudioProgress: (
     story_slug: string,
     audio_slug: string,
     progress: number,
     position_seconds: number,
-    duration_seconds: number
+    duration_seconds: number,
   ) =>
     apiClient<AudioReadingProgress>(`/audio-progress/${story_slug}/`, {
       method: "PUT",
@@ -337,29 +328,21 @@ export const storyApi = {
         duration_seconds,
       }),
     }),
-  getVideoProgress: (story_slug: string) =>
-    apiClient<VideoWatchProgress>(`/video-progress/${story_slug}/`),
+  getVideoProgress: (story_slug: string) => apiClient<VideoWatchProgress>(`/video-progress/${story_slug}/`),
   getFileReadingProgress: (story_slug: string, format: FileReadingFormat) =>
     apiClient<FileReadingProgress>(`/file-reading-progress/${story_slug}/${format}/`),
-  saveFileReadingProgress: (
-    story_slug: string,
-    format: FileReadingFormat,
-    progress: number,
-    position: string
-  ) =>
+  saveFileReadingProgress: (story_slug: string, format: FileReadingFormat, progress: number, position: string) =>
     apiClient<FileReadingProgress>(`/file-reading-progress/${story_slug}/${format}/`, {
       method: "PUT",
       body: JSON.stringify({ progress, position }),
     }),
-  getBlogReadingProgress: (blog_slug: string) =>
-    apiClient<BlogReadingProgress>(`/blog-reading-progress/${blog_slug}/`),
+  getBlogReadingProgress: (blog_slug: string) => apiClient<BlogReadingProgress>(`/blog-reading-progress/${blog_slug}/`),
   saveBlogReadingProgress: (blog_slug: string, progress: number) =>
     apiClient<BlogReadingProgress>(`/blog-reading-progress/${blog_slug}/`, {
       method: "PUT",
       body: JSON.stringify({ progress }),
     }),
-  getQuickReadProgress: (story_slug: string) =>
-    apiClient<QuickReadProgress>(`/quick-read-progress/${story_slug}/`),
+  getQuickReadProgress: (story_slug: string) => apiClient<QuickReadProgress>(`/quick-read-progress/${story_slug}/`),
   saveQuickReadProgress: (story_slug: string, progress: number) =>
     apiClient<QuickReadProgress>(`/quick-read-progress/${story_slug}/`, {
       method: "PUT",
@@ -378,10 +361,8 @@ export const storyApi = {
       method: "POST",
       body: formData,
     }),
-  getMySubmissions: (page: number = 1) =>
-    apiClient<PaginatedResponse<Submission>>(`/submissions/?page=${page}`),
-  getMySubmission: (id: number) =>
-    apiClient<Submission>(`/submissions/${id}/`),
+  getMySubmissions: (page: number = 1) => apiClient<PaginatedResponse<Submission>>(`/submissions/?page=${page}`),
+  getMySubmission: (id: number) => apiClient<Submission>(`/submissions/${id}/`),
   updateMySubmission: (id: number, formData: FormData) =>
     apiClient<Submission>(`/submissions/${id}/`, {
       method: "PATCH",
@@ -405,14 +386,14 @@ export const storyApi = {
       has_chapters?: boolean;
       status?: "published" | "draft" | "scheduled";
       sort?: "newest" | "oldest" | "title_asc" | "title_desc";
-    } = {}
+    } = {},
   ) =>
     apiClient<PaginatedResponse<AdminStory>>(
       `/admin/stories/?page=${page}&search=${encodeURIComponent(q)}` +
         Object.entries(filters)
           .filter(([, value]) => value !== undefined)
           .map(([key, value]) => `&${key}=${value}`)
-          .join("")
+          .join(""),
     ),
   exportAdminStories: (
     q: string = "",
@@ -426,19 +407,17 @@ export const storyApi = {
     sources: {
       include_stories?: boolean;
       include_queue?: boolean;
-    } = {}
+    } = {},
   ) =>
     fetchAuthenticatedBinary(
       `/admin/stories/export/?search=${encodeURIComponent(q)}` +
         Object.entries({ ...filters, ...sources })
           .filter(([, value]) => value !== undefined)
           .map(([key, value]) => `&${key}=${value}`)
-          .join("")
+          .join(""),
     ),
-  getAdminStory: (id: number) =>
-    apiClient<AdminStory>(`/admin/stories/${id}/`),
-  getFeaturedStories: () =>
-    apiClient<AdminFeaturedStory[]>("/admin/stories/featured/"),
+  getAdminStory: (id: number) => apiClient<AdminStory>(`/admin/stories/${id}/`),
+  getFeaturedStories: () => apiClient<AdminFeaturedStory[]>("/admin/stories/featured/"),
   setFeaturedItems: (items: { kind: "story" | "video"; id: number }[]) =>
     apiClient<AdminFeaturedStory[]>("/admin/stories/featured/", {
       method: "PUT",
@@ -513,26 +492,37 @@ export const storyApi = {
     apiClient<PaginatedResponse<Blog>>(
       `/blog/?page=${page}&q=${encodeURIComponent(q)}&sort=${sort}` +
         (linkedToStory !== undefined ? `&linked_to_story=${linkedToStory}` : "") +
-        (topic ? `&topic=${encodeURIComponent(topic)}` : "")
+        (topic ? `&topic=${encodeURIComponent(topic)}` : ""),
     ),
   getBlogOverview: () => apiClient<BlogOverview>("/blog/overview/"),
   getAdminBlogTopics: () => apiClient<AdminBlogTopic[]>("/admin/blog-topics/"),
-  suggestBlogTopics: (id: number) =>
-    apiClient<AdminBlog>(`/admin/blog/${id}/suggest-topics/`, { method: "POST" }),
+  suggestBlogTopics: (id: number) => apiClient<AdminBlog>(`/admin/blog/${id}/suggest-topics/`, { method: "POST" }),
   getBlog: (slug: string) => apiClient<Blog>(`/blog/${slug}/`),
   getBlogsForStory: (storySlug: string) =>
     apiClient<PaginatedResponse<Blog>>(`/blog/?linked_story=${encodeURIComponent(storySlug)}`),
-  getAdminBlogs: (page: number = 1, q: string = "") =>
-    apiClient<PaginatedResponse<AdminBlog>>(`/admin/blog/?page=${page}&search=${encodeURIComponent(q)}`),
+  getAdminBlogStats: () => apiClient<AdminBlogStats>("/admin/blog/stats/"),
+  getAdminBlogs: (params: AdminBlogListParams = {}) => {
+    const query = new URLSearchParams();
+    if (params.page !== undefined) query.set("page", String(params.page));
+    if (params.search) query.set("search", params.search);
+    if (params.status) query.set("status", params.status);
+    if (params.has_excerpt !== undefined) query.set("has_excerpt", String(params.has_excerpt));
+    if (params.has_topics !== undefined) query.set("has_topics", String(params.has_topics));
+    if (params.has_cover !== undefined) query.set("has_cover", String(params.has_cover));
+    if (params.has_linked_stories !== undefined) query.set("has_linked_stories", String(params.has_linked_stories));
+    if (params.topic !== undefined) query.set("topic", String(params.topic));
+    if (params.sort) query.set("sort", params.sort);
+    const qs = query.toString();
+    return apiClient<PaginatedResponse<AdminBlog>>(`/admin/blog/${qs ? `?${qs}` : ""}`);
+  },
   getAdminBlog: (id: number) => apiClient<AdminBlog>(`/admin/blog/${id}/`),
-  createAdminBlog: (formData: FormData) =>
-    apiClient<AdminBlog>("/admin/blog/", { method: "POST", body: formData }),
+  createAdminBlog: (formData: FormData) => apiClient<AdminBlog>("/admin/blog/", { method: "POST", body: formData }),
   updateAdminBlog: (id: number, formData: FormData) =>
     apiClient<AdminBlog>(`/admin/blog/${id}/`, { method: "PATCH", body: formData }),
   deleteAdminBlog: (id: number) => apiClient<void>(`/admin/blog/${id}/`, { method: "DELETE" }),
   getStoryQueue: (page: number = 1, isAdded?: boolean) =>
     apiClient<PaginatedResponse<StoryQueueItem>>(
-      `/admin/story-queue/?page=${page}${isAdded === undefined ? "" : `&is_added=${isAdded}`}`
+      `/admin/story-queue/?page=${page}${isAdded === undefined ? "" : `&is_added=${isAdded}`}`,
     ),
   createStoryQueueItem: (payload: StoryQueueItemPayload) =>
     apiClient<StoryQueueItem>("/admin/story-queue/", {
@@ -544,22 +534,19 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  addStoryQueueItem: (id: number) =>
-    apiClient<StoryQueueItem>(`/admin/story-queue/${id}/add/`, { method: "POST" }),
+  addStoryQueueItem: (id: number) => apiClient<StoryQueueItem>(`/admin/story-queue/${id}/add/`, { method: "POST" }),
   checkStoryQueueTitle: (title: string, excludeQueueId?: number) =>
     apiClient<StoryQueueTitleCheck>(
       `/admin/story-queue/check-title/?title=${encodeURIComponent(title)}` +
-        (excludeQueueId ? `&exclude_queue_id=${excludeQueueId}` : "")
+        (excludeQueueId ? `&exclude_queue_id=${excludeQueueId}` : ""),
     ),
-  deleteStoryQueueItem: (id: number) =>
-    apiClient<void>(`/admin/story-queue/${id}/`, { method: "DELETE" }),
+  deleteStoryQueueItem: (id: number) => apiClient<void>(`/admin/story-queue/${id}/`, { method: "DELETE" }),
   fetchStoryQueueBooks: (count: number) =>
     apiClient<BookFetchJob>("/admin/story-queue/fetch-books/", {
       method: "POST",
       body: JSON.stringify({ count }),
     }),
-  getStoryQueueFetchBooksStatus: (jobId: number) =>
-    apiClient<BookFetchJob>(`/admin/story-queue/fetch-books/${jobId}/`),
+  getStoryQueueFetchBooksStatus: (jobId: number) => apiClient<BookFetchJob>(`/admin/story-queue/fetch-books/${jobId}/`),
   previewStoryQueueImport: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -587,22 +574,19 @@ export const storyApi = {
       {
         method: "POST",
         body: JSON.stringify({ records }),
-      }
+      },
     ),
-  generateBlogExcerpt: (id: number) =>
-    apiClient<AdminBlog>(`/admin/blog/${id}/generate-excerpt/`, { method: "POST" }),
+  generateBlogExcerpt: (id: number) => apiClient<AdminBlog>(`/admin/blog/${id}/generate-excerpt/`, { method: "POST" }),
   getAdminChapters: (storyId: number) =>
     apiClient<PaginatedResponse<AdminChapter>>(`/admin/chapters/?story=${storyId}`),
-  getAdminAudios: (storyId: number) =>
-    apiClient<PaginatedResponse<AdminAudio>>(`/admin/audios/?story=${storyId}`),
+  getAdminAudios: (storyId: number) => apiClient<PaginatedResponse<AdminAudio>>(`/admin/audios/?story=${storyId}`),
   getAdminSubmissions: (page: number = 1, q: string = "", status: string = "all") =>
     apiClient<PaginatedResponse<AdminSubmission>>(
       `/admin/submissions/?page=${page}&search=${encodeURIComponent(q)}${
         status !== "all" ? `&status=${encodeURIComponent(status)}` : ""
-      }`
+      }`,
     ),
-  getAdminSubmission: (id: number) =>
-    apiClient<AdminSubmission>(`/admin/submissions/${id}/`),
+  getAdminSubmission: (id: number) => apiClient<AdminSubmission>(`/admin/submissions/${id}/`),
   getAdminOverview: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminOverviewResponse>(`/admin/overview/?days=${days}`),
   getAdminAnalyticsContent: (days: AdminAnalyticsRangeDays) =>
@@ -611,10 +595,10 @@ export const storyApi = {
     kind: "story" | "audiobook" | "quick_read" | "blog",
     days: AdminAnalyticsRangeDays,
     page: number,
-    sort: AdminContentPerformanceSort
+    sort: AdminContentPerformanceSort,
   ) =>
     apiClient<AdminContentPerformanceResponse>(
-      `/admin/analytics/content-rankings/?kind=${kind}&days=${days}&page=${page}&sort=${sort}`
+      `/admin/analytics/content-rankings/?kind=${kind}&days=${days}&page=${page}&sort=${sort}`,
     ),
   getAdminAnalyticsEngagement: (days: AdminAnalyticsRangeDays) =>
     apiClient<AdminAnalyticsEngagementResponse>(`/admin/analytics/engagement/?days=${days}`),
@@ -633,27 +617,24 @@ export const storyApi = {
     apiClient<AdminGeographyResponse>(`/admin/analytics/geography/?days=${days}&scope=${scope}`),
   getAdminAnalyticsGeographyCountry: (countryCode: string, days: AdminAnalyticsRangeDays) =>
     apiClient<AdminGeographyCountryDetail>(
-      `/admin/analytics/geography/${encodeURIComponent(countryCode)}/?days=${days}`
+      `/admin/analytics/geography/${encodeURIComponent(countryCode)}/?days=${days}`,
     ),
   getAdminStoryDetailAnalytics: (storySlug: string, days: AdminAnalyticsRangeDays) =>
     apiClient<AdminStoryDetailAnalyticsResponse>(`/admin/analytics/stories/${storySlug}/?days=${days}`),
   getAdminBlogDetailAnalytics: (blogSlug: string, days: AdminAnalyticsRangeDays) =>
     apiClient<AdminBlogDetailAnalyticsResponse>(`/admin/analytics/blog/${blogSlug}/?days=${days}`),
   getAdminQuickReadDetailAnalytics: (storySlug: string, days: AdminAnalyticsRangeDays) =>
-    apiClient<AdminQuickReadDetailAnalyticsResponse>(
-      `/admin/analytics/quick-reads/${storySlug}/?days=${days}`
-    ),
+    apiClient<AdminQuickReadDetailAnalyticsResponse>(`/admin/analytics/quick-reads/${storySlug}/?days=${days}`),
   exportAdminAnalytics: (
     sections: AdminAnalyticsExportSection[],
     days: AdminAnalyticsRangeDays,
-    fileFormat: AdminAnalyticsExportFileFormat
+    fileFormat: AdminAnalyticsExportFileFormat,
   ) =>
     fetchAuthenticatedFile(
       `/admin/analytics/export/?sections=${sections.join(",")}&days=${days}&file_format=${fileFormat}`,
-      `analytics-export.${fileFormat}`
+      `analytics-export.${fileFormat}`,
     ),
-  getAdminAuthors: () =>
-    apiClient<AdminAuthor[]>("/admin/authors/"),
+  getAdminAuthors: () => apiClient<AdminAuthor[]>("/admin/authors/"),
   createAdminAuthor: (payload: Partial<AdminAuthor> & { name: string }) =>
     apiClient<AdminAuthor>("/admin/authors/", {
       method: "POST",
@@ -664,27 +645,23 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  deleteAdminAuthor: (id: number) =>
-    apiClient<void>(`/admin/authors/${id}/`, { method: "DELETE" }),
+  deleteAdminAuthor: (id: number) => apiClient<void>(`/admin/authors/${id}/`, { method: "DELETE" }),
   mergeAdminAuthor: (id: number, target: number) =>
-    apiClient<{ target: AdminAuthor; moved: Array<{ relation: string; count: number }> }>(`/admin/authors/${id}/merge/`, {
-      method: "POST",
-      body: JSON.stringify({ target }),
-    }),
-  getAdminUsers: (page: number = 1, q: string = "") =>
-    apiClient<PaginatedResponse<AdminUser>>(
-      `/admin/users/?page=${page}&search=${encodeURIComponent(q)}`
+    apiClient<{ target: AdminAuthor; moved: Array<{ relation: string; count: number }> }>(
+      `/admin/authors/${id}/merge/`,
+      {
+        method: "POST",
+        body: JSON.stringify({ target }),
+      },
     ),
-  updateAdminUser: (
-    id: string,
-    payload: Partial<{ is_staff: boolean; is_superuser: boolean; is_active: boolean }>
-  ) =>
+  getAdminUsers: (page: number = 1, q: string = "") =>
+    apiClient<PaginatedResponse<AdminUser>>(`/admin/users/?page=${page}&search=${encodeURIComponent(q)}`),
+  updateAdminUser: (id: string, payload: Partial<{ is_staff: boolean; is_superuser: boolean; is_active: boolean }>) =>
     apiClient<AdminUser>(`/admin/users/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  getAdminGenres: () =>
-    apiClient<AdminGenre[]>("/admin/genres/"),
+  getAdminGenres: () => apiClient<AdminGenre[]>("/admin/genres/"),
   createAdminGenre: (name: string) =>
     apiClient<AdminGenre>("/admin/genres/", {
       method: "POST",
@@ -695,17 +672,14 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify({ name }),
     }),
-  deleteAdminGenre: (id: number) =>
-    apiClient<void>(`/admin/genres/${id}/`, { method: "DELETE" }),
-  getAdminCategories: () =>
-    apiClient<AdminCategory[]>("/admin/categories/"),
+  deleteAdminGenre: (id: number) => apiClient<void>(`/admin/genres/${id}/`, { method: "DELETE" }),
+  getAdminCategories: () => apiClient<AdminCategory[]>("/admin/categories/"),
   createAdminCategory: (name: string) =>
     apiClient<AdminCategory>("/admin/categories/", {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
-  getAdminTags: () =>
-    apiClient<AdminTag[]>("/admin/tags/"),
+  getAdminTags: () => apiClient<AdminTag[]>("/admin/tags/"),
   createAdminTag: (name: string) =>
     apiClient<AdminTag>("/admin/tags/", {
       method: "POST",
@@ -716,8 +690,7 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify({ name }),
     }),
-  deleteAdminTag: (id: number) =>
-    apiClient<void>(`/admin/tags/${id}/`, { method: "DELETE" }),
+  deleteAdminTag: (id: number) => apiClient<void>(`/admin/tags/${id}/`, { method: "DELETE" }),
   getAdminJourneys: () => apiClient<AdminJourney[]>("/admin/journeys/"),
   createAdminJourney: (payload: { title: string; description?: string; type?: string }) =>
     apiClient<AdminJourney>("/admin/journeys/", {
@@ -726,20 +699,23 @@ export const storyApi = {
     }),
   updateAdminJourney: (
     id: number,
-    payload: Partial<{ title: string; description: string; type: string; active: boolean; order: number; cover_image: string }>
+    payload: Partial<{
+      title: string;
+      description: string;
+      type: string;
+      active: boolean;
+      order: number;
+      cover_image: string;
+    }>,
   ) =>
     apiClient<AdminJourney>(`/admin/journeys/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  deleteAdminJourney: (id: number) =>
-    apiClient<void>(`/admin/journeys/${id}/`, { method: "DELETE" }),
+  deleteAdminJourney: (id: number) => apiClient<void>(`/admin/journeys/${id}/`, { method: "DELETE" }),
   // Replaces the whole ordered set; position comes from the order sent, so
   // reordering needs no separate call.
-  setAdminJourneyItems: (
-    id: number,
-    items: Array<{ story: number; required: boolean }>
-  ) =>
+  setAdminJourneyItems: (id: number, items: Array<{ story: number; required: boolean }>) =>
     apiClient<AdminJourneyItem[]>(`/admin/journeys/${id}/items/`, {
       method: "PUT",
       body: JSON.stringify({ items }),
@@ -747,9 +723,7 @@ export const storyApi = {
 
   // `preview` only matters for a signed-in superuser: it also returns drafts.
   getPage: (slug: string, preview = false) =>
-    apiClient<PublicPageResponse>(
-      `/pages/${encodeURIComponent(slug)}/${preview ? "?preview=1" : ""}`
-    ),
+    apiClient<PublicPageResponse>(`/pages/${encodeURIComponent(slug)}/${preview ? "?preview=1" : ""}`),
   getAdminPages: () => apiClient<AdminPageListItem[]>("/admin/pages/"),
   getAdminPage: (id: number) => apiClient<AdminPage>(`/admin/pages/${id}/`),
   createAdminPage: (payload: { title: string; template: AdminPageInput["template"] }) =>
@@ -762,10 +736,8 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  deleteAdminPage: (id: number) =>
-    apiClient<void>(`/admin/pages/${id}/`, { method: "DELETE" }),
-  duplicateAdminPage: (id: number) =>
-    apiClient<AdminPage>(`/admin/pages/${id}/duplicate/`, { method: "POST" }),
+  deleteAdminPage: (id: number) => apiClient<void>(`/admin/pages/${id}/`, { method: "DELETE" }),
+  duplicateAdminPage: (id: number) => apiClient<AdminPage>(`/admin/pages/${id}/duplicate/`, { method: "POST" }),
   getSiteSettings: () => apiClient<{ show_publisher_info: boolean }>("/site-settings/"),
   getAdminSiteSettings: () => apiClient<{ show_publisher_info: boolean }>("/admin/site-settings/"),
   updateAdminSiteSettings: (payload: { show_publisher_info: boolean }) =>
@@ -785,8 +757,7 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  deleteAdminSiteTheme: (id: number) =>
-    apiClient<void>(`/admin/site-themes/${id}/`, { method: "DELETE" }),
+  deleteAdminSiteTheme: (id: number) => apiClient<void>(`/admin/site-themes/${id}/`, { method: "DELETE" }),
   // Only one site theme is on at a time: activating one switches the rest off.
   activateAdminSiteTheme: (id: number) =>
     apiClient<AdminSiteTheme>(`/admin/site-themes/${id}/activate/`, { method: "POST" }),
@@ -805,8 +776,7 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  deleteAdminPageTheme: (id: number) =>
-    apiClient<void>(`/admin/page-themes/${id}/`, { method: "DELETE" }),
+  deleteAdminPageTheme: (id: number) => apiClient<void>(`/admin/page-themes/${id}/`, { method: "DELETE" }),
   duplicateAdminPageTheme: (id: number) =>
     apiClient<AdminPageTheme>(`/admin/page-themes/${id}/duplicate/`, { method: "POST" }),
 
@@ -821,8 +791,7 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  deleteAdminHeroTemplate: (id: number) =>
-    apiClient<void>(`/admin/hero-templates/${id}/`, { method: "DELETE" }),
+  deleteAdminHeroTemplate: (id: number) => apiClient<void>(`/admin/hero-templates/${id}/`, { method: "DELETE" }),
   setDefaultAdminHeroTemplate: (id: number) =>
     apiClient<AdminHeroTemplate>(`/admin/hero-templates/${id}/set-default/`, { method: "POST" }),
   duplicateAdminHeroTemplate: (id: number) =>
@@ -852,33 +821,29 @@ export const storyApi = {
     }),
   updateAdminMood: (
     id: number,
-    payload: Partial<{ name: string; icon: string; description: string; active: boolean; order: number }>
+    payload: Partial<{ name: string; icon: string; description: string; active: boolean; order: number }>,
   ) =>
     apiClient<AdminMood>(`/admin/moods/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  deleteAdminMood: (id: number) =>
-    apiClient<void>(`/admin/moods/${id}/`, { method: "DELETE" }),
+  deleteAdminMood: (id: number) => apiClient<void>(`/admin/moods/${id}/`, { method: "DELETE" }),
   // Machine suggestions nobody has looked at yet — the queue that makes
   // "allow admin review" a workflow rather than a database column.
-  getPendingMoodReviews: () =>
-    apiClient<AdminStoryMood[]>("/admin/moods/pending-review/"),
+  getPendingMoodReviews: () => apiClient<AdminStoryMood[]>("/admin/moods/pending-review/"),
   reviewMoodAssignment: (assignmentId: number, approved: boolean, note?: string) =>
     apiClient<AdminStoryMood | void>(`/admin/moods/assignments/${assignmentId}/review/`, {
       method: "POST",
       body: JSON.stringify({ approved, ...(note ? { note } : {}) }),
     }),
-  getStoryMoods: (storyId: number) =>
-    apiClient<AdminStoryMood[]>(`/admin/moods/assignments/${storyId}/`),
+  getStoryMoods: (storyId: number) => apiClient<AdminStoryMood[]>(`/admin/moods/assignments/${storyId}/`),
   setStoryMoods: (storyId: number, moodIds: number[]) =>
     apiClient<AdminStoryMood[]>(`/admin/moods/assignments/${storyId}/`, {
       method: "POST",
       body: JSON.stringify({ moods: moodIds }),
     }),
 
-  getAdminThemes: () =>
-    apiClient<AdminTheme[]>("/admin/themes/"),
+  getAdminThemes: () => apiClient<AdminTheme[]>("/admin/themes/"),
   createAdminTheme: (name: string) =>
     apiClient<AdminTheme>("/admin/themes/", {
       method: "POST",
@@ -889,23 +854,20 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify({ name }),
     }),
-  deleteAdminTheme: (id: number) =>
-    apiClient<void>(`/admin/themes/${id}/`, { method: "DELETE" }),
+  deleteAdminTheme: (id: number) => apiClient<void>(`/admin/themes/${id}/`, { method: "DELETE" }),
   updateAdminCategory: (id: number, name: string) =>
     apiClient<AdminCategory>(`/admin/categories/${id}/`, {
       method: "PATCH",
       body: JSON.stringify({ name }),
     }),
-  deleteAdminCategory: (id: number) =>
-    apiClient<void>(`/admin/categories/${id}/`, { method: "DELETE" }),
+  deleteAdminCategory: (id: number) => apiClient<void>(`/admin/categories/${id}/`, { method: "DELETE" }),
   getAdminVideoTypes: () => apiClient<AdminVideoType[]>("/admin/video-types/"),
   createAdminVideoType: (name: string) =>
     apiClient<AdminVideoType>("/admin/video-types/", {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
-  getAdminStoryTypes: () =>
-    apiClient<StoryType[]>("/admin/story-types/"),
+  getAdminStoryTypes: () => apiClient<StoryType[]>("/admin/story-types/"),
   createAdminStoryType: (name: string) =>
     apiClient<StoryType>("/admin/story-types/", {
       method: "POST",
@@ -916,15 +878,8 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify({ name }),
     }),
-  deleteAdminStoryType: (id: number) =>
-    apiClient<void>(`/admin/story-types/${id}/`, { method: "DELETE" }),
-  createAdminChapter: (payload: {
-    story: number;
-    title: string;
-    slug?: string;
-    content: string;
-    order: number;
-  }) =>
+  deleteAdminStoryType: (id: number) => apiClient<void>(`/admin/story-types/${id}/`, { method: "DELETE" }),
+  createAdminChapter: (payload: { story: number; title: string; slug?: string; content: string; order: number }) =>
     apiClient<AdminChapter>("/admin/chapters/", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -936,7 +891,7 @@ export const storyApi = {
       slug: string;
       content: string;
       order: number;
-    }>
+    }>,
   ) =>
     apiClient<AdminChapter>(`/admin/chapters/${id}/`, {
       method: "PATCH",
@@ -979,21 +934,20 @@ export const storyApi = {
     apiClient<AudioTranscriptCuesResponse>(`/admin/audios/${id}/transcript-cues/`),
   replaceAudioTranscriptCues: (
     id: number,
-    cues: Array<{ order: number; start_ms: number; end_ms: number; text: string }>
+    cues: Array<{ order: number; start_ms: number; end_ms: number; text: string }>,
   ) =>
     apiClient<AudioTranscriptImportResult>(`/admin/audios/${id}/transcript-cues/`, {
       method: "PUT",
       body: JSON.stringify({ cues }),
     }),
-  getAdminVideos: (storyId: number) =>
-    apiClient<PaginatedResponse<AdminVideo>>(`/admin/videos/?story=${storyId}`),
+  getAdminVideos: (storyId: number) => apiClient<PaginatedResponse<AdminVideo>>(`/admin/videos/?story=${storyId}`),
   // Videos admin page: paged, newest first. `hasStory` narrows to videos
   // attached to a story (true) or standalone ones (false).
   listAdminVideos: (page: number = 1, q: string = "", hasStory?: boolean, series?: string) =>
     apiClient<PaginatedResponse<AdminVideo>>(
       `/admin/videos/?page=${page}&search=${encodeURIComponent(q)}` +
         (hasStory === undefined ? "" : `&has_story=${hasStory}`) +
-        (series ? `&series=${encodeURIComponent(series)}` : "")
+        (series ? `&series=${encodeURIComponent(series)}` : ""),
     ),
   createAdminVideoForm: (formData: FormData) =>
     apiClient<AdminVideo>("/admin/videos/", { method: "POST", body: formData }),
@@ -1021,7 +975,7 @@ export const storyApi = {
       youtube_url: string;
       duration_seconds: string | number | null;
       aspect_ratio: "16:9" | "9:16";
-    }>
+    }>,
   ) =>
     apiClient<AdminVideo>(`/admin/videos/${id}/`, {
       method: "PATCH",
@@ -1036,7 +990,7 @@ export const storyApi = {
     payload: Partial<{
       status: "pending" | "requires_edit" | "approved" | "rejected";
       reviewer_notes: string;
-    }>
+    }>,
   ) =>
     apiClient<AdminSubmission>(`/admin/submissions/${id}/`, {
       method: "PATCH",

@@ -2,6 +2,16 @@ import FullScreenLoader from "@/components/FullScreenLoader";
 import { authApi } from "@/api/auth";
 import { getAccessToken } from "@/api/client";
 import { storyApi } from "@/api/story";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,9 +19,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
-import { TitleAnalyticsDialog } from "@/components/admin/TitleAnalyticsDialog";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { BlogListFilters } from "@/components/admin/blog/BlogListFilters";
+import { BlogListRow } from "@/components/admin/blog/BlogListRow";
+import { BlogNeedsAttention } from "@/components/admin/blog/BlogNeedsAttention";
+import {
+  DEFAULT_BLOG_LIST,
+  buildBlogListParams,
+  hasActiveBlogFilters,
+  parseBlogListParams,
+  toBlogApiParams,
+  type BlogListState,
+  type BlogNeed,
+} from "@/components/admin/blog/blogList";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   ArrowLeft,
   Bold,
@@ -23,10 +45,8 @@ import {
   List,
   ListOrdered,
   Loader2,
-  Pencil,
   Plus,
   Search,
-  Trash2,
   Underline,
   X,
 } from "lucide-react";
@@ -60,8 +80,7 @@ const fromDatetimeLocalValue = (value: string) => {
 const adminBlogLinkedStoryDetails = (blog: AdminBlog): LinkedContentOption[] =>
   blog.linked_story_details || (blog.linked_story_detail ? [blog.linked_story_detail] : []);
 
-const adminBlogLinkedBlogDetails = (blog: AdminBlog): LinkedContentOption[] =>
-  blog.linked_blog_details || [];
+const adminBlogLinkedBlogDetails = (blog: AdminBlog): LinkedContentOption[] => blog.linked_blog_details || [];
 
 const AdminBlogs = () => {
   const queryClient = useQueryClient();
@@ -74,13 +93,67 @@ const AdminBlogs = () => {
   });
   const isSuperuser = Boolean(me?.is_superuser);
 
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const listState = useMemo(() => parseBlogListParams(searchParams), [searchParams]);
+  const apiParams = useMemo(() => toBlogApiParams(listState), [listState]);
+
+  const updateListState = useCallback(
+    (patch: Partial<BlogListState>) => {
+      setSearchParams(
+        (prev) => {
+          const current = parseBlogListParams(prev);
+          const next: BlogListState = {
+            ...current,
+            ...patch,
+            page: patch.page !== undefined ? patch.page : 1,
+          };
+          return buildBlogListParams(next, prev);
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const clearFilters = useCallback(() => {
+    setSearchParams((prev) => buildBlogListParams(DEFAULT_BLOG_LIST, prev), { replace: true });
+  }, [setSearchParams]);
+
+  const selectNeedFromAttention = useCallback(
+    (need: BlogNeed) => {
+      setSearchParams((prev) => buildBlogListParams({ ...DEFAULT_BLOG_LIST, needs: [need] }, prev), { replace: true });
+    },
+    [setSearchParams],
+  );
+
   const { data: blogsData, isLoading: blogsLoading } = useQuery({
-    queryKey: ["admin-blogs", page, search],
-    queryFn: () => storyApi.getAdminBlogs(page, search),
+    queryKey: [
+      "admin-blogs",
+      listState.page,
+      listState.q,
+      listState.status,
+      listState.needs.join(","),
+      listState.topic,
+      listState.sort,
+    ],
+    queryFn: () => storyApi.getAdminBlogs(apiParams),
+    enabled: isAuthenticated && isSuperuser,
+    placeholderData: keepPreviousData,
+  });
+
+  const {
+    data: blogStats,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useQuery({
+    queryKey: ["admin-blog-stats"],
+    queryFn: storyApi.getAdminBlogStats,
     enabled: isAuthenticated && isSuperuser,
   });
+
+  const [loadingEditId, setLoadingEditId] = useState<number | null>(null);
+  const [togglingPublishId, setTogglingPublishId] = useState<number | null>(null);
+  const [togglingFeaturedId, setTogglingFeaturedId] = useState<number | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [editingBlog, setEditingBlog] = useState<AdminBlog | null>(null);
@@ -125,7 +198,7 @@ const AdminBlogs = () => {
   const { data: topicOptions } = useQuery({
     queryKey: ["admin-blog-topics"],
     queryFn: storyApi.getAdminBlogTopics,
-    enabled: isAuthenticated && isSuperuser && showForm,
+    enabled: isAuthenticated && isSuperuser,
     staleTime: 5 * 60_000,
   });
   const lastAppliedTopicsStatusRef = useRef<string | null>(null);
@@ -168,7 +241,7 @@ const AdminBlogs = () => {
   });
   const { data: blogSearchResults } = useQuery({
     queryKey: ["admin-blogs-linked-search", debouncedBlogSearchQuery],
-    queryFn: () => storyApi.getAdminBlogs(1, debouncedBlogSearchQuery),
+    queryFn: () => storyApi.getAdminBlogs({ page: 1, search: debouncedBlogSearchQuery }),
     enabled: debouncedBlogSearchQuery.length >= 2,
   });
 
@@ -245,39 +318,47 @@ const AdminBlogs = () => {
     setShowForm(true);
   };
 
-  const openEditForm = (blog: AdminBlog) => {
-    setEditingBlog(blog);
-    setTitle(blog.title);
-    setSlug(blog.slug);
-    setExcerpt(blog.excerpt || "");
-    setAuthorName(blog.author_name || "");
-    setContent(blog.content);
-    setIsPublished(blog.is_published);
-    setIsFeatured(Boolean(blog.is_featured));
-    setTopicIds(blog.topics ?? []);
-    setTopicsBannerDismissed(false);
-    lastAppliedTopicsStatusRef.current = blog.topics_status ?? null;
-    setPublishAt(toDatetimeLocalValue(blog.publish_at));
-    setCoverImageFile(null);
-    setRemoveCoverImage(false);
-    setLinkedStories(adminBlogLinkedStoryDetails(blog));
-    setLinkedBlogs(adminBlogLinkedBlogDetails(blog));
-    setCopyCoverFromStoryId(null);
-    setCopyCoverFromStoryUrl(null);
-    setLinkStoryOffer(null);
-    setStorySearchQuery("");
-    setBlogSearchQuery("");
-    setExcerptBannerDismissed(false);
-    setIsContentHtmlMode(false);
-    lastAppliedExcerptStatusRef.current = blog.excerpt_status;
-    setShowForm(true);
+  const openEditForm = async (blog: AdminBlog) => {
+    try {
+      setLoadingEditId(blog.id);
+      const fullBlog = await storyApi.getAdminBlog(blog.id);
+      setEditingBlog(fullBlog);
+      setTitle(fullBlog.title);
+      setSlug(fullBlog.slug);
+      setExcerpt(fullBlog.excerpt || "");
+      setAuthorName(fullBlog.author_name || "");
+      setContent(fullBlog.content ?? "");
+      setIsPublished(fullBlog.is_published);
+      setIsFeatured(Boolean(fullBlog.is_featured));
+      setTopicIds(fullBlog.topics ?? []);
+      setTopicsBannerDismissed(false);
+      lastAppliedTopicsStatusRef.current = fullBlog.topics_status ?? null;
+      setPublishAt(toDatetimeLocalValue(fullBlog.publish_at));
+      setCoverImageFile(null);
+      setRemoveCoverImage(false);
+      setLinkedStories(adminBlogLinkedStoryDetails(fullBlog));
+      setLinkedBlogs(adminBlogLinkedBlogDetails(fullBlog));
+      setCopyCoverFromStoryId(null);
+      setCopyCoverFromStoryUrl(null);
+      setLinkStoryOffer(null);
+      setStorySearchQuery("");
+      setBlogSearchQuery("");
+      setExcerptBannerDismissed(false);
+      setIsContentHtmlMode(false);
+      lastAppliedExcerptStatusRef.current = fullBlog.excerpt_status;
+      setShowForm(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load blog post.");
+    } finally {
+      setLoadingEditId(null);
+    }
   };
 
   const selectLinkedStory = (story: AdminStory) => {
     setLinkedStories((current) =>
       current.some((item) => item.id === story.id)
         ? current
-        : [...current, { id: story.id, title: story.title, slug: story.slug }]
+        : [...current, { id: story.id, title: story.title, slug: story.slug }],
     );
     setStorySearchQuery("");
     if (story.retrospective || story.cover_image_url) {
@@ -290,7 +371,7 @@ const AdminBlogs = () => {
     setLinkedBlogs((current) =>
       current.some((item) => item.id === blog.id)
         ? current
-        : [...current, { id: blog.id, title: blog.title, slug: blog.slug }]
+        : [...current, { id: blog.id, title: blog.title, slug: blog.slug }],
     );
     setBlogSearchQuery("");
   };
@@ -348,7 +429,10 @@ const AdminBlogs = () => {
         await storyApi.createAdminBlog(formData);
         toast.success("Blog post created.");
       }
-      await queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-blogs"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-blog-stats"] }),
+      ]);
       setShowForm(false);
       resetForm();
     } catch (error) {
@@ -388,13 +472,54 @@ const AdminBlogs = () => {
     try {
       setDeleting(true);
       await storyApi.deleteAdminBlog(pendingDeleteBlog.id);
-      await queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-blogs"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-blog-stats"] }),
+      ]);
       toast.success("Blog post deleted.");
       setPendingDeleteBlog(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete blog post.");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleTogglePublish = async (blog: AdminBlog) => {
+    const nextPublished = !blog.is_published;
+    try {
+      setTogglingPublishId(blog.id);
+      const formData = new FormData();
+      formData.append("is_published", String(nextPublished));
+      await storyApi.updateAdminBlog(blog.id, formData);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-blogs"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-blog-stats"] }),
+      ]);
+      toast.success(nextPublished ? "Post published." : "Post unpublished.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update publish status.");
+    } finally {
+      setTogglingPublishId(null);
+    }
+  };
+
+  const handleToggleFeatured = async (blog: AdminBlog) => {
+    const nextFeatured = !blog.is_featured;
+    try {
+      setTogglingFeaturedId(blog.id);
+      const formData = new FormData();
+      formData.append("is_featured", String(nextFeatured));
+      await storyApi.updateAdminBlog(blog.id, formData);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-blogs"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-blog-stats"] }),
+      ]);
+      toast.success(nextFeatured ? "Post marked as featured." : "Removed featured status.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update featured status.");
+    } finally {
+      setTogglingFeaturedId(null);
     }
   };
 
@@ -419,7 +544,15 @@ const AdminBlogs = () => {
     return (
       <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
         <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" size="icon" onClick={() => { setShowForm(false); resetForm(); }}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setShowForm(false);
+              resetForm();
+            }}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-lg font-semibold">{editingBlog ? "Edit Blog Post" : "New Blog Post"}</h2>
@@ -506,7 +639,13 @@ const AdminBlogs = () => {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label>Topics</Label>
                   {editingBlog && (
-                    <Button type="button" size="sm" variant="outline" disabled={topicsSuggestionBusy} onClick={handleSuggestTopics}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={topicsSuggestionBusy}
+                      onClick={handleSuggestTopics}
+                    >
                       {topicsSuggestionBusy && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
                       {topicsSuggestionBusy ? "Suggesting..." : "Suggest topics"}
                     </Button>
@@ -549,7 +688,9 @@ const AdminBlogs = () => {
                 </div>
                 <p className="mt-1.5 text-xs text-muted-foreground">
                   Shown as chips on the blog page. Pick one or two.
-                  {editingBlog?.reading_time_minutes ? ` Reading time (automatic): ${editingBlog.reading_time_minutes} min.` : ""}
+                  {editingBlog?.reading_time_minutes
+                    ? ` Reading time (automatic): ${editingBlog.reading_time_minutes} min.`
+                    : ""}
                 </p>
               </div>
 
@@ -715,9 +856,7 @@ const AdminBlogs = () => {
 
               <div className="border-t pt-3">
                 <Label htmlFor="blog-linked-story">Linked Stories (optional)</Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Selected stories will appear after the blog post.
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">Selected stories will appear after the blog post.</p>
                 {linkedStories.length > 0 && (
                   <div className="mt-2 space-y-1.5">
                     {linkedStories.map((story) => (
@@ -758,23 +897,21 @@ const AdminBlogs = () => {
                     {(storySearchResults?.results || [])
                       .filter((story) => !linkedStories.some((selected) => selected.id === story.id))
                       .map((story) => (
-                      <button
-                        key={story.id}
-                        type="button"
-                        className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                        onClick={() => selectLinkedStory(story)}
-                      >
-                        <span className="truncate">{story.title}</span>
-                        <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                          {getLanguageLabel(story.language)}
-                        </span>
-                      </button>
-                    ))}
+                        <button
+                          key={story.id}
+                          type="button"
+                          className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                          onClick={() => selectLinkedStory(story)}
+                        >
+                          <span className="truncate">{story.title}</span>
+                          <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                            {getLanguageLabel(story.language)}
+                          </span>
+                        </button>
+                      ))}
                     {(storySearchResults?.results || []).filter(
-                      (story) => !linkedStories.some((selected) => selected.id === story.id)
-                    ).length === 0 && (
-                      <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>
-                    )}
+                      (story) => !linkedStories.some((selected) => selected.id === story.id),
+                    ).length === 0 && <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>}
                   </div>
                 )}
               </div>
@@ -818,8 +955,7 @@ const AdminBlogs = () => {
                     {(blogSearchResults?.results || [])
                       .filter(
                         (blog) =>
-                          blog.id !== editingBlog?.id &&
-                          !linkedBlogs.some((selected) => selected.id === blog.id)
+                          blog.id !== editingBlog?.id && !linkedBlogs.some((selected) => selected.id === blog.id),
                       )
                       .map((blog) => (
                         <button
@@ -835,9 +971,7 @@ const AdminBlogs = () => {
                         </button>
                       ))}
                     {(blogSearchResults?.results || []).filter(
-                      (blog) =>
-                        blog.id !== editingBlog?.id &&
-                        !linkedBlogs.some((selected) => selected.id === blog.id)
+                      (blog) => blog.id !== editingBlog?.id && !linkedBlogs.some((selected) => selected.id === blog.id),
                     ).length === 0 && (
                       <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching blog posts.</p>
                     )}
@@ -867,7 +1001,14 @@ const AdminBlogs = () => {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowForm(false);
+                    resetForm();
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={saving || !title.trim() || !content.trim()}>
@@ -886,7 +1027,13 @@ const AdminBlogs = () => {
             <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
               <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                 <CardTitle className="text-base">Linked "{linkStoryOffer.title}"</CardTitle>
-                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setLinkStoryOffer(null)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setLinkStoryOffer(null)}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </CardHeader>
@@ -909,11 +1056,7 @@ const AdminBlogs = () => {
                   <div className="space-y-2 border-t pt-4">
                     <p className="text-sm font-medium">Use this story's cover image?</p>
                     <div className="flex items-center gap-3">
-                      <img
-                        src={linkStoryOffer.cover_image_url}
-                        alt=""
-                        className="h-20 w-16 rounded-md object-cover"
-                      />
+                      <img src={linkStoryOffer.cover_image_url} alt="" className="h-20 w-16 rounded-md object-cover" />
                       <p className="flex-1 text-xs text-muted-foreground">
                         Otherwise, upload a new cover image for this post separately below.
                       </p>
@@ -936,6 +1079,9 @@ const AdminBlogs = () => {
     );
   }
 
+  const activeFilters = hasActiveBlogFilters(listState);
+  const filteredTotal = blogsData?.pagination.count ?? 0;
+
   return (
     <div className="h-full space-y-4 overflow-y-auto scrollbar-thin pr-1">
       <Card>
@@ -946,81 +1092,55 @@ const AdminBlogs = () => {
               Manage blog posts and their related stories and posts shown at /blog.
             </p>
           </div>
-          <Button size="sm" onClick={openCreateForm}>
-            <Plus className="mr-1 h-4 w-4" />
+          <Button size="sm" className="min-h-11" onClick={openCreateForm}>
+            <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
             New Post
           </Button>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="relative max-w-sm">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search posts"
-              className="pl-8"
-            />
-          </div>
+        <CardContent className="space-y-4">
+          <BlogNeedsAttention
+            stats={blogStats}
+            isLoading={statsLoading}
+            isError={statsError}
+            activeNeeds={listState.needs}
+            onSelectNeed={selectNeedFromAttention}
+          />
+
+          <BlogListFilters
+            state={listState}
+            total={filteredTotal}
+            topicOptions={topicOptions ?? []}
+            onChange={updateListState}
+            onClear={clearFilters}
+          />
 
           {blogsLoading ? (
             <p className="text-sm text-muted-foreground">Loading posts...</p>
           ) : (blogsData?.results?.length || 0) === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {search.trim() ? "No posts match your search." : "No blog posts yet — create the first one."}
-            </p>
+            activeFilters ? (
+              <div className="rounded-md border py-8 text-center">
+                <p className="text-sm font-medium">No posts match these filters</p>
+                <Button type="button" variant="outline" className="mt-3 min-h-11" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No blog posts yet — create the first one.</p>
+            )
           ) : (
             <div className="divide-y rounded-md border">
               {(blogsData?.results || []).map((blog) => (
-                <div key={blog.id} className="flex items-center justify-between gap-3 p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
-                      {blog.title}
-                      {blog.is_featured && (
-                        <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">Featured</span>
-                      )}
-                    </p>
-                    <p className="mt-0.5 flex flex-wrap gap-1.5 empty:hidden">
-                      {!(blog.excerpt ?? "").trim() && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">No excerpt</span>
-                      )}
-                      {(blog.topics ?? []).length === 0 && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">No topics</span>
-                      )}
-                      {!blog.cover_image_url && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">No cover</span>
-                      )}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      /{blog.slug} &middot; {blog.is_published ? "Published" : "Draft"}
-                      {adminBlogLinkedStoryDetails(blog).length > 0 && ` · ${adminBlogLinkedStoryDetails(blog).length} linked ${adminBlogLinkedStoryDetails(blog).length === 1 ? "story" : "stories"}`}
-                      {adminBlogLinkedBlogDetails(blog).length > 0 && ` · ${adminBlogLinkedBlogDetails(blog).length} linked ${adminBlogLinkedBlogDetails(blog).length === 1 ? "post" : "posts"}`}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-1">
-                    <TitleAnalyticsDialog kind="blog" slug={blog.slug} title={blog.title} />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={() => openEditForm(blog)}
-                      aria-label={`Edit ${blog.title}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => setPendingDeleteBlog(blog)}
-                      aria-label={`Delete ${blog.title}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <BlogListRow
+                  key={blog.id}
+                  blog={blog}
+                  isEditLoading={loadingEditId === blog.id}
+                  isTogglingPublish={togglingPublishId === blog.id}
+                  isTogglingFeatured={togglingFeaturedId === blog.id}
+                  onEdit={openEditForm}
+                  onDelete={setPendingDeleteBlog}
+                  onTogglePublish={handleTogglePublish}
+                  onToggleFeatured={handleToggleFeatured}
+                />
               ))}
             </div>
           )}
@@ -1028,10 +1148,12 @@ const AdminBlogs = () => {
           {blogsData && blogsData.pagination.pages > 1 && (
             <div className="flex items-center justify-between pt-2">
               <Button
+                type="button"
                 size="sm"
                 variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="min-h-11"
+                disabled={listState.page <= 1}
+                onClick={() => updateListState({ page: Math.max(1, listState.page - 1) })}
               >
                 Previous
               </Button>
@@ -1039,10 +1161,12 @@ const AdminBlogs = () => {
                 Page {blogsData.pagination.page} of {blogsData.pagination.pages}
               </span>
               <Button
+                type="button"
                 size="sm"
                 variant="outline"
-                disabled={page >= blogsData.pagination.pages}
-                onClick={() => setPage((p) => p + 1)}
+                className="min-h-11"
+                disabled={listState.page >= blogsData.pagination.pages}
+                onClick={() => updateListState({ page: listState.page + 1 })}
               >
                 Next
               </Button>
@@ -1051,31 +1175,34 @@ const AdminBlogs = () => {
         </CardContent>
       </Card>
 
-      {pendingDeleteBlog && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-          onClick={() => setPendingDeleteBlog(null)}
-        >
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <CardHeader>
-              <CardTitle className="text-base">Delete Blog Post</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Delete "{pendingDeleteBlog.title}"? This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setPendingDeleteBlog(null)}>
-                  Cancel
-                </Button>
-                <Button type="button" variant="destructive" disabled={deleting} onClick={deleteBlog}>
-                  {deleting ? "Deleting..." : "Delete"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <AlertDialog
+        open={pendingDeleteBlog !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDeleteBlog(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Blog Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete "{pendingDeleteBlog?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteBlog();
+              }}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
