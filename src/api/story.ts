@@ -74,6 +74,7 @@ import {
   AdminHomeSection,
   AdminHomeSectionInput,
   HomeSectionTypesMeta,
+  AdminStoryStats,
   AdminBlogTopic,
   BlogOverview,
   DiscoverSurpriseResponse,
@@ -390,6 +391,7 @@ export const storyApi = {
     apiClient<void>(`/submissions/${id}/`, {
       method: "DELETE",
     }),
+  getAdminStoryStats: () => apiClient<AdminStoryStats>("/admin/stories/stats/"),
   getAdminStories: (
     page: number = 1,
     q: string = "",
@@ -399,6 +401,10 @@ export const storyApi = {
       is_original?: boolean;
       has_summary?: boolean;
       has_retrospective?: boolean;
+      has_cover?: boolean;
+      has_chapters?: boolean;
+      status?: "published" | "draft" | "scheduled";
+      sort?: "newest" | "oldest" | "title_asc" | "title_desc";
     } = {}
   ) =>
     apiClient<PaginatedResponse<AdminStory>>(

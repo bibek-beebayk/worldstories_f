@@ -1014,6 +1014,19 @@ export interface AdminStory {
   video_count: number;
 }
 
+/** GET /admin/stories/stats/ — the admin Stories overview. Published means live now; Scheduled is published with a future date. */
+export interface AdminStoryStats {
+  total: number;
+  published: number;
+  draft: number;
+  scheduled: number;
+  /** The missing_* counts are among published stories only. */
+  missing_summary: number;
+  missing_retrospective: number;
+  missing_cover: number;
+  missing_chapters: number;
+}
+
 export type AiGenerationModel = "claude-opus-5" | "claude-sonnet-5" | "claude-haiku-4-5";
 
 export interface PromptSettings {

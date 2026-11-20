@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Bold, Check, ChevronRight, Heading1, Heading2, Heading3, Italic, Link2, List, ListOrdered, Loader2, Plus, Search, Underline, Upload, X } from "lucide-react";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
@@ -23,6 +24,18 @@ import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { handleRichTextPaste } from "@/lib/richTextPaste";
 import { AiGenerationHeaderControls, AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
 import BulkTaxonomyImportModal from "@/components/admin/BulkTaxonomyImportModal";
+import StoriesOverview from "@/components/admin/stories/StoriesOverview";
+import StoryDetailsTab from "@/components/admin/stories/StoryDetailsTab";
+import StoryListPanel, { type StoryListItem } from "@/components/admin/stories/StoryListPanel";
+import { ReadyChecklist, StoryHeaderCard } from "@/components/admin/stories/StoryHeader";
+import {
+  DEFAULT_STORY_LIST,
+  buildStoryListParams,
+  parseStoryListParams,
+  toApiFilters,
+  type StoryListState,
+  type StoryNeed,
+} from "@/components/admin/stories/storyList";
 import { AudioTranscriptImportPanel } from "@/components/admin/AudioTranscriptImportPanel";
 
 // <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time (no
@@ -118,32 +131,29 @@ const AdminContent = () => {
   const isAuthenticated = Boolean(getAccessToken());
 
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
   // Lets a link from elsewhere (e.g. the Story Report table) open a specific
   // story directly, via /admin/content?storyId=123 — read once on mount,
   // same as any other deep-link initial-state pattern in this app.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The list's search, status, "needs" chips and sort live in the URL (replace, not push)
+  // so a refresh or back keeps them; `storyId` above is read once and kept untouched.
+  const listState = useMemo(() => parseStoryListParams(searchParams), [searchParams]);
+  const updateList = useCallback(
+    (patch: Partial<StoryListState>) => {
+      setSearchParams((current) => buildStoryListParams({ ...parseStoryListParams(current), ...patch }, current), {
+        replace: true,
+      });
+    },
+    [setSearchParams]
+  );
+  const clearListFilters = useCallback(() => updateList({ q: "", status: "all", needs: [] }), [updateList]);
+  const [detailTab, setDetailTab] = useState("details");
   const [selectedStoryId, setSelectedStoryId] = useState<number | null>(() => {
     const storyIdParam = searchParams.get("storyId");
     return storyIdParam ? Number(storyIdParam) : null;
   });
   const [showStoryForm, setShowStoryForm] = useState(false);
-  const [storiesList, setStoriesList] = useState<
-    Array<{
-      id: number;
-      title: string;
-      slug: string;
-      is_published: boolean;
-      publish_at: string | null;
-      source: "admin" | "submission";
-      chapter_count: number;
-      audio_count: number;
-      video_count: number;
-      summary: string | null;
-      retrospective: string | null;
-    }>
-  >([]);
+  const [storiesList, setStoriesList] = useState<StoryListItem[]>([]);
   const [hasMoreStories, setHasMoreStories] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -295,8 +305,8 @@ const AdminContent = () => {
   });
 
   const { data: storiesData, isLoading: storiesLoading } = useQuery({
-    queryKey: ["admin-stories", page, search],
-    queryFn: () => storyApi.getAdminStories(page, search),
+    queryKey: ["admin-stories", page, listState],
+    queryFn: () => storyApi.getAdminStories(page, listState.q, toApiFilters(listState)),
     enabled: isAuthenticated && Boolean(me?.is_superuser),
   });
 
@@ -1038,6 +1048,17 @@ const AdminContent = () => {
     setEpubFile(null);
   }, [selectedStory, genreNameById, categoryNameById, tagNameById, themeNameById]);
 
+  // A different story opens on its Details tab.
+  useEffect(() => {
+    setDetailTab("details");
+  }, [selectedStoryId]);
+
+  // A changed filter, search or sort starts the list over from the first page.
+  const listKey = JSON.stringify(listState);
+  useEffect(() => {
+    setPage(1);
+  }, [listKey]);
+
   useEffect(() => {
     if (!storiesData) return;
     const incoming = storiesData.results || [];
@@ -1073,7 +1094,7 @@ const AdminContent = () => {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [hasMoreStories, storiesLoading, search]);
+  }, [hasMoreStories, storiesLoading, listKey]);
 
   useEffect(() => {
     if (!showChapterModal || !chapterEditorRef.current) return;
@@ -1657,6 +1678,19 @@ const AdminContent = () => {
   // half-visible list. Both panes stay visible together at lg: and up.
   const isMobileDetailActive = showStoryForm || showChapterModal || selectedStoryId !== null;
 
+  const showNeed = (need: StoryNeed) => updateList({ status: "published", needs: [need] });
+  const detailLabels = {
+    type: selectedStory ? String(storyTypeNameById.get(selectedStory.story_type) || selectedStory.story_type || "") : "",
+    author: selectedStory?.author ? authorNameById.get(selectedStory.author) || "" : "",
+    submittedBy: selectedStory?.submitted_by
+      ? selectedStory.submitted_by.display_name || selectedStory.submitted_by.username || selectedStory.submitted_by.email
+      : "",
+    genres: (selectedStory?.genres || []).map((id) => toTitleCase(genreNameById.get(id) || `Genre #${id}`)),
+    categories: (selectedStory?.categories || []).map((id) => toTitleCase(categoryNameById.get(id) || `Category #${id}`)),
+    tags: (selectedStory?.tags || []).map((id) => toTitleCase(tagNameById.get(id) || `Tag #${id}`)),
+    themes: (selectedStory?.themes || []).map((id) => toTitleCase(themeNameById.get(id) || `Theme #${id}`)),
+  };
+
   return (
     <main className="h-full w-full overflow-hidden px-0 py-0">
       {/* Below lg, this switches from a two-column grid to a stacked flex
@@ -1670,115 +1704,26 @@ const AdminContent = () => {
             isMobileDetailActive ? "hidden" : "flex-1"
           }`}
         >
-          <CardContent className="flex h-full flex-col space-y-3 p-3">
-            <div className="flex gap-2">
-              <Input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    setPage(1);
-                    setSearch(searchInput.trim());
-                  }
-                }}
-                placeholder="Search title or slug"
-              />
-              <Button size="sm" onClick={() => { setPage(1); setSearch(searchInput.trim()); }}>
-                <Search className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={openNewStoryForm}
-                aria-label="Create new story"
-                title="Create new story"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowBulkTaxonomyModal(true)}
-                aria-label="Bulk update tags, themes, genres, and categories"
-                title="Bulk update tags, themes, genres, and categories"
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total stories: <span className="font-medium text-foreground">{storiesData?.pagination?.count ?? 0}</span>
-            </p>
-
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-md border p-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              {storiesLoading && page === 1 && <p className="text-sm text-muted-foreground">Loading stories...</p>}
-              {storiesList.map((item) => (
-                <button
-                  key={item.id}
-                  className={`w-full rounded-md border px-3 py-2 text-left hover:bg-muted ${selectedStoryId === item.id ? "border-primary" : ""}`}
-                  onClick={() => {
-                    setSelectedStoryId(item.id);
-                    setShowStoryForm(false);
-                    setShowChapterModal(false);
-                  }}
-                >
-                  <p className="text-sm font-medium leading-5 whitespace-normal break-words">{item.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">/{item.slug}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                        item.source === "submission"
-                          ? "border-blue-200 bg-blue-100 text-blue-700"
-                          : "border-slate-200 bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {item.source === "submission" ? "Submission" : "Admin"}
-                    </span>
-                    {(() => {
-                      const isScheduled =
-                        item.is_published && !!item.publish_at && new Date(item.publish_at) > new Date();
-                      const label = isScheduled ? "Scheduled" : item.is_published ? "Published" : "Draft";
-                      const colorClass = isScheduled
-                        ? "border-violet-200 bg-violet-100 text-violet-700"
-                        : item.is_published
-                        ? "border-emerald-200 bg-emerald-100 text-emerald-700"
-                        : "border-amber-200 bg-amber-100 text-amber-700";
-                      return (
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${colorClass}`}
-                        >
-                          {label}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2.5 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <CountBadge count={item.chapter_count} label="chapters" /> chapters
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <CountBadge count={item.audio_count} label="audio files" /> audio
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ExistenceIndicator exists={Boolean(item.summary)} label="Summary" /> summary
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ExistenceIndicator exists={Boolean(item.retrospective)} label="Retrospective" /> retro
-                    </span>
-                  </div>
-                </button>
-              ))}
-              {storiesList.length === 0 && !storiesLoading && (
-                <p className="text-sm text-muted-foreground">No stories found.</p>
-              )}
-              <div ref={loadMoreRef} className="h-1" />
-              {storiesLoading && page > 1 && (
-                <p className="text-center text-xs text-muted-foreground">Loading more...</p>
-              )}
-              {!hasMoreStories && storiesList.length > 0 && (
-                <p className="text-center text-xs text-muted-foreground">End of list</p>
-              )}
-            </div>
+          <CardContent className="h-full p-3">
+            <StoryListPanel
+              state={listState}
+              onChange={updateList}
+              onClear={clearListFilters}
+              total={storiesData?.pagination?.count ?? 0}
+              items={storiesList}
+              loading={storiesLoading && page === 1}
+              loadingMore={storiesLoading && page > 1}
+              hasMore={hasMoreStories}
+              selectedId={selectedStoryId}
+              onSelect={(id) => {
+                setSelectedStoryId(id);
+                setShowStoryForm(false);
+                setShowChapterModal(false);
+              }}
+              onNew={openNewStoryForm}
+              onBulkUpdate={() => setShowBulkTaxonomyModal(true)}
+              loadMoreRef={loadMoreRef}
+            />
           </CardContent>
         </Card>
 
@@ -2596,599 +2541,543 @@ const AdminContent = () => {
               </CardContent>
             </Card>
           ) : !selectedStoryId ? (
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-sm text-muted-foreground">
-                  Select a story to edit, or click <span className="font-medium text-foreground">New Story</span> to create one.
-                </p>
-              </CardContent>
-            </Card>
+            <StoriesOverview onNew={openNewStoryForm} onBulkUpdate={() => setShowBulkTaxonomyModal(true)} onShowNeed={showNeed} />
           ) : null}
 
           {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <Card>
-              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-                <CardTitle className="text-base">Story Details</CardTitle>
-                <Button size="sm" onClick={() => setShowStoryForm(true)}>
-                  Edit Story
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {selectedLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading story details...</p>
-                ) : selectedStory ? (
-                  <div className="space-y-3 text-sm">
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <p><span className="text-muted-foreground">Title:</span> {selectedStory.title}</p>
-                      <p><span className="text-muted-foreground">Slug:</span> /{selectedStory.slug}</p>
-                      <p><span className="text-muted-foreground">Type:</span> {storyTypeNameById.get(selectedStory.story_type) || selectedStory.story_type}</p>
-                      <p><span className="text-muted-foreground">Language:</span> {getLanguageLabel(selectedStory.language)}</p>
-                      <p><span className="text-muted-foreground">Country:</span> {selectedStory.country ? getCountryLabel(selectedStory.country) : "-"}</p>
-                      <p><span className="text-muted-foreground">Author:</span> {selectedStory.author ? (authorNameById.get(selectedStory.author) || "-") : "-"}</p>
-                      <p>
-                        <span className="text-muted-foreground">Submitted By:</span>{" "}
-                        {selectedStory?.submitted_by
-                          ? (selectedStory.submitted_by.display_name || selectedStory.submitted_by.username || selectedStory.submitted_by.email)
-                          : "-"}
-                      </p>
-                      <p><span className="text-muted-foreground">Original Published Date:</span> {selectedStory.published_date_label || "-"}</p>
-                      <p><span className="text-muted-foreground">Published on Site Date:</span> {selectedStory.site_published_date || "-"}</p>
-                      <p><span className="text-muted-foreground">Completed:</span> {selectedStory.is_completed ? "Yes" : "No"}</p>
-                      <p><span className="text-muted-foreground">Published:</span> {selectedStory.is_published ? "Yes" : "No"}</p>
-                      {selectedStory.is_published && selectedStory.publish_at && (
-                        <p>
-                          <span className="text-muted-foreground">
-                            {new Date(selectedStory.publish_at) > new Date() ? "Scheduled for:" : "Went live at:"}
-                          </span>{" "}
-                          {new Date(selectedStory.publish_at).toLocaleString()}
-                        </p>
-                      )}
-                      <p><span className="text-muted-foreground">Rating:</span> {selectedStory.rating.toFixed(1)}</p>
-                      <p><span className="text-muted-foreground">Views:</span> {selectedStory.views}</p>
-                    </div>
-                    <div>
-                      <p className="mb-1 text-muted-foreground">Genres</p>
-                      {(selectedStory.genres || []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedStory.genres.map((genreId) => (
-                            <span key={genreId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
-                              {toTitleCase(genreNameById.get(genreId) || `Genre #${genreId}`)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="mb-1 text-muted-foreground">Categories</p>
-                      {(selectedStory.categories || []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedStory.categories.map((categoryId) => (
-                            <span key={categoryId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
-                              {toTitleCase(categoryNameById.get(categoryId) || `Category #${categoryId}`)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="mb-1 text-muted-foreground">Tags</p>
-                      {(selectedStory.tags || []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedStory.tags.map((tagId) => (
-                            <span key={tagId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
-                              {toTitleCase(tagNameById.get(tagId) || `Tag #${tagId}`)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="mb-1 text-muted-foreground">Themes</p>
-                      {(selectedStory.themes || []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedStory.themes.map((themeId) => (
-                            <span key={themeId} className="rounded-md border bg-muted/30 px-2 py-1 text-xs">
-                              {toTitleCase(themeNameById.get(themeId) || `Theme #${themeId}`)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="rounded-md border bg-muted/30 px-3 py-2">-</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="mb-1 text-muted-foreground">About</p>
-                      <p className="rounded-md border bg-muted/30 px-3 py-2">{selectedStory.about || "-"}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No story selected.</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <CollapsibleSection
-              title="Summary"
-              titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.summary)} label="Summary" />}
-              headerAction={
-                <AiGenerationHeaderControls
-                  label="Summary"
-                  status={selectedStory?.summary_status ?? null}
-                  inputMode={summaryInputMode}
-                  onModeChange={setSummaryInputMode}
-                  onGenerate={handleGenerateSummary}
-                />
-              }
-            >
-              <CardContent>
-                <AiGenerationResultBanner
-                  label="Summary"
-                  status={selectedStory?.summary_status ?? null}
-                  source={selectedStory?.summary_source ?? null}
-                  confident={selectedStory?.summary_confident ?? null}
-                  confidenceNote={selectedStory?.summary_confidence_note ?? null}
-                  error={selectedStory?.summary_error ?? null}
-                  dismissed={summaryBannerDismissed}
-                  onDismiss={() => setSummaryBannerDismissed(true)}
-                  onRetryWithContent={() => handleGenerateSummary("content")}
-                  onTryAgain={() => handleGenerateSummary(summaryInputMode)}
-                />
-                {selectedStory?.summary ? (
-                  <div
-                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.summary) }}
+            <>
+              {selectedLoading && !selectedStory && (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-sm text-muted-foreground">Loading story details...</p>
+                  </CardContent>
+                </Card>
+              )}
+              {selectedStory && (
+                <>
+                  <StoryHeaderCard story={selectedStory} onEdit={() => setShowStoryForm(true)} />
+                  <ReadyChecklist
+                    story={selectedStory}
+                    onAction={(key) => {
+                      if (key === "summary") setDetailTab("summary");
+                      else if (key === "chapters") setDetailTab("chapters");
+                      else setShowStoryForm(true);
+                    }}
                   />
-                ) : (
-                  <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">-</p>
-                )}
-              </CardContent>
-            </CollapsibleSection>
-          )}
+                  <Tabs value={detailTab} onValueChange={setDetailTab} className="min-w-0 space-y-4">
+                    <div className="overflow-x-auto scrollbar-none">
+                      <TabsList className="h-auto w-max justify-start">
+                        <TabsTrigger value="details" className="min-h-11 px-3">
+                          Details
+                        </TabsTrigger>
+                        <TabsTrigger value="summary" className="min-h-11 gap-1.5 px-3">
+                          Summary
+                          {!(selectedStory.summary ?? "").trim() && (
+                            <span className="text-xs font-bold text-red-600">
+                              <span aria-hidden="true">✕</span>
+                              <span className="sr-only"> missing</span>
+                            </span>
+                          )}
+                        </TabsTrigger>
+                        <TabsTrigger value="retrospective" className="min-h-11 gap-1.5 px-3">
+                          Retrospective
+                          {!(selectedStory.retrospective ?? "").trim() && (
+                            <span className="text-xs font-bold text-red-600">
+                              <span aria-hidden="true">✕</span>
+                              <span className="sr-only"> missing</span>
+                            </span>
+                          )}
+                        </TabsTrigger>
+                        <TabsTrigger value="chapters" className="min-h-11 gap-1.5 px-3">
+                          Chapters <CountBadge count={selectedStory.chapter_count ?? 0} label="chapters" />
+                        </TabsTrigger>
+                        <TabsTrigger value="audio" className="min-h-11 gap-1.5 px-3">
+                          Audio <CountBadge count={selectedStory.audio_count ?? 0} label="audio files" />
+                        </TabsTrigger>
+                        <TabsTrigger value="videos" className="min-h-11 gap-1.5 px-3">
+                          Videos <CountBadge count={selectedStory.video_count ?? 0} label="videos" />
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
 
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <CollapsibleSection
-              title="Retrospective"
-              titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.retrospective)} label="Retrospective" />}
-              headerAction={
-                <AiGenerationHeaderControls
-                  label="Retrospective"
-                  status={selectedStory?.retrospective_status ?? null}
-                  inputMode={retrospectiveInputMode}
-                  onModeChange={setRetrospectiveInputMode}
-                  onGenerate={handleGenerateRetrospective}
-                />
-              }
-            >
-              <CardContent>
-                <AiGenerationResultBanner
-                  label="Retrospective"
-                  status={selectedStory?.retrospective_status ?? null}
-                  source={selectedStory?.retrospective_source ?? null}
-                  confident={selectedStory?.retrospective_confident ?? null}
-                  confidenceNote={selectedStory?.retrospective_confidence_note ?? null}
-                  error={selectedStory?.retrospective_error ?? null}
-                  dismissed={retrospectiveBannerDismissed}
-                  onDismiss={() => setRetrospectiveBannerDismissed(true)}
-                  onRetryWithContent={() => handleGenerateRetrospective("content")}
-                  onTryAgain={() => handleGenerateRetrospective(retrospectiveInputMode)}
-                />
-                {selectedStory?.retrospective ? (
-                  <div
-                    className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.retrospective) }}
-                  />
-                ) : (
-                  <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">-</p>
-                )}
-              </CardContent>
-            </CollapsibleSection>
-          )}
+                    <TabsContent value="details" className="mt-0 space-y-6">
+                      <StoryDetailsTab story={selectedStory} labels={detailLabels} />
+                <Card>
+                  <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+                    <CardTitle className="text-base">Translations</CardTitle>
+                    <Button size="sm" onClick={openAddTranslationForm}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add Translation
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    {(selectedStory?.translations?.length || 0) === 0 ? (
+                      <p className="text-sm text-muted-foreground">No other language editions linked yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedStory!.translations.map((sibling) => (
+                          <div
+                            key={sibling.id}
+                            className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{sibling.title}</p>
+                              <p className="text-xs text-muted-foreground">{getLanguageLabel(sibling.language)}</p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <Button size="sm" variant="ghost" onClick={() => setSelectedStoryId(sibling.id)}>
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={translationActionId === sibling.id}
+                                onClick={() => handleUnlinkTranslation(sibling.id)}
+                              >
+                                {translationActionId === sibling.id ? "Removing..." : "Unlink"}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <Card>
-              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-                <CardTitle className="text-base">Translations</CardTitle>
-                <Button size="sm" onClick={openAddTranslationForm}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add Translation
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {(selectedStory?.translations?.length || 0) === 0 ? (
-                  <p className="text-sm text-muted-foreground">No other language editions linked yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedStory!.translations.map((sibling) => (
-                      <div
-                        key={sibling.id}
-                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{sibling.title}</p>
-                          <p className="text-xs text-muted-foreground">{getLanguageLabel(sibling.language)}</p>
+                    <div className="border-t pt-3">
+                      <Label htmlFor="admin-translation-search">Link another story as a translation</Label>
+                      <div className="relative mt-2">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="admin-translation-search"
+                          placeholder="Search by title..."
+                          className="pl-9"
+                          value={translationSearchQuery}
+                          onChange={(e) => setTranslationSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      {debouncedTranslationQuery.length >= 2 && (
+                        <div className="mt-2 max-h-48 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-1">
+                          {(translationSearchResults?.results || [])
+                            .filter((story) => story.id !== selectedStoryId)
+                            .map((story) => (
+                              <button
+                                key={story.id}
+                                type="button"
+                                className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                                disabled={translationActionId !== null}
+                                onClick={() => handleLinkTranslation(story.id)}
+                              >
+                                <span className="truncate">{story.title}</span>
+                                <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                                  {getLanguageLabel(story.language)}
+                                </span>
+                              </button>
+                            ))}
+                          {(translationSearchResults?.results || []).filter((s) => s.id !== selectedStoryId).length ===
+                            0 && <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>}
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => setSelectedStoryId(sibling.id)}>
-                            Edit
-                          </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Files</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="rounded-md border px-3 py-2">
+                      <p className="mb-2 text-muted-foreground">Cover</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {selectedStory?.cover_image_url ? (
+                          <a href={selectedStory.cover_image_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                            Open cover image
+                          </a>
+                        ) : (
+                          <span>-</span>
+                        )}
+                        <input
+                          ref={coverFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) updateStoryFile("cover_image_file", file);
+                            e.currentTarget.value = "";
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={fileActionLoading !== null}
+                          onClick={() => coverFileInputRef.current?.click()}
+                        >
+                          {fileActionLoading === "cover_image_file"
+                            ? "Uploading..."
+                            : selectedStory?.cover_image_url
+                              ? "Change"
+                              : "Upload"}
+                        </Button>
+                        {selectedStory?.cover_image_url && (
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={translationActionId === sibling.id}
-                            onClick={() => handleUnlinkTranslation(sibling.id)}
+                            disabled={fileActionLoading !== null}
+                            onClick={removeStoryCover}
                           >
-                            {translationActionId === sibling.id ? "Removing..." : "Unlink"}
+                            {fileActionLoading === "remove_cover_image" ? "Removing..." : "Remove"}
                           </Button>
+                        )}
+                      </div>
+                      {fileActionLoading === "cover_image_file" && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Uploading cover image...
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="border-t pt-3">
-                  <Label htmlFor="admin-translation-search">Link another story as a translation</Label>
-                  <div className="relative mt-2">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="admin-translation-search"
-                      placeholder="Search by title..."
-                      className="pl-9"
-                      value={translationSearchQuery}
-                      onChange={(e) => setTranslationSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  {debouncedTranslationQuery.length >= 2 && (
-                    <div className="mt-2 max-h-48 space-y-1 overflow-y-auto scrollbar-thin rounded-md border p-1">
-                      {(translationSearchResults?.results || [])
-                        .filter((story) => story.id !== selectedStoryId)
-                        .map((story) => (
-                          <button
-                            key={story.id}
-                            type="button"
-                            className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                            disabled={translationActionId !== null}
-                            onClick={() => handleLinkTranslation(story.id)}
+                      )}
+                    </div>
+                    <div className="rounded-md border px-3 py-2">
+                      <p className="mb-2 text-muted-foreground">PDF</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {selectedStory?.pdf_file_url ? (
+                          <a href={selectedStory.pdf_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                            Open PDF
+                          </a>
+                        ) : (
+                          <span>-</span>
+                        )}
+                        <input
+                          ref={pdfFileInputRef}
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) updateStoryFile("pdf_file", file);
+                            e.currentTarget.value = "";
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={fileActionLoading !== null}
+                          onClick={() => pdfFileInputRef.current?.click()}
+                        >
+                          {fileActionLoading === "pdf_file"
+                            ? "Uploading..."
+                            : selectedStory?.pdf_file_url
+                              ? "Change"
+                              : "Upload"}
+                        </Button>
+                        {selectedStory?.pdf_file && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={fileActionLoading !== null}
+                            onClick={() => removeStoryFile("remove_pdf_file")}
                           >
-                            <span className="truncate">{story.title}</span>
-                            <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                              {getLanguageLabel(story.language)}
-                            </span>
-                          </button>
-                        ))}
-                      {(translationSearchResults?.results || []).filter((s) => s.id !== selectedStoryId).length ===
-                        0 && <p className="px-2 py-1.5 text-xs text-muted-foreground">No matching stories.</p>}
+                            {fileActionLoading === "remove_pdf_file" ? "Removing..." : "Remove"}
+                          </Button>
+                        )}
+                      </div>
+                      {fileActionLoading === "pdf_file" && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Uploading PDF...
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <CollapsibleSection
-              title="Chapters"
-              titleBadge={<CountBadge count={selectedStory?.chapter_count ?? 0} label="chapters" />}
-              headerAction={
-                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                  {epubImportJob && (epubImportJob.status === "pending" || epubImportJob.status === "processing") && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Importing...
-                    </span>
-                  )}
-                  {epubImportJob?.status === "completed" && (
-                    <span className="flex items-center gap-1 text-xs text-green-600">
-                      <Check className="h-3 w-3" /> Imported {epubImportJob.chapters_created} chapters
-                    </span>
-                  )}
-                  {epubImportJob?.status === "failed" && (
-                    <span
-                      className="flex items-center gap-1 text-xs text-red-600"
-                      title={epubImportJob.error_message || "Import failed."}
-                    >
-                      <X className="h-3 w-3" /> Import failed
-                    </span>
-                  )}
-                  <input
-                    ref={epubImportFileInputRef}
-                    type="file"
-                    accept="application/epub+zip,.epub"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImportEpub(file);
-                      e.currentTarget.value = "";
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={epubImportJob?.status === "pending" || epubImportJob?.status === "processing"}
-                    onClick={() =>
-                      selectedStory?.epub_file
-                        ? handleImportEpub()
-                        : epubImportFileInputRef.current?.click()
-                    }
-                  >
-                    {selectedStory?.epub_file ? "Import chapters from EPUB" : "Upload EPUB & import chapters"}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={openCreateChapterModal}>
-                    Add New Chapter
-                  </Button>
-                </div>
-              }
-            >
-              <CardContent className="space-y-4">
-                <div className="space-y-2 rounded-md border p-2">
-                  {chaptersLoading && <p className="text-sm text-muted-foreground">Loading chapters...</p>}
-                  {(chaptersData?.results || []).map((chapter) => (
-                    <div key={chapter.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">#{chapter.order} {chapter.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">/{chapter.slug}</p>
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEditChapterModal(chapter)}>
-                          Edit
+                    <div className="rounded-md border px-3 py-2">
+                      <p className="mb-2 text-muted-foreground">EPUB</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {selectedStory?.epub_file_url ? (
+                          <a href={selectedStory.epub_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                            Open EPUB
+                          </a>
+                        ) : (
+                          <span>-</span>
+                        )}
+                        <input
+                          ref={epubFileInputRef}
+                          type="file"
+                          accept=".epub,application/epub+zip"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) updateStoryFile("epub_file", file);
+                            e.currentTarget.value = "";
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={fileActionLoading !== null}
+                          onClick={() => epubFileInputRef.current?.click()}
+                        >
+                          {fileActionLoading === "epub_file"
+                            ? "Uploading..."
+                            : selectedStory?.epub_file_url
+                              ? "Change"
+                              : "Upload"}
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setPendingDeleteChapterId(chapter.id)}>
-                          Delete
-                        </Button>
+                        {selectedStory?.epub_file && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={fileActionLoading !== null}
+                            onClick={() => removeStoryFile("remove_epub_file")}
+                          >
+                            {fileActionLoading === "remove_epub_file" ? "Removing..." : "Remove"}
+                          </Button>
+                        )}
                       </div>
+                      {fileActionLoading === "epub_file" && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Uploading EPUB...
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {(chaptersData?.results?.length || 0) === 0 && !chaptersLoading && (
-                    <p className="text-sm text-muted-foreground">No chapters yet.</p>
-                  )}
-                </div>
-              </CardContent>
-            </CollapsibleSection>
-          )}
-
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <CollapsibleSection
-              title="Audio List"
-              titleBadge={<CountBadge count={selectedStory?.audio_count ?? 0} label="audio files" />}
-              headerAction={
-                <Button size="sm" variant="outline" onClick={openCreateAudioModal}>
-                  Add New Audio
-                </Button>
-              }
-            >
-              <CardContent>
-                <div className="space-y-2 rounded-md border p-2">
-                  {audiosLoading && <p className="text-sm text-muted-foreground">Loading audios...</p>}
-                  {(audiosData?.results || []).map((audio) => (
-                    <div key={audio.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">#{audio.order} {audio.title}</p>
-                        <p className="text-xs text-muted-foreground">/{audio.slug}</p>
-                        <p className="truncate text-xs text-muted-foreground">{audio.audio_file || "-"}</p>
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEditAudioModal(audio)}>
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setPendingDeleteAudioId(audio.id)}>
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {(audiosData?.results?.length || 0) === 0 && !audiosLoading && (
-                    <p className="text-sm text-muted-foreground">No audio uploaded.</p>
-                  )}
-                </div>
-              </CardContent>
-            </CollapsibleSection>
-          )}
-
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <CollapsibleSection
-              title="Video List"
-              titleBadge={<CountBadge count={selectedStory?.video_count ?? 0} label="videos" />}
-              headerAction={
-                <Button size="sm" variant="outline" onClick={openCreateVideoModal}>
-                  Add New Video
-                </Button>
-              }
-            >
-              <CardContent>
-                <div className="space-y-2 rounded-md border p-2">
-                  {videosLoading && <p className="text-sm text-muted-foreground">Loading videos...</p>}
-                  {(videosData?.results || []).map((video) => (
-                    <div key={video.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">#{video.order} {video.title}</p>
-                        <p className="text-xs text-muted-foreground">/{video.slug}</p>
-                        <p className="truncate text-xs text-muted-foreground">{video.youtube_url}</p>
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEditVideoModal(video)}>
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setPendingDeleteVideoId(video.id)}>
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {(videosData?.results?.length || 0) === 0 && !videosLoading && (
-                    <p className="text-sm text-muted-foreground">No videos added.</p>
-                  )}
-                </div>
-              </CardContent>
-            </CollapsibleSection>
-          )}
-
-          {!showStoryForm && !showChapterModal && selectedStoryId && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Files</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="rounded-md border px-3 py-2">
-                  <p className="mb-2 text-muted-foreground">Cover</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {selectedStory?.cover_image_url ? (
-                      <a href={selectedStory.cover_image_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                        Open cover image
-                      </a>
-                    ) : (
-                      <span>-</span>
-                    )}
-                    <input
-                      ref={coverFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) updateStoryFile("cover_image_file", file);
-                        e.currentTarget.value = "";
-                      }}
+                  </CardContent>
+                </Card>
+                    </TabsContent>
+                    <TabsContent value="summary" className="mt-0 space-y-6">
+                <CollapsibleSection
+                  defaultOpen
+                  title="Summary"
+                  titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.summary)} label="Summary" />}
+                  headerAction={
+                    <AiGenerationHeaderControls
+                      label="Summary"
+                      status={selectedStory?.summary_status ?? null}
+                      inputMode={summaryInputMode}
+                      onModeChange={setSummaryInputMode}
+                      onGenerate={handleGenerateSummary}
                     />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={fileActionLoading !== null}
-                      onClick={() => coverFileInputRef.current?.click()}
-                    >
-                      {fileActionLoading === "cover_image_file"
-                        ? "Uploading..."
-                        : selectedStory?.cover_image_url
-                          ? "Change"
-                          : "Upload"}
-                    </Button>
-                    {selectedStory?.cover_image_url && (
+                  }
+                >
+                  <CardContent>
+                    <AiGenerationResultBanner
+                      label="Summary"
+                      status={selectedStory?.summary_status ?? null}
+                      source={selectedStory?.summary_source ?? null}
+                      confident={selectedStory?.summary_confident ?? null}
+                      confidenceNote={selectedStory?.summary_confidence_note ?? null}
+                      error={selectedStory?.summary_error ?? null}
+                      dismissed={summaryBannerDismissed}
+                      onDismiss={() => setSummaryBannerDismissed(true)}
+                      onRetryWithContent={() => handleGenerateSummary("content")}
+                      onTryAgain={() => handleGenerateSummary(summaryInputMode)}
+                    />
+                    {selectedStory?.summary ? (
+                      <div
+                        className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.summary) }}
+                      />
+                    ) : (
+                      <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">-</p>
+                    )}
+                  </CardContent>
+                </CollapsibleSection>
+                    </TabsContent>
+                    <TabsContent value="retrospective" className="mt-0 space-y-6">
+                <CollapsibleSection
+                  defaultOpen
+                  title="Retrospective"
+                  titleBadge={<ExistenceIndicator exists={Boolean(selectedStory?.retrospective)} label="Retrospective" />}
+                  headerAction={
+                    <AiGenerationHeaderControls
+                      label="Retrospective"
+                      status={selectedStory?.retrospective_status ?? null}
+                      inputMode={retrospectiveInputMode}
+                      onModeChange={setRetrospectiveInputMode}
+                      onGenerate={handleGenerateRetrospective}
+                    />
+                  }
+                >
+                  <CardContent>
+                    <AiGenerationResultBanner
+                      label="Retrospective"
+                      status={selectedStory?.retrospective_status ?? null}
+                      source={selectedStory?.retrospective_source ?? null}
+                      confident={selectedStory?.retrospective_confident ?? null}
+                      confidenceNote={selectedStory?.retrospective_confidence_note ?? null}
+                      error={selectedStory?.retrospective_error ?? null}
+                      dismissed={retrospectiveBannerDismissed}
+                      onDismiss={() => setRetrospectiveBannerDismissed(true)}
+                      onRetryWithContent={() => handleGenerateRetrospective("content")}
+                      onTryAgain={() => handleGenerateRetrospective(retrospectiveInputMode)}
+                    />
+                    {selectedStory?.retrospective ? (
+                      <div
+                        className="prose prose-sm max-w-none rounded-md border bg-muted/30 px-3 py-2"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.retrospective) }}
+                      />
+                    ) : (
+                      <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">-</p>
+                    )}
+                  </CardContent>
+                </CollapsibleSection>
+                    </TabsContent>
+                    <TabsContent value="chapters" className="mt-0 space-y-6">
+                <CollapsibleSection
+                  defaultOpen
+                  title="Chapters"
+                  titleBadge={<CountBadge count={selectedStory?.chapter_count ?? 0} label="chapters" />}
+                  headerAction={
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                      {epubImportJob && (epubImportJob.status === "pending" || epubImportJob.status === "processing") && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Importing...
+                        </span>
+                      )}
+                      {epubImportJob?.status === "completed" && (
+                        <span className="flex items-center gap-1 text-xs text-green-600">
+                          <Check className="h-3 w-3" /> Imported {epubImportJob.chapters_created} chapters
+                        </span>
+                      )}
+                      {epubImportJob?.status === "failed" && (
+                        <span
+                          className="flex items-center gap-1 text-xs text-red-600"
+                          title={epubImportJob.error_message || "Import failed."}
+                        >
+                          <X className="h-3 w-3" /> Import failed
+                        </span>
+                      )}
+                      <input
+                        ref={epubImportFileInputRef}
+                        type="file"
+                        accept="application/epub+zip,.epub"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImportEpub(file);
+                          e.currentTarget.value = "";
+                        }}
+                      />
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={fileActionLoading !== null}
-                        onClick={removeStoryCover}
+                        disabled={epubImportJob?.status === "pending" || epubImportJob?.status === "processing"}
+                        onClick={() =>
+                          selectedStory?.epub_file
+                            ? handleImportEpub()
+                            : epubImportFileInputRef.current?.click()
+                        }
                       >
-                        {fileActionLoading === "remove_cover_image" ? "Removing..." : "Remove"}
+                        {selectedStory?.epub_file ? "Import chapters from EPUB" : "Upload EPUB & import chapters"}
                       </Button>
-                    )}
-                  </div>
-                  {fileActionLoading === "cover_image_file" && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Uploading cover image...
+                      <Button size="sm" variant="outline" onClick={openCreateChapterModal}>
+                        Add New Chapter
+                      </Button>
                     </div>
-                  )}
-                </div>
-                <div className="rounded-md border px-3 py-2">
-                  <p className="mb-2 text-muted-foreground">PDF</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {selectedStory?.pdf_file_url ? (
-                      <a href={selectedStory.pdf_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                        Open PDF
-                      </a>
-                    ) : (
-                      <span>-</span>
-                    )}
-                    <input
-                      ref={pdfFileInputRef}
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) updateStoryFile("pdf_file", file);
-                        e.currentTarget.value = "";
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={fileActionLoading !== null}
-                      onClick={() => pdfFileInputRef.current?.click()}
-                    >
-                      {fileActionLoading === "pdf_file"
-                        ? "Uploading..."
-                        : selectedStory?.pdf_file_url
-                          ? "Change"
-                          : "Upload"}
+                  }
+                >
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2 rounded-md border p-2">
+                      {chaptersLoading && <p className="text-sm text-muted-foreground">Loading chapters...</p>}
+                      {(chaptersData?.results || []).map((chapter) => (
+                        <div key={chapter.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">#{chapter.order} {chapter.title}</p>
+                            <p className="truncate text-xs text-muted-foreground">/{chapter.slug}</p>
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <Button size="sm" variant="outline" onClick={() => openEditChapterModal(chapter)}>
+                              Edit
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setPendingDeleteChapterId(chapter.id)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {(chaptersData?.results?.length || 0) === 0 && !chaptersLoading && (
+                        <p className="text-sm text-muted-foreground">No chapters yet.</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </CollapsibleSection>
+                    </TabsContent>
+                    <TabsContent value="audio" className="mt-0 space-y-6">
+                <CollapsibleSection
+                  defaultOpen
+                  title="Audio List"
+                  titleBadge={<CountBadge count={selectedStory?.audio_count ?? 0} label="audio files" />}
+                  headerAction={
+                    <Button size="sm" variant="outline" onClick={openCreateAudioModal}>
+                      Add New Audio
                     </Button>
-                    {selectedStory?.pdf_file && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={fileActionLoading !== null}
-                        onClick={() => removeStoryFile("remove_pdf_file")}
-                      >
-                        {fileActionLoading === "remove_pdf_file" ? "Removing..." : "Remove"}
-                      </Button>
-                    )}
-                  </div>
-                  {fileActionLoading === "pdf_file" && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Uploading PDF...
+                  }
+                >
+                  <CardContent>
+                    <div className="space-y-2 rounded-md border p-2">
+                      {audiosLoading && <p className="text-sm text-muted-foreground">Loading audios...</p>}
+                      {(audiosData?.results || []).map((audio) => (
+                        <div key={audio.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">#{audio.order} {audio.title}</p>
+                            <p className="text-xs text-muted-foreground">/{audio.slug}</p>
+                            <p className="truncate text-xs text-muted-foreground">{audio.audio_file || "-"}</p>
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <Button size="sm" variant="outline" onClick={() => openEditAudioModal(audio)}>
+                              Edit
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setPendingDeleteAudioId(audio.id)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {(audiosData?.results?.length || 0) === 0 && !audiosLoading && (
+                        <p className="text-sm text-muted-foreground">No audio uploaded.</p>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="rounded-md border px-3 py-2">
-                  <p className="mb-2 text-muted-foreground">EPUB</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {selectedStory?.epub_file_url ? (
-                      <a href={selectedStory.epub_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                        Open EPUB
-                      </a>
-                    ) : (
-                      <span>-</span>
-                    )}
-                    <input
-                      ref={epubFileInputRef}
-                      type="file"
-                      accept=".epub,application/epub+zip"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) updateStoryFile("epub_file", file);
-                        e.currentTarget.value = "";
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={fileActionLoading !== null}
-                      onClick={() => epubFileInputRef.current?.click()}
-                    >
-                      {fileActionLoading === "epub_file"
-                        ? "Uploading..."
-                        : selectedStory?.epub_file_url
-                          ? "Change"
-                          : "Upload"}
+                  </CardContent>
+                </CollapsibleSection>
+                    </TabsContent>
+                    <TabsContent value="videos" className="mt-0 space-y-6">
+                <CollapsibleSection
+                  defaultOpen
+                  title="Video List"
+                  titleBadge={<CountBadge count={selectedStory?.video_count ?? 0} label="videos" />}
+                  headerAction={
+                    <Button size="sm" variant="outline" onClick={openCreateVideoModal}>
+                      Add New Video
                     </Button>
-                    {selectedStory?.epub_file && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={fileActionLoading !== null}
-                        onClick={() => removeStoryFile("remove_epub_file")}
-                      >
-                        {fileActionLoading === "remove_epub_file" ? "Removing..." : "Remove"}
-                      </Button>
-                    )}
-                  </div>
-                  {fileActionLoading === "epub_file" && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Uploading EPUB...
+                  }
+                >
+                  <CardContent>
+                    <div className="space-y-2 rounded-md border p-2">
+                      {videosLoading && <p className="text-sm text-muted-foreground">Loading videos...</p>}
+                      {(videosData?.results || []).map((video) => (
+                        <div key={video.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">#{video.order} {video.title}</p>
+                            <p className="text-xs text-muted-foreground">/{video.slug}</p>
+                            <p className="truncate text-xs text-muted-foreground">{video.youtube_url}</p>
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <Button size="sm" variant="outline" onClick={() => openEditVideoModal(video)}>
+                              Edit
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setPendingDeleteVideoId(video.id)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {(videosData?.results?.length || 0) === 0 && !videosLoading && (
+                        <p className="text-sm text-muted-foreground">No videos added.</p>
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </CollapsibleSection>
+                    </TabsContent>
+                  </Tabs>
+                </>
+              )}
+            </>
           )}
 
         </div>
