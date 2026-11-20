@@ -14,6 +14,22 @@ export const HEAT_COLORS = [
   "hsl(var(--primary))",
 ];
 
+export const STORY_BUCKETS = [1, 2, 5, 10, 25] as const;
+
+export function storyBucketIndex(count: number) {
+  if (count <= 0) return -1;
+  if (count < 2) return 0;
+  if (count < 5) return 1;
+  if (count < 10) return 2;
+  if (count < 25) return 3;
+  return 4;
+}
+
+export function bucketColor(count: number) {
+  const index = storyBucketIndex(count);
+  return index < 0 ? EMPTY_COUNTRY_COLOR : HEAT_COLORS[index];
+}
+
 export function numericCountryCode(alpha2: string) {
   const code = isoCountries.alpha2ToNumeric(alpha2);
   return code ? String(code).padStart(3, "0") : null;

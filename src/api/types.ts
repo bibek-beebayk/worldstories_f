@@ -802,10 +802,20 @@ export interface StoryMapCountry {
   code: string;
   name: string;
   stories_count: number;
+  region: "Europe" | "Asia" | "Americas" | "Africa" | "Oceania" | "Other";
+  top_authors: Array<{ name: string; slug: string }>;
+  journey: { title: string; slug: string } | null;
+}
+
+export interface StoryMapRegion {
+  name: StoryMapCountry["region"];
+  stories_count: number;
+  countries_count: number;
 }
 
 export interface StoryMapResponse {
   countries: StoryMapCountry[];
+  regions: StoryMapRegion[];
   total_stories: number;
   countries_count: number;
   max_stories_count: number;
