@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { storyApi } from "../api/story";
 import type { StoryDetail } from "../api/types";
+import { ApiError } from "../api/client";
+
+export const shouldRetryStory = (count: number, error: Error) =>
+  !(error instanceof ApiError && error.status === 404) && count < 2;
 
 // `initialData` is optional and comes from a route loader when the page has
 // one — seeds the very first render (server and client) with real data
@@ -11,5 +15,6 @@ export function useStory(slug: string, initialData?: StoryDetail) {
     queryKey: ["story", slug],
     queryFn: () => storyApi.getStory(slug),
     initialData,
+    retry: shouldRetryStory,
   });
 }

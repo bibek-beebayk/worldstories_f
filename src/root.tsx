@@ -1,4 +1,4 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation } from "react-router";
+import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation, useRouteError } from "react-router";
 import { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -193,5 +193,21 @@ export default function Root() {
         </AuthModalProvider>
       </TooltipProvider>
     </QueryClientProvider>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const unavailable = isRouteErrorResponse(error) && error.status === 503;
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
+      <div className="max-w-md space-y-3">
+        <h1 className="text-2xl font-bold">{unavailable ? "We’re having trouble" : "Something went wrong"}</h1>
+        <p className="text-muted-foreground">
+          {unavailable ? "This story is temporarily unavailable. Please try again shortly." : "Please refresh the page and try again."}
+        </p>
+      </div>
+    </main>
   );
 }

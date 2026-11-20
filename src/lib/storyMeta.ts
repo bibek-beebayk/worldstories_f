@@ -24,9 +24,7 @@ export function buildStoryMeta(story: StoryDetail, { mode }: { mode: StoryMetaMo
   const storyPath = `/story/${story.slug}`;
   const author = story.author?.name ? ` by ${story.author.name}` : "";
   const plainTextSummary = plainText(story.summary || "");
-  const fullDescription = plainText(
-    story.about || plainTextSummary || fallbackDescription[mode](story.title),
-  );
+  const fullDescription = plainText(story.about || plainTextSummary || fallbackDescription[mode](story.title));
   const datePublished = story.original_published_year
     ? [
         String(story.original_published_year),
@@ -75,10 +73,9 @@ export function buildStoryMeta(story: StoryDetail, { mode }: { mode: StoryMetaMo
   });
 }
 
-export function buildStoryNotFoundMeta(slug: string | undefined, mode: StoryMetaMode) {
-  const noun = mode === "watch" ? "Story" : "Story";
+export function buildStoryNotFoundMeta(slug: string | undefined, _mode: StoryMetaMode) {
   return buildMeta({
-    title: `${noun} Not Found | WorldStories`,
+    title: "Story Not Found | WorldStories",
     description: "The requested story could not be found.",
     path: `/story/${slug || ""}`,
     noIndex: true,

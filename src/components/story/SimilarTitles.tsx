@@ -7,6 +7,7 @@ interface SimilarTitlesProps {
   linkTo: (story: Story) => string;
   title?: string;
   description?: string;
+  headingId?: string;
 }
 
 const SimilarTitles = ({
@@ -14,15 +15,18 @@ const SimilarTitles = ({
   linkTo,
   title = "Similar Titles",
   description = "More stories selected from shared genres and related story traits.",
+  headingId = "similar-titles-heading",
 }: SimilarTitlesProps) => {
   if (stories.length === 0) return null;
 
   return (
-    <section className="mt-12 border-t pt-8" aria-labelledby="similar-titles-heading">
+    <section className="mt-12 border-t pt-8" aria-labelledby={headingId}>
       <div className="mb-5 flex items-center gap-2">
         <Sparkles className="h-5 w-5 text-primary" />
         <div>
-          <h2 id="similar-titles-heading" className="text-xl font-bold sm:text-2xl">{title}</h2>
+          <h2 id={headingId} className="text-xl font-bold sm:text-2xl">
+            {title}
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
       </div>

@@ -1,16 +1,10 @@
-import { data } from "react-router";
-import { storyApi } from "@/api/story";
 import { buildStoryMeta, buildStoryNotFoundMeta } from "@/lib/storyMeta";
+import { isStoryNotFoundData, loadStoryOr404 } from "@/lib/storyLoader";
 import StoryDetailShell from "@/components/StoryDetailShell";
 import type { Route } from "./+types/ReadDetail";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  try {
-    return await storyApi.getStory(params.slug!);
-  } catch (error) {
-    console.error("[SSR loader] request failed:", error);
-    return data(null, { status: 404 });
-  }
+  return loadStoryOr404(params.slug!);
 }
 
 // Tells SiteThemeStyles (root.tsx) that this page's loader data may carry a
@@ -18,11 +12,13 @@ export async function loader({ params }: Route.LoaderArgs) {
 export const handle = { storyTheme: true };
 
 export function meta({ data, params }: Route.MetaArgs) {
-  return data ? buildStoryMeta(data, { mode: "read" }) : buildStoryNotFoundMeta(params.slug, "read");
+  return data && !isStoryNotFoundData(data)
+    ? buildStoryMeta(data, { mode: "read" })
+    : buildStoryNotFoundMeta(params.slug, "read");
 }
 
 const ReadDetail = ({ loaderData }: Route.ComponentProps) => (
-  <StoryDetailShell mode="read" loaderData={loaderData || undefined} />
+  <StoryDetailShell mode="read" loaderData={loaderData} />
 );
 
 export default ReadDetail;

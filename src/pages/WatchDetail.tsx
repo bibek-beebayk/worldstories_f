@@ -1,9 +1,9 @@
-import { data } from "react-router";
-import { storyApi } from "@/api/story";
 import { buildMeta } from "@/lib/buildMeta";
 import { buildStoryMeta, buildStoryNotFoundMeta } from "@/lib/storyMeta";
+import { isStoryNotFoundData, loadStoryOr404, loadVideoOr404 } from "@/lib/storyLoader";
 import StoryDetailShell from "@/components/StoryDetailShell";
 import VideoWatchPage from "@/components/VideoWatchPage";
+import NotFoundBody from "@/components/NotFoundBody";
 import type { Route } from "./+types/WatchDetail";
 
 // Assumption: an all-digit segment is always a video ID. New story slugs are
@@ -11,21 +11,18 @@ import type { Route } from "./+types/WatchDetail";
 const isVideoId = (param: string | undefined) => !!param && /^\d+$/.test(param);
 
 export async function loader({ params }: Route.LoaderArgs) {
-  try {
-    if (isVideoId(params.slug)) {
-      return { kind: "video" as const, video: await storyApi.getVideo(params.slug!) };
-    }
-    return { kind: "story" as const, story: await storyApi.getStory(params.slug!) };
-  } catch (error) {
-    console.error("[SSR loader] request failed:", error);
-    return data(null, { status: 404 });
+  if (isVideoId(params.slug)) {
+    const video = await loadVideoOr404(params.slug!);
+    return isStoryNotFoundData(video) ? video : { kind: "video" as const, video };
   }
+  const story = await loadStoryOr404(params.slug!);
+  return isStoryNotFoundData(story) ? story : { kind: "story" as const, story };
 }
 
 export const handle = { storyTheme: true };
 
 export function meta({ data, params }: Route.MetaArgs) {
-  if (!data) return buildStoryNotFoundMeta(params.slug, "watch");
+  if (!data || isStoryNotFoundData(data)) return buildStoryNotFoundMeta(params.slug, "watch");
   if (data.kind === "video") {
     const { video } = data;
     return buildMeta({
@@ -39,6 +36,7 @@ export function meta({ data, params }: Route.MetaArgs) {
 }
 
 const WatchDetail = ({ loaderData }: Route.ComponentProps) => {
+  if (isStoryNotFoundData(loaderData)) return <NotFoundBody />;
   if (loaderData?.kind === "video") {
     return <VideoWatchPage key={loaderData.video.id} video={loaderData.video} />;
   }
