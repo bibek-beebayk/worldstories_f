@@ -1,1121 +1,160 @@
+import { useEffect, useState } from "react";
+import { data, Link, useParams } from "react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { BookMarked, Captions, Headphones, Newspaper, Sparkles, Youtube, Zap } from "lucide-react";
+import { ApiError } from "@/api/client";
+import { storyApi } from "@/api/story";
 import AdSpace from "@/components/AdSpace";
-import { plainText } from "@/lib/plainText";
+import AuthGatedLink from "@/components/AuthGatedLink";
+import BlogCard from "@/components/BlogCard";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import NotFoundBody from "@/components/NotFoundBody";
+import StoryCompletionScreen from "@/components/StoryCompletionScreen";
+import StoryReactions from "@/components/StoryReactions";
+import WatchModal from "@/components/WatchModal";
+import SimilarTitles from "@/components/story/SimilarTitles";
+import StoryContentList from "@/components/story/StoryContentList";
+import StoryHeader from "@/components/story/StoryHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { toast } from "@/components/ui/sonner";
-import { shareToFacebook, shareToTwitter, copyShareLink } from "@/lib/share";
-import { consumeJustFinishedFlag } from "@/lib/storyCompletion";
-import StoryCompletionScreen from "@/components/StoryCompletionScreen";
-import StoryReactions from "@/components/StoryReactions";
-import { storyApi } from "@/api/story";
-import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useStory } from "@/hooks/useStory";
-import {
-  BookMarked,
-  CalendarDays,
-  Captions,
-  CheckCircle2,
-  Clock,
-  Eye,
-  Facebook,
-  FileText,
-  Headphones,
-  Heart,
-  Link2,
-  Newspaper,
-  Share2,
-  Sparkles,
-  Star,
-  Twitter,
-  Youtube,
-  Zap,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { data, Link, useNavigate, useParams } from "react-router";
-import { buildMeta, SITE_URL } from "@/lib/buildMeta";
-import { sanitizeHtml } from "@/lib/sanitizeHtml";
-import type { Route } from "./+types/StoryDetail";
-import { listLocalProgress } from "@/lib/offlineDb";
-import { getLanguageLabel } from "@/lib/languages";
-import { cn, formatDurationMinutes } from "@/lib/utils";
+import { useStoryProgress } from "@/hooks/useStoryProgress";
+import { useStoryViewBeacon } from "@/hooks/useStoryViewBeacon";
+import { consumeJustFinishedFlag } from "@/lib/storyCompletion";
+import { buildStoryMeta, buildStoryNotFoundMeta } from "@/lib/storyMeta";
 import { estimateSummaryReadingMinutes } from "@/lib/summaryReadingTime";
-import CoverImage from "@/components/CoverImage";
-import AuthGatedLink from "@/components/AuthGatedLink";
-import StoryCard from "@/components/StoryCard";
-import WatchModal from "@/components/WatchModal";
-import BlogCard from "@/components/BlogCard";
+import type { Route } from "./+types/StoryDetail";
 
-// Fetched here purely to supply meta() with real data server-side — the
-// component below still fetches independently via useStory() for now
-// (subtask 5 will consolidate these into one fetch).
 export async function loader({ params }: Route.LoaderArgs) {
   try {
     return await storyApi.getStory(params.slug!);
   } catch (error) {
-    // A story slug that doesn't resolve is a real 404, not a 200 — same
-    // "soft 404" reasoning as the catch-all NotFound route. Logged so a
-    // real network/backend failure (as opposed to a genuinely missing
-    // story) is visible in server logs instead of silently looking
-    // identical to "not found".
     console.error("[SSR loader] request failed:", error);
     return data(null, { status: 404 });
   }
 }
 
+export const handle = { storyTheme: true };
 
-export function meta({ data, params }: Route.MetaArgs) {
-  if (!data) {
-    return buildMeta({
-      title: "Story Not Found | WorldStories",
-      description: "The requested story could not be found.",
-      path: `/story/${params.slug}`,
-      noIndex: true,
-    });
-  }
-
-  const storyPath = `/story/${data.slug}`;
-  const plainTextSummary = plainText(data.summary || "");
-  const fullDescription = plainText(data.about || plainTextSummary || `Read ${data.title} on WorldStories.`);
-  // Meta/OG/Twitter descriptions get cut off in SERPs and share cards past
-  // ~155-160 chars anyway, so truncating here is deliberate. Structured
-  // data has no such limit — reusing this same truncated string there (as
-  // this code used to) cut real sentences off mid-word for no reason.
-  const seoDescription = fullDescription.slice(0, 160);
-  const structuredDataDatePublished = data.original_published_year
-    ? [
-        String(data.original_published_year),
-        data.original_published_month ? String(data.original_published_month).padStart(2, "0") : null,
-        data.original_published_day ? String(data.original_published_day).padStart(2, "0") : null,
-      ]
-        .filter(Boolean)
-        .join("-")
-    : data.site_published_date || undefined;
-
-  return buildMeta({
-    title: `${data.title}${data.author?.name ? ` by ${data.author.name}` : ""} | WorldStories`,
-    description: seoDescription,
-    path: storyPath,
-    image: data.cover_image,
-    type: "book",
-    alternateLanguages: [
-      { language: data.language, path: storyPath },
-      ...data.translations.map((sibling) => ({
-        language: sibling.language,
-        path: `/story/${sibling.slug}`,
-      })),
-    ],
-    structuredData: {
-      "@context": "https://schema.org",
-      "@type": data.has_audio ? ["CreativeWork", "Audiobook"] : "CreativeWork",
-      name: data.title,
-      description: fullDescription,
-      abstract: plainTextSummary ? plainTextSummary.slice(0, 500) : undefined,
-      url: `${SITE_URL}${storyPath}`,
-      image: data.cover_image || undefined,
-      genre: data.genres.map((genre) => genre.name),
-      datePublished: structuredDataDatePublished,
-      author: data.author ? { "@type": "Person", name: data.author.name } : undefined,
-      aggregateRating:
-        data.reviews_count > 0
-          ? {
-              "@type": "AggregateRating",
-              ratingValue: data.rating,
-              reviewCount: data.reviews_count,
-              bestRating: 5,
-              worstRating: 1,
-            }
-          : undefined,
-    },
-  });
+export function meta({ data: story, params }: Route.MetaArgs) {
+  return story ? buildStoryMeta(story, { mode: "hub" }) : buildStoryNotFoundMeta(params.slug, "hub");
 }
-
-// The action cluster (Read / Listen / Watch / favorite / share)
-// otherwise renders as `size="lg"` pills that stack into three tall rows on a
-// phone. These keep the full-size look from `sm:` up but shrink the height,
-// padding and label on mobile so more fit per row and the block is shorter.
-const ACTION_BTN = "h-9 w-full min-w-0 px-2.5 text-[13px] sm:h-11 sm:px-8 sm:text-sm";
-const ACTION_ITEM = "flex-1 basis-32 min-w-0 sm:basis-auto sm:min-w-[150px]";
-const ACTION_ICON_BTN = "h-9 w-9 shrink-0 px-0 sm:h-11 sm:w-11";
 
 const StoryDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
-  const navigate = useNavigate();
-  const { data: story, isLoading, isError } = useStory(slug, loaderData || undefined);
-  const [showFinishedRail, setShowFinishedRail] = useState(false);
-  useEffect(() => {
-    // Deliberately keyed on the slug (a stable primitive), not the `story`
-    // object itself — a background refetch giving a new object reference
-    // must NOT re-run this, since consumeJustFinishedFlag is a one-time
-    // read-and-clear and a second call would silently flip the rail back
-    // off right after it was shown.
-    if (story) {
-      setShowFinishedRail(consumeJustFinishedFlag(story.slug));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [story?.slug]);
-
-  // Registers the story view from the browser rather than letting the detail
-  // GET count it: under SSR that GET comes from the render server, which both
-  // hid the visitor's User-Agent from the bot filter and made every visitor
-  // share the render host's IP (so the backend's 24h per-IP dedupe was
-  // discarding almost every real view). Firing it here also means a view
-  // requires a browser that actually ran the page, which no non-JS crawler does.
-  const viewedSlugRef = useRef<string | null>(null);
-  useEffect(() => {
-    const viewedSlug = story?.slug;
-    if (!viewedSlug || viewedSlugRef.current === viewedSlug) return;
-    viewedSlugRef.current = viewedSlug;
-    storyApi.registerStoryView(viewedSlug).catch(() => undefined);
-  }, [story?.slug]);
-
-  const { data: relatedBlogsData } = useQuery({
-    queryKey: ["related-blogs", slug],
-    queryFn: () => storyApi.getBlogsForStory(slug!),
-    enabled: !!slug,
-  });
-  const relatedBlogs = relatedBlogsData?.results || [];
-
+  const { data: story, isLoading, error, refetch } = useStory(slug!, loaderData || undefined);
+  useStoryViewBeacon(story?.slug);
+  const progress = useStoryProgress(slug, story, { modes: ["read", "listen", "read-along", "watch"] });
+  const queryClient = useQueryClient();
+  const isAuthenticated = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
+  const { isFavorite, favoritesCount, favoriteLoading, favoriteError, toggleFavorite } = useFavoriteToggle(slug, story);
   const [activeTab, setActiveTab] = useState("chapters");
   const [watchOpen, setWatchOpen] = useState(false);
   const [watchStartSlug, setWatchStartSlug] = useState<string | null>(null);
-
-  // "chapters" is only a valid default if the story actually has chapters —
-  // once the story loads, fall back to the next-best tab that has content.
-  // Only adjusts while still on the initial default, so a tab the user has
-  // already clicked into themselves is never overridden.
-  useEffect(() => {
-    if (!story) return;
-    // A single chapter/audio/video needs no list of its own — the primary
-    // action button above already goes straight to it — so treat a lone
-    // item the same as none when picking the default tab.
-    if (story.chapters.length > 1) return;
-    setActiveTab((current) => {
-      if (current !== "chapters") return current;
-      if (story.audios.length > 1) return "audios";
-      if (story.videos.length > 1) return "videos";
-      return "about";
-    });
-  }, [story]);
+  const [showFinishedRail, setShowFinishedRail] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [reviewLoading, setReviewLoading] = useState(false);
-  const { isFavorite, favoritesCount, favoriteLoading, favoriteError, toggleFavorite } = useFavoriteToggle(slug, story);
-  const queryClient = useQueryClient();
-  const isAuthenticated = useIsLoggedIn();
-  const { openLoginModal } = useAuthModal();
-
-  const chaptersRef = useRef<HTMLDivElement | null>(null);
-  const audiosRef = useRef<HTMLDivElement | null>(null);
-
-  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
-    queryKey: ["story-reviews", slug],
-    queryFn: () => storyApi.getStoryReviews(slug!),
-    enabled: !!slug && activeTab === "reviews",
-  });
-
-  const { data: myReview } = useQuery({
-    queryKey: ["story-reviews", slug, "me"],
-    queryFn: () => storyApi.getMyStoryReview(slug!),
-    enabled: !!slug && !!isAuthenticated && activeTab === "reviews",
-    retry: false,
-  });
-
-  const { data: readingProgress } = useQuery({
-    queryKey: ["reading-progress", slug],
-    queryFn: () => storyApi.getReadingProgress(slug!),
-    enabled: !!slug && !!isAuthenticated,
-    retry: false,
-  });
-
-  const { data: audioProgress } = useQuery({
-    queryKey: ["audio-progress", slug],
-    queryFn: () => storyApi.getAudioProgress(slug!),
-    enabled: !!slug && !!isAuthenticated,
-    retry: false,
-  });
-
-  const { data: guestAudioProgress } = useQuery({
-    queryKey: ["local-audio-progress", slug],
-    queryFn: () => listLocalProgress(slug),
-    enabled: !!slug && !isAuthenticated && typeof window !== "undefined",
-    retry: false,
-  });
-
-  const { data: videoProgress } = useQuery({
-    queryKey: ["video-progress", slug],
-    queryFn: () => storyApi.getVideoProgress(slug!),
-    enabled: !!slug && !!isAuthenticated,
-    retry: false,
-  });
-
-  const { data: epubProgress } = useQuery({
-    queryKey: ["file-reading-progress", slug, "epub"],
-    queryFn: () => storyApi.getFileReadingProgress(slug!, "epub"),
-    enabled: !!slug && !!isAuthenticated && !!story?.epub_file,
-    retry: false,
-  });
-
-  const { data: pdfProgress } = useQuery({
-    queryKey: ["file-reading-progress", slug, "pdf"],
-    queryFn: () => storyApi.getFileReadingProgress(slug!, "pdf"),
-    enabled: !!slug && !!isAuthenticated && !!story?.pdf_file,
-    retry: false,
-  });
-
-  const { data: originalsRail } = useQuery({
-    queryKey: ["originals-rail"],
-    queryFn: () => storyApi.getOriginals(1),
-    enabled: !!story?.is_original,
-    staleTime: 5 * 60_000,
-  });
-  const moreOriginals = (originalsRail?.results ?? [])
-    .filter((item) => item.slug !== slug)
-    .slice(0, 6);
 
   useEffect(() => {
-    if (myReview) {
-      setReviewRating(myReview.rating);
-      setReviewComment(myReview.comment || "");
-    }
+    if (story) setShowFinishedRail(consumeJustFinishedFlag(story.slug));
+    // The slug is the one-shot key; background refetches must not consume it again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.slug]);
+  useEffect(() => {
+    if (!story || story.chapters.length > 1) return;
+    setActiveTab((current) => current !== "chapters" ? current : story.audios.length > 1 ? "audios" : story.videos.length > 1 ? "videos" : "about");
+  }, [story]);
+
+  const { data: relatedBlogsData } = useQuery({ queryKey: ["related-blogs", slug], queryFn: () => storyApi.getBlogsForStory(slug!), enabled: !!slug });
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({ queryKey: ["story-reviews", slug], queryFn: () => storyApi.getStoryReviews(slug!), enabled: !!slug && activeTab === "reviews" });
+  const { data: myReview } = useQuery({ queryKey: ["story-reviews", slug, "me"], queryFn: () => storyApi.getMyStoryReview(slug!), enabled: !!slug && !!isAuthenticated && activeTab === "reviews", retry: false });
+  const { data: originalsRail } = useQuery({ queryKey: ["originals-rail"], queryFn: () => storyApi.getOriginals(1), enabled: !!story?.is_original, staleTime: 300_000 });
+
+  useEffect(() => {
+    if (!myReview) return;
+    setReviewRating(myReview.rating);
+    setReviewComment(myReview.comment || "");
   }, [myReview]);
 
-  // useEffect(() => {
-  //   if (pendingScroll === "chapters" && chaptersRef.current) {
-  //     chaptersRef.current.scrollIntoView({ behavior: "smooth" });
-  //     setPendingScroll(null);
-  //   }
-  //   if (pendingScroll === "audios" && audiosRef.current) {
-  //     audiosRef.current.scrollIntoView({ behavior: "smooth" });
-  //     setPendingScroll(null);
-  //   }
-  // }, [pendingScroll, activeTab]);
+  if (isLoading) return <FullScreenLoader />;
+  if (!story && error instanceof ApiError && error.status === 404) return <NotFoundBody />;
+  if (!story) return <div className="container mx-auto flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 text-center"><p>We couldn’t load this story. Check your connection and try again.</p><Button onClick={() => refetch()}>Retry</Button></div>;
 
-  // const goToChapters = () => {
-  //   setActiveTab("chapters");
-  //   setPendingScroll("chapters");  // tell effect to scroll later
-  // };
+  const savedChapterSlug = progress.readingProgress?.chapter_slug;
+  const hasSavedChapter = !!savedChapterSlug && story.chapters.some((chapter) => chapter.slug === savedChapterSlug);
+  const readChapterSlug = hasSavedChapter ? savedChapterSlug : story.chapters[0]?.slug;
+  const chapterProgressMap = Object.fromEntries((progress.readingProgress?.chapter_progresses || []).map((item) => [item.chapter_slug, item.progress]));
+  const primaryReadHref = story.chapters.length ? `/read/${story.slug}/${readChapterSlug}` : story.epub_file ? `/story/${story.slug}/epub` : story.pdf_file ? `/story/${story.slug}/pdf` : null;
+  const primaryFileProgress = story.chapters.length ? null : story.epub_file ? progress.epubProgress : progress.pdfProgress;
+  const hasSavedRead = story.chapters.length ? hasSavedChapter : (primaryFileProgress?.progress || 0) > 0;
+  const readCompletion = story.chapters.length ? progress.readingProgress?.overall_progress || 0 : primaryFileProgress?.progress || 0;
+  const latestGuestAudio = (progress.guestAudioProgress || []).filter((item) => item.kind === "audio").sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+  const savedAudioSlug = progress.audioProgress?.audio_slug ?? latestGuestAudio?.item_slug;
+  const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
+  const listenAudioSlug = hasSavedAudio ? savedAudioSlug : story.audios[0]?.slug;
+  const readAlongTracks = story.audios.filter((audio) => audio.read_along_available).sort((a, b) => a.order - b.order);
+  const readAlongStartSlug = savedAudioSlug && readAlongTracks.some((audio) => audio.slug === savedAudioSlug) ? savedAudioSlug : readAlongTracks[0]?.slug;
+  const savedVideoSlug = progress.videoProgress?.video_slug;
+  const hasSavedVideo = !!savedVideoSlug && story.videos.some((video) => video.slug === savedVideoSlug);
+  const watchVideoSlug = hasSavedVideo ? savedVideoSlug : story.videos[0]?.slug;
+  const videoProgressMap = Object.fromEntries((progress.videoProgress?.video_progresses || []).map((item) => [item.video_slug, item.progress]));
+  const quickReadMinutes = estimateSummaryReadingMinutes(story.summary);
 
-  // const goToAudios = () => {
-  //   setActiveTab("audios");
-  //   setPendingScroll("audios");
-  // };
-
-
-
-  if (isLoading) {
-    return < FullScreenLoader />;
-  }
-
-  if (isError || !story) {
-    return <div>Error loading story.</div>;
-  }
+  const actions = <>
+    {primaryReadHref && <Button asChild size="lg"><Link to={primaryReadHref}><BookMarked className="mr-2 h-4 w-4" />{hasSavedRead ? "Continue Reading" : "Start Reading"}</Link></Button>}
+    {listenAudioSlug && <Button asChild size="lg" variant="secondary"><Link to={`/listen/${story.slug}/${listenAudioSlug}`}><Headphones className="mr-2 h-4 w-4" />{hasSavedAudio ? "Continue Listening" : "Listen to Audio"}</Link></Button>}
+    {readAlongStartSlug && <Button asChild size="lg" variant="secondary"><Link to={`/read-along/${story.slug}/${readAlongStartSlug}`}><Captions className="h-4 w-4" /><span className="sr-only">Read Along</span></Link></Button>}
+    {story.videos.length > 0 && <Button size="lg" variant="secondary" onClick={() => { setWatchStartSlug(watchVideoSlug || null); setWatchOpen(true); }}><Youtube className="mr-2 h-4 w-4" />{hasSavedVideo ? "Continue Watching" : "Watch"}</Button>}
+  </>;
+  const guestAudioBySlug = Object.fromEntries((progress.guestAudioProgress || []).filter((item) => item.kind === "audio").map((item) => [item.item_slug, item.progress]));
+  const guestAudioOverall = story.audios.length ? story.audios.reduce((sum, audio) => sum + (guestAudioBySlug[audio.slug] || 0), 0) / story.audios.length : 0;
+  const progressText = <>
+    {quickReadMinutes !== null && <AuthGatedLink to={`/quick-read/${story.slug}`} className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline"><Zap className="h-3.5 w-3.5" />Quick Read · {quickReadMinutes} min</AuthGatedLink>}
+    {isAuthenticated ? <><p className="text-sm text-muted-foreground">Completion: {Math.round(readCompletion * 100)}%</p>{story.audios.length > 0 && <p className="text-sm text-muted-foreground">Audio completion: {Math.round((progress.audioProgress?.overall_progress ?? guestAudioOverall) * 100)}%</p>}{story.videos.length > 0 && <p className="text-sm text-muted-foreground">Watch completion: {Math.round((progress.videoProgress?.overall_progress || 0) * 100)}%</p>}</> : <p className="text-sm text-muted-foreground"><button type="button" onClick={openLoginModal} className="text-primary hover:underline">Login</button> to track progress</p>}
+  </>;
 
   const submitReview = async () => {
-    if (!slug) return;
-    setReviewError("");
-    setReviewLoading(true);
+    setReviewError(""); setReviewLoading(true);
     try {
-      if (myReview) {
-        await storyApi.updateMyStoryReview(slug, reviewRating, reviewComment);
-      } else {
-        await storyApi.createStoryReview(slug, reviewRating, reviewComment);
-      }
+      if (myReview) await storyApi.updateMyStoryReview(slug!, reviewRating, reviewComment); else await storyApi.createStoryReview(slug!, reviewRating, reviewComment);
       await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug] });
       await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug, "me"] });
-      await queryClient.invalidateQueries({ queryKey: ["story", slug] });
-      setReviewComment("");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to submit review.";
-      setReviewError(message);
-    } finally {
-      setReviewLoading(false);
-    }
+    } catch (err) { setReviewError(err instanceof Error ? err.message : "Failed to submit review."); } finally { setReviewLoading(false); }
   };
-
   const deleteReview = async () => {
-    if (!slug) return;
-    setReviewError("");
-    setReviewLoading(true);
-    try {
-      await storyApi.deleteMyStoryReview(slug);
-      await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug] });
-      await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug, "me"] });
-      await queryClient.invalidateQueries({ queryKey: ["story", slug] });
-      setReviewComment("");
-      setReviewRating(5);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete review.";
-      setReviewError(message);
-    } finally {
-      setReviewLoading(false);
-    }
+    setReviewError(""); setReviewLoading(true);
+    try { await storyApi.deleteMyStoryReview(slug!); await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug] }); await queryClient.invalidateQueries({ queryKey: ["story-reviews", slug, "me"] }); setReviewComment(""); setReviewRating(5); }
+    catch (err) { setReviewError(err instanceof Error ? err.message : "Failed to delete review."); } finally { setReviewLoading(false); }
   };
 
-  const firstChapterSlug = story.chapters[0]?.slug;
-  const savedChapterSlug = readingProgress?.chapter_slug;
-  const hasSavedChapter =
-    !!savedChapterSlug && story.chapters.some((chapter) => chapter.slug === savedChapterSlug);
-  const readChapterSlug = hasSavedChapter ? savedChapterSlug : firstChapterSlug;
-  const chapterProgressMap = Object.fromEntries(
-    (readingProgress?.chapter_progresses || []).map((item) => [item.chapter_slug, item.progress])
-  );
-  const completionPercentage = Math.round((readingProgress?.overall_progress || 0) * 100);
-  const firstAudioSlug = story.audios[0]?.slug;
-  const latestGuestAudio = (guestAudioProgress || [])
-    .filter((item) => item.kind === "audio")
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
-  const savedAudioSlug = audioProgress?.audio_slug ?? latestGuestAudio?.item_slug;
-  const hasSavedAudio = !!savedAudioSlug && story.audios.some((audio) => audio.slug === savedAudioSlug);
+  const relatedBlogs = relatedBlogsData?.results || [];
+  const moreOriginals = (originalsRail?.results || []).filter((item) => item.slug !== story.slug).slice(0, 6);
 
-  const listenAudioSlug = hasSavedAudio ? savedAudioSlug : firstAudioSlug;
-  const guestAudioProgressBySlug = Object.fromEntries(
-    (guestAudioProgress || [])
-      .filter((item) => item.kind === "audio")
-      .map((item) => [item.item_slug, item.progress])
-  );
-  const guestAudioOverall = story.audios.length
-    ? story.audios.reduce((total, audio) => total + (guestAudioProgressBySlug[audio.slug] || 0), 0) /
-      story.audios.length
-    : 0;
-  const audioCompletionPercentage = Math.round(
-    (audioProgress?.overall_progress ?? guestAudioOverall) * 100
-  );
-  const readAlongTracks = story.audios
-    .filter((audio) => audio.read_along_available)
-    .sort((a, b) => a.order - b.order);
-  const hasReadAlong = readAlongTracks.length > 0;
-  const readAlongResumeSlug =
-    savedAudioSlug && readAlongTracks.some((audio) => audio.slug === savedAudioSlug)
-      ? savedAudioSlug
-      : null;
-  const readAlongStartSlug = readAlongResumeSlug ?? readAlongTracks[0]?.slug;
-  const firstVideoSlug = story.videos[0]?.slug;
-  const savedVideoSlug = videoProgress?.video_slug;
-  const hasSavedVideo =
-    !!savedVideoSlug && story.videos.some((video) => video.slug === savedVideoSlug);
-  const watchVideoSlug = hasSavedVideo ? savedVideoSlug : firstVideoSlug;
-  const videoProgressMap = Object.fromEntries(
-    (videoProgress?.video_progresses || []).map((item) => [item.video_slug, item.progress])
-  );
-  const videoCompletionPercentage = Math.round((videoProgress?.overall_progress || 0) * 100);
-  // Best available reading format, in priority order: HTML chapters (the
-  // default reading experience) → EPUB → PDF.
-  const primaryReadHref =
-    story.chapters.length > 0
-      ? `/read/${story.slug}/${readChapterSlug}`
-      : story.epub_file
-      ? `/story/${story.slug}/epub`
-      : story.pdf_file
-      ? `/story/${story.slug}/pdf`
-      : null;
-  const quickReadMinutes = estimateSummaryReadingMinutes(story.summary);
-  // Whichever format primaryReadHref actually resolved to, when it's not
-  // chapters (hasSavedChapter already covers that case separately) — used to
-  // decide between "Start Reading" and "Continue Reading" for the EPUB/PDF
-  // fallback formats too, now that they track real per-account progress.
-  const primaryFileProgress = story.chapters.length > 0 ? null : story.epub_file ? epubProgress : pdfProgress;
-  const hasSavedPrimaryFileProgress = (primaryFileProgress?.progress || 0) > 0;
-  // Full labels on `sm`+, single-word labels on phones so two actions fit a row
-  // without the `whitespace-nowrap` text overflowing the viewport.
-  const hasSavedRead = story.chapters.length > 0 ? hasSavedChapter : hasSavedPrimaryFileProgress;
-  const readLabel = hasSavedRead ? "Continue Reading" : "Start Reading";
-  const listenLabel = hasSavedAudio ? "Continue Listening" : "Listen to Audio";
-  const watchLabel = hasSavedVideo ? "Continue Watching" : "Watch";
-  // completionPercentage only ever reflects chapter-based progress (from the
-  // chapter-specific reading-progress endpoint), which stays 0 for a
-  // chapterless story regardless of real EPUB/PDF progress — this is what
-  // the "Completion: X%" text should actually show in that case instead.
-  const primaryCompletionPercentage =
-    story.chapters.length > 0 ? completionPercentage : Math.round((primaryFileProgress?.progress || 0) * 100);
-  const storyPath = `/story/${story.slug}`;
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* <Header /> */}
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {/* Story Header */}
-            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 mb-8">
-              <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-lg">
-                <CoverImage
-                  src={story.cover_image}
-                  alt={story.title}
-                  author={story.author?.name}
-                  loading="eager"
-                  decoding="async"
-                  fetchpriority="high"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <Badge>{story.story_type}</Badge>
-                    <Badge variant="outline">{story.is_completed ? "Complete" : "Ongoing"}</Badge>
-                    {story.is_original && (
-                      <Link
-                        to="/originals"
-                        className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
-                      >
-                        <Sparkles className="h-3 w-3" /> WorldStories Original
-                      </Link>
-                    )}
-                  </div>
-                  {story.translations.length > 0 && (
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Available in:</span>
-                      <span className="rounded-full border border-primary bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                        {getLanguageLabel(story.language)}
-                      </span>
-                      {story.translations.map((sibling) => (
-                        <Link
-                          key={sibling.id}
-                          to={`/story/${sibling.slug}`}
-                          className="rounded-full border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                        >
-                          {getLanguageLabel(sibling.language)}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  <h1 className="text-4xl font-bold mb-2">{story.title}</h1>
-                  {story.author && (
-                    <div className="flex items-center gap-2 mb-4">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={story.author.image || ""} />
-                        <AvatarFallback>SC</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm text-muted-foreground">
-                        by{" "}
-                        <Link to={`/authors/${story.author.slug}`} className="font-medium text-foreground transition-colors hover:text-primary hover:underline">
-                          {story.author.name}
-                        </Link>
-                      </span>
-                    </div>
-                  )}
-                  {story.submitted_by && (
-                    <p className="text-sm text-muted-foreground">
-                      Submitted by{" "}
-                      <span className="text-foreground font-medium">
-                        {story.submitted_by.display_name || story.submitted_by.username || story.submitted_by.email}
-                      </span>
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-foreground sm:gap-x-6 sm:text-sm">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 sm:h-4 sm:w-4" />
-                    <span className="font-semibold">{story.rating}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                    <span>{story.views}</span>
-                  </div>
-                  {story.chapter_count > 0 ? (
-                    <div className="flex items-center gap-1">
-                      <BookMarked className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                      <span>{story.chapter_count} chapters</span>
-                    </div>
-                  ) : story.epub_file || story.pdf_file ? (
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                      <span>{story.epub_file ? "EPUB" : "PDF"}</span>
-                    </div>
-                  ) : null}
-                  {story.reading_time_minutes != null && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                      <span>{formatDurationMinutes(story.reading_time_minutes)} read</span>
-                    </div>
-                  )}
-                  {story.listening_time_minutes != null && (
-                    <div className="flex items-center gap-1">
-                      <Headphones className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                      <span>{formatDurationMinutes(story.listening_time_minutes)} listen</span>
-                    </div>
-                  )}
-                  {story.published_date_label && (
-                    <div className="flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground sm:h-4 sm:w-4" />
-                      <span>{story.published_date_label}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <span>{story.reviews_count || 0} reviews</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Heart
-                      className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
-                    />
-                    <span>{favoritesCount}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {story.genres.map((tag, index) => (
-                    <Badge key={index} variant="secondary">{tag.name}</Badge>
-                  ))}
-                  {story.categories.map((category) => (
-                    <Link key={category.id} to={`/library?category=${category.id}`}>
-                      <Badge variant="outline">{category.name}</Badge>
-                    </Link>
-                  ))}
-                </div>
-
-                {(story.tags?.length > 0 || story.themes?.length > 0) && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Explore
-                    </span>
-                    {story.tags?.map((tag) =>
-                      // stories_count includes the current story, so > 1 means
-                      // there's at least one other published story to land on.
-                      tag.stories_count > 1 ? (
-                        <Link key={`tag-${tag.id}`} to={`/tag/${tag.slug}`}>
-                          <Badge variant="secondary">{tag.name}</Badge>
-                        </Link>
-                      ) : (
-                        <Badge
-                          key={`tag-${tag.id}`}
-                          variant="secondary"
-                          className="cursor-default opacity-70"
-                        >
-                          {tag.name}
-                        </Badge>
-                      ),
-                    )}
-                    {story.themes?.map((theme) =>
-                      theme.stories_count > 1 ? (
-                        <Link key={`theme-${theme.id}`} to={`/theme/${theme.slug}`}>
-                          <Badge variant="secondary">{theme.name}</Badge>
-                        </Link>
-                      ) : (
-                        <Badge
-                          key={`theme-${theme.id}`}
-                          variant="secondary"
-                          className="cursor-default opacity-70"
-                        >
-                          {theme.name}
-                        </Badge>
-                      ),
-                    )}
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-1.5">
-                  {primaryReadHref && (
-                    <Link to={primaryReadHref} className={ACTION_ITEM}>
-                      <Button size="lg" className={ACTION_BTN}>
-                        <BookMarked className="h-4 w-4 mr-2 shrink-0" />
-                        <span className="truncate sm:hidden">{hasSavedRead ? "Resume" : "Read"}</span>
-                        <span className="hidden truncate sm:inline">{readLabel}</span>
-                      </Button>
-                    </Link>
-                  )}
-
-                  {story.audios.length > 0 && listenAudioSlug && (
-                    <div className={cn("flex", ACTION_ITEM)}>
-                      <Link to={`/listen/${story.slug}/${listenAudioSlug}`} className="flex min-w-0 flex-1">
-                        <Button
-                          size="lg"
-                          variant="secondary"
-                          className={cn(ACTION_BTN, hasReadAlong && "rounded-r-none")}
-                        >
-                          <Headphones className="h-4 w-4 mr-2 shrink-0" />
-                          <span className="truncate sm:hidden">Listen</span>
-                          <span className="hidden truncate sm:inline">{listenLabel}</span>
-                        </Button>
-                      </Link>
-                      {hasReadAlong && readAlongStartSlug && (
-                        <Link to={`/read-along/${story.slug}/${readAlongStartSlug}`}>
-                          <Button
-                            size="lg"
-                            variant="secondary"
-                            className={cn(ACTION_ICON_BTN, "-ml-px rounded-l-none")}
-                            aria-label={readAlongResumeSlug ? "Continue Read Along" : "Read Along"}
-                            title="Read Along — follow the transcript while listening"
-                          >
-                            <Captions className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      )}
-                    </div>
-                  )}
-
-                  {story.videos.length > 0 && (
-                    <Button
-                      size="lg"
-                      variant="secondary"
-                      className={cn(ACTION_BTN, ACTION_ITEM)}
-                      onClick={() => {
-                        setWatchStartSlug(watchVideoSlug || null);
-                        setWatchOpen(true);
-                      }}
-                    >
-                      <Youtube className="h-4 w-4 mr-2 shrink-0" />
-                      <span className="truncate sm:hidden">Watch</span>
-                      <span className="hidden truncate sm:inline">{watchLabel}</span>
-                    </Button>
-                  )}
-
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className={ACTION_ICON_BTN}
-                    onClick={toggleFavorite}
-                    disabled={favoriteLoading}
-                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="lg" variant="outline" className={ACTION_ICON_BTN} aria-label="Share this story">
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => shareToFacebook(storyPath)}>
-                        <Facebook className="h-4 w-4" />
-                        Share on Facebook
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => shareToTwitter(storyPath, story.title)}>
-                        <Twitter className="h-4 w-4" />
-                        Share on X (Twitter)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => copyShareLink(storyPath)}>
-                        <Link2 className="h-4 w-4" />
-                        Copy link
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  {/* </Link> */}
-                </div>
-                {quickReadMinutes !== null && (
-                  <AuthGatedLink
-                    to={`/quick-read/${story.slug}`}
-                    className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                  >
-                    <Zap className="h-3.5 w-3.5" />
-                    Quick Read · {quickReadMinutes} min
-                  </AuthGatedLink>
-                )}
-                {isAuthenticated && primaryReadHref && (
-                  <p className="text-sm text-muted-foreground">
-                    Completion: {primaryCompletionPercentage}%
-                  </p>
-                )}
-                {isAuthenticated && story.audios.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Audio completion: {audioCompletionPercentage}%
-                  </p>
-                )}
-                {isAuthenticated && story.videos.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Watch completion: {videoCompletionPercentage}%
-                  </p>
-                )}
-                {!isAuthenticated && (
-                  <p className="text-sm text-muted-foreground">
-                    <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
-                      Login
-                    </button>{" "}
-                    to Track progress
-                  </p>
-                )}
-                {favoriteError && (
-                  <p className="text-sm text-red-500">{favoriteError}</p>
-                )}
-
-              </div>
-            </div>
-
-            <AdSpace size="banner" className="mb-8" contentType="story" />
-
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="-mx-1 overflow-x-auto px-1 pb-1 scrollbar-none">
-                <TabsList className="w-max">
-                  {story.chapters.length > 1 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}
-                  {story.audios.length > 1 && <TabsTrigger value="audios">Audios</TabsTrigger>}
-                  {story.videos.length > 1 && <TabsTrigger value="videos">Watch</TabsTrigger>}
-                  <TabsTrigger value="about">About</TabsTrigger>
-                  <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="chapters" className="mt-6" ref={chaptersRef}>
-                <Card >
-                  <CardContent className="p-0">
-                    {story.chapters.length > 1 ? <>{story?.chapters?.map((chapter, index) => {
-                      const chapterProgress = chapterProgressMap[chapter.slug] || 0;
-                      const isChapterCompleted = chapterProgress >= 1;
-                      return (
-                      <Link to={`/read/${slug}/${chapter.slug}`} key={index}>
-                        <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-                          <div className="flex items-center gap-4">
-                            <span className="text-sm font-semibold text-muted-foreground w-8">
-                              {chapter.order}
-                            </span>
-                            <div>
-                              <h3 className="font-medium">{chapter.title}</h3>
-                              {/* <p className="text-xs text-muted-foreground">{chapter.date}</p> */}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {isAuthenticated && (
-                              isChapterCompleted ? (
-                                <span className="inline-flex items-center gap-1 rounded-full tinted-chip border [--tint:#10b981] px-2 py-0.5 text-xs font-medium">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  Completed
-                                </span>
-                              ) : (
-                                <>
-                                  <Eye className="h-3 w-3" />
-                                  <span>{Math.round(chapterProgress * 100)}%</span>
-                                </>
-                              )
-                            )}
-                          </div>
-                        </div>
-                        {index < story.chapters.length - 1 && <Separator />}
-                      </Link>
-                      );
-                    })}</> : <p className="p-4 text-muted-foreground">No chapters available.</p>}
-
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="audios" className="mt-6" ref={audiosRef}>
-                <Card >
-                  <CardContent className="p-0">
-                    {story.audios.length > 1 ? <>{story?.audios?.map((chapter, index) => {
-                      return (
-                      <Link to={`/listen/${slug}/${chapter.slug}`} key={index}>
-                        <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-                          <div className="flex items-center gap-4">
-                            <span className="text-sm font-semibold text-muted-foreground w-8">
-                              {chapter.order}
-                            </span>
-                            <div>
-                              <h3 className="font-medium">{chapter.title}</h3>
-                              {/* <p className="text-xs text-muted-foreground">{chapter.date}</p> */}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Headphones className="h-3 w-3" />
-                            {chapter.read_along_available && (
-                              <button
-                                type="button"
-                                title="Read Along"
-                                aria-label={`Read Along: ${chapter.title}`}
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  navigate(`/read-along/${slug}/${chapter.slug}`);
-                                }}
-                                className="rounded-full p-1.5 hover:bg-muted"
-                              >
-                                <Captions className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {index < story.audios.length - 1 && <Separator />}
-                      </Link>
-                      );
-                    })}</> : <p className="p-4 text-muted-foreground">No audio available.</p>}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="videos" className="mt-6">
-                <Card>
-                  <CardContent className="p-0">
-                    {story.videos.length > 1 ? (
-                      story.videos.map((video, index) => {
-                        const watchProgress = videoProgressMap[video.slug] || 0;
-                        const isVideoCompleted = watchProgress >= 0.995;
-                        return (
-                          <div key={video.slug}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setWatchStartSlug(video.slug);
-                                setWatchOpen(true);
-                              }}
-                              className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 cursor-pointer transition-colors"
-                            >
-                              <div className="flex items-center gap-4">
-                                <span className="text-sm font-semibold text-muted-foreground w-8">
-                                  {video.order}
-                                </span>
-                                <div>
-                                  <h3 className="font-medium">{video.title}</h3>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                {isAuthenticated &&
-                                  (isVideoCompleted ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full tinted-chip border [--tint:#10b981] px-2 py-0.5 text-xs font-medium">
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      Watched
-                                    </span>
-                                  ) : watchProgress > 0 ? (
-                                    <>
-                                      <Eye className="h-3 w-3" />
-                                      <span>{Math.round(watchProgress * 100)}%</span>
-                                    </>
-                                  ) : null)}
-                                <Youtube className="h-4 w-4" />
-                              </div>
-                            </button>
-                            {index < story.videos.length - 1 && <Separator />}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="p-4 text-muted-foreground">No videos available.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="about" className="mt-6">
-                <Card>
-                  <CardContent className="p-6 space-y-4">
-                    <div>
-                      <h3 className="font-semibold mb-2">Story Description</h3>
-                      <p className="text-muted-foreground">{story.about || "No description available."}</p>
-                    </div>
-                    {story.author && (
-                      <>
-                        <Separator />
-                        <div>
-                          <h3 className="font-semibold mb-2">About the Author</h3>
-                          <Link to={`/authors/${story.author.slug}`} className="group mb-3 flex w-fit items-center gap-3">
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={story.author.image || ""} />
-                              <AvatarFallback>SC</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium transition-colors group-hover:text-primary group-hover:underline">{story.author.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {story.author.stories_count} stories
-                              </p>
-                            </div>
-                          </Link>
-                          <p className="text-sm text-muted-foreground">
-                            {story.author.bio || "No author bio available."}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="reviews" className="mt-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-6">
-                      {isAuthenticated ? (
-                        <div className="space-y-3 rounded-md border p-4">
-                          <h3 className="font-semibold">
-                            {myReview ? "Update your review" : "Write a review"}
-                          </h3>
-                          <div className="space-y-2">
-                            <label className="text-sm">Rating</label>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((value) => (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  onClick={() => setReviewRating(value)}
-                                  className="rounded p-1 hover:bg-muted"
-                                  aria-label={`Rate ${value} star${value > 1 ? "s" : ""}`}
-                                >
-                                  <Star
-                                    className={`h-5 w-5 ${
-                                      value <= reviewRating
-                                        ? "fill-amber-400 text-amber-400"
-                                        : "text-muted-foreground"
-                                    }`}
-                                  />
-                                </button>
-                              ))}
-                              <span className="ml-2 text-sm text-muted-foreground">
-                                {reviewRating}/5
-                              </span>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm">Review</label>
-                            <Textarea
-                              value={reviewComment}
-                              onChange={(e) => setReviewComment(e.target.value)}
-                              placeholder="Share your thoughts about this story..."
-                            />
-                          </div>
-                          {reviewError && <p className="text-sm text-red-500">{reviewError}</p>}
-                          <div className="flex gap-2">
-                            <Button onClick={submitReview} disabled={reviewLoading}>
-                              {reviewLoading ? "Saving..." : myReview ? "Update Review" : "Submit Review"}
-                            </Button>
-                            {myReview && (
-                              <Button variant="outline" onClick={deleteReview} disabled={reviewLoading}>
-                                Delete
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          <button type="button" onClick={openLoginModal} className="text-primary hover:underline">Log in</button> to rate and review this story.
-                        </p>
-                      )}
-
-                      <div>
-                        <h3 className="font-semibold mb-4">Community Reviews</h3>
-                        {reviewsLoading ? (
-                          <p className="text-muted-foreground">Loading reviews...</p>
-                        ) : (reviewsData?.results?.length || 0) === 0 ? (
-                          <p className="text-muted-foreground">No reviews yet.</p>
-                        ) : (
-                          <div className="space-y-4">
-                            {reviewsData?.results?.map((review) => (
-                              <div key={review.id} className="rounded-md border p-4">
-                                <div className="mb-2 flex items-center justify-between">
-                                  <p className="font-medium">{review.user.username}</p>
-                                  <p className="text-sm text-muted-foreground">{review.rating}/5</p>
-                                </div>
-                                <p className="text-sm text-muted-foreground">{review.comment || "No comment provided."}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <AdSpace size="rectangle" contentType="story" />
-
-            {/* <AdSpace size="rectangle" /> */}
-          </div>
-        </div>
-
-        {relatedBlogs.length > 0 && (
-          <section className="mt-12 border-t pt-8" aria-labelledby="related-blogs-heading">
-            <div className="mb-5 flex items-center gap-2">
-              <Newspaper className="h-5 w-5 text-primary" />
-              <div>
-                <h2 id="related-blogs-heading" className="text-xl font-bold sm:text-2xl">Related Blogs</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Blog posts about this story.</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-              {relatedBlogs.map((blog) => (
-                <BlogCard key={blog.id} blog={blog} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {showFinishedRail && (
-          <div className="mt-12">
-            <StoryCompletionScreen storySlug={story.slug} storyTitle={story.title} />
-          </div>
-        )}
-
-        {/* Also on story detail, where a reader who finished on another device
-            can still say how it felt. */}
-        <div className="mt-12">
-          <StoryReactions storySlug={story.slug} />
-        </div>
-
-        {story.similar_stories.length > 0 && (
-          <section className="mt-12 border-t pt-8" aria-labelledby="similar-titles-heading">
-            <div className="mb-5 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <div>
-                <h2 id="similar-titles-heading" className="text-xl font-bold sm:text-2xl">Similar Titles</h2>
-                <p className="mt-1 text-sm text-muted-foreground">More stories selected from shared genres and related story traits.</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-              {story.similar_stories.map((similarStory) => (
-                <StoryCard key={similarStory.id} {...similarStory} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {story.is_original && moreOriginals.length > 0 && (
-          <section className="mt-12 border-t pt-8" aria-labelledby="more-originals-heading">
-            <div className="mb-5 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-indigo-600" />
-              <div>
-                <h2 id="more-originals-heading" className="text-xl font-bold sm:text-2xl">More WorldStories Originals</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Other stories published in-house by WorldStories.{" "}
-                  <Link to="/originals" className="font-medium text-indigo-600 hover:underline">See all</Link>
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-              {moreOriginals.map((item) => (
-                <StoryCard key={item.id} {...item} />
-              ))}
-            </div>
-          </section>
-        )}
-      </main>
-
-      {story.videos.length > 0 && (
-        <WatchModal
-          storySlug={story.slug}
-          storyTitle={story.title}
-          videos={story.videos}
-          initialVideoSlug={watchStartSlug || watchVideoSlug}
-          open={watchOpen}
-          onOpenChange={setWatchOpen}
-          isAuthenticated={!!isAuthenticated}
-          onProgressSaved={() =>
-            queryClient.invalidateQueries({ queryKey: ["video-progress", slug] })
-          }
-        />
-      )}
-
-    </div>
-  );
+  return <div className="min-h-screen bg-background"><main className="container mx-auto px-4 py-8"><div className="grid grid-cols-1 lg:grid-cols-3 gap-8"><div className="lg:col-span-2">
+    <StoryHeader story={story} isFavorite={isFavorite} favoritesCount={favoritesCount} favoriteLoading={favoriteLoading} favoriteError={favoriteError} onToggleFavorite={toggleFavorite} actions={actions} progress={progressText} compactActions />
+    <AdSpace size="banner" className="mb-8" contentType="story" />
+    <Tabs value={activeTab} onValueChange={setActiveTab}><div className="-mx-1 overflow-x-auto px-1 pb-1 scrollbar-none"><TabsList className="w-max">{story.chapters.length > 1 && <TabsTrigger value="chapters">Chapters</TabsTrigger>}{story.audios.length > 1 && <TabsTrigger value="audios">Audios</TabsTrigger>}{story.videos.length > 1 && <TabsTrigger value="videos">Watch</TabsTrigger>}<TabsTrigger value="about">About</TabsTrigger><TabsTrigger value="reviews">Reviews</TabsTrigger></TabsList></div>
+      <TabsContent value="chapters" className="mt-6"><StoryContentList story={story} mode="read" isAuthenticated={!!isAuthenticated} chapterProgressMap={chapterProgressMap} /></TabsContent>
+      <TabsContent value="audios" className="mt-6"><StoryContentList story={story} mode="listen" isAuthenticated={!!isAuthenticated} showReadAlongAction /></TabsContent>
+      <TabsContent value="videos" className="mt-6"><StoryContentList story={story} mode="watch" isAuthenticated={!!isAuthenticated} videoProgressMap={videoProgressMap} onWatch={(videoSlug) => { setWatchStartSlug(videoSlug); setWatchOpen(true); }} /></TabsContent>
+      <TabsContent value="about" className="mt-6"><Card><CardContent className="p-6 space-y-4"><div><h3 className="font-semibold mb-2">Story Description</h3><p className="text-muted-foreground">{story.about || "No description available."}</p></div>{story.author && <><Separator /><div><h3 className="font-semibold mb-2">About the Author</h3><Link to={`/authors/${story.author.slug}`} className="group mb-3 flex w-fit items-center gap-3"><Avatar className="h-12 w-12"><AvatarImage src={story.author.image || ""} /><AvatarFallback>SC</AvatarFallback></Avatar><div><p className="font-medium group-hover:text-primary group-hover:underline">{story.author.name}</p><p className="text-sm text-muted-foreground">{story.author.stories_count} stories</p></div></Link><p className="text-sm text-muted-foreground">{story.author.bio || "No author bio available."}</p></div></>}</CardContent></Card></TabsContent>
+      <TabsContent value="reviews" className="mt-6"><Card><CardContent className="p-6 space-y-6">{isAuthenticated ? <div className="space-y-3 rounded-md border p-4"><h3 className="font-semibold">{myReview ? "Update your review" : "Write a review"}</h3><div className="flex gap-1">{[1,2,3,4,5].map((value) => <button key={value} type="button" onClick={() => setReviewRating(value)} aria-label={`Rate ${value} stars`} className={value <= reviewRating ? "text-amber-500" : "text-muted-foreground"}>★</button>)}</div><Textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="Share your thoughts about this story..." />{reviewError && <p className="text-sm text-red-500">{reviewError}</p>}<div className="flex gap-2"><Button onClick={submitReview} disabled={reviewLoading}>{reviewLoading ? "Saving..." : myReview ? "Update Review" : "Submit Review"}</Button>{myReview && <Button variant="outline" onClick={deleteReview} disabled={reviewLoading}>Delete</Button>}</div></div> : <p className="text-sm text-muted-foreground"><button type="button" onClick={openLoginModal} className="text-primary hover:underline">Log in</button> to rate and review this story.</p>}<div><h3 className="font-semibold mb-4">Community Reviews</h3>{reviewsLoading ? <p>Loading reviews...</p> : !reviewsData?.results?.length ? <p className="text-muted-foreground">No reviews yet.</p> : <div className="space-y-4">{reviewsData.results.map((review) => <div key={review.id} className="rounded-md border p-4"><div className="mb-2 flex justify-between"><p className="font-medium">{review.user.username}</p><p>{review.rating}/5</p></div><p className="text-sm text-muted-foreground">{review.comment || "No comment provided."}</p></div>)}</div>}</div></CardContent></Card></TabsContent>
+    </Tabs></div><div className="space-y-6"><AdSpace size="rectangle" contentType="story" /></div></div>
+    {relatedBlogs.length > 0 && <section className="mt-12 border-t pt-8"><div className="mb-5 flex items-center gap-2"><Newspaper className="h-5 w-5 text-primary" /><h2 className="text-xl font-bold sm:text-2xl">Related Blogs</h2></div><div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">{relatedBlogs.map((blog) => <BlogCard key={blog.id} blog={blog} />)}</div></section>}
+    {showFinishedRail && <div className="mt-12"><StoryCompletionScreen storySlug={story.slug} storyTitle={story.title} /></div>}<div className="mt-12"><StoryReactions storySlug={story.slug} /></div>
+    <SimilarTitles stories={story.similar_stories} linkTo={(item) => `/story/${item.slug}`} />
+    {story.is_original && moreOriginals.length > 0 && <SimilarTitles stories={moreOriginals} linkTo={(item) => `/story/${item.slug}`} title="More WorldStories Originals" description="Other stories published in-house by WorldStories." />}
+  </main>{story.videos.length > 0 && <WatchModal storySlug={story.slug} storyTitle={story.title} videos={story.videos} initialVideoSlug={watchStartSlug || watchVideoSlug} open={watchOpen} onOpenChange={setWatchOpen} isAuthenticated={!!isAuthenticated} onProgressSaved={() => queryClient.invalidateQueries({ queryKey: ["video-progress", slug] })} />}</div>;
 };
 
 export default StoryDetail;

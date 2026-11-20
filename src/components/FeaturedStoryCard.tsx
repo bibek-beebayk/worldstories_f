@@ -34,7 +34,7 @@ const FeaturedStoryCard = ({ story, rank, lead = false }: FeaturedStoryCardProps
 
   return (
     <Link
-      to={`/read/${story.slug}`}
+      to={`/story/${story.slug}`}
       className={`group relative isolate flex overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-shadow duration-300 hover:shadow-lg ${
         lead ? "min-h-[14rem] gap-4 p-4 sm:gap-6 sm:p-6 md:col-span-2" : "min-h-[12rem] gap-4 p-4"
       }`}

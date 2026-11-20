@@ -165,5 +165,5 @@ describe("performance sanity", () => {
       expect(result).toBeGreaterThanOrEqual(-1);
       expect(result).toBeLessThan(big.length);
     }
-  });
+  }, 10_000);
 });

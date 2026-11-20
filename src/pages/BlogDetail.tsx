@@ -174,6 +174,17 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
     };
   }, [isAuthenticated, blog?.slug, queueSaveBlogProgress]);
 
+  const { data: recentBlogsData } = useQuery({
+    queryKey: ["blog-detail-recent", blog?.slug],
+    queryFn: () => storyApi.getBlogs(1, "", "newest"),
+    staleTime: 60_000,
+    enabled: !!blog?.slug,
+  });
+  const recentBlogs = useMemo(
+    () => (recentBlogsData?.results || []).filter((post) => post.slug !== blog?.slug).slice(0, 5),
+    [recentBlogsData, blog?.slug]
+  );
+
   if (isLoading) {
     return <FullScreenLoader />;
   }
@@ -194,16 +205,6 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
   // Fills the sidebar with something worth clicking even when this post has
   // no explicit "related posts" set — otherwise a post without them leaves
   // the sidebar as just an ad and a lot of empty space below it.
-  const { data: recentBlogsData } = useQuery({
-    queryKey: ["blog-detail-recent", blog.slug],
-    queryFn: () => storyApi.getBlogs(1, "", "newest"),
-    staleTime: 60_000,
-  });
-  const recentBlogs = useMemo(
-    () => (recentBlogsData?.results || []).filter((post) => post.slug !== blog.slug).slice(0, 5),
-    [recentBlogsData, blog.slug]
-  );
-
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 pb-8 pt-0 sm:pt-8">
@@ -340,7 +341,7 @@ const BlogDetail = ({ loaderData }: Route.ComponentProps) => {
                   {linkedStories.map((story) => (
                     <Link
                       key={story.id}
-                      to={`/read/${story.slug}`}
+                      to={`/story/${story.slug}`}
                       className="group flex gap-4 rounded-sm border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
                     >
                       <div className="aspect-[3/4] w-20 shrink-0 overflow-hidden rounded-sm">

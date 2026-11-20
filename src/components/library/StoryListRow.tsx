@@ -14,7 +14,7 @@ const StoryListRow = ({ story, linkTo, progress }: { story: Story; linkTo?: stri
 
   return (
     <Link
-      to={linkTo || `/read/${story.slug}`}
+      to={linkTo || `/story/${story.slug}`}
       className="group flex gap-3 rounded-lg border bg-card p-2.5 shadow-sm transition-colors hover:border-primary/40 hover:bg-muted/30 sm:gap-4 sm:p-3"
     >
       <div className="aspect-[3/4] w-14 shrink-0 overflow-hidden rounded-sm shadow-sm sm:w-16">

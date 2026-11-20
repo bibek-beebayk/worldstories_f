@@ -32,7 +32,7 @@ const QuickReadSection = ({
   const buckets = useMemo(() => availableTimeBuckets(stories), [stories]);
   const visibleStories = useMemo(
     () => filterByTimeBucket(stories, timeBucket).slice(0, limit),
-    [stories, timeBucket]
+    [stories, timeBucket, limit]
   );
 
   if (stories.length === 0) return null;

@@ -181,7 +181,7 @@ export default function VideoWatchPage({ video }: { video: PublicVideoDetail }) 
           {video.story && (
             <p className="mt-1 text-sm text-muted-foreground">
               From the story{" "}
-              <Link to={`/read/${video.story.slug}`} className="font-medium text-primary hover:underline">
+              <Link to={`/story/${video.story.slug}`} className="font-medium text-primary hover:underline">
                 {video.story.title}
               </Link>
             </p>

@@ -3,6 +3,13 @@ export const API_BASE_URL =
 const BASE_URL = API_BASE_URL;
 export const AUTH_CHANGE_EVENT = "worldstories-auth-change";
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 function notifyAuthChanged() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
@@ -130,7 +137,7 @@ export async function apiClient<T>(
     (typeof (error as { message?: unknown })?.message === "string" && (error as { message: string }).message) ||
     formatValidationErrors(error) ||
     `API request failed (${res.status} ${res.statusText} for ${endpoint}): ${rawBody.slice(0, 300) || "<empty body>"}`;
-  throw new Error(message);
+  throw new ApiError(message, res.status);
 }
 
 // Like apiClient, but for endpoints that return raw bytes rather than JSON

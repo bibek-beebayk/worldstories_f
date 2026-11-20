@@ -18,7 +18,13 @@ const SiteThemeStyles = () => {
   const matches = useMatches();
   const storyTheme = matches
     .filter((match) => (match.handle as { storyTheme?: boolean } | undefined)?.storyTheme)
-    .map((match) => (match.data as { site_theme?: PublicSiteTheme | null } | null | undefined)?.site_theme)
+    .map((match) => {
+      const matchData = match.data as
+        | { site_theme?: PublicSiteTheme | null; story?: { site_theme?: PublicSiteTheme | null } }
+        | null
+        | undefined;
+      return matchData?.site_theme ?? matchData?.story?.site_theme;
+    })
     .find(Boolean);
   const theme = storyTheme ?? pickSiteTheme(data?.siteThemes, pathname);
   if (!theme) return null;

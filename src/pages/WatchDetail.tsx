@@ -1,13 +1,13 @@
 import { data } from "react-router";
 import { storyApi } from "@/api/story";
-import { plainText } from "@/lib/plainText";
 import { buildMeta } from "@/lib/buildMeta";
+import { buildStoryMeta, buildStoryNotFoundMeta } from "@/lib/storyMeta";
 import StoryDetailShell from "@/components/StoryDetailShell";
 import VideoWatchPage from "@/components/VideoWatchPage";
 import type { Route } from "./+types/WatchDetail";
 
-// /watch/<numeric id> is a single video; any other value is a legacy
-// /watch/<story-slug> link, which still opens the story's own watch page.
+// Assumption: an all-digit segment is always a video ID. New story slugs are
+// guarded server-side so they can never be all digits and collide here.
 const isVideoId = (param: string | undefined) => !!param && /^\d+$/.test(param);
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -22,15 +22,10 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 }
 
+export const handle = { storyTheme: true };
+
 export function meta({ data, params }: Route.MetaArgs) {
-  if (!data) {
-    return buildMeta({
-      title: "Video Not Found | WorldStories",
-      description: "The requested video could not be found.",
-      path: `/watch/${params.slug}`,
-      noIndex: true,
-    });
-  }
+  if (!data) return buildStoryNotFoundMeta(params.slug, "watch");
   if (data.kind === "video") {
     const { video } = data;
     return buildMeta({
@@ -40,13 +35,7 @@ export function meta({ data, params }: Route.MetaArgs) {
       image: video.thumbnail,
     });
   }
-  const story = data.story;
-  return buildMeta({
-    title: `Watch ${story.title}${story.author?.name ? ` by ${story.author.name}` : ""} | WorldStories`,
-    description: plainText(story.about || story.summary || `Watch ${story.title} on WorldStories.`).slice(0, 160),
-    path: `/watch/${story.slug}`,
-    image: story.cover_image,
-  });
+  return buildStoryMeta(data.story, { mode: "watch" });
 }
 
 const WatchDetail = ({ loaderData }: Route.ComponentProps) => {

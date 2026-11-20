@@ -65,7 +65,7 @@ const StoryCard = (props: StoryCardProps) => {
 
   return (
     <Link
-      to={linkTo || `/read/${slug}`}
+      to={linkTo || `/story/${slug}`}
       className="group relative z-0 block cursor-pointer transition-transform duration-300 ease-out hover:z-20 hover:scale-105"
     >
       <div
