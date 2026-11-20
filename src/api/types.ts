@@ -2503,6 +2503,7 @@ export interface JourneySummary {
   completed: number;
   total: number;
   is_complete: boolean;
+  next_story?: { slug: string; title: string; cover_image: string } | null;
 }
 
 export interface JourneyListResponse {

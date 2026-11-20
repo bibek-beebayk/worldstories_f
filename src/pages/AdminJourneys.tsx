@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, X } from "lucide-react";
 import { storyApi } from "@/api/story";
 import type { AdminJourney } from "@/api/types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -312,14 +313,19 @@ const AdminJourneys = () => {
               <li key={journey.id} className="rounded-md border p-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">
-                      {journey.title}
+                    <div className="flex flex-wrap items-center text-sm font-medium">
+                      <span>{journey.title}</span>
                       {journey.active ? (
                         <span className="ml-2 text-xs text-primary">live</span>
                       ) : (
                         <span className="ml-2 text-xs text-muted-foreground">hidden</span>
                       )}
-                    </p>
+                      {!journey.description.trim() && (
+                        <Badge variant="outline" className="ml-2 border-amber-400/60 bg-amber-50 text-amber-700">
+                          No description
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {journey.item_count} stories · {journey.required_count} required
                     </p>

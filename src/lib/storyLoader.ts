@@ -12,7 +12,7 @@ export const isStoryNotFoundData = (value: unknown): value is StoryNotFoundData 
   return "data" in value && isStoryNotFoundData(value.data);
 };
 
-async function loadOr404<T>(request: () => Promise<T>) {
+export async function loadOr404<T>(request: () => Promise<T>) {
   try {
     return await request();
   } catch (error) {
