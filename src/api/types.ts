@@ -2421,6 +2421,11 @@ export interface PassportCountry {
   explored: boolean;
   /** When the reader first completed a story from here; null if never. */
   unlocked_at: string | null;
+  next_story: {
+    slug: string;
+    title: string;
+    reading_time_minutes: number | null;
+  } | null;
 }
 
 export interface StoryPassportResponse {
