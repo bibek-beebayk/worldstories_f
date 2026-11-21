@@ -83,6 +83,7 @@ export default [
         route("story-report", "pages/AdminStoryReport.tsx"),
         route("submissions", "pages/AdminSubmissions.tsx"),
         route("feedback", "pages/AdminFeedback.tsx"),
+        route("newsletter", "pages/AdminNewsletter.tsx"),
         route("analytics", "pages/AdminAnalytics.tsx"),
         route("analytics/content-performance", "pages/AdminContentPerformance.tsx"),
         route("categories", "pages/AdminCategories.tsx"),

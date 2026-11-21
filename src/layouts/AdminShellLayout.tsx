@@ -1,6 +1,38 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { useEffect, useState, type ComponentType } from "react";
-import { LayoutDashboard, Library, ClipboardList, Inbox, Globe, LogOut, BarChart3, Menu, Tag, Tags, BookMarked, Palette, Route, Smile, Users, UserCog, Sparkles, Newspaper, BookOpenText, Star, PanelTop, LayoutList, FileText, Paintbrush, ChevronDown, FolderOpen, SwatchBook, Settings2, Clapperboard, MessageSquare } from "lucide-react";
+import {
+  LayoutDashboard,
+  Library,
+  ClipboardList,
+  Inbox,
+  Globe,
+  LogOut,
+  BarChart3,
+  Menu,
+  Tag,
+  Tags,
+  BookMarked,
+  Palette,
+  Route,
+  Smile,
+  Users,
+  UserCog,
+  Sparkles,
+  Newspaper,
+  BookOpenText,
+  Star,
+  PanelTop,
+  LayoutList,
+  FileText,
+  Paintbrush,
+  ChevronDown,
+  FolderOpen,
+  SwatchBook,
+  Settings2,
+  Clapperboard,
+  MessageSquare,
+  Mail,
+} from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clearTokens } from "@/api/client";
@@ -57,6 +89,7 @@ const menuItems: MenuEntry[] = [
   { to: "/admin/ai-settings", label: "AI Settings", icon: Sparkles, exact: false },
   { to: "/admin/submissions", label: "Submissions", icon: Inbox, exact: false },
   { to: "/admin/feedback", label: "Feedback", icon: MessageSquare, exact: false },
+  { to: "/admin/newsletter", label: "Newsletter", icon: Mail, exact: false },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3, exact: false },
 ];
 
@@ -132,7 +165,9 @@ export default function AdminShellLayout() {
             (iconsOnly ? (
               <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-red-500" aria-label={`${badge} new`} />
             ) : (
-              <span className="rounded-full bg-red-500 px-1.5 text-[10px] font-semibold leading-4 text-white">{badge}</span>
+              <span className="rounded-full bg-red-500 px-1.5 text-[10px] font-semibold leading-4 text-white">
+                {badge}
+              </span>
             ))}
         </Link>
       );
@@ -247,9 +282,7 @@ export default function AdminShellLayout() {
       <aside className="hidden h-full min-h-0 flex-col rounded-lg border bg-card p-3 lg:flex">
         <div className={`mb-2 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
           {!collapsed && (
-            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              ADMIN
-            </p>
+            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">ADMIN</p>
           )}
           <Button
             type="button"
@@ -302,9 +335,7 @@ export default function AdminShellLayout() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pb-6">
-              <p className="text-sm text-muted-foreground">
-                Are you sure you want to log out from admin panel?
-              </p>
+              <p className="text-sm text-muted-foreground">Are you sure you want to log out from admin panel?</p>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowLogoutModal(false)}>
                   Cancel
