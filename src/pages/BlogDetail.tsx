@@ -3,6 +3,7 @@ import BlogToc from "@/components/blog/BlogToc";
 import BlogKeepReading from "@/components/blog/BlogKeepReading";
 import BlogStoryCta from "@/components/blog/BlogStoryCta";
 import MobileBlogStoryBar from "@/components/blog/MobileBlogStoryBar";
+import NewsletterSignupCard from "@/components/NewsletterSignupCard";
 import CoverImage from "@/components/CoverImage";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { Button } from "@/components/ui/button";
@@ -440,6 +441,8 @@ const BlogDetailContent = ({
             </Dialog>
 
             {featuredStory && <BlogStoryCta id="blog-closing-story-cta" story={featuredStory} variant="closing" />}
+
+            <NewsletterSignupCard variant="blog" source="blog" className="mt-8" />
 
             {linkedStories.length > 0 && (
               <section className="mt-8" aria-labelledby="linked-stories-heading">

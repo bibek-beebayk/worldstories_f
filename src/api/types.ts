@@ -642,6 +642,27 @@ export interface HomeDataResponse {
   sections?: HomeSectionData[];
 }
 
+export type NewsletterStatus = "none" | "pending" | "confirmed" | "unsubscribed";
+export type NewsletterSource = "blog" | "completion" | "footer" | "profile" | "prompt" | "other";
+
+export interface NewsletterStatusResponse {
+  status: NewsletterStatus;
+  email: string;
+}
+
+export interface NewsletterDetailResponse {
+  detail: string;
+}
+
+export interface NewsletterConfirmResponse {
+  status: "confirmed";
+  email: string;
+}
+
+export interface NewsletterUnsubscribeResponse {
+  status: "unsubscribed";
+}
+
 export type HeroAnimationPreset = "classic" | "halloween" | "winter" | "christmas" | "none";
 export type HeroStatSource =
   "stories" | "readers_30d" | "countries" | "languages" | "audio_hours" | "creators" | "readers" | "custom";

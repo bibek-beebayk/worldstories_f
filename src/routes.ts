@@ -38,6 +38,8 @@ export default [
     route("terms", "pages/Terms.tsx"),
     route("blog", "pages/BlogList.tsx"),
     route("blog/:slug", "pages/BlogDetail.tsx"),
+    route("newsletter/confirm", "pages/NewsletterConfirm.tsx"),
+    route("newsletter/unsubscribe", "pages/NewsletterUnsubscribe.tsx"),
     // Admin-built pages (apps/pages); main site only.
     route("pages/:slug", "pages/DynamicPage.tsx"),
     route("story/:slug", "pages/StoryDetail.tsx"),

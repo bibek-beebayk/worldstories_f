@@ -10,6 +10,8 @@ import StoryReactions from "@/components/StoryReactions";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { authApi } from "@/api/auth";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import NewsletterSignupCard from "@/components/NewsletterSignupCard";
+import NewsletterCompletionPrompt from "@/components/NewsletterCompletionPrompt";
 
 /**
  * What a reader sees at the end of a story.
@@ -23,13 +25,7 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
  * instead of a personalized one, which is the honest answer rather than an
  * empty panel or a prompt to sign in.
  */
-const StoryCompletionScreen = ({
-  storySlug,
-  storyTitle,
-}: {
-  storySlug: string;
-  storyTitle: string;
-}) => {
+const StoryCompletionScreen = ({ storySlug, storyTitle }: { storySlug: string; storyTitle: string }) => {
   const isLoggedIn = useIsLoggedIn();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["story-completion", storySlug],
@@ -56,10 +52,7 @@ const StoryCompletionScreen = ({
   };
 
   return (
-    <section
-      className="rounded-2xl border bg-primary/5 p-5 sm:p-6"
-      aria-labelledby="story-completed-heading"
-    >
+    <section className="rounded-2xl border bg-primary/5 p-5 sm:p-6" aria-labelledby="story-completed-heading">
       <div className="flex items-center gap-2">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
         <h2 id="story-completed-heading" className="text-lg font-bold sm:text-xl">
@@ -99,9 +92,7 @@ const StoryCompletionScreen = ({
           a reader who has already engaged with everything similar. */}
       {!isLoading && !isError && !primary && (
         <div className="mt-5 rounded-xl border border-dashed border-border px-4 py-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            That is everything we have like this one for now.
-          </p>
+          <p className="text-sm text-muted-foreground">That is everything we have like this one for now.</p>
           <Button asChild variant="outline" className="mt-4">
             <Link to="/library">Browse all stories</Link>
           </Button>
@@ -141,9 +132,7 @@ const StoryCompletionScreen = ({
                   {primary.title}
                 </Link>
               </h3>
-              {primary.author && (
-                <p className="mt-0.5 text-sm text-muted-foreground">{primary.author}</p>
-              )}
+              {primary.author && <p className="mt-0.5 text-sm text-muted-foreground">{primary.author}</p>}
               {primaryReadingTime && (
                 <p className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock3 className="h-3 w-3" />
@@ -151,10 +140,7 @@ const StoryCompletionScreen = ({
                 </p>
               )}
               <Button asChild className="mt-auto w-full self-start pt-0 sm:w-auto">
-                <Link
-                  to={`/story/${primary.slug}`}
-                  onClick={() => trackNextStoryClick(primary.slug, "read_next")}
-                >
+                <Link to={`/story/${primary.slug}`} onClick={() => trackNextStoryClick(primary.slug, "read_next")}>
                   Read Next
                   <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Link>
@@ -163,6 +149,9 @@ const StoryCompletionScreen = ({
           </div>
         </article>
       )}
+
+      <NewsletterSignupCard variant="inline" source="completion" className="mt-6" />
+      <NewsletterCompletionPrompt />
 
       {/* Asked before the onward suggestions: the reaction is about the story
           just finished, and burying it under "read next" would answer a

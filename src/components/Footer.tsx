@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { useSiteIdentity } from "@/lib/siteIdentity";
 import { useFeedback } from "@/context/FeedbackContext";
+import NewsletterSignupCard from "@/components/NewsletterSignupCard";
 
 const footerLinks = [
   { to: "/story-map", label: "Story Map" },
@@ -11,36 +12,41 @@ const footerLinks = [
 ];
 
 const Footer = () => {
-    const identity = useSiteIdentity();
-    const { openFeedback } = useFeedback();
-    return (
-        <footer className="border-t border-border bg-muted/50 mt-8">
+  const identity = useSiteIdentity();
+  const { openFeedback } = useFeedback();
+  return (
+    <footer className="mt-8 border-t border-border bg-muted/50">
+      <div className="bg-slate-950">
         <div className="container px-4 py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-20 w-20 items-center justify-center rounded-md">
-                <img src="/worldstories-logo.png" alt="" />
-              </div>
-            </div>
-
-            <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              {footerLinks.map((link) => (
-                <Link key={link.to} to={link.to} className="hover:text-foreground hover:underline">
-                  {link.label}
-                </Link>
-              ))}
-              <button type="button" onClick={openFeedback} className="hover:text-foreground hover:underline">
-                Send Feedback
-              </button>
-            </nav>
-
-            <div className="text-sm text-muted-foreground">
-              © 2026 WorldStories{identity.footerCredit && ` · ${identity.footerCredit}`}
+          <NewsletterSignupCard variant="footer" source="footer" className="mx-auto max-w-4xl" />
+        </div>
+      </div>
+      <div className="container px-4 py-8">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-20 w-20 items-center justify-center rounded-md">
+              <img src="/worldstories-logo.png" alt="" />
             </div>
           </div>
+
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+            {footerLinks.map((link) => (
+              <Link key={link.to} to={link.to} className="hover:text-foreground hover:underline">
+                {link.label}
+              </Link>
+            ))}
+            <button type="button" onClick={openFeedback} className="hover:text-foreground hover:underline">
+              Send Feedback
+            </button>
+          </nav>
+
+          <div className="text-sm text-muted-foreground">
+            © 2026 WorldStories{identity.footerCredit && ` · ${identity.footerCredit}`}
+          </div>
         </div>
-      </footer>
-    )
-}
+      </div>
+    </footer>
+  );
+};
 
 export default Footer;
