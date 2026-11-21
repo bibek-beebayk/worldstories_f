@@ -205,7 +205,9 @@ export function ErrorBoundary() {
       <div className="max-w-md space-y-3">
         <h1 className="text-2xl font-bold">{unavailable ? "We’re having trouble" : "Something went wrong"}</h1>
         <p className="text-muted-foreground">
-          {unavailable ? "This story is temporarily unavailable. Please try again shortly." : "Please refresh the page and try again."}
+          {unavailable
+            ? "This page is temporarily unavailable. Please try again shortly."
+            : "Please refresh the page and try again."}
         </p>
       </div>
     </main>
