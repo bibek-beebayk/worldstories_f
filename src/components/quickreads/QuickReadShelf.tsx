@@ -6,10 +6,11 @@ export interface QuickReadShelfProps {
   title: string;
   subtitle: string;
   stories: Story[];
+  showProgress?: boolean;
   onSeeAll: () => void;
 }
 
-export function QuickReadShelf({ title, subtitle, stories, onSeeAll }: QuickReadShelfProps) {
+export function QuickReadShelf({ title, subtitle, stories, showProgress = true, onSeeAll }: QuickReadShelfProps) {
   if (stories.length < 3) {
     return null;
   }
@@ -34,7 +35,7 @@ export function QuickReadShelf({ title, subtitle, stories, onSeeAll }: QuickRead
       <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] md:grid md:grid-cols-6 md:gap-4 md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden">
         {stories.slice(0, 6).map((story) => (
           <div key={story.id} className="w-[150px] shrink-0 snap-start md:w-auto">
-            <QuickReadCard story={story} />
+            <QuickReadCard story={story} showProgress={showProgress} />
           </div>
         ))}
       </div>

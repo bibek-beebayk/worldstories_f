@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import { Story } from "@/api/types";
 import { ArrowRight, Clock3, Headphones, Zap, type LucideIcon } from "lucide-react";
 import CoverImage from "@/components/CoverImage";
-import AuthGatedLink from "@/components/AuthGatedLink";
 import { availableTimeBuckets, filterByTimeBucket } from "@/lib/quickReadTime";
 
 interface QuickReadSectionProps {
@@ -32,7 +31,7 @@ const QuickReadSection = ({
   const buckets = useMemo(() => availableTimeBuckets(stories), [stories]);
   const visibleStories = useMemo(
     () => filterByTimeBucket(stories, timeBucket).slice(0, limit),
-    [stories, timeBucket, limit]
+    [stories, timeBucket, limit],
   );
 
   if (stories.length === 0) return null;
@@ -45,13 +44,13 @@ const QuickReadSection = ({
           {title}
         </h2>
         {seeAllHref && (
-        <Link
-          to={seeAllHref}
-          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:text-sm"
-        >
-          {seeAllLabel}
-          <ArrowRight className="h-3 w-3" />
-        </Link>
+          <Link
+            to={seeAllHref}
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:text-sm"
+          >
+            {seeAllLabel}
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         )}
       </div>
 
@@ -90,7 +89,7 @@ const QuickReadSection = ({
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
         {visibleStories.map((story) => (
-          <AuthGatedLink
+          <Link
             key={story.id}
             to={`/quick-read/${story.slug}`}
             className="group relative z-0 block cursor-pointer transition-transform duration-300 ease-out hover:z-20 hover:scale-105"
@@ -114,7 +113,7 @@ const QuickReadSection = ({
             <h3 className="line-clamp-2 text-sm font-semibold transition-colors group-hover:text-primary">
               {story.title}
             </h3>
-          </AuthGatedLink>
+          </Link>
         ))}
       </div>
     </section>

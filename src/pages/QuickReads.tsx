@@ -3,17 +3,14 @@ import { Link, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, CheckCircle2, Headphones, Loader2, Search, X, Zap } from "lucide-react";
 import { storyApi } from "@/api/story";
-import AuthGatedLink from "@/components/AuthGatedLink";
 import CoverImage from "@/components/CoverImage";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import NewsletterSignupCard from "@/components/NewsletterSignupCard";
 import { QuickReadCard } from "@/components/quickreads/QuickReadCard";
 import { QuickReadShelf } from "@/components/quickreads/QuickReadShelf";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuthModal } from "@/context/AuthModalContext";
 import { useGenres } from "@/hooks/useGenres";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { useInfiniteStories } from "@/hooks/useInfiniteStories";
@@ -36,28 +33,27 @@ import {
 const SEARCH_DEBOUNCE_MS = 300;
 const STICKY_GAP = 6;
 
-// Login-gated — an anonymous crawler only ever sees the login prompt, never
-// this content, so indexing this URL would just offer Google a page with
-// nothing on it.
 export function meta() {
   return buildMeta({
     title: "Quick Reads — Story Summaries | WorldStories",
     description:
-      "Browse every Quick Read on WorldStories — short summaries for busy readers, with a straight line into the full story when you want more.",
+      "Short story summaries for busy readers. Every Quick Read links through to the full story on WorldStories.",
     path: "/quick-reads",
-    noIndex: true,
   });
 }
 
 const QuickReads = () => {
   const isAuthenticated = useIsLoggedIn();
-  const { openLoginModal } = useAuthModal();
   const headerBottom = useHeaderHeight();
   const [searchParams, setSearchParams] = useSearchParams();
   const gridRef = useRef<HTMLElement>(null);
   const hasLoadedOnceRef = useRef(false);
 
-  const filters = useMemo(() => parseQuickReadParams(searchParams), [searchParams]);
+  const rawFilters = useMemo(() => parseQuickReadParams(searchParams), [searchParams]);
+  const filters = useMemo<QuickReadFilters>(
+    () => (isAuthenticated ? rawFilters : { ...rawFilters, unread: false }),
+    [isAuthenticated, rawFilters],
+  );
   const hasFilters = useMemo(() => hasActiveQuickReadFilters(filters), [filters]);
 
   const updateFilters = useCallback(
@@ -81,7 +77,7 @@ const QuickReads = () => {
 
   const { data: genres = [] } = useGenres();
   const mysteryGenre = useMemo(() => findMysteryGenre(genres), [genres]);
-  const { data: heroData } = useQuickReadHero(isAuthenticated);
+  const { data: heroData } = useQuickReadHero(true);
 
   // Shelves (shown only when no filter, search, or non-default sort is active)
   const { data: under3ShelfData } = useQuery({
@@ -108,7 +104,7 @@ const QuickReads = () => {
         "under3",
         false,
       ),
-    enabled: isAuthenticated && !hasFilters,
+    enabled: !hasFilters,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -127,7 +123,7 @@ const QuickReads = () => {
         false,
         true,
       ),
-    enabled: isAuthenticated && !hasFilters && Boolean(mysteryGenre),
+    enabled: !hasFilters && Boolean(mysteryGenre),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -146,7 +142,7 @@ const QuickReads = () => {
     filters.q,
     "all",
     "all",
-    isAuthenticated,
+    true,
     [],
     filters.audio,
     true,
@@ -185,32 +181,14 @@ const QuickReads = () => {
     setSearchParams(buildQuickReadParams(DEFAULT_QUICK_READ_FILTERS));
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-sm border-amber-200 text-center">
-          <CardContent className="p-8">
-            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white">
-              <Zap className="h-6 w-6" />
-            </span>
-            <h2 className="mb-1 font-display text-lg font-bold">Quick Reads</h2>
-            <p className="text-sm text-muted-foreground">
-              <button type="button" onClick={openLoginModal} className="text-primary hover:underline">
-                Login
-              </button>{" "}
-              to browse Quick Read summaries.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if (isLoading && !hasLoadedOnceRef.current) return <FullScreenLoader />;
 
   const heroStory = heroData && heroData.mode !== "none" ? heroData.story : null;
+  const showHeroContinue = isAuthenticated && heroData?.mode === "continue";
   const heroContinuePercent =
-    heroData && heroData.mode === "continue" ? Math.max(1, Math.min(99, Math.round(heroData.progress * 100))) : 0;
+    showHeroContinue && heroData?.mode === "continue"
+      ? Math.max(1, Math.min(99, Math.round(heroData.progress * 100)))
+      : 0;
 
   return (
     <div className="min-h-screen overflow-x-clip bg-background">
@@ -247,7 +225,7 @@ const QuickReads = () => {
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-[#92400E] dark:text-amber-300">
-                    {heroData?.mode === "continue" ? "Pick up where you left off" : "Today's pick"}
+                    {showHeroContinue ? "Pick up where you left off" : "Today's pick"}
                   </p>
                   <p className="truncate text-sm font-semibold">{heroStory.title}</p>
                   <p className="truncate text-xs text-muted-foreground">
@@ -255,21 +233,19 @@ const QuickReads = () => {
                       heroStory.summary_reading_minutes != null
                         ? `${heroStory.summary_reading_minutes} min read`
                         : null,
-                      heroData?.mode === "continue" ? `${heroContinuePercent}% done` : null,
+                      showHeroContinue ? `${heroContinuePercent}% done` : null,
                     ]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
-                  {heroData?.mode === "continue" && (
+                  {showHeroContinue && (
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-amber-100 dark:bg-amber-950">
                       <div className="h-full rounded-full bg-[#B45309]" style={{ width: `${heroContinuePercent}%` }} />
                     </div>
                   )}
                 </div>
                 <Button asChild size="sm" className="min-h-[40px] shrink-0 bg-[#B45309] text-white hover:bg-[#92400E]">
-                  <AuthGatedLink to={`/quick-read/${heroStory.slug}`}>
-                    {heroData?.mode === "continue" ? "Continue" : "Read now"}
-                  </AuthGatedLink>
+                  <Link to={`/quick-read/${heroStory.slug}`}>{showHeroContinue ? "Continue" : "Read now"}</Link>
                 </Button>
               </div>
             </div>
@@ -365,19 +341,21 @@ const QuickReads = () => {
 
             <span className="mx-0.5 h-4 w-px shrink-0 bg-border" aria-hidden="true" />
 
-            <button
-              type="button"
-              aria-pressed={filters.unread}
-              onClick={() => updateFilters({ unread: !filters.unread })}
-              className={`inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B45309] sm:min-h-[34px] sm:px-3 ${
-                filters.unread
-                  ? "border-[#B45309] bg-amber-50 text-[#92400E] dark:bg-amber-950/40 dark:text-amber-300"
-                  : "border-border bg-background text-foreground hover:bg-muted"
-              }`}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-              Not read yet
-            </button>
+            {isAuthenticated && (
+              <button
+                type="button"
+                aria-pressed={filters.unread}
+                onClick={() => updateFilters({ unread: !filters.unread })}
+                className={`inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B45309] sm:min-h-[34px] sm:px-3 ${
+                  filters.unread
+                    ? "border-[#B45309] bg-amber-50 text-[#92400E] dark:bg-amber-950/40 dark:text-amber-300"
+                    : "border-border bg-background text-foreground hover:bg-muted"
+                }`}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Not read yet
+              </button>
+            )}
 
             <button
               type="button"
@@ -404,6 +382,7 @@ const QuickReads = () => {
               title="Under 3 minutes"
               subtitle="Bite-sized story summaries you can finish in a couple of minutes"
               stories={under3ShelfData?.results ?? []}
+              showProgress={isAuthenticated}
               onSeeAll={() => {
                 updateFilters({ time: "under3" });
                 scrollToGrid();
@@ -414,6 +393,7 @@ const QuickReads = () => {
                 title="Mystery and detection"
                 subtitle="Puzzles, twists, and classic whodunits in summary form"
                 stories={mysteryShelfData?.results ?? []}
+                showProgress={isAuthenticated}
                 onSeeAll={() => {
                   updateFilters({ genre: String(mysteryGenre.id) });
                   scrollToGrid();
@@ -464,7 +444,7 @@ const QuickReads = () => {
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                 {stories.map((story) => (
-                  <QuickReadCard key={story.id} story={story} />
+                  <QuickReadCard key={story.id} story={story} showProgress={isAuthenticated} />
                 ))}
               </div>
 

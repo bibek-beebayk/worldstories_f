@@ -5,23 +5,22 @@ import { Link } from "react-router";
 
 interface RecommendedQuickReadsSectionProps {
   stories: Story[];
+  title?: string;
 }
 
-// Personalized Quick Read picks, shown alongside a Quick Read page — driven
-// by recommend_stories_for(require_summary=True) instead of "any story with
-// a summary", and excludes the story currently being viewed. Renders nothing
-// at all (not an empty state) when there's no personalized signal yet —
-// matches QuickReadSection's own "don't nag" convention. A stacked list of
-// rows rather than a carousel: this now lives in the sidebar column, which
-// is too narrow for a multi-card rail to make sense.
-const RecommendedQuickReadsSection = ({ stories }: RecommendedQuickReadsSectionProps) => {
+// Personalized Quick Read picks for signed-in users or popular picks for
+// guests, shown alongside a Quick Read page. Renders nothing when empty.
+const RecommendedQuickReadsSection = ({
+  stories,
+  title = "Recommended Quick Reads",
+}: RecommendedQuickReadsSectionProps) => {
   if (stories.length === 0) return null;
 
   return (
     <section className="rounded-sm border border-border bg-card p-4 shadow-sm">
       <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
         <Wand2 className="h-3.5 w-3.5" />
-        <span>Recommended Quick Reads</span>
+        <span>{title}</span>
       </div>
 
       <div className="space-y-2">

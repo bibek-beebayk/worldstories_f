@@ -6,7 +6,6 @@ import { ApiError } from "@/api/client";
 import type { StoryDetail as StoryDetailData } from "@/api/types";
 import { storyApi } from "@/api/story";
 import AdSpace from "@/components/AdSpace";
-import AuthGatedLink from "@/components/AuthGatedLink";
 import BlogCard from "@/components/BlogCard";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import NotFoundBody from "@/components/NotFoundBody";
@@ -233,13 +232,13 @@ const StoryDetailContent = ({ initialStory }: { initialStory?: StoryDetailData }
   const progressText = (
     <>
       {quickReadMinutes !== null && (
-        <AuthGatedLink
+        <Link
           to={`/quick-read/${story.slug}`}
           className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
           <Zap className="h-3.5 w-3.5" />
           Quick Read · {quickReadMinutes} min
-        </AuthGatedLink>
+        </Link>
       )}
       {isAuthenticated ? (
         <>

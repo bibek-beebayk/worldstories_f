@@ -135,95 +135,95 @@ const READER_GLASS_PANEL_CLASS =
 export const FONTS: Record<ReaderFontKey, { label: string; value: string }> = {
   literata: {
     label: "Literata",
-    value: "\"Literata\", \"Palatino Linotype\", \"Book Antiqua\", Palatino, \"Noto Serif Devanagari\", serif",
+    value: '"Literata", "Palatino Linotype", "Book Antiqua", Palatino, "Noto Serif Devanagari", serif',
   },
   georgia: {
     label: "Georgia",
-    value: "Georgia, \"Gelasio\", \"Noto Serif Devanagari\", serif",
+    value: 'Georgia, "Gelasio", "Noto Serif Devanagari", serif',
   },
   times: {
     label: "Times",
-    value: "\"Times New Roman\", Times, \"Tinos\", \"Noto Serif Devanagari\", serif",
+    value: '"Times New Roman", Times, "Tinos", "Noto Serif Devanagari", serif',
   },
   garamond: {
     label: "Garamond",
-    value: "\"EB Garamond\", Garamond, \"Times New Roman\", \"Noto Serif Devanagari\", serif",
+    value: '"EB Garamond", Garamond, "Times New Roman", "Noto Serif Devanagari", serif',
   },
   palatino: {
     label: "Palatino",
-    value: "Palatino, \"Palatino Linotype\", \"Book Antiqua\", \"Noto Serif Devanagari\", serif",
+    value: 'Palatino, "Palatino Linotype", "Book Antiqua", "Noto Serif Devanagari", serif',
   },
   merriweather: {
     label: "Merriweather",
-    value: "\"Merriweather\", Georgia, \"Noto Serif Devanagari\", serif",
+    value: '"Merriweather", Georgia, "Noto Serif Devanagari", serif',
   },
   baskerville: {
     label: "Baskerville",
-    value: "Baskerville, \"Times New Roman\", \"Noto Serif Devanagari\", serif",
+    value: 'Baskerville, "Times New Roman", "Noto Serif Devanagari", serif',
   },
   charter: {
     label: "Charter",
-    value: "Charter, Cambria, \"Noto Serif Devanagari\", serif",
+    value: 'Charter, Cambria, "Noto Serif Devanagari", serif',
   },
   cambria: {
     label: "Cambria",
-    value: "Cambria, \"Times New Roman\", \"Noto Serif Devanagari\", serif",
+    value: 'Cambria, "Times New Roman", "Noto Serif Devanagari", serif',
   },
   helvetica: {
     label: "Helvetica",
-    value: "\"Helvetica Neue\", Helvetica, \"Arimo\", Arial, \"Noto Sans Devanagari\", sans-serif",
+    value: '"Helvetica Neue", Helvetica, "Arimo", Arial, "Noto Sans Devanagari", sans-serif',
   },
   caveat: {
     label: "Caveat",
-    value: "\"Caveat\", \"Comic Sans MS\", \"Noto Sans Devanagari\", cursive",
+    value: '"Caveat", "Comic Sans MS", "Noto Sans Devanagari", cursive',
   },
   dancing_script: {
     label: "Dancing Script",
-    value: "\"Dancing Script\", \"Brush Script MT\", \"Noto Sans Devanagari\", cursive",
+    value: '"Dancing Script", "Brush Script MT", "Noto Sans Devanagari", cursive',
   },
   patrick_hand: {
     label: "Patrick Hand",
-    value: "\"Patrick Hand\", \"Segoe Print\", \"Noto Sans Devanagari\", cursive",
+    value: '"Patrick Hand", "Segoe Print", "Noto Sans Devanagari", cursive',
   },
   indie_flower: {
     label: "Indie Flower",
-    value: "\"Indie Flower\", \"Comic Sans MS\", \"Noto Sans Devanagari\", cursive",
+    value: '"Indie Flower", "Comic Sans MS", "Noto Sans Devanagari", cursive',
   },
   shadows_into_light: {
     label: "Shadows Into Light",
-    value: "\"Shadows Into Light\", \"Segoe Print\", \"Noto Sans Devanagari\", cursive",
+    value: '"Shadows Into Light", "Segoe Print", "Noto Sans Devanagari", cursive',
   },
   trebuchet: {
     label: "Trebuchet",
-    value: "\"Trebuchet MS\", Tahoma, \"Noto Sans Devanagari\", sans-serif",
+    value: '"Trebuchet MS", Tahoma, "Noto Sans Devanagari", sans-serif',
   },
   open_dyslexic: {
     label: "OpenDyslexic",
-    value: "\"OpenDyslexic\", \"Comic Sans MS\", \"Noto Sans Devanagari\", sans-serif",
+    value: '"OpenDyslexic", "Comic Sans MS", "Noto Sans Devanagari", sans-serif',
   },
   system: {
     label: "Sans",
-    value: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Noto Sans Devanagari\", sans-serif",
+    value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif',
   },
   verdana: {
     label: "Verdana",
-    value: "Verdana, Geneva, \"Noto Sans Devanagari\", sans-serif",
+    value: 'Verdana, Geneva, "Noto Sans Devanagari", sans-serif',
   },
   tahoma: {
     label: "Tahoma",
-    value: "Tahoma, \"Trebuchet MS\", \"Noto Sans Devanagari\", sans-serif",
+    value: 'Tahoma, "Trebuchet MS", "Noto Sans Devanagari", sans-serif',
   },
   mono: {
     label: "Mono",
-    value: "\"IBM Plex Mono\", \"Cascadia Code\", Menlo, \"Noto Sans Devanagari\", monospace",
+    value: '"IBM Plex Mono", "Cascadia Code", Menlo, "Noto Sans Devanagari", monospace',
   },
   jetbrains_mono: {
     label: "JetBrains Mono",
-    value: "\"JetBrains Mono\", \"IBM Plex Mono\", Menlo, \"Noto Sans Devanagari\", monospace",
+    value: '"JetBrains Mono", "IBM Plex Mono", Menlo, "Noto Sans Devanagari", monospace',
   },
   source_code_pro: {
     label: "Source Code Pro",
-    value: "\"Source Code Pro\", \"IBM Plex Mono\", Menlo, \"Noto Sans Devanagari\", monospace",
+    value: '"Source Code Pro", "IBM Plex Mono", Menlo, "Noto Sans Devanagari", monospace',
   },
 };
 
@@ -237,12 +237,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   const location = useLocation();
   const backHref = (location.state as { backTo?: string } | null)?.backTo || `/read/${story_slug}`;
 
-  const { data: chapter, isLoading, isError } = useChapter(
-    story_slug,
-    chapter_slug,
-    "text",
-    loaderData?.chapter
-  );
+  const { data: chapter, isLoading, isError } = useChapter(story_slug, chapter_slug, "text", loaderData?.chapter);
   const { data: story } = useStory(story_slug, loaderData?.story || undefined);
   const hasQuickRead = estimateSummaryReadingMinutes(story?.summary) !== null;
   const isAuthenticated = useIsLoggedIn();
@@ -344,16 +339,16 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   });
   const localProgress = usePendingProgress(story_slug || "");
   const savedChapterProgress = chapter_slug
-    ? localProgress.chapterProgress[chapter_slug] ??
-      (readingProgress?.chapter_slug === chapter_slug ? readingProgress.progress : 0)
+    ? (localProgress.chapterProgress[chapter_slug] ??
+      (readingProgress?.chapter_slug === chapter_slug ? readingProgress.progress : 0))
     : 0;
   // The content anchor for the same chapter, local first (a guest, or a save
   // that hasn't reached the server yet, is the most recent truth) then the
   // server's. Empty/absent means this position predates anchored resume and
   // only the percentage is available.
   const savedChapterAnchor = chapter_slug
-    ? localProgress.chapterPosition[chapter_slug] ??
-      (readingProgress?.chapter_slug === chapter_slug ? readingProgress.last_element_id : null)
+    ? (localProgress.chapterPosition[chapter_slug] ??
+      (readingProgress?.chapter_slug === chapter_slug ? readingProgress.last_element_id : null))
     : null;
 
   const currentChapterIndex = useMemo(() => {
@@ -361,8 +356,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     return story.chapters.findIndex((item) => item.slug === chapter_slug);
   }, [story?.chapters, chapter_slug]);
 
-  const prevChapterSlug =
-    currentChapterIndex > 0 ? story?.chapters[currentChapterIndex - 1]?.slug : undefined;
+  const prevChapterSlug = currentChapterIndex > 0 ? story?.chapters[currentChapterIndex - 1]?.slug : undefined;
   const nextChapterSlug =
     currentChapterIndex >= 0 && currentChapterIndex < (story?.chapters.length || 0) - 1
       ? story?.chapters[currentChapterIndex + 1]?.slug
@@ -371,7 +365,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
 
   const orderedChapters = useMemo(
     () => [...(story?.chapters || [])].sort((a, b) => a.order - b.order),
-    [story?.chapters]
+    [story?.chapters],
   );
 
   useEffect(() => {
@@ -393,7 +387,6 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
   useEffect(() => {
     localStorage.setItem("reader_font", fontFamily);
   }, [fontFamily]);
-
 
   const themeOptions = useMemo<Record<string, ReaderThemeConfig>>(() => {
     const customThemeMap: Record<string, ReaderThemeConfig> = {};
@@ -492,48 +485,47 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     }
   };
 
-  const queueSaveProgress = useCallback((progress: number, anchor?: string | null) => {
-    if (!story_slug || !chapter_slug) return;
-    const normalized = Math.min(1, Math.max(0, progress));
-    liveProgressRef.current = normalized;
-    setLiveProgress(normalized);
-    latestProgressRef.current = normalized;
-    latestAnchorRef.current = anchor ?? null;
+  const queueSaveProgress = useCallback(
+    (progress: number, anchor?: string | null) => {
+      if (!story_slug || !chapter_slug) return;
+      const normalized = Math.min(1, Math.max(0, progress));
+      liveProgressRef.current = normalized;
+      setLiveProgress(normalized);
+      latestProgressRef.current = normalized;
+      latestAnchorRef.current = anchor ?? null;
 
-    if (saveTimerRef.current) {
-      window.clearTimeout(saveTimerRef.current);
-    }
-
-    saveTimerRef.current = window.setTimeout(() => {
-      const savedAnchor = latestAnchorRef.current ?? "";
-      saveChapterProgressLocally(story_slug, chapter_slug, normalized, savedAnchor);
-      latestProgressRef.current = null;
-      if (isAuthenticated) {
-        storyApi
-          .saveReadingProgress(story_slug, chapter_slug, normalized, savedAnchor)
-          .then((response) => {
-            // The server decides completion on the write itself, across every
-            // chapter rather than just this one, so it is right on a second
-            // device and after the browser store is cleared — neither of which
-            // the local check below can see.
-            if (response?.story_completed) {
-              noteServerConfirmedCompletion(story_slug);
-              setJustFinishedStory(true);
-              announceCountryUnlocked(response.unlocked_country);
-              announceAchievements(response.unlocked_achievements);
-            }
-          })
-          .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized, savedAnchor));
-      } else if (
-        isLastChapter &&
-        normalized >= 0.995 &&
-        markStoryFinishedIfComplete(story_slug, true)
-      ) {
-        // Signed out, so there is no server record to ask.
-        setJustFinishedStory(true);
+      if (saveTimerRef.current) {
+        window.clearTimeout(saveTimerRef.current);
       }
-    }, 400);
-  }, [chapter_slug, isAuthenticated, isLastChapter, story_slug]);
+
+      saveTimerRef.current = window.setTimeout(() => {
+        const savedAnchor = latestAnchorRef.current ?? "";
+        saveChapterProgressLocally(story_slug, chapter_slug, normalized, savedAnchor);
+        latestProgressRef.current = null;
+        if (isAuthenticated) {
+          storyApi
+            .saveReadingProgress(story_slug, chapter_slug, normalized, savedAnchor)
+            .then((response) => {
+              // The server decides completion on the write itself, across every
+              // chapter rather than just this one, so it is right on a second
+              // device and after the browser store is cleared — neither of which
+              // the local check below can see.
+              if (response?.story_completed) {
+                noteServerConfirmedCompletion(story_slug);
+                setJustFinishedStory(true);
+                announceCountryUnlocked(response.unlocked_country);
+                announceAchievements(response.unlocked_achievements);
+              }
+            })
+            .catch(() => queueChapterProgress(story_slug, chapter_slug, normalized, savedAnchor));
+        } else if (isLastChapter && normalized >= 0.995 && markStoryFinishedIfComplete(story_slug, true)) {
+          // Signed out, so there is no server record to ask.
+          setJustFinishedStory(true);
+        }
+      }, 400);
+    },
+    [chapter_slug, isAuthenticated, isLastChapter, story_slug],
+  );
 
   // Restores to the saved paragraph when there is one, and to the saved
   // percentage otherwise. The anchor is preferred because it survives a
@@ -550,10 +542,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
     const contentRect = content.getBoundingClientRect();
     const contentTop = contentRect.top - containerRect.top + container.scrollTop;
 
-    const anchorOffset = offsetForBlockIndex(
-      measureBlockOffsets(content),
-      decodeBlockAnchor(anchor)
-    );
+    const anchorOffset = offsetForBlockIndex(measureBlockOffsets(content), decodeBlockAnchor(anchor));
     if (anchorOffset !== null) {
       container.scrollTo({ top: contentTop + anchorOffset, behavior: "auto" });
       return;
@@ -570,12 +559,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
         window.clearTimeout(saveTimerRef.current);
       }
       if (latestProgressRef.current !== null && story_slug && chapter_slug) {
-        saveChapterProgressLocally(
-          story_slug,
-          chapter_slug,
-          latestProgressRef.current,
-          latestAnchorRef.current ?? ""
-        );
+        saveChapterProgressLocally(story_slug, chapter_slug, latestProgressRef.current, latestAnchorRef.current ?? "");
         if (isLastChapter && latestProgressRef.current >= 0.995) {
           markStoryFinishedIfComplete(story_slug, true);
         }
@@ -769,34 +753,34 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
           numbers live in the bottom bar and the floating pill. */}
       <ReadingProgressBar fraction={overallProgress} label="Story" />
       <main className="mx-auto w-full max-w-none px-0 py-0">
+        <div
+          className={`${activeTheme.cardClass} min-h-screen rounded-none border-0 p-0`}
+          style={activeTheme.cardStyle}
+          onClick={toggleReaderChrome}
+        >
           <div
-            className={`${activeTheme.cardClass} min-h-screen rounded-none border-0 p-0`}
-            style={activeTheme.cardStyle}
-            onClick={toggleReaderChrome}
+            className="mx-auto w-full px-4 pb-20 pt-20 md:px-8 lg:max-w-4xl lg:px-10"
+            onTouchStart={handleReaderTouchStart}
+            onTouchMove={handleReaderTouchMove}
+            onTouchEnd={finishPinchZoom}
+            onTouchCancel={finishPinchZoom}
           >
             <div
-              className="mx-auto w-full px-4 pb-20 pt-20 md:px-8 lg:max-w-4xl lg:px-10"
-              onTouchStart={handleReaderTouchStart}
-              onTouchMove={handleReaderTouchMove}
-              onTouchEnd={finishPinchZoom}
-              onTouchCancel={finishPinchZoom}
-            >
-              <div
-                ref={scrollContentRef}
-                className={`prose max-w-none leading-relaxed ${activeTheme.proseClass} ${nightTextClass} m-0 p-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0`}
-                style={typographyStyle}
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content) }}
-              />
-              {justFinishedStory && story && (
-                <div className="mt-10">
-                  <StoryCompletionScreen storySlug={story.slug} storyTitle={story.title} />
-                </div>
-              )}
-            </div>
+              ref={scrollContentRef}
+              className={`prose max-w-none leading-relaxed ${activeTheme.proseClass} ${nightTextClass} m-0 p-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0`}
+              style={typographyStyle}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content) }}
+            />
+            {justFinishedStory && story && (
+              <div className="mt-10">
+                <StoryCompletionScreen storySlug={story.slug} storyTitle={story.title} />
+              </div>
+            )}
           </div>
+        </div>
       </main>
 
-      {(
+      {
         <>
           <div
             className={`fixed inset-x-0 top-0 z-50 px-2 pt-2 transition-transform duration-300 ease-in-out ${
@@ -809,12 +793,8 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
               }`}
             >
               <div className="min-w-0">
-                <h1 className="truncate text-sm font-semibold sm:text-lg">
-                  {story?.title || chapter.title}
-                </h1>
-                <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
-                  {chapter.title}
-                </p>
+                <h1 className="truncate text-sm font-semibold sm:text-lg">{story?.title || chapter.title}</h1>
+                <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{chapter.title}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Button
@@ -834,10 +814,6 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
                     className="h-8 px-2 sm:h-9 sm:px-3"
                     aria-label="Switch to Quick Read"
                     onClick={() => {
-                      if (!isAuthenticated) {
-                        openLoginModal();
-                        return;
-                      }
                       navigate(`/quick-read/${story_slug}`);
                     }}
                   >
@@ -862,14 +838,8 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
                   onClick={toggleFullscreen}
                   aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                 >
-                  {isFullscreen ? (
-                    <Minimize className="h-4 w-4 sm:mr-2" />
-                  ) : (
-                    <Expand className="h-4 w-4 sm:mr-2" />
-                  )}
-                  <span className="hidden sm:inline">
-                    {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                  </span>
+                  {isFullscreen ? <Minimize className="h-4 w-4 sm:mr-2" /> : <Expand className="h-4 w-4 sm:mr-2" />}
+                  <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
                 </Button>
                 {!isFullscreen && (
                   <Link to={backHref}>
@@ -914,8 +884,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
                   className="h-8 px-3"
                   disabled={!prevChapterSlug}
                   onClick={() =>
-                    prevChapterSlug &&
-                    navigate(`/read/${story_slug}/${prevChapterSlug}`, { state: location.state })
+                    prevChapterSlug && navigate(`/read/${story_slug}/${prevChapterSlug}`, { state: location.state })
                   }
                   aria-label="Previous chapter"
                 >
@@ -938,8 +907,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
                   className="h-8 px-3"
                   disabled={!nextChapterSlug}
                   onClick={() =>
-                    nextChapterSlug &&
-                    navigate(`/read/${story_slug}/${nextChapterSlug}`, { state: location.state })
+                    nextChapterSlug && navigate(`/read/${story_slug}/${nextChapterSlug}`, { state: location.state })
                   }
                   aria-label="Next chapter"
                 >
@@ -949,7 +917,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
             </div>
           </div>
         </>
-      )}
+      }
 
       {showControls && (
         <div
@@ -984,19 +952,11 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
               <div>
                 <div className="mb-2 text-xs font-medium text-muted-foreground">Text Size</div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFontSize((s) => Math.max(14, s - 1))}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setFontSize((s) => Math.max(14, s - 1))}>
                     A-
                   </Button>
                   <span className="w-10 text-center text-xs">{fontSize}px</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFontSize((s) => Math.min(30, s + 1))}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setFontSize((s) => Math.min(30, s + 1))}>
                     A+
                   </Button>
                 </div>
@@ -1115,7 +1075,6 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
                   +
                 </Button>
               </div>
-
             </CardContent>
           </Card>
         </div>
@@ -1125,7 +1084,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
         <SheetContent
           side="left"
           className="flex w-80 flex-col"
-          container={isFullscreen ? readerContainerRef.current ?? undefined : undefined}
+          container={isFullscreen ? (readerContainerRef.current ?? undefined) : undefined}
         >
           <SheetHeader>
             <SheetTitle>Contents</SheetTitle>
@@ -1149,9 +1108,7 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
                       }
                     }}
                     className={`block w-full rounded-lg px-3 py-2.5 text-left transition-colors ${
-                      isCurrent
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "hover:bg-muted"
+                      isCurrent ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted"
                     }`}
                   >
                     <span
@@ -1169,7 +1126,6 @@ const StoryReader = ({ loaderData }: Route.ComponentProps) => {
           </div>
         </SheetContent>
       </Sheet>
-
     </div>
   );
 };

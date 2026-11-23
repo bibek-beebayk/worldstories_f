@@ -7,7 +7,6 @@ Disallow: /login
 Disallow: /register
 Disallow: /listen/
 Disallow: /search
-Disallow: /quick-reads
 Disallow: /quick-read/
 Disallow: /downloads
 Disallow: /story/*/pdf

@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { StoryDetail } from "@/api/types";
 import { ApiError } from "@/api/client";
 import AdSpace from "@/components/AdSpace";
-import AuthGatedLink from "@/components/AuthGatedLink";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import NotFoundBody from "@/components/NotFoundBody";
 import StoryReactions from "@/components/StoryReactions";
@@ -150,13 +149,13 @@ const StoryDetailShellContent = ({ mode, loaderData }: { mode: StoryDetailMode; 
         </p>
       )}
       {story.summary && (
-        <AuthGatedLink
+        <Link
           to={`/quick-read/${story.slug}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
           <Zap className="h-3.5 w-3.5" />
           Quick Read
-        </AuthGatedLink>
+        </Link>
       )}
       <div className="flex flex-wrap gap-2 text-sm">
         {mode !== "read" && primaryReadHref && (

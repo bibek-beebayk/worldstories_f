@@ -1,20 +1,21 @@
+import { Link } from "react-router";
 import { ArrowRight, Check, Clock3, Headphones } from "lucide-react";
 import type { Story } from "@/api/types";
-import AuthGatedLink from "@/components/AuthGatedLink";
 import CoverImage from "@/components/CoverImage";
 
 export interface QuickReadCardProps {
   story: Story;
+  showProgress?: boolean;
 }
 
-export function QuickReadCard({ story }: QuickReadCardProps) {
-  const progress = story.quick_read_progress;
+export function QuickReadCard({ story, showProgress = true }: QuickReadCardProps) {
+  const progress = showProgress ? story.quick_read_progress : null;
   const isFinished = typeof progress === "number" && progress >= 0.9;
   const isInProgress = typeof progress === "number" && progress > 0 && progress < 0.9;
   const progressPercent = isInProgress ? Math.max(1, Math.min(99, Math.round(progress * 100))) : 0;
 
   return (
-    <AuthGatedLink
+    <Link
       to={`/quick-read/${story.slug}`}
       className="group relative z-0 block rounded-lg transition-transform duration-200 ease-out hover:z-20 hover:scale-[1.04] focus-visible:z-20 focus-visible:scale-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B45309] focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:focus-visible:scale-100"
     >
@@ -82,6 +83,6 @@ export function QuickReadCard({ story }: QuickReadCardProps) {
           </p>
         )}
       </div>
-    </AuthGatedLink>
+    </Link>
   );
 }
