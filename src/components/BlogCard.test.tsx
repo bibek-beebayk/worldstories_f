@@ -25,7 +25,7 @@ const renderCard = (blog: Partial<Blog> = {}) =>
   render(
     <MemoryRouter>
       <BlogCard blog={{ ...base, ...blog }} />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
 describe("BlogCard", () => {
@@ -45,10 +45,41 @@ describe("BlogCard", () => {
   });
 
   it("links the book separately and never nests one link inside another", () => {
-    const { container } = renderCard({ linked_story: { title: "Station Nineteen", slug: "station-nineteen" } as Blog["linked_story"] });
+    const { container } = renderCard({
+      linked_story: { title: "Station Nineteen", slug: "station-nineteen" } as Blog["linked_story"],
+    });
     const book = screen.getByRole("link", { name: /Read the book: Station Nineteen/ });
     expect(book).toHaveAttribute("href", "/story/station-nineteen");
     expect(container.querySelectorAll("a a")).toHaveLength(0);
     expect(screen.getAllByRole("link")).toHaveLength(2);
+  });
+
+  it("renders overlay, wide, and text variants without topic chips", () => {
+    const withTopic = { topics: [{ name: "Folklore & myth", slug: "folklore-myth" }], reading_time_minutes: 6 };
+    render(
+      <MemoryRouter>
+        <BlogCard blog={{ ...base, ...withTopic }} variant="overlay" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: base.title })).toHaveAttribute("href", "/blog/five-folktales");
+    expect(screen.queryByText("Folklore & myth")).not.toBeInTheDocument();
+    cleanup();
+
+    render(
+      <MemoryRouter>
+        <BlogCard blog={{ ...base, ...withTopic }} variant="wide" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("Rain, rivers and ferrymen.")).toBeInTheDocument();
+    expect(screen.queryByText("Folklore & myth")).not.toBeInTheDocument();
+    cleanup();
+
+    const { container } = render(
+      <MemoryRouter>
+        <BlogCard blog={{ ...base, ...withTopic }} variant="text" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: base.title })).toBeInTheDocument();
+    expect(container.querySelector("img")).toBeNull();
   });
 });

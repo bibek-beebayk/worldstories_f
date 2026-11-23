@@ -20,7 +20,7 @@ const renderCard = (props: Partial<React.ComponentProps<typeof StoryCard>>) =>
   render(
     <MemoryRouter>
       <StoryCard {...baseStory} {...props} />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
 afterEach(cleanup);
@@ -83,5 +83,24 @@ describe("StoryCard — details", () => {
     renderCard({});
     expect(screen.getByText("A Tale")).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /listen|watch|read/i })).not.toBeInTheDocument();
+  });
+
+  it("renders overlay, wide, and text card variants with the same link target", () => {
+    renderCard({ variant: "overlay", author: "Asha Rai", is_original: true });
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/story/a-tale");
+    expect(screen.getByText("A Tale")).toBeInTheDocument();
+    expect(screen.getByText("Original")).toBeInTheDocument();
+    cleanup();
+
+    renderCard({ variant: "wide", author: "Asha Rai", reading_time_minutes: 10, description: "Short blurb" });
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/story/a-tale");
+    expect(screen.getByText("10 min")).toBeInTheDocument();
+    expect(screen.getByText("Short blurb")).toBeInTheDocument();
+    cleanup();
+
+    const { container } = renderCard({ variant: "text", author: "Asha Rai", reading_time_minutes: 10 });
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/story/a-tale");
+    expect(screen.getByText("Asha Rai · 10 min")).toBeInTheDocument();
+    expect(container.querySelector("img")).toBeNull();
   });
 });

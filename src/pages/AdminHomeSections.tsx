@@ -1,18 +1,34 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, ImageOff, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Copy,
+  Eye,
+  EyeOff,
+  ImageOff,
+  LayoutTemplate,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { storyApi } from "@/api/story";
 import type {
   AdminHomeSection,
-  AdminHomeSectionInput,
   HomeSectionAnalytics,
   HomeSectionConfig,
-  HomeSectionShowTo,
+  HomeSectionDisplay,
   HomeSectionTypesMeta,
 } from "@/api/types";
 import { FeaturedStoryPickerModal } from "@/components/admin/FeaturedStoryPickerModal";
+import { AppearanceTab } from "@/components/admin/homeSections/AppearanceTab";
 import { ContentSettings, validateHomeSectionDraft } from "@/components/admin/homeSections/ContentSettings";
+import { LayoutTab } from "@/components/admin/homeSections/LayoutTab";
 import { LivePreview } from "@/components/admin/homeSections/LivePreview";
+import { TemplatePickerDialog } from "@/components/admin/homeSections/TemplatePickerDialog";
+import { VisibilityTab } from "@/components/admin/homeSections/VisibilityTab";
 import type { HomeSectionEditorDraft as Draft } from "@/components/admin/homeSections/types";
 import { sectionIcon } from "@/components/home/sectionIcons";
 import { Button } from "@/components/ui/button";
@@ -24,16 +40,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
-import { isoToLocalInput, localInputToIso } from "@/lib/datetimeLocal";
+import { DEFAULT_DISPLAY, normalizeDisplay } from "@/lib/homeDisplay";
 import { audienceBadges } from "@/lib/homeSectionSchedule";
 
 const NONE = "none";
-
-const SHOW_TO_OPTIONS: { value: HomeSectionShowTo; label: string }[] = [
-  { value: "all", label: "Everyone" },
-  { value: "signed_in", label: "Signed-in readers only" },
-  { value: "signed_out", label: "Signed-out visitors only" },
-];
 
 const blankDraft = (type: AdminHomeSection["section_type"] = "stories_query"): Draft => ({
   title: "",
@@ -55,6 +65,9 @@ const blankDraft = (type: AdminHomeSection["section_type"] = "stories_query"): D
   show_to: "all",
   starts_at: null,
   ends_at: null,
+  device: "all",
+  anchor_id: "",
+  display: { ...DEFAULT_DISPLAY },
   stories_detail: [],
 });
 
@@ -113,15 +126,46 @@ const SectionEditor = ({
   onClose: () => void;
 }) => {
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<Draft>(initial);
+  const [draft, setDraft] = useState<Draft>(() => ({
+    ...initial,
+    device: initial.device ?? "all",
+    anchor_id: initial.anchor_id ?? "",
+    display: normalizeDisplay(initial.display),
+  }));
+  const [activeTab, setActiveTab] = useState<"content" | "layout" | "appearance" | "visibility">("content");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [pickerOpen, setPickerOpen] = useState(false);
   const typeMeta = meta.types.find((t) => t.value === draft.section_type);
   const has = (field: string) => typeMeta?.fields.includes(field) ?? false;
   const config = draft.config;
 
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
-  const setConfig = (patch: Partial<HomeSectionConfig>) =>
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    setDraft((d) => ({ ...d, [key]: value }));
+    setFieldErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+  const setDisplay = (patch: Partial<HomeSectionDisplay>) => {
+    setDraft((d) => ({ ...d, display: { ...normalizeDisplay(d.display), ...patch } }));
+    setFieldErrors((prev) => {
+      if (!("display" in prev)) return prev;
+      const next = { ...prev };
+      delete next.display;
+      return next;
+    });
+  };
+  const setConfig = (patch: Partial<HomeSectionConfig>) => {
     setDraft((d) => ({ ...d, config: { ...d.config, ...patch } }));
+    setFieldErrors((prev) => {
+      if (!("config" in prev)) return prev;
+      const next = { ...prev };
+      delete next.config;
+      return next;
+    });
+  };
 
   const validationError = validateHomeSectionDraft(draft);
   const previewPayload = typeMeta?.content
@@ -131,8 +175,16 @@ const SectionEditor = ({
         item_limit: draft.item_limit,
         allow_repeats: draft.allow_repeats,
         config: draft.config,
+        display: { show_summary: draft.display.show_summary },
       }
     : null;
+
+  const LAYOUT_ERROR_FIELDS = ["layout", "card_style", "columns_mobile", "columns_desktop", "item_limit"] as const;
+  const VISIBILITY_ERROR_FIELDS = ["device", "anchor_id", "starts_at", "ends_at", "show_to"] as const;
+  const hasLayoutError = LAYOUT_ERROR_FIELDS.some((key) => Boolean(fieldErrors[key]));
+  const hasAppearanceError = Boolean(fieldErrors.display);
+  const hasVisibilityError = VISIBILITY_ERROR_FIELDS.some((key) => Boolean(fieldErrors[key]));
+  const hasContentError = Boolean(fieldErrors.config);
 
   const save = useMutation({
     mutationFn: () => {
@@ -140,12 +192,29 @@ const SectionEditor = ({
       return editingId ? storyApi.updateAdminHomeSection(editingId, payload) : storyApi.createAdminHomeSection(payload);
     },
     onSuccess: () => {
+      setFieldErrors({});
       void queryClient.invalidateQueries({ queryKey: ["admin-home-sections"] });
       toast.success(editingId ? "Section updated" : "Section created");
       onClose();
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : "Could not save the section.";
+      const nextErrors: Record<string, string> = {};
+      for (const field of [...LAYOUT_ERROR_FIELDS, ...VISIBILITY_ERROR_FIELDS, "display", "config", "title"]) {
+        if (message.toLowerCase().includes(`${field}:`)) {
+          nextErrors[field] = message;
+        }
+      }
+      setFieldErrors(nextErrors);
+      if (VISIBILITY_ERROR_FIELDS.some((k) => k in nextErrors)) {
+        setActiveTab("visibility");
+      } else if ("display" in nextErrors) {
+        setActiveTab("appearance");
+      } else if (LAYOUT_ERROR_FIELDS.some((k) => k in nextErrors)) {
+        setActiveTab("layout");
+      } else if ("config" in nextErrors) {
+        setActiveTab("content");
+      }
       toast.error(message);
     },
   });
@@ -171,15 +240,25 @@ const SectionEditor = ({
           <Field label="Section type">
             <Pick
               value={draft.section_type}
-              onChange={(v) =>
-                v &&
+              onChange={(v) => {
+                if (!v) return;
+                const nextType = meta.types.find((t) => t.value === v);
+                const allowedLayouts = nextType?.layouts.map((l) => l.value) ?? [];
+                const allowedStyles = nextType?.card_styles.map((s) => s.value) ?? [];
+                const nextLayout = allowedLayouts.includes(draft.layout) ? draft.layout : (allowedLayouts[0] ?? "grid");
+                const nextStyle = allowedStyles.includes(draft.card_style)
+                  ? draft.card_style
+                  : (allowedStyles[0] ?? "default");
+                setFieldErrors({});
                 setDraft({
                   ...blankDraft(v),
                   title: draft.title,
                   subtitle: draft.subtitle,
                   is_enabled: draft.is_enabled,
-                })
-              }
+                  layout: nextLayout,
+                  card_style: nextStyle,
+                });
+              }}
               options={meta.types.map((t) => ({ value: t.value, label: t.label }))}
             />
           </Field>
@@ -209,121 +288,29 @@ const SectionEditor = ({
           )}
         </div>
 
-        {(has("layout") || has("item_limit")) && (
-          <div className="grid gap-4 sm:grid-cols-3">
-            {has("layout") && (
-              <Field label="Layout">
-                <Pick value={draft.layout} onChange={(v) => v && set("layout", v)} options={meta.layouts} />
-              </Field>
-            )}
-            {has("item_limit") && (
-              <Field label="Items to show" hint="1–24">
-                <Input
-                  type="number"
-                  min={1}
-                  max={24}
-                  value={draft.item_limit}
-                  onChange={(e) => set("item_limit", Math.max(1, Math.min(24, Number(e.target.value) || 1)))}
-                />
-              </Field>
-            )}
-            {has("card_style") && (
-              <Field label="Card size">
-                <Pick value={draft.card_style} onChange={(v) => v && set("card_style", v)} options={meta.card_styles} />
-              </Field>
-            )}
-            {has("layout") && (
-              <>
-                <Field label="Columns on phones">
-                  <Pick
-                    value={String(draft.columns_mobile)}
-                    onChange={(v) => v && set("columns_mobile", Number(v))}
-                    options={["1", "2", "3"].map((n) => ({ value: n, label: n }))}
-                  />
-                </Field>
-                <Field label="Columns on desktop">
-                  <Pick
-                    value={String(draft.columns_desktop)}
-                    onChange={(v) => v && set("columns_desktop", Number(v))}
-                    options={["2", "3", "4", "5", "6"].map((n) => ({ value: n, label: n }))}
-                  />
-                </Field>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Legacy story controls replaced by the shared content editor.
-          <div className="space-y-3 rounded-md border p-3">
-            <p className="text-sm font-medium">Which stories</p>
-            <Field label="Sort by">
-              <Pick
-                value={config.sort ?? "newest"}
-                onChange={(v) => v && setConfig({ sort: v })}
-                options={meta.sorts.map((s) => ({ value: s, label: LABELS[s] ?? s }))}
-              />
-            </Field>
-            {taxonomy.isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {taxonomy.data && (
-              <>
-                <Field label="Genres (any of)">
-                  <Chips options={options(taxonomy.data.genres)} selected={config.genres ?? []} onChange={(v) => setConfig({ genres: v })} />
-                </Field>
-                <Field label="Categories (any of)">
-                  <Chips options={options(taxonomy.data.categories)} selected={config.categories ?? []} onChange={(v) => setConfig({ categories: v })} />
-                </Field>
-                <Field label="Tags (any of)">
-                  <Chips options={options(taxonomy.data.tags)} selected={config.tags ?? []} onChange={(v) => setConfig({ tags: v })} />
-                </Field>
-                <Field label="Themes (any of)">
-                  <Chips options={options(taxonomy.data.themes)} selected={config.themes ?? []} onChange={(v) => setConfig({ themes: v })} />
-                </Field>
-                <Field label="Moods (any of)">
-                  <Chips
-                    options={taxonomy.data.moods.map((m) => ({ value: m.slug, label: m.name }))}
-                    selected={config.moods ?? []}
-                    onChange={(v) => setConfig({ moods: v })}
-                  />
-                </Field>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Story type">
-                    <Select
-                      value={config.story_type ? String(config.story_type) : NONE}
-                      onValueChange={(v) => setConfig({ story_type: v === NONE ? null : Number(v) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE}>Any</SelectItem>
-                        {taxonomy.data.storyTypes.map((t) => (
-                          <SelectItem key={t.id} value={String(t.id)}>
-                            {t.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Language code" hint="e.g. en or ne — blank for all">
-                    <Input value={config.language ?? ""} maxLength={10} onChange={(e) => setConfig({ language: e.target.value.trim() })} />
-                  </Field>
-                </div>
-              </>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <Check label="WorldStories Originals only" checked={!!config.original_only} onChange={(v) => setConfig({ original_only: v })} />
-              <Check label="Has a summary (quick read)" checked={!!config.has_summary} onChange={(v) => setConfig({ has_summary: v })} />
-              <Check label="Has audio" checked={!!config.has_audio} onChange={(v) => setConfig({ has_audio: v })} />
-              <Check label="Has video" checked={!!config.has_video} onChange={(v) => setConfig({ has_video: v })} />
-              <Check label="Has read-along" checked={!!config.has_read_along} onChange={(v) => setConfig({ has_read_along: v })} />
-              <Check label="Only stories with a cover" checked={!!config.require_cover} onChange={(v) => setConfig({ require_cover: v })} />
-            </div>
-          </div>
-        )} */}
-
-        <Tabs defaultValue="content">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "content" | "layout" | "appearance" | "visibility")}
+        >
           <TabsList>
-            <TabsTrigger value="content">Content</TabsTrigger>
+            <TabsTrigger value="content" className="gap-1.5">
+              Content
+              {hasContentError && <span className="h-2 w-2 rounded-full bg-destructive" aria-label="Has error" />}
+            </TabsTrigger>
+            {typeMeta?.content && (
+              <TabsTrigger value="layout" className="gap-1.5">
+                Layout
+                {hasLayoutError && <span className="h-2 w-2 rounded-full bg-destructive" aria-label="Has error" />}
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="appearance" className="gap-1.5">
+              Appearance
+              {hasAppearanceError && <span className="h-2 w-2 rounded-full bg-destructive" aria-label="Has error" />}
+            </TabsTrigger>
+            <TabsTrigger value="visibility" className="gap-1.5">
+              Visibility
+              {hasVisibilityError && <span className="h-2 w-2 rounded-full bg-destructive" aria-label="Has error" />}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="content" className="space-y-4 pt-2">
             <ContentSettings
@@ -437,6 +424,32 @@ const SectionEditor = ({
 
             <LivePreview payload={previewPayload} validationError={validationError} />
           </TabsContent>
+          {typeMeta?.content && (
+            <TabsContent value="layout" className="space-y-4 pt-2">
+              <LayoutTab
+                draft={draft}
+                meta={meta}
+                previewPayload={previewPayload}
+                validationError={validationError}
+                fieldErrors={fieldErrors}
+                onChange={set}
+                onDisplayChange={setDisplay}
+              />
+            </TabsContent>
+          )}
+          <TabsContent value="appearance" className="space-y-4 pt-2">
+            <AppearanceTab
+              draft={draft}
+              meta={meta}
+              previewPayload={previewPayload}
+              validationError={validationError}
+              fieldError={fieldErrors.display}
+              onDisplayChange={setDisplay}
+            />
+          </TabsContent>
+          <TabsContent value="visibility" className="space-y-4 pt-2">
+            <VisibilityTab draft={draft} meta={meta} fieldErrors={fieldErrors} onChange={set} />
+          </TabsContent>
         </Tabs>
 
         <div className="space-y-3 border-t pt-3">
@@ -476,29 +489,6 @@ const SectionEditor = ({
               )}
             </div>
           )}
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Show to">
-              <Pick
-                value={draft.show_to}
-                onChange={(v) => v && set("show_to", v)}
-                options={meta.show_to ?? SHOW_TO_OPTIONS}
-              />
-            </Field>
-            <Field label="Starts (optional)" hint="Your local time">
-              <Input
-                type="datetime-local"
-                value={isoToLocalInput(draft.starts_at)}
-                onChange={(e) => set("starts_at", localInputToIso(e.target.value))}
-              />
-            </Field>
-            <Field label="Ends (optional)" hint="Hidden from this moment">
-              <Input
-                type="datetime-local"
-                value={isoToLocalInput(draft.ends_at)}
-                onChange={(e) => set("ends_at", localInputToIso(e.target.value))}
-              />
-            </Field>
-          </div>
           <Check label="Show on the homepage" checked={draft.is_enabled} onChange={(v) => set("is_enabled", v)} />
         </div>
 
@@ -547,6 +537,7 @@ const AdminHomeSections = () => {
   const [editor, setEditor] = useState<{ draft: Draft; id: number | null } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<AdminHomeSection | null>(null);
   const [coversOpen, setCoversOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const { data: sections, isLoading } = useQuery({
     queryKey: ["admin-home-sections"],
@@ -621,6 +612,9 @@ const AdminHomeSections = () => {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setCoversOpen(true)}>
               <ImageOff className="mr-1 h-4 w-4" /> Missing covers
+            </Button>
+            <Button variant="outline" onClick={() => setTemplatesOpen(true)} disabled={!meta}>
+              <LayoutTemplate className="mr-1 h-4 w-4" /> Add from template
             </Button>
             <Button onClick={() => meta && setEditor({ draft: blankDraft(), id: null })} disabled={!meta}>
               <Plus className="mr-1 h-4 w-4" /> Add section
@@ -717,6 +711,22 @@ const AdminHomeSections = () => {
           onClose={() => setEditor(null)}
         />
       )}
+
+      <TemplatePickerDialog
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        onCreated={(section) =>
+          setEditor({
+            draft: {
+              ...section,
+              device: section.device ?? "all",
+              anchor_id: section.anchor_id ?? "",
+              display: normalizeDisplay(section.display),
+            },
+            id: section.id,
+          })
+        }
+      />
 
       <Dialog open={coversOpen} onOpenChange={setCoversOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-thin">

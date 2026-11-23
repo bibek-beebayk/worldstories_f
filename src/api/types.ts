@@ -244,6 +244,8 @@ export interface Story {
   reading_time_minutes?: number | null;
   /** True/false in the Library list (there is text to read here); absent or null elsewhere. */
   has_text?: boolean | null;
+  /** Trimmed summary line, only populated when a section enables display.show_summary. */
+  summary?: string;
 }
 
 export interface LibraryFacetCount {
@@ -2845,9 +2847,37 @@ export type HomeSectionType =
   | "journeys_banner"
   | "explore_tiles";
 export type HomeSectionVariant = "standard" | "quick_read" | "originals";
-export type HomeSectionLayout = "grid" | "rail" | "trending";
+export type HomeSectionLayout =
+  "grid" | "rail" | "trending" | "featured" | "bento" | "list" | "carousel" | "tworow" | "covers";
 export type HomeSectionShowTo = "all" | "signed_in" | "signed_out";
-export type HomeSectionCardStyle = "default" | "compact";
+export type HomeSectionCardStyle = "default" | "compact" | "overlay" | "wide" | "text";
+export type HomeSectionDevice = "all" | "mobile" | "desktop";
+export type HomeSectionDisplayBackground = "none" | "tint" | "dark" | "brand";
+export type HomeSectionHeadingAlign = "left" | "center";
+export type HomeSectionSpacing = "compact" | "normal" | "roomy";
+export type HomeSectionWidth = "contained" | "full";
+
+export interface HomeSectionDisplay {
+  background: HomeSectionDisplayBackground;
+  heading_align: HomeSectionHeadingAlign;
+  spacing: HomeSectionSpacing;
+  width: HomeSectionWidth;
+  hide_title: boolean;
+  show_author: boolean;
+  show_rating: boolean;
+  show_reading_time: boolean;
+  show_badges: boolean;
+  show_summary: boolean;
+}
+
+export interface HomeSectionTemplate {
+  key: string;
+  name: string;
+  description: string;
+  section_type: HomeSectionType;
+  layout: HomeSectionLayout;
+  card_style: HomeSectionCardStyle;
+}
 
 /** One resolved section from /home/ (apps/story/home_sections.py). `items` is
  *  stories, videos or blog cards depending on `section_type`. */
@@ -2866,6 +2896,9 @@ export interface HomeSectionData {
   allow_repeats: boolean;
   see_all_url: string;
   see_all_label: string;
+  device?: HomeSectionDevice;
+  anchor_id?: string;
+  display?: Partial<HomeSectionDisplay>;
   config: Record<string, unknown>;
   items: unknown[];
 }
@@ -2952,6 +2985,9 @@ export interface AdminHomeSection {
   show_to: HomeSectionShowTo;
   starts_at: string | null;
   ends_at: string | null;
+  device: HomeSectionDevice;
+  anchor_id: string;
+  display: HomeSectionDisplay;
 }
 
 export interface HomeSectionClickWindow {
@@ -2975,12 +3011,26 @@ export type AdminHomeSectionInput = Omit<AdminHomeSection, "id" | "position" | "
   position?: number;
 };
 
+export interface HomeSectionChoiceOption<T extends string = string> {
+  value: T;
+  label: string;
+  description?: string;
+}
+
 export interface HomeSectionTypesMeta {
-  types: { value: HomeSectionType; label: string; content: boolean; fields: string[] }[];
+  types: {
+    value: HomeSectionType;
+    label: string;
+    content: boolean;
+    fields: string[];
+    layouts: HomeSectionChoiceOption<HomeSectionLayout>[];
+    card_styles: HomeSectionChoiceOption<HomeSectionCardStyle>[];
+  }[];
   variants: { value: HomeSectionVariant; label: string }[];
-  layouts: { value: HomeSectionLayout; label: string }[];
-  card_styles: { value: HomeSectionCardStyle; label: string }[];
+  layouts: HomeSectionChoiceOption<HomeSectionLayout>[];
+  card_styles: HomeSectionChoiceOption<HomeSectionCardStyle>[];
   show_to?: { value: HomeSectionShowTo; label: string }[];
+  devices?: { value: HomeSectionDevice; label: string }[];
   sorts: {
     stories: HomeSectionSortOption[];
     videos: HomeSectionSortOption[];
@@ -3003,6 +3053,7 @@ export interface AdminHomeSectionPreviewPayload {
   item_limit: number;
   allow_repeats: boolean;
   config: HomeSectionConfig;
+  display?: Partial<HomeSectionDisplay>;
 }
 
 export interface AdminHomeSectionPreviewResponse {

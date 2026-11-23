@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ArrowRight, MapPin } from "lucide-react";
 import AdSpace from "@/components/AdSpace";
 import BlogCard from "@/components/BlogCard";
+import CoverImage from "@/components/CoverImage";
 import NewEntriesSection from "@/components/NewEntriesSection";
 import QuickReadSection from "@/components/QuickReadSection";
 import RecommendedForYouSection from "@/components/RecommendedForYouSection";
@@ -13,14 +13,9 @@ import VideoCard from "@/components/VideoCard";
 import ContinueShelf from "@/components/home/ContinueShelf";
 import ExploreTiles from "@/components/home/ExploreTiles";
 import SectionClickTracker from "@/components/home/SectionClickTracker";
+import { SectionFrame } from "@/components/home/SectionFrame";
+import { SectionLayout } from "@/components/home/SectionLayouts";
 import { OriginalsRail } from "@/components/OriginalsRail";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { sectionIcon } from "@/components/home/sectionIcons";
 import { useContinueListening } from "@/hooks/useContinueListening";
 import { useContinueReading } from "@/hooks/useContinueReading";
@@ -28,34 +23,10 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { mergeContinueItems } from "@/lib/continueShelf";
 import type { ClickableItem } from "@/lib/homeClicks";
+import { cardShowFlagsFromDisplay, isInvertedSurface, normalizeDisplay } from "@/lib/homeDisplay";
+import { effectiveCardStyle } from "@/lib/homeLayouts";
 import { createRailDeduplicator, storiesBehindVideos } from "@/lib/railDeduplication";
-import type { Blog, HomeSectionData, PublicVideo, Story } from "@/api/types";
-
-// Tailwind only emits classes it can see as whole strings, so the column
-// counts an admin can pick are spelled out here rather than interpolated.
-const COLS_MOBILE: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" };
-const COLS_MD: Record<number, string> = {
-  2: "md:grid-cols-2",
-  3: "md:grid-cols-3",
-  4: "md:grid-cols-3",
-  5: "md:grid-cols-3",
-  6: "md:grid-cols-3",
-};
-const COLS_LG: Record<number, string> = {
-  2: "lg:grid-cols-2",
-  3: "lg:grid-cols-3",
-  4: "lg:grid-cols-4",
-  5: "lg:grid-cols-5",
-  6: "lg:grid-cols-6",
-};
-const BASIS_MOBILE: Record<number, string> = { 1: "basis-full", 2: "basis-1/2", 3: "basis-1/3" };
-const BASIS_LG: Record<number, string> = {
-  2: "lg:basis-1/2",
-  3: "lg:basis-1/3",
-  4: "lg:basis-1/4",
-  5: "lg:basis-1/5",
-  6: "lg:basis-1/6",
-};
+import type { Blog, HomeSectionCardStyle, HomeSectionData, PublicVideo, Story } from "@/api/types";
 
 const BANNER_THEMES: Record<string, string> = {
   ocean: "[--banner-from:#0891b2] [--banner-via:#2563eb] [--banner-to:#0d9488]",
@@ -65,22 +36,66 @@ const BANNER_THEMES: Record<string, string> = {
   emerald: "[--banner-from:#059669] [--banner-via:#0d9488] [--banner-to:#0891b2]",
 };
 
-const SectionHeader = ({ section }: { section: HomeSectionData }) => {
+export type SectionHeaderSection = Pick<
+  HomeSectionData,
+  "title" | "subtitle" | "icon" | "see_all_url" | "see_all_label" | "display"
+>;
+
+export const SectionHeader = ({
+  section,
+  headingId,
+  inverted,
+}: {
+  section: SectionHeaderSection;
+  headingId?: string;
+  inverted?: boolean;
+}) => {
   const Icon = sectionIcon(section.icon);
+  const display = normalizeDisplay(section.display);
+  const isCentered = display.heading_align === "center";
+  const hideTitle = display.hide_title;
+  const isInverted = inverted ?? isInvertedSurface(display.background);
+  const seeAllClass = isInverted
+    ? "inline-flex shrink-0 items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:scale-105 hover:bg-white hover:text-slate-900 sm:text-sm"
+    : "inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:text-sm";
+
+  if (hideTitle) {
+    return (
+      <div className={section.see_all_url ? "mb-4 flex items-center justify-end" : ""}>
+        <div className="sr-only">
+          <h2 id={headingId}>{section.title}</h2>
+          {section.subtitle && <p>{section.subtitle}</p>}
+        </div>
+        {section.see_all_url && (
+          <Link to={section.see_all_url} className={seeAllClass}>
+            {section.see_all_label}
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
+    <div
+      className={
+        isCentered
+          ? "mb-5 flex flex-col items-center gap-2 text-center sm:mb-6"
+          : "mb-5 flex items-center justify-between gap-3 sm:mb-6"
+      }
+    >
       <div>
-        <h2 className="flex items-center gap-2.5 text-xl font-bold tracking-tight sm:text-2xl">
-          {Icon && <Icon className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />}
+        <h2
+          id={headingId}
+          className={`flex items-center gap-2.5 text-xl font-bold tracking-tight sm:text-2xl ${isCentered ? "justify-center" : ""}`}
+        >
+          {Icon && <Icon className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${isInverted ? "text-white" : "text-primary"}`} />}
           {section.title}
         </h2>
         {section.subtitle && <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{section.subtitle}</p>}
       </div>
       {section.see_all_url && (
-        <Link
-          to={section.see_all_url}
-          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary hover:text-primary-foreground sm:text-sm"
-        >
+        <Link to={section.see_all_url} className={seeAllClass}>
           {section.see_all_label}
           <ArrowRight className="h-3 w-3" />
         </Link>
@@ -89,48 +104,26 @@ const SectionHeader = ({ section }: { section: HomeSectionData }) => {
   );
 };
 
-/** Lays any list of cards out as the grid or scrolling rail the section asks for. */
-function CardLayout<T>({
-  section,
-  items,
-  render,
-  keyOf,
-}: {
-  section: HomeSectionData;
-  items: T[];
-  render: (item: T) => ReactNode;
-  keyOf: (item: T) => number;
-}) {
-  if (section.layout === "rail") {
-    return (
-      <Carousel opts={{ align: "start", loop: items.length > section.columns_desktop }} className="w-full">
-        <CarouselContent className="-ml-3">
-          {items.map((item) => (
-            <CarouselItem
-              key={keyOf(item)}
-              className={`pl-3 ${BASIS_MOBILE[section.columns_mobile] ?? "basis-1/2"} ${BASIS_LG[section.columns_desktop] ?? "lg:basis-1/4"}`}
-            >
-              {render(item)}
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious className="left-2 hidden sm:flex" />
-        <CarouselNext className="right-2 hidden sm:flex" />
-      </Carousel>
-    );
-  }
-  return (
-    <div
-      className={`grid gap-3 sm:gap-4 ${COLS_MOBILE[section.columns_mobile] ?? "grid-cols-2"} ${COLS_MD[section.columns_desktop] ?? ""} ${COLS_LG[section.columns_desktop] ?? "lg:grid-cols-4"}`}
-    >
-      {items.map((item) => (
-        <div key={keyOf(item)} className="min-w-0">
-          {render(item)}
-        </div>
-      ))}
+export const StoryCoverTile = ({ story }: { story: Story }) => (
+  <Link
+    to={`/story/${story.slug}`}
+    aria-label={story.author ? `${story.title} by ${story.author}` : story.title}
+    title={story.title}
+    className="group block overflow-hidden rounded-sm shadow-sm transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100"
+  >
+    <div className="aspect-[3/4] w-full overflow-hidden bg-muted">
+      <CoverImage
+        src={story.cover_image}
+        alt=""
+        title={story.title}
+        author={story.author}
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+      />
     </div>
-  );
-}
+  </Link>
+);
 
 const HomeBanner = ({ section }: { section: HomeSectionData }) => {
   const Icon = sectionIcon(section.icon) ?? MapPin;
@@ -254,28 +247,48 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
         // A video's story is on screen here, so rails further down must not
         // offer it again as a story.
         rails.reserve(storiesBehindVideos(videos));
+        const variant = effectiveCardStyle(section.card_style, section.section_type);
+        const mediaVariant = (v: HomeSectionCardStyle) => (v === "compact" ? "default" : v);
+        const display = normalizeDisplay(section.display);
+        const show = cardShowFlagsFromDisplay(display);
+        const headingId = `home-section-heading-${section.id}`;
         return (
-          <section key={key}>
-            <SectionHeader section={section} />
-            <CardLayout section={section} items={videos} keyOf={(v) => v.id} render={(v) => <VideoCard video={v} />} />
+          <section key={key} aria-labelledby={headingId}>
+            <SectionHeader section={section} headingId={headingId} />
+            <SectionLayout
+              section={section}
+              items={videos}
+              variant={variant}
+              keyOf={(v) => v.id}
+              render={(v, cardVariant) => <VideoCard video={v} variant={mediaVariant(cardVariant)} show={show} />}
+            />
           </section>
         );
       }
       case "blogs": {
         const blogs = section.items as Blog[];
+        const variant = effectiveCardStyle(section.card_style, section.section_type);
+        const mediaVariant = (v: HomeSectionCardStyle) => (v === "compact" ? "default" : v);
+        const display = normalizeDisplay(section.display);
+        const show = cardShowFlagsFromDisplay(display);
+        const headingId = `home-section-heading-${section.id}`;
         return (
-          <section key={key}>
-            <SectionHeader section={section} />
-            <CardLayout section={section} items={blogs} keyOf={(b) => b.id} render={(b) => <BlogCard blog={b} />} />
+          <section key={key} aria-labelledby={headingId}>
+            <SectionHeader section={section} headingId={headingId} />
+            <SectionLayout
+              section={section}
+              items={blogs}
+              variant={variant}
+              keyOf={(b) => b.id}
+              render={(b, cardVariant) => <BlogCard blog={b} variant={mediaVariant(cardVariant)} show={show} />}
+            />
           </section>
         );
       }
       case "stories_query":
       case "stories_manual": {
         const all = section.items as Story[];
-        const stories = section.allow_repeats
-          ? all.slice(0, section.item_limit)
-          : rails.claim(all, section.item_limit);
+        const stories = section.allow_repeats ? all.slice(0, section.item_limit) : rails.claim(all, section.item_limit);
         if (stories.length === 0) return null;
         if (section.variant === "quick_read") {
           return (
@@ -302,24 +315,39 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
             />
           );
         }
+        const display = normalizeDisplay(section.display);
+        const headingId = `home-section-heading-${section.id}`;
         if (section.layout === "trending") {
+          const inverted = isInvertedSurface(display.background);
           return (
-            <section key={key}>
-              <SectionHeader section={section} />
-              <div className="rounded-sm border border-border bg-card p-4 shadow-sm sm:p-5">
+            <section key={key} aria-labelledby={headingId}>
+              <SectionHeader section={section} headingId={headingId} />
+              <div
+                className={`rounded-sm border border-border bg-card p-4 shadow-sm sm:p-5 ${
+                  inverted
+                    ? "text-card-foreground [--foreground:var(--card-foreground)] [--muted-foreground:220_9%_46%] [&_h3]:text-card-foreground"
+                    : ""
+                }`}
+              >
                 <TrendingList stories={stories} />
               </div>
             </section>
           );
         }
+        const variant = effectiveCardStyle(section.card_style, section.section_type);
+        const show = cardShowFlagsFromDisplay(display);
         return (
-          <section key={key}>
-            <SectionHeader section={section} />
-            <CardLayout
+          <section key={key} aria-labelledby={headingId}>
+            <SectionHeader section={section} headingId={headingId} />
+            <SectionLayout
               section={section}
               items={stories}
+              variant={variant}
               keyOf={(s) => s.id}
-              render={(s) => <StoryCard {...s} compact={section.card_style === "compact"} />}
+              render={(s, cardVariant) => (
+                <StoryCard {...s} variant={cardVariant} compact={cardVariant === "compact"} show={show} />
+              )}
+              renderCover={(s) => <StoryCoverTile story={s} />}
             />
           </section>
         );
@@ -341,7 +369,9 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
         position={index + 1}
         items={clickItemsFor(section, recommendations.data)}
       >
-        {node}
+        <SectionFrame display={section.display} device={section.device} anchorId={section.anchor_id}>
+          {node}
+        </SectionFrame>
       </SectionClickTracker>
     );
   });
