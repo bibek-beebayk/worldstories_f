@@ -229,6 +229,7 @@ export interface Story {
   has_audio?: boolean;
   has_video?: boolean;
   has_read_along?: boolean;
+  audio_minutes?: number | null;
   reviews_count?: number;
   is_favorite?: boolean;
   favorites_count?: number;
@@ -3092,4 +3093,10 @@ export interface AdminFeedback {
 
 export interface AdminFeedbackListResponse extends PaginatedResponse<AdminFeedback> {
   status_counts: Record<FeedbackStatus, number>;
+}
+
+export interface AudiobookStats {
+  count: number;
+  total_seconds: number;
+  unknown_duration_count: number;
 }

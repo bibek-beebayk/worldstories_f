@@ -126,6 +126,7 @@ import {
   TaxonomyImportRow,
   StoryMapResponse,
   ReadAlongResponse,
+  AudiobookStats,
 } from "./types";
 
 export const storyApi = {
@@ -157,10 +158,14 @@ export const storyApi = {
     // Text-only filtering for map/library explorers. Appended to preserve the
     // long-standing positional call contract above.
     format: string = "all",
+    audioLength: string = "all",
+    maxAudioMinutes?: number,
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}${hasReadAlong ? "&has_read_along=true" : ""}${format !== "all" ? `&format=${encodeURIComponent(format)}` : ""}`,
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}${hasReadAlong ? "&has_read_along=true" : ""}${format !== "all" ? `&format=${encodeURIComponent(format)}` : ""}${audioLength && audioLength !== "all" ? `&audio_length=${encodeURIComponent(audioLength)}` : ""}${maxAudioMinutes !== undefined ? `&max_audio_minutes=${encodeURIComponent(String(maxAudioMinutes))}` : ""}`,
     ),
+
+  getAudiobookStats: () => apiClient<AudiobookStats>("/stories/audiobook-stats/"),
 
   // The Library page: every filter travels as a named param (see lib/libraryParams.ts).
   getLibraryStories: (page: number, params: Record<string, string>) =>
