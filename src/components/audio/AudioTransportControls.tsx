@@ -1,12 +1,4 @@
-import {
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Pause,
-  Play,
-  RotateCcw,
-  RotateCw,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Pause, Play, RotateCcw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -46,7 +38,7 @@ export function AudioTransportControls({
 }: AudioTransportControlsProps) {
   const secondaryClass = cn(
     "h-11 w-11 touch-manipulation rounded-full bg-white/15 hover:bg-white/25 motion-reduce:transition-none",
-    buttonClassName
+    buttonClassName,
   );
 
   return (
@@ -70,9 +62,7 @@ export function AudioTransportControls({
         className={cn("relative", secondaryClass)}
       >
         <RotateCcw className="h-4 w-4" />
-        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold">
-          {skipSeconds}
-        </span>
+        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold">{skipSeconds}</span>
       </Button>
 
       <Button
@@ -80,7 +70,10 @@ export function AudioTransportControls({
         size="icon"
         aria-label={isLoading ? "Loading audio — tap to play" : isPlaying ? "Pause" : "Play"}
         aria-busy={isLoading}
-        className={cn("h-14 w-14 touch-manipulation rounded-full bg-cyan-400 text-slate-900 hover:bg-cyan-300 motion-reduce:transition-none", playButtonClassName)}
+        className={cn(
+          "h-14 w-14 touch-manipulation rounded-full bg-[#D92F4C] text-white hover:bg-[#b8213e] motion-reduce:transition-none",
+          playButtonClassName,
+        )}
       >
         {isLoading ? (
           <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none" />
@@ -99,9 +92,7 @@ export function AudioTransportControls({
         className={cn("relative", secondaryClass)}
       >
         <RotateCw className="h-4 w-4" />
-        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold">
-          {skipSeconds}
-        </span>
+        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold">{skipSeconds}</span>
       </Button>
 
       <Button

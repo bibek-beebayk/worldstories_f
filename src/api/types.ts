@@ -28,6 +28,7 @@ export interface Audio {
   order: number;
   slug: string;
   download_size_bytes?: number;
+  duration_seconds?: number | null;
   has_transcript: boolean;
   read_along_available: boolean;
   transcript_synchronized: boolean;
@@ -3106,6 +3107,4 @@ export type QuickReadHeroResponse =
   { mode: "continue"; story: Story; progress: number } | { mode: "pick"; story: Story } | { mode: "none" };
 
 export type QuickReadHeroResponse =
-  | { mode: "continue"; story: Story; progress: number }
-  | { mode: "pick"; story: Story }
-  | { mode: "none" };
+  { mode: "continue"; story: Story; progress: number } | { mode: "pick"; story: Story } | { mode: "none" };

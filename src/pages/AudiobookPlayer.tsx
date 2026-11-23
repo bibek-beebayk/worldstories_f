@@ -1,25 +1,39 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { data, useParams, Link, useLocation, useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import {
-  ArrowLeft,
-  Headphones,
-  Clock3,
-  ListMusic,
-  Maximize2,
-  Minimize2,
-} from "lucide-react";
+import { ArrowLeft, BookOpen, ListMusic, Maximize2, Minimize2, Search, X } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import AdSpace from "@/components/AdSpace";
+import CoverImage from "@/components/CoverImage";
 import { buildMeta } from "@/lib/buildMeta";
+import { formatLeft, formatLong } from "@/lib/formatDuration";
 import { useStory } from "@/hooks/useStory";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { storyApi } from "@/api/story";
+import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
+import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
+import { useAudioSource } from "@/hooks/audio/useAudioSource";
+import { useAudioProgress } from "@/hooks/audio/useAudioProgress";
+import { SPEED_OPTIONS, useAudioPlayback } from "@/hooks/audio/useAudioPlayback";
+import { useAutoplayPreference } from "@/hooks/audio/useAutoplayPreference";
+import { useSleepTimer } from "@/hooks/audio/useSleepTimer";
+import { useMediaSession } from "@/hooks/audio/useMediaSession";
+import { usePlayerShortcuts } from "@/hooks/audio/usePlayerShortcuts";
+import { AudioTimeline } from "@/components/audio/AudioTimeline";
+import { AudioTransportControls } from "@/components/audio/AudioTransportControls";
+import { AutoplayToggle } from "@/components/audio/AutoplayToggle";
+import { AudioLoadingOverlay } from "@/components/audio/AudioLoadingOverlay";
+import { AudioErrorMessage } from "@/components/audio/AudioErrorMessage";
+import { SpeedPicker } from "@/components/audio/SpeedPicker";
+import { SleepTimerControl } from "@/components/audio/SleepTimerControl";
+import { ShortcutsPopover } from "@/components/audio/ShortcutsPopover";
+import { ChapterRow } from "@/components/audio/ChapterRow";
+import { PlayerMiniBar } from "@/components/audio/PlayerMiniBar";
 import type { Route } from "./+types/AudiobookPlayer";
 
 // Fetched here purely to supply meta() with real data server-side — the
@@ -53,19 +67,6 @@ export function meta({ data: story, params }: Route.MetaArgs) {
     noIndex: true,
   });
 }
-import CoverImage from "@/components/CoverImage";
-import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
-import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
-import { useAudioSource } from "@/hooks/audio/useAudioSource";
-import { useAudioProgress } from "@/hooks/audio/useAudioProgress";
-import { useAudioPlayback } from "@/hooks/audio/useAudioPlayback";
-import { useAutoplayPreference } from "@/hooks/audio/useAutoplayPreference";
-import { AudioTimeline } from "@/components/audio/AudioTimeline";
-import { AudioTransportControls } from "@/components/audio/AudioTransportControls";
-import { PlaybackSpeedControl } from "@/components/audio/PlaybackSpeedControl";
-import { AutoplayToggle } from "@/components/audio/AutoplayToggle";
-import { AudioLoadingOverlay } from "@/components/audio/AudioLoadingOverlay";
-import { AudioErrorMessage } from "@/components/audio/AudioErrorMessage";
 
 const PLAYLIST_CLOSE_DRAG_DISTANCE = 56;
 
@@ -76,10 +77,14 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   const backHref = (location.state as { backTo?: string } | null)?.backTo || `/listen/${story_slug}`;
   const { data: story, isLoading, isError } = useStory(story_slug, loaderData || undefined);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
+  const playerCardRef = useRef<HTMLDivElement | null>(null);
+  const activeDesktopRowRef = useRef<HTMLAnchorElement | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [chapterSearch, setChapterSearch] = useState("");
+  const [isMainCardVisible, setIsMainCardVisible] = useState(true);
   const [autoplayEnabled, setAutoplayEnabled] = useAutoplayPreference();
   const playlistDragRef = useRef<{ pointerId: number; startX: number; startY: number } | null>(null);
   const isAuthenticated = useIsLoggedIn();
@@ -94,28 +99,28 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
 
   const currentAudio = story?.audios[currentIndex];
 
-  const jumpToAudio = (targetIndex: number) => {
-    if (!story || targetIndex < 0 || targetIndex >= story.audios.length) return;
-    const target = story.audios[targetIndex];
-    setCurrentIndex(targetIndex);
-    navigate(`/listen/${story_slug}/${target.slug}`, { state: location.state });
-  };
+  const jumpToAudio = useCallback(
+    (targetIndex: number) => {
+      if (!story || targetIndex < 0 || targetIndex >= story.audios.length) return;
+      const target = story.audios[targetIndex];
+      setCurrentIndex(targetIndex);
+      navigate(`/listen/${story_slug}/${target.slug}`, { state: location.state });
+    },
+    [story, story_slug, navigate, location.state],
+  );
 
-  // isPlaying itself isn't set here — the shared audio engine handles the
-  // actual play() attempt (and whether it succeeded) once the chapter switch
-  // lands, so this doesn't optimistically claim success before it's known.
-  const playNext = () => {
+  const playNext = useCallback(() => {
     if (!story) return;
     if (currentIndex < story.audios.length - 1) {
       jumpToAudio(currentIndex + 1);
     }
-  };
+  }, [story, currentIndex, jumpToAudio]);
 
-  const playPrev = () => {
+  const playPrev = useCallback(() => {
     if (currentIndex > 0) {
       jumpToAudio(currentIndex - 1);
     }
-  };
+  }, [currentIndex, jumpToAudio]);
 
   const source = useAudioSource({
     storySlug: story_slug,
@@ -130,6 +135,12 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     currentAudioSlug: currentAudio?.slug,
   });
 
+  // Ref bridge so useAudioPlayback's onEnded always reads the latest sleep timer state.
+  const sleepTimerRef = useRef<{ stopAtChapterEnd: boolean; cancel: () => void }>({
+    stopAtChapterEnd: false,
+    cancel: () => {},
+  });
+
   const player = useAudioPlayback({
     audioSrc: source.audioSrc,
     storySlug: story_slug,
@@ -137,22 +148,35 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     onTimeUpdate: progress.handleTimeUpdate,
     onEnded: (el) => {
       progress.handleEnded(el);
+      if (sleepTimerRef.current.stopAtChapterEnd) {
+        sleepTimerRef.current.cancel();
+        return;
+      }
       if (autoplayEnabled) playNext();
     },
     onMediaError: source.handleMediaError,
   });
 
+  const sleepTimer = useSleepTimer({
+    onPause: () => player.pause(),
+    getAudioEl: () => player.audioRef.current,
+  });
+
+  useEffect(() => {
+    sleepTimerRef.current = {
+      stopAtChapterEnd: sleepTimer.stopAtChapterEnd,
+      cancel: sleepTimer.cancel,
+    };
+  }, [sleepTimer.stopAtChapterEnd, sleepTimer.cancel]);
+
   const liveAudioProgressMap = progress.liveProgressMap;
 
-  // Story-level position for the lifecycle events: every track weighted
-  // equally, the same approximation the library endpoints use for a story's
-  // overall listening progress.
   const overallListeningProgress = useMemo(() => {
     const tracks = story?.audios ?? [];
     if (tracks.length === 0) return 0;
     const total = tracks.reduce(
       (sum, audio) => sum + Math.min(1, Math.max(0, liveAudioProgressMap[audio.slug]?.progress || 0)),
-      0
+      0,
     );
     return total / tracks.length;
   }, [story?.audios, liveAudioProgressMap]);
@@ -164,10 +188,34 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     ready: progress.progressDataReady && (story?.audios?.length ?? 0) > 0,
   });
 
-  useContentSessionAnalytics("listening_session", story_slug ? { storySlug: story_slug } : undefined, player.isPlaying, {
-    format: "audio",
-    item_slug: currentAudio?.slug || chapter_slug || "",
-    playback_rate: player.playbackRate,
+  useContentSessionAnalytics(
+    "listening_session",
+    story_slug ? { storySlug: story_slug } : undefined,
+    player.isPlaying,
+    {
+      format: "audio",
+      item_slug: currentAudio?.slug || chapter_slug || "",
+      playback_rate: player.playbackRate,
+    },
+  );
+
+  // Lock-screen / OS media controls
+  useMediaSession({
+    title: currentAudio?.title || story?.title || "Audiobook",
+    artist: story?.author?.name || "",
+    album: story?.title || "",
+    artwork: story?.cover_image || null,
+    isPlaying: player.isPlaying,
+    currentTime: player.currentTime,
+    duration: player.duration,
+    playbackRate: player.playbackRate,
+    onPlay: player.play,
+    onPause: player.pause,
+    onPrevious: currentIndex > 0 ? playPrev : undefined,
+    onNext: story && currentIndex < story.audios.length - 1 ? playNext : undefined,
+    onSeekBackward: () => player.skip(-15),
+    onSeekForward: () => player.skip(15),
+    onSeekTo: player.seek,
   });
 
   useEffect(() => {
@@ -200,7 +248,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   // iPhone Safari cannot fullscreen arbitrary elements, so the state also
   // drives a fixed full-viewport layout. Supporting browsers additionally
   // use the native API to hide their browser chrome where possible.
-  const toggleFullscreen = async () => {
+  const toggleFullscreen = useCallback(async () => {
     const next = !isFullscreen;
     setPlaylistOpen(false);
     setIsFullscreen(next);
@@ -215,21 +263,95 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
       // The CSS full-viewport mode remains active when the native API is not
       // available or the browser rejects the request.
     }
-  };
+  }, [isFullscreen]);
+
+  // Keyboard shortcuts
+  usePlayerShortcuts({
+    togglePlay: player.togglePlay,
+    seekBack: () => player.skip(-15),
+    seekForward: () => player.skip(15),
+    prev: playPrev,
+    next: playNext,
+    speedUp: () => {
+      const idx = SPEED_OPTIONS.indexOf(player.playbackRate);
+      const nextIdx = idx === -1 ? 1 : Math.min(SPEED_OPTIONS.length - 1, idx + 1);
+      player.setPlaybackRate(SPEED_OPTIONS[nextIdx]);
+    },
+    speedDown: () => {
+      const idx = SPEED_OPTIONS.indexOf(player.playbackRate);
+      const nextIdx = idx === -1 ? 0 : Math.max(0, idx - 1);
+      player.setPlaybackRate(SPEED_OPTIONS[nextIdx]);
+    },
+    toggleMute: () => {
+      if (player.audioRef.current) {
+        player.audioRef.current.muted = !player.audioRef.current.muted;
+      }
+    },
+    toggleFullscreen: () => {
+      void toggleFullscreen();
+    },
+  });
+
+  // Mini-player visibility observer on the main player card
+  useEffect(() => {
+    const cardEl = playerCardRef.current;
+    if (!cardEl || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setIsMainCardVisible(entries[0]?.isIntersecting ?? true);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(cardEl);
+    return () => observer.disconnect();
+  }, [story?.slug]);
+
+  // Scroll active chapter row into view inside the desktop sidebar container
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    activeDesktopRowRef.current?.scrollIntoView({ block: "nearest" });
+  }, [currentIndex, story?.slug]);
+
+  // Remaining audiobook duration (only shown when every chapter has a known duration)
+  const bookRemainingText = useMemo(() => {
+    const tracks = story?.audios ?? [];
+    if (tracks.length === 0) return "";
+    if (!tracks.every((a) => typeof a.duration_seconds === "number" && a.duration_seconds > 0)) {
+      return "";
+    }
+    let remainingSec = 0;
+    for (let i = 0; i < tracks.length; i += 1) {
+      const track = tracks[i];
+      const dur = track.duration_seconds as number;
+      if (i === currentIndex) {
+        const currentDur = player.duration > 0 ? player.duration : dur;
+        remainingSec += Math.max(0, currentDur - player.currentTime);
+      } else {
+        const p = Math.min(1, Math.max(0, liveAudioProgressMap[track.slug]?.progress || 0));
+        remainingSec += (1 - p) * dur;
+      }
+    }
+    return formatLong(remainingSec);
+  }, [story?.audios, currentIndex, player.duration, player.currentTime, liveAudioProgressMap]);
+
+  const filteredAudios = useMemo(() => {
+    const tracks = story?.audios ?? [];
+    const q = chapterSearch.trim().toLowerCase();
+    if (!q) return tracks;
+    return tracks.filter((a) => a.title.toLowerCase().includes(q) || String(a.order).includes(q));
+  }, [story?.audios, chapterSearch]);
 
   if (isLoading) return <FullScreenLoader />;
-  if (isError || !story) return <div>Error loading audio.</div>;
+  if (isError || !story)
+    return <div className="p-6 text-center text-sm text-muted-foreground">Error loading audio.</div>;
 
-  const currentAudioLiveProgress = currentAudio?.slug
-    ? liveAudioProgressMap[currentAudio.slug]?.progress || 0
-    : 0;
-  const currentAudioCompletion = Math.round(currentAudioLiveProgress * 100);
-  const overallAudioProgress =
-    story.audios.length > 0
-      ? story.audios.reduce((sum, audio) => sum + (liveAudioProgressMap[audio.slug]?.progress || 0), 0) /
-        story.audios.length
-      : 0;
-  const overallAudioCompletion = Math.round(overallAudioProgress * 100);
+  const overallAudioCompletion = Math.round(overallListeningProgress * 100);
+  const chapterRemainingLabel =
+    player.duration > 0 ? formatLeft(Math.max(0, player.duration - player.currentTime)) : undefined;
+  const showMiniBar = !isMainCardVisible && !isFullscreen && Boolean(currentAudio);
+  const showChapterSearch = story.audios.length > 10;
+  const authorAndType = [story.author?.name, story.story_type].filter(Boolean).join(" · ");
 
   const startPlaylistCloseGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary || event.button !== 0) return;
@@ -265,92 +387,29 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     }
   };
 
-  const renderPlaylistItems = (onSelect?: () => void, compact = false) => {
+  const renderChapterRows = (isDesktop: boolean, onSelect?: () => void) => {
     if (story.audios.length === 0) {
       return <p className="p-4 text-sm text-muted-foreground">No audio available.</p>;
     }
+    if (filteredAudios.length === 0) {
+      return <p className="p-6 text-center text-sm text-muted-foreground">No chapters match</p>;
+    }
 
-    return story.audios.map((audio, index) => {
-      const saved = liveAudioProgressMap[audio.slug];
-      const completed = Math.round((saved?.progress || 0) * 100);
-      const isActive = index === currentIndex;
-
-      if (compact) {
-        return (
-          <Link
-            to={`/listen/${story_slug}/${audio.slug}`}
-            key={audio.slug}
-            className="block"
-            onClick={onSelect}
-          >
-            <div
-              className={`flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-white/10 ${
-                isActive ? "bg-primary/10" : ""
-              }`}
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Headphones
-                  className={`h-3.5 w-3.5 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
-                />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Ch {audio.order}
-                  </p>
-                  <h3 className="truncate text-sm font-medium">{audio.title}</h3>
-                </div>
-              </div>
-
-              {isAuthenticated && (
-                <span
-                  className={`shrink-0 text-xs font-medium ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  {isActive ? "Now Playing" : `${completed}%`}
-                </span>
-              )}
-            </div>
-            {index < story.audios.length - 1 && <Separator className="bg-border/50" />}
-          </Link>
-        );
-      }
-
+    return filteredAudios.map((audio) => {
+      const isActive = audio.slug === currentAudio?.slug;
+      const savedProgress = isAuthenticated ? (liveAudioProgressMap[audio.slug]?.progress ?? 0) : null;
       return (
-        <Link
-          to={`/listen/${story_slug}/${audio.slug}`}
-          state={location.state}
+        <ChapterRow
           key={audio.slug}
-          className="block"
-          onClick={onSelect}
-        >
-          <div className={`p-4 transition-colors hover:bg-muted/50 ${isActive ? "bg-primary/5" : ""}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-muted-foreground">CHAPTER {audio.order}</p>
-                <h3 className="mt-1 line-clamp-2 break-words font-medium">{audio.title}</h3>
-              </div>
-              <Headphones
-                className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
-              />
-            </div>
-
-            {isAuthenticated && (
-              <>
-                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{completed}% complete</span>
-                  {isActive && <span className="text-primary">Now Playing</span>}
-                </div>
-                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: `${completed}%` }}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          {index < story.audios.length - 1 && <Separator />}
-        </Link>
+          ref={isDesktop && isActive ? activeDesktopRowRef : undefined}
+          storySlug={story_slug || story.slug}
+          audio={audio}
+          isActive={isActive}
+          isPlaying={player.isPlaying}
+          progress={savedProgress}
+          linkState={location.state}
+          onSelect={onSelect}
+        />
       );
     });
   };
@@ -360,21 +419,15 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
       ref={playerContainerRef}
       className={`${
         isFullscreen
-          ? "fixed inset-0 z-[200] h-[100dvh] overflow-y-auto scrollbar-thin bg-background"
-          : "min-h-screen"
-      } bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_55%),linear-gradient(to_bottom,var(--theme-page-wash,#f8fafc),transparent_280px)]`}
+          ? "fixed inset-0 z-[200] h-[100dvh] overflow-y-auto scrollbar-thin bg-[#1B1220]"
+          : `min-h-screen overflow-x-clip bg-background ${showMiniBar ? "pb-20" : ""}`
+      }`}
     >
-      <main
-        className={
-          isFullscreen
-            ? "min-h-[100dvh] w-full"
-            : "container mx-auto px-3 py-4 sm:px-4 sm:py-8"
-        }
-      >
+      <main className={isFullscreen ? "min-h-[100dvh] w-full" : "container mx-auto px-3 py-4 sm:px-4 sm:py-8"}>
         {!isFullscreen && (
           <Link to={backHref} className="mb-4 inline-block">
             <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
               Back to story
             </Button>
           </Link>
@@ -384,158 +437,205 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
           className={
             isFullscreen
               ? "grid min-h-[100dvh] w-full grid-cols-1"
-              : "grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.55fr_1fr]"
+              : "grid grid-cols-1 items-start gap-4 sm:gap-6 xl:grid-cols-[1.55fr_1fr]"
           }
         >
-        <section className={isFullscreen ? "min-h-[100dvh] w-full" : "space-y-4 sm:space-y-6"}>
-            <Card
-              className={`relative overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white ${
-                isFullscreen ? "min-h-[100dvh] w-full rounded-none shadow-none" : "shadow-xl"
-              }`}
-            >
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={toggleFullscreen}
-                aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-                className="absolute right-3 top-3 z-10 h-9 w-9 rounded-full border border-white/20 bg-black/25 text-white backdrop-blur hover:bg-black/40 hover:text-white"
+          <section className={isFullscreen ? "min-h-[100dvh] w-full" : "space-y-4 sm:space-y-6"}>
+            <div ref={playerCardRef}>
+              <Card
+                className={`relative overflow-hidden border-0 bg-[linear-gradient(140deg,#2E1623,#1B1220_70%)] text-white ${
+                  isFullscreen ? "min-h-[100dvh] w-full rounded-none shadow-none" : "shadow-xl"
+                }`}
               >
-                {isFullscreen ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </Button>
-
-              {player.isLoading && <AudioLoadingOverlay />}
-
-              <CardContent
-                className={
-                  isFullscreen
-                    ? "flex min-h-[100dvh] flex-col items-center justify-center gap-5 p-5 sm:flex-row sm:gap-10 sm:p-10 lg:px-[10vw]"
-                    : "flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-start sm:gap-6 sm:p-6"
-                }
-              >
-                <div
-                  className={`relative shrink-0 overflow-hidden rounded-xl shadow-lg ${
-                    isFullscreen ? "w-44 sm:w-72 lg:w-80" : "w-40 sm:w-56"
-                  }`}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFullscreen}
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  className="absolute right-3 top-3 z-10 h-11 w-11 rounded-full border border-white/[0.28] bg-white/10 text-white backdrop-blur hover:bg-white/20 hover:text-white focus-visible:ring-2 focus-visible:ring-[#FF8FA3] sm:h-9 sm:w-9"
                 >
-                  <CoverImage
-                    src={story.cover_image}
-                    alt={story.title}
-                    author={story.author?.name}
-                    className="block h-auto w-full"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                </div>
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
 
-                <div className={`w-full min-w-0 space-y-4 ${isFullscreen ? "max-w-2xl" : ""}`}>
-                  <div className="text-center sm:text-left">
-                    <h1 className="truncate text-lg font-bold tracking-tight sm:text-xl">
-                      {story.title}
-                    </h1>
-                    <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                      <Badge variant="outline" className="border-white/20 bg-white/10 text-slate-200">
-                        {story.story_type}
-                      </Badge>
-                      <Badge variant="outline" className="border-white/20 bg-white/10 text-slate-200">
-                        {story.audios.length} tracks
-                      </Badge>
-                    </div>
-                  </div>
+                {player.isLoading && <AudioLoadingOverlay />}
 
-                  <div className="text-center sm:text-left">
-                    <p className="text-xs uppercase tracking-wide text-cyan-200">
-                      Chapter {currentAudio?.order ?? ""}
-                    </p>
-                    <h2 className="mt-1 line-clamp-2 text-xl font-semibold leading-tight sm:text-2xl">
-                      {currentAudio?.title || "No chapter selected"}
-                    </h2>
-                  </div>
-
-                  {/* Scrubber */}
-                  <AudioTimeline
-                    currentTime={player.currentTime}
-                    duration={player.duration}
-                    onSeek={player.seek}
-                  />
-
-                  {/* Transport controls */}
-                  <AudioTransportControls
-                    isPlaying={player.isPlaying}
-                    isLoading={player.isLoading}
-                    onTogglePlay={player.togglePlay}
-                    onSkip={player.skip}
-                    onPrev={playPrev}
-                    onNext={playNext}
-                    hasPrev={currentIndex > 0}
-                    hasNext={currentIndex < story.audios.length - 1}
-                    prevLabel="Previous chapter"
-                    nextLabel="Next chapter"
-                  />
-
-                  <AudioErrorMessage message={player.error} />
-
-                  {currentAudio && source.audioSrc && (
-                    <audio
-                      key={source.sourceKey}
-                      ref={player.audioRef}
-                      src={source.audioSrc}
-                      {...player.audioElementProps}
+                <CardContent
+                  className={
+                    isFullscreen
+                      ? "flex min-h-[100dvh] flex-col items-center justify-center gap-6 p-5 sm:flex-row sm:gap-10 sm:p-10 lg:px-[10vw]"
+                      : "flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-start sm:gap-6 sm:p-6"
+                  }
+                >
+                  <div
+                    className={`relative shrink-0 overflow-hidden rounded-xl shadow-lg ${
+                      isFullscreen ? "w-44 sm:w-72 lg:w-80" : "w-[170px] sm:w-[210px]"
+                    }`}
+                  >
+                    <CoverImage
+                      src={story.cover_image}
+                      alt={story.title}
+                      author={story.author?.name}
+                      className="block aspect-[3/4] h-auto w-full object-cover"
                     />
-                  )}
+                  </div>
 
-                  <div className="flex items-center justify-center gap-2 sm:justify-start">
-                    <PlaybackSpeedControl rate={player.playbackRate} onCycle={player.cyclePlaybackRate} />
+                  <div className={`w-full min-w-0 space-y-4 ${isFullscreen ? "max-w-2xl" : ""}`}>
+                    <div className="text-center sm:pr-10 sm:text-left">
+                      <h1 className="font-serif line-clamp-2 text-[26px] font-bold leading-tight tracking-tight text-white sm:text-[30px]">
+                        {story.title}
+                      </h1>
+                      {authorAndType && <p className="mt-1 text-sm text-[#D9C9D1]">{authorAndType}</p>}
+                    </div>
 
-                    <AutoplayToggle
-                      enabled={autoplayEnabled}
-                      onToggle={() => setAutoplayEnabled((enabled) => !enabled)}
+                    <div className="text-center sm:text-left">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[#FF8FA3]">
+                        CHAPTER {currentAudio?.order ?? currentIndex + 1} OF {story.audios.length}
+                      </p>
+                      <h2 className="mt-1 line-clamp-2 text-[22px] font-semibold leading-snug text-white">
+                        {currentAudio?.title || "No chapter selected"}
+                      </h2>
+                    </div>
+
+                    {/* Scrubber */}
+                    <AudioTimeline
+                      currentTime={player.currentTime}
+                      duration={player.duration}
+                      onSeek={player.seek}
+                      middleLabel={chapterRemainingLabel}
                     />
 
-                    <button
-                      type="button"
-                      onClick={() => setPlaylistOpen(true)}
-                      className={`items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-white/20 ${
-                        isFullscreen ? "flex" : "flex xl:hidden"
-                      }`}
-                    >
-                      <ListMusic className="h-3.5 w-3.5" />
-                      Playlist
-                      <span className="rounded-full bg-white/20 px-1.5 text-[10px]">
-                        {story.audios.length}
-                      </span>
-                    </button>
+                    {/* Transport controls */}
+                    <AudioTransportControls
+                      isPlaying={player.isPlaying}
+                      isLoading={player.isLoading}
+                      onTogglePlay={player.togglePlay}
+                      onSkip={player.skip}
+                      onPrev={playPrev}
+                      onNext={playNext}
+                      hasPrev={currentIndex > 0}
+                      hasNext={currentIndex < story.audios.length - 1}
+                      prevLabel="Previous chapter"
+                      nextLabel="Next chapter"
+                      buttonClassName="h-11 w-11 sm:h-12 sm:w-12 bg-white/10 text-white hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-[#FF8FA3]"
+                      playButtonClassName="h-[68px] w-[68px] sm:h-[72px] sm:w-[72px] bg-[#D92F4C] text-white hover:bg-[#b8213e] focus-visible:ring-2 focus-visible:ring-[#FF8FA3]"
+                    />
 
-                  </div>
+                    <AudioErrorMessage message={player.error} />
 
-                  {isAuthenticated ? (
-                    <div className="flex items-center justify-between text-xs text-slate-300">
-                      <span className="flex items-center gap-1.5">
-                        <Clock3 className="h-3.5 w-3.5 text-cyan-200" />
-                        Chapter {currentAudioCompletion}%
-                      </span>
-                      <span>Audiobook {overallAudioCompletion}%</span>
-                    </div>
-                  ) : (
-                    <p className="text-center text-xs text-slate-300 sm:text-left">
+                    {currentAudio && source.audioSrc && (
+                      <audio
+                        key={source.sourceKey}
+                        ref={player.audioRef}
+                        src={source.audioSrc}
+                        {...player.audioElementProps}
+                      />
+                    )}
+
+                    {/* Single chip row */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+                      <SpeedPicker rate={player.playbackRate} onSelect={player.setPlaybackRate} />
+
+                      <SleepTimerControl
+                        mode={sleepTimer.mode}
+                        remainingSeconds={sleepTimer.remainingSeconds}
+                        onStartMinutes={sleepTimer.start}
+                        onStartEndOfChapter={sleepTimer.startEndOfChapter}
+                        onCancel={sleepTimer.cancel}
+                      />
+
+                      <AutoplayToggle
+                        enabled={autoplayEnabled}
+                        onToggle={() => setAutoplayEnabled((enabled) => !enabled)}
+                        className="min-h-[44px] shrink-0 sm:min-h-[36px]"
+                      />
+
+                      {currentAudio?.read_along_available && (
+                        <Link
+                          to={`/read-along/${story_slug}/${currentAudio.slug}`}
+                          className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center gap-1.5 rounded-full border border-white/[0.28] bg-white/10 px-3.5 text-xs font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8FA3] sm:min-h-[36px] sm:px-3"
+                        >
+                          <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                          <span>Read along</span>
+                        </Link>
+                      )}
+
                       <button
                         type="button"
-                        onClick={openLoginModal}
-                        className="text-cyan-300 underline-offset-2 hover:underline"
+                        onClick={() => setPlaylistOpen(true)}
+                        aria-label={`Open chapters list (${story.audios.length})`}
+                        className={`min-h-[44px] shrink-0 touch-manipulation items-center gap-1.5 rounded-full border border-white/[0.28] bg-white/10 px-3.5 text-xs font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8FA3] sm:min-h-[36px] sm:px-3 ${
+                          isFullscreen ? "inline-flex" : "inline-flex xl:hidden"
+                        }`}
                       >
-                        Login
-                      </button>{" "}
-                      to track audiobook progress
-                    </p>
-                  )}
+                        <ListMusic className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>Chapters</span>
+                        <span className="rounded-full bg-white/20 px-1.5 text-[10px] tabular-nums">
+                          {story.audios.length}
+                        </span>
+                      </button>
 
-                </div>
-              </CardContent>
-            </Card>
+                      <ShortcutsPopover className="lg:ml-auto" />
+                    </div>
+
+                    {/* Book progress divider */}
+                    <div className="border-t border-white/15 pt-3.5">
+                      {isAuthenticated ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-[#D9C9D1]">
+                            <span>
+                              Audiobook {overallAudioCompletion}%
+                              {bookRemainingText ? ` · about ${bookRemainingText} left` : ""}
+                            </span>
+                          </div>
+                          <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
+                            <div
+                              className="h-full rounded-full bg-[#FF5C7A] transition-[width] duration-300 motion-reduce:transition-none"
+                              style={{ width: `${overallAudioCompletion}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-center text-xs text-[#D9C9D1] sm:text-left">
+                          <button
+                            type="button"
+                            onClick={openLoginModal}
+                            className="font-medium text-[#FF8FA3] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8FA3]"
+                          >
+                            Login
+                          </button>{" "}
+                          to track audiobook progress
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {!isFullscreen && currentAudio?.read_along_available && (
+              <Card className="border-rose-200/80 bg-[#FDECEF]/60 dark:border-rose-900/50 dark:bg-rose-950/20">
+                <CardContent className="flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
+                  <div className="space-y-1">
+                    <h2 className="font-serif text-base font-bold text-foreground">Follow the text as it plays</h2>
+                    <p className="text-xs text-muted-foreground sm:text-sm">
+                      This chapter has a read-along. Words highlight in time with the narrator.
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    size="sm"
+                    className="min-h-[44px] shrink-0 bg-[#D92F4C] text-white hover:bg-[#b8213e] sm:min-h-[36px]"
+                  >
+                    <Link to={`/read-along/${story_slug}/${currentAudio.slug}`}>
+                      <BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                      Open read-along
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {!isFullscreen && (
               <>
@@ -543,42 +643,64 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                 <AdSpace size="rectangle" contentType="audiobook" />
               </>
             )}
-        </section>
+          </section>
 
-        {/* Desktop/large-screen only: the original persistent playlist sidebar.
-            Below xl, the same list is reached via the in-player "Playlist"
-            toggle, which opens it as a bottom sheet instead — there isn't
-            enough width for a side-by-side sidebar on those screens. */}
-        <aside className={isFullscreen ? "hidden" : "hidden xl:block xl:space-y-4"}>
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b p-4">
-                <div className="flex items-center gap-2">
-                  <ListMusic className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Playlist
-                  </h2>
+          {/* Desktop sticky chapters sidebar */}
+          <aside className={isFullscreen ? "hidden" : "hidden xl:sticky xl:top-20 xl:block"}>
+            <Card className="flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden border shadow-md">
+              <div className="space-y-2.5 border-b p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <ListMusic className="h-4 w-4 text-[#D92F4C]" aria-hidden="true" />
+                    <h2 className="text-sm font-semibold text-foreground">Chapters</h2>
+                  </div>
+                  <Badge variant="secondary">{story.audios.length}</Badge>
                 </div>
-                <Badge variant="secondary">{story.audios.length}</Badge>
+
+                {showChapterSearch && (
+                  <div className="relative">
+                    <Search
+                      className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <Input
+                      type="search"
+                      value={chapterSearch}
+                      onChange={(e) => setChapterSearch(e.target.value)}
+                      placeholder="Jump to chapter"
+                      aria-label="Jump to chapter"
+                      className="h-8 pl-8 pr-7 text-xs"
+                    />
+                    {chapterSearch && (
+                      <button
+                        type="button"
+                        aria-label="Clear chapter search"
+                        onClick={() => setChapterSearch("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="max-h-[65vh] overflow-y-auto scrollbar-thin">{renderPlaylistItems()}</div>
-            </CardContent>
-          </Card>
-        </aside>
+              <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">{renderChapterRows(true)}</div>
+            </Card>
+          </aside>
         </div>
       </main>
 
       <Sheet open={playlistOpen} onOpenChange={setPlaylistOpen}>
         <SheetContent
           side="bottom"
-          container={isFullscreen ? playerContainerRef.current ?? undefined : undefined}
-          className={`max-h-[80vh] flex-col rounded-t-2xl border-white/20 bg-background/90 p-0 backdrop-blur-xl duration-200 data-[state=closed]:duration-150 data-[state=open]:duration-200 supports-[backdrop-filter]:bg-background/75 ${
+          container={isFullscreen ? (playerContainerRef.current ?? undefined) : undefined}
+          className={`max-h-[80vh] flex-col rounded-t-2xl border-border bg-background p-0 duration-200 data-[state=closed]:duration-150 data-[state=open]:duration-200 ${
             isFullscreen ? "flex" : "flex xl:hidden"
           }`}
         >
           <SheetHeader
-            className="relative flex-row touch-none select-none items-center justify-between space-y-0 border-b border-white/10 px-3 pb-3 pt-5 pr-12 text-left cursor-grab active:cursor-grabbing"
+            className="relative flex-row touch-none select-none items-center justify-between space-y-0 border-b px-4 pb-3 pt-5 pr-12 text-left cursor-grab active:cursor-grabbing"
             onPointerDown={startPlaylistCloseGesture}
             onPointerUp={finishPlaylistCloseGesture}
             onPointerCancel={cancelPlaylistCloseGesture}
@@ -588,19 +710,61 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
               className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-muted-foreground/40"
             />
             <div className="flex items-center gap-2">
-              <ListMusic className="h-4 w-4 text-primary" />
-              <SheetTitle className="text-sm font-semibold uppercase tracking-wide text-foreground">
-                Playlist
-              </SheetTitle>
+              <ListMusic className="h-4 w-4 text-[#D92F4C]" aria-hidden="true" />
+              <SheetTitle className="text-sm font-semibold text-foreground">Chapters</SheetTitle>
             </div>
             <Badge variant="secondary">{story.audios.length}</Badge>
           </SheetHeader>
 
-          <div className="overflow-y-auto scrollbar-thin">
-            {renderPlaylistItems(() => setPlaylistOpen(false), true)}
-          </div>
+          {showChapterSearch && (
+            <div className="border-b px-4 py-2.5">
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  type="search"
+                  value={chapterSearch}
+                  onChange={(e) => setChapterSearch(e.target.value)}
+                  placeholder="Jump to chapter"
+                  aria-label="Jump to chapter"
+                  className="h-10 pl-8 pr-8 text-sm"
+                />
+                {chapterSearch && (
+                  <button
+                    type="button"
+                    aria-label="Clear chapter search"
+                    onClick={() => setChapterSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="overflow-y-auto scrollbar-thin">{renderChapterRows(false, () => setPlaylistOpen(false))}</div>
         </SheetContent>
       </Sheet>
+
+      <PlayerMiniBar
+        visible={showMiniBar}
+        coverImage={story.cover_image}
+        storyTitle={story.title}
+        storyAuthor={story.author?.name}
+        chapterTitle={currentAudio?.title || story.title}
+        currentTime={player.currentTime}
+        duration={player.duration}
+        isPlaying={player.isPlaying}
+        isLoading={player.isLoading}
+        hasNext={currentIndex < story.audios.length - 1}
+        onTogglePlay={player.togglePlay}
+        onSkipBack={() => player.skip(-15)}
+        onNext={playNext}
+        onExpand={() => playerCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      />
     </div>
   );
 };

@@ -17,7 +17,7 @@ export function AudioLoadingOverlay({ label = "Preparing audio…", className }:
         className
       )}
     >
-      <Loader2 className="h-5 w-5 animate-spin text-cyan-300 motion-reduce:animate-none" />
+      <Loader2 className="h-5 w-5 animate-spin text-[#FF8FA3] motion-reduce:animate-none" />
       <span>{label}</span>
     </div>
   );
