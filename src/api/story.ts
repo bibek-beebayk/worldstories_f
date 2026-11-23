@@ -75,6 +75,8 @@ import {
   AdminHeroTemplateInput,
   AdminHomeSection,
   AdminHomeSectionInput,
+  AdminHomeSectionPreviewPayload,
+  AdminHomeSectionPreviewResponse,
   HomeSectionTypesMeta,
   AdminStoryStats,
   AdminBlogTopic,
@@ -801,6 +803,11 @@ export const storyApi = {
   getAdminHomeSectionAnalytics: () => apiClient<HomeSectionAnalytics>("/admin/home-sections/analytics/"),
   getAdminMissingCovers: () => apiClient<MissingCoverStories>("/admin/home-sections/missing-covers/"),
   getAdminHomeSectionTypes: () => apiClient<HomeSectionTypesMeta>("/admin/home-sections/types/"),
+  previewAdminHomeSection: (payload: AdminHomeSectionPreviewPayload) =>
+    apiClient<AdminHomeSectionPreviewResponse>("/admin/home-sections/preview/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   createAdminHomeSection: (payload: Partial<AdminHomeSectionInput>) =>
     apiClient<AdminHomeSection>("/admin/home-sections/", { method: "POST", body: JSON.stringify(payload) }),
   updateAdminHomeSection: (id: number, payload: Partial<AdminHomeSectionInput>) =>

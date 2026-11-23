@@ -2871,12 +2871,26 @@ export interface HomeSectionData {
 }
 
 export interface HomeSectionConfig {
-  sort?: string;
+  sort?:
+    | "newest"
+    | "recently_added"
+    | "popular"
+    | "top_rated"
+    | "trending"
+    | "oldest"
+    | "az"
+    | "shortest"
+    | "longest"
+    | "most_completed"
+    | "hidden_gems"
+    | "daily_shuffle";
   genres?: number[];
   categories?: number[];
   tags?: number[];
   themes?: number[];
   moods?: string[];
+  countries?: string[];
+  authors?: number[];
   story_type?: number | null;
   language?: string;
   original_only?: boolean;
@@ -2885,9 +2899,29 @@ export interface HomeSectionConfig {
   has_video?: boolean;
   has_read_along?: boolean;
   require_cover?: boolean;
+  exclude_tags?: number[];
+  exclude_story_ids?: number[];
+  pin_story_ids?: number[];
+  min_reading_minutes?: number | null;
+  max_reading_minutes?: number | null;
+  published_within_days?: number | null;
+  min_rating?: number | null;
+  min_ratings_count?: number | null;
+  trending_days?: 7 | 30;
   story_ids?: number[];
   video_type?: number | null;
   standalone_only?: boolean;
+  video_sort?: "newest" | "oldest" | "longest" | "shortest" | "daily_shuffle";
+  format?: "all" | "vertical" | "landscape";
+  min_duration_seconds?: number | null;
+  max_duration_seconds?: number | null;
+  story_genres?: number[];
+  video_ids?: number[];
+  blog_sort?: "newest" | "oldest" | "shortest" | "daily_shuffle";
+  topics?: number[];
+  only_with_story?: boolean;
+  pin_blog_ids?: number[];
+  blog_ids?: number[];
   button_label?: string;
   button_url?: string;
   theme?: string;
@@ -2947,10 +2981,33 @@ export interface HomeSectionTypesMeta {
   layouts: { value: HomeSectionLayout; label: string }[];
   card_styles: { value: HomeSectionCardStyle; label: string }[];
   show_to?: { value: HomeSectionShowTo; label: string }[];
-  sorts: string[];
+  sorts: {
+    stories: HomeSectionSortOption[];
+    videos: HomeSectionSortOption[];
+    blogs: HomeSectionSortOption[];
+  };
   banner_themes: string[];
   ad_sizes: string[];
   icons: string[];
+}
+
+export interface HomeSectionSortOption {
+  value: string;
+  label: string;
+  description: string;
+}
+
+export interface AdminHomeSectionPreviewPayload {
+  section_type: HomeSectionType;
+  variant: HomeSectionVariant;
+  item_limit: number;
+  allow_repeats: boolean;
+  config: HomeSectionConfig;
+}
+
+export interface AdminHomeSectionPreviewResponse {
+  total_matching: number;
+  items: Array<Story | PublicVideo | Blog>;
 }
 
 export type FeedbackCategory = "bug" | "idea" | "content" | "praise" | "other";
