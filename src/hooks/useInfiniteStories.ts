@@ -17,6 +17,8 @@ export function useInfiniteStories(
   moods: string[] = [],
   hasReadAlong: boolean = false,
   audioLength: string = "all",
+  summaryLength: string = "all",
+  notReadQuick: boolean = false,
 ) {
   return useInfiniteQuery<StoryListResponse>({
     queryKey: [
@@ -34,6 +36,8 @@ export function useInfiniteStories(
       moods,
       hasReadAlong,
       audioLength,
+      summaryLength,
+      notReadQuick,
     ],
     queryFn: ({ pageParam }) =>
       storyApi.getStories(
@@ -53,6 +57,9 @@ export function useInfiniteStories(
         hasReadAlong,
         "all",
         audioLength,
+        undefined,
+        summaryLength,
+        notReadQuick,
       ),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>

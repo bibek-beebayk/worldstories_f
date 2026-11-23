@@ -237,6 +237,7 @@ export interface Story {
   // StoryListSerializer.get_summary_reading_minutes. Present (non-null) is
   // what gates whether a story is eligible for Quick Read in list views.
   summary_reading_minutes?: number | null;
+  quick_read_progress?: number | null;
   // Whole-story reading estimate, matching the detail page's number but read
   // from the denormalized columns so a card list doesn't pay for it — see
   // reading_time.story_reading_minutes_cached. Null when the story's length
@@ -3100,3 +3101,11 @@ export interface AudiobookStats {
   total_seconds: number;
   unknown_duration_count: number;
 }
+
+export type QuickReadHeroResponse =
+  { mode: "continue"; story: Story; progress: number } | { mode: "pick"; story: Story } | { mode: "none" };
+
+export type QuickReadHeroResponse =
+  | { mode: "continue"; story: Story; progress: number }
+  | { mode: "pick"; story: Story }
+  | { mode: "none" };

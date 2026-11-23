@@ -127,6 +127,7 @@ import {
   StoryMapResponse,
   ReadAlongResponse,
   AudiobookStats,
+  QuickReadHeroResponse,
 } from "./types";
 
 export const storyApi = {
@@ -160,12 +161,15 @@ export const storyApi = {
     format: string = "all",
     audioLength: string = "all",
     maxAudioMinutes?: number,
+    summaryLength: string = "all",
+    notReadQuick: boolean = false,
   ) =>
     apiClient<StoryListResponse>(
-      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}${hasReadAlong ? "&has_read_along=true" : ""}${format !== "all" ? `&format=${encodeURIComponent(format)}` : ""}${audioLength && audioLength !== "all" ? `&audio_length=${encodeURIComponent(audioLength)}` : ""}${maxAudioMinutes !== undefined ? `&max_audio_minutes=${encodeURIComponent(String(maxAudioMinutes))}` : ""}`,
+      `/stories/?page=${page}&genres=${genres.join(",")}&categories=${categories.join(",")}&sort=${sort}&status=${status}&q=${encodeURIComponent(q)}&language=${encodeURIComponent(language)}&story_type=${encodeURIComponent(String(storyType))}&country=${encodeURIComponent(country)}${hasAudio ? "&has_audio=true" : ""}${hasSummary ? "&has_summary=true" : ""}${hasVideo ? "&has_video=true" : ""}${moods.length ? `&moods=${encodeURIComponent(moods.join(","))}` : ""}${hasReadAlong ? "&has_read_along=true" : ""}${format !== "all" ? `&format=${encodeURIComponent(format)}` : ""}${audioLength && audioLength !== "all" ? `&audio_length=${encodeURIComponent(audioLength)}` : ""}${maxAudioMinutes !== undefined ? `&max_audio_minutes=${encodeURIComponent(String(maxAudioMinutes))}` : ""}${summaryLength && summaryLength !== "all" ? `&summary_length=${encodeURIComponent(summaryLength)}` : ""}${notReadQuick ? "&not_read_quick=true" : ""}`,
     ),
 
   getAudiobookStats: () => apiClient<AudiobookStats>("/stories/audiobook-stats/"),
+  getQuickReadHero: () => apiClient<QuickReadHeroResponse>("/stories/quick-read-hero/"),
 
   // The Library page: every filter travels as a named param (see lib/libraryParams.ts).
   getLibraryStories: (page: number, params: Record<string, string>) =>
