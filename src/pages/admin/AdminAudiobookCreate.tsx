@@ -152,7 +152,8 @@ export default function AdminAudiobookCreate() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="h-full overflow-y-auto pr-1 pb-8">
+      <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-3">
         <Button asChild variant="ghost" size="icon" aria-label="Back to audiobooks">
           <Link to="/admin/audiobooks">
@@ -471,6 +472,7 @@ export default function AdminAudiobookCreate() {
           </Button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
