@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { data, useParams, Link, useLocation, useNavigate } from "react-router";
+import { useParams, Link, useLocation, useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,14 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ArrowLeft, BookOpen, ListMusic, Maximize2, Minimize2, Search, X } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import NotFoundBody from "@/components/NotFoundBody";
 import AdSpace from "@/components/AdSpace";
 import CoverImage from "@/components/CoverImage";
-import { buildMeta } from "@/lib/buildMeta";
+import { AudiobookCard } from "@/components/audiobooks/AudiobookCard";
+import { buildAudiobookMeta, buildAudiobookNotFoundMeta } from "@/lib/audiobookMeta";
+import {
+  isAudiobookNotFoundData,
+  loadAudiobookOrRedirect,
+} from "@/lib/audiobookLoader";
 import { formatLeft, formatLong } from "@/lib/formatDuration";
-import { useStory } from "@/hooks/useStory";
+import { audiobookUrl, readAlongUrl } from "@/lib/urls";
+import { useAudiobook } from "@/hooks/useAudiobooks";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
-import { storyApi } from "@/api/story";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { useStoryReadingEvents } from "@/hooks/useStoryReadingEvents";
 import { useAudioSource } from "@/hooks/audio/useAudioSource";
@@ -34,36 +40,21 @@ import { SleepTimerControl } from "@/components/audio/SleepTimerControl";
 import { ShortcutsPopover } from "@/components/audio/ShortcutsPopover";
 import { ChapterRow } from "@/components/audio/ChapterRow";
 import { PlayerMiniBar } from "@/components/audio/PlayerMiniBar";
+import { ApiError } from "@/api/client";
 import type { Route } from "./+types/AudiobookPlayer";
 
-// Fetched here purely to supply meta() with real data server-side — the
-// component below still fetches independently via useStory().
 export async function loader({ params }: Route.LoaderArgs) {
-  try {
-    return await storyApi.getStory(params.story_slug!);
-  } catch (error) {
-    console.error("[SSR loader] request failed:", error);
-    return data(null, { status: 404 });
-  }
+  return loadAudiobookOrRedirect(params.story_slug!, params.chapter_slug);
 }
 
-// Always noIndex: this is a playback UI, not a page anyone should land on
-// from search — the story's own page is the indexable surface for its audio.
-export function meta({ data: story, params }: Route.MetaArgs) {
-  if (!story) {
-    return buildMeta({
-      title: "Audiobook Not Found | WorldStories",
-      description: "The requested audiobook could not be found.",
-      path: `/listen/${params.story_slug}/${params.chapter_slug}`,
-      noIndex: true,
-    });
+// Always noIndex: this is a playback UI; `/listen/:slug` is the canonical audiobook surface.
+export function meta({ data: audiobook, params }: Route.MetaArgs) {
+  if (!audiobook || isAudiobookNotFoundData(audiobook)) {
+    return buildAudiobookNotFoundMeta(params.story_slug);
   }
-
-  const currentAudio = story.audios.find((audio) => audio.slug === params.chapter_slug);
-  return buildMeta({
-    title: `${currentAudio?.title ? `${currentAudio.title} — ` : ""}${story.title} Audiobook | WorldStories`,
-    description: `Listen to ${story.title} on WorldStories.`,
-    path: `/listen/${params.story_slug}/${params.chapter_slug}`,
+  return buildAudiobookMeta(audiobook, {
+    mode: "player",
+    trackSlug: params.chapter_slug,
     noIndex: true,
   });
 }
@@ -74,8 +65,15 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   const { story_slug, chapter_slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/listen/${story_slug}`;
-  const { data: story, isLoading, isError } = useStory(story_slug, loaderData || undefined);
+  const isNotFound = isAudiobookNotFoundData(loaderData);
+  const initialAudiobook = !isNotFound && loaderData ? loaderData : undefined;
+  const {
+    data: audiobook,
+    isLoading,
+    isError,
+    error,
+  } = useAudiobook(isNotFound ? undefined : story_slug, initialAudiobook);
+
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerCardRef = useRef<HTMLDivElement | null>(null);
   const activeDesktopRowRef = useRef<HTMLAnchorElement | null>(null);
@@ -90,31 +88,40 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   const isAuthenticated = useIsLoggedIn();
   const { openLoginModal } = useAuthModal();
 
-  useEffect(() => {
-    if (!story?.audios?.length) return;
-    const slugToFind = chapter_slug || story.audios[0].slug;
-    const idx = story.audios.findIndex((a) => a.slug === slugToFind);
-    setCurrentIndex(idx === -1 ? 0 : idx);
-  }, [story, chapter_slug]);
+  const tracks = useMemo(() => audiobook?.tracks ?? [], [audiobook?.tracks]);
 
-  const currentAudio = story?.audios[currentIndex];
+  useEffect(() => {
+    if (!tracks.length) return;
+    const slugToFind = chapter_slug || tracks[0].slug;
+    const idx = tracks.findIndex(
+      (a) => a.slug === slugToFind || String(a.order) === slugToFind,
+    );
+    setCurrentIndex(idx === -1 ? 0 : idx);
+  }, [tracks, chapter_slug]);
+
+  const currentAudio = tracks[currentIndex];
+  const activeSlug = audiobook?.slug || story_slug || "";
+  const linkedStorySlug = audiobook?.story?.slug;
+
+  const backHref =
+    (location.state as { backTo?: string } | null)?.backTo ||
+    (linkedStorySlug ? `/story/${linkedStorySlug}` : audiobookUrl(activeSlug));
 
   const jumpToAudio = useCallback(
     (targetIndex: number) => {
-      if (!story || targetIndex < 0 || targetIndex >= story.audios.length) return;
-      const target = story.audios[targetIndex];
+      if (!audiobook || targetIndex < 0 || targetIndex >= tracks.length) return;
+      const target = tracks[targetIndex];
       setCurrentIndex(targetIndex);
-      navigate(`/listen/${story_slug}/${target.slug}`, { state: location.state });
+      navigate(audiobookUrl(audiobook.slug, target.slug), { state: location.state });
     },
-    [story, story_slug, navigate, location.state],
+    [audiobook, tracks, navigate, location.state],
   );
 
   const playNext = useCallback(() => {
-    if (!story) return;
-    if (currentIndex < story.audios.length - 1) {
+    if (currentIndex < tracks.length - 1) {
       jumpToAudio(currentIndex + 1);
     }
-  }, [story, currentIndex, jumpToAudio]);
+  }, [tracks.length, currentIndex, jumpToAudio]);
 
   const playPrev = useCallback(() => {
     if (currentIndex > 0) {
@@ -123,14 +130,16 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   }, [currentIndex, jumpToAudio]);
 
   const source = useAudioSource({
-    storySlug: story_slug,
+    audiobookSlug: audiobook?.slug,
+    storySlug: linkedStorySlug,
     audioSlug: currentAudio?.slug,
     directUrl: currentAudio?.audio_file?.toString() || null,
   });
 
   const progress = useAudioProgress({
-    storySlug: story_slug,
-    audios: story?.audios ?? [],
+    audiobookSlug: audiobook?.slug,
+    storySlug: linkedStorySlug,
+    audios: tracks,
     isAuthenticated,
     currentAudioSlug: currentAudio?.slug,
   });
@@ -143,7 +152,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
 
   const player = useAudioPlayback({
     audioSrc: source.audioSrc,
-    storySlug: story_slug,
+    storySlug: activeSlug,
     onLoadedMetadata: progress.handleLoadedMetadata,
     onTimeUpdate: progress.handleTimeUpdate,
     onEnded: (el) => {
@@ -172,25 +181,24 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   const liveAudioProgressMap = progress.liveProgressMap;
 
   const overallListeningProgress = useMemo(() => {
-    const tracks = story?.audios ?? [];
     if (tracks.length === 0) return 0;
     const total = tracks.reduce(
       (sum, audio) => sum + Math.min(1, Math.max(0, liveAudioProgressMap[audio.slug]?.progress || 0)),
       0,
     );
     return total / tracks.length;
-  }, [story?.audios, liveAudioProgressMap]);
+  }, [tracks, liveAudioProgressMap]);
 
   useStoryReadingEvents({
-    storySlug: story_slug,
+    storySlug: linkedStorySlug,
     format: "audio",
     progress: overallListeningProgress,
-    ready: progress.progressDataReady && (story?.audios?.length ?? 0) > 0,
+    ready: Boolean(linkedStorySlug) && progress.progressDataReady && tracks.length > 0,
   });
 
   useContentSessionAnalytics(
     "listening_session",
-    story_slug ? { storySlug: story_slug } : undefined,
+    linkedStorySlug ? { storySlug: linkedStorySlug } : undefined,
     player.isPlaying,
     {
       format: "audio",
@@ -201,10 +209,10 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
 
   // Lock-screen / OS media controls
   useMediaSession({
-    title: currentAudio?.title || story?.title || "Audiobook",
-    artist: story?.author?.name || "",
-    album: story?.title || "",
-    artwork: story?.cover_image || null,
+    title: currentAudio?.title || audiobook?.title || "Audiobook",
+    artist: audiobook?.author || audiobook?.narrator || "",
+    album: audiobook?.title || "",
+    artwork: audiobook?.cover_image || null,
     isPlaying: player.isPlaying,
     currentTime: player.currentTime,
     duration: player.duration,
@@ -212,7 +220,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     onPlay: player.play,
     onPause: player.pause,
     onPrevious: currentIndex > 0 ? playPrev : undefined,
-    onNext: story && currentIndex < story.audios.length - 1 ? playNext : undefined,
+    onNext: currentIndex < tracks.length - 1 ? playNext : undefined,
     onSeekBackward: () => player.skip(-15),
     onSeekForward: () => player.skip(15),
     onSeekTo: player.seek,
@@ -245,9 +253,6 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     };
   }, [isFullscreen]);
 
-  // iPhone Safari cannot fullscreen arbitrary elements, so the state also
-  // drives a fixed full-viewport layout. Supporting browsers additionally
-  // use the native API to hide their browser chrome where possible.
   const toggleFullscreen = useCallback(async () => {
     const next = !isFullscreen;
     setPlaylistOpen(false);
@@ -260,8 +265,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
         await document.exitFullscreen();
       }
     } catch {
-      // The CSS full-viewport mode remains active when the native API is not
-      // available or the browser rejects the request.
+      // CSS full-viewport mode remains active.
     }
   }, [isFullscreen]);
 
@@ -304,18 +308,17 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     );
     observer.observe(cardEl);
     return () => observer.disconnect();
-  }, [story?.slug]);
+  }, [audiobook?.slug]);
 
   // Scroll active chapter row into view inside the desktop sidebar container
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    activeDesktopRowRef.current?.scrollIntoView({ block: "nearest" });
-  }, [currentIndex, story?.slug]);
+    activeDesktopRowRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [currentIndex, audiobook?.slug]);
 
   // Remaining audiobook duration (only shown when every chapter has a known duration)
   const bookRemainingText = useMemo(() => {
-    const tracks = story?.audios ?? [];
     if (tracks.length === 0) return "";
     if (!tracks.every((a) => typeof a.duration_seconds === "number" && a.duration_seconds > 0)) {
       return "";
@@ -333,25 +336,31 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
       }
     }
     return formatLong(remainingSec);
-  }, [story?.audios, currentIndex, player.duration, player.currentTime, liveAudioProgressMap]);
+  }, [tracks, currentIndex, player.duration, player.currentTime, liveAudioProgressMap]);
 
   const filteredAudios = useMemo(() => {
-    const tracks = story?.audios ?? [];
     const q = chapterSearch.trim().toLowerCase();
     if (!q) return tracks;
     return tracks.filter((a) => a.title.toLowerCase().includes(q) || String(a.order).includes(q));
-  }, [story?.audios, chapterSearch]);
+  }, [tracks, chapterSearch]);
 
+  if (isNotFound) return <NotFoundBody />;
   if (isLoading) return <FullScreenLoader />;
-  if (isError || !story)
+  if (!audiobook && error instanceof ApiError && error.status === 404) return <NotFoundBody />;
+  if (isError || !audiobook)
     return <div className="p-6 text-center text-sm text-muted-foreground">Error loading audio.</div>;
 
   const overallAudioCompletion = Math.round(overallListeningProgress * 100);
   const chapterRemainingLabel =
     player.duration > 0 ? formatLeft(Math.max(0, player.duration - player.currentTime)) : undefined;
   const showMiniBar = !isMainCardVisible && !isFullscreen && Boolean(currentAudio);
-  const showChapterSearch = story.audios.length > 10;
-  const authorAndType = [story.author?.name, story.story_type].filter(Boolean).join(" · ");
+  const showChapterSearch = tracks.length > 10;
+  const authorAndNarrator = [
+    audiobook.author,
+    audiobook.narrator ? `Narrated by ${audiobook.narrator}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const startPlaylistCloseGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!event.isPrimary || event.button !== 0) return;
@@ -388,7 +397,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   };
 
   const renderChapterRows = (isDesktop: boolean, onSelect?: () => void) => {
-    if (story.audios.length === 0) {
+    if (tracks.length === 0) {
       return <p className="p-4 text-sm text-muted-foreground">No audio available.</p>;
     }
     if (filteredAudios.length === 0) {
@@ -402,7 +411,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
         <ChapterRow
           key={audio.slug}
           ref={isDesktop && isActive ? activeDesktopRowRef : undefined}
-          storySlug={story_slug || story.slug}
+          storySlug={audiobook.slug}
           audio={audio}
           isActive={isActive}
           isPlaying={player.isPlaying}
@@ -425,12 +434,22 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     >
       <main className={isFullscreen ? "min-h-[100dvh] w-full" : "container mx-auto px-3 py-4 sm:px-4 sm:py-8"}>
         {!isFullscreen && (
-          <Link to={backHref} className="mb-4 inline-block">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-              Back to story
-            </Button>
-          </Link>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Link to={backHref} className="inline-block">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+                {linkedStorySlug ? "Back to story" : "Back to audiobook"}
+              </Button>
+            </Link>
+            {linkedStorySlug && (
+              <Link to={`/story/${linkedStorySlug}`} className="inline-block">
+                <Button variant="ghost" size="sm">
+                  <BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                  Read the story
+                </Button>
+              </Link>
+            )}
+          </div>
         )}
 
         <div
@@ -474,9 +493,9 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                     }`}
                   >
                     <CoverImage
-                      src={story.cover_image}
-                      alt={story.title}
-                      author={story.author?.name}
+                      src={audiobook.cover_image}
+                      alt={audiobook.title}
+                      author={audiobook.author}
                       className="block aspect-[3/4] h-auto w-full object-cover"
                     />
                   </div>
@@ -484,14 +503,16 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                   <div className={`w-full min-w-0 space-y-4 ${isFullscreen ? "max-w-2xl" : ""}`}>
                     <div className="text-center sm:pr-10 sm:text-left">
                       <h1 className="font-serif line-clamp-2 text-[26px] font-bold leading-tight tracking-tight text-white sm:text-[30px]">
-                        {story.title}
+                        {audiobook.title}
                       </h1>
-                      {authorAndType && <p className="mt-1 text-sm text-[#D9C9D1]">{authorAndType}</p>}
+                      {authorAndNarrator && (
+                        <p className="mt-1 text-sm text-[#D9C9D1]">{authorAndNarrator}</p>
+                      )}
                     </div>
 
                     <div className="text-center sm:text-left">
                       <p className="text-xs font-semibold uppercase tracking-wider text-[#FF8FA3]">
-                        CHAPTER {currentAudio?.order ?? currentIndex + 1} OF {story.audios.length}
+                        CHAPTER {currentAudio?.order ?? currentIndex + 1} OF {tracks.length}
                       </p>
                       <h2 className="mt-1 line-clamp-2 text-[22px] font-semibold leading-snug text-white">
                         {currentAudio?.title || "No chapter selected"}
@@ -515,7 +536,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                       onPrev={playPrev}
                       onNext={playNext}
                       hasPrev={currentIndex > 0}
-                      hasNext={currentIndex < story.audios.length - 1}
+                      hasNext={currentIndex < tracks.length - 1}
                       prevLabel="Previous chapter"
                       nextLabel="Next chapter"
                       buttonClassName="h-11 w-11 sm:h-12 sm:w-12 bg-white/10 text-white hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-[#FF8FA3]"
@@ -553,7 +574,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
 
                       {currentAudio?.read_along_available && (
                         <Link
-                          to={`/read-along/${story_slug}/${currentAudio.slug}`}
+                          to={readAlongUrl(audiobook.slug, currentAudio.slug)}
                           className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center gap-1.5 rounded-full border border-white/[0.28] bg-white/10 px-3.5 text-xs font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8FA3] sm:min-h-[36px] sm:px-3"
                         >
                           <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
@@ -564,7 +585,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                       <button
                         type="button"
                         onClick={() => setPlaylistOpen(true)}
-                        aria-label={`Open chapters list (${story.audios.length})`}
+                        aria-label={`Open chapters list (${tracks.length})`}
                         className={`min-h-[44px] shrink-0 touch-manipulation items-center gap-1.5 rounded-full border border-white/[0.28] bg-white/10 px-3.5 text-xs font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF8FA3] sm:min-h-[36px] sm:px-3 ${
                           isFullscreen ? "inline-flex" : "inline-flex xl:hidden"
                         }`}
@@ -572,7 +593,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                         <ListMusic className="h-3.5 w-3.5" aria-hidden="true" />
                         <span>Chapters</span>
                         <span className="rounded-full bg-white/20 px-1.5 text-[10px] tabular-nums">
-                          {story.audios.length}
+                          {tracks.length}
                         </span>
                       </button>
 
@@ -618,7 +639,9 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
               <Card className="border-rose-200/80 bg-[#FDECEF]/60 dark:border-rose-900/50 dark:bg-rose-950/20">
                 <CardContent className="flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
                   <div className="space-y-1">
-                    <h2 className="font-serif text-base font-bold text-foreground">Follow the text as it plays</h2>
+                    <h2 className="font-serif text-base font-bold text-foreground">
+                      Follow the text as it plays
+                    </h2>
                     <p className="text-xs text-muted-foreground sm:text-sm">
                       This chapter has a read-along. Words highlight in time with the narrator.
                     </p>
@@ -628,13 +651,80 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                     size="sm"
                     className="min-h-[44px] shrink-0 bg-[#D92F4C] text-white hover:bg-[#b8213e] sm:min-h-[36px]"
                   >
-                    <Link to={`/read-along/${story_slug}/${currentAudio.slug}`}>
+                    <Link to={readAlongUrl(audiobook.slug, currentAudio.slug)}>
                       <BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />
                       Open read-along
                     </Link>
                   </Button>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Standalone details: narrator, about, genres */}
+            {!isFullscreen && !linkedStorySlug && (audiobook.about || audiobook.genres.length > 0) && (
+              <Card>
+                <CardContent className="space-y-3 p-4 sm:p-5">
+                  <h2 className="font-serif text-base font-bold text-foreground">
+                    About this audiobook
+                  </h2>
+                  {audiobook.about && (
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {audiobook.about}
+                    </p>
+                  )}
+                  {audiobook.genres.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {audiobook.genres.map((genre) => (
+                        <Badge key={genre} variant="secondary">
+                          {genre}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Other versions (same story, other narrators) */}
+            {!isFullscreen && audiobook.other_versions.length > 0 && (
+              <Card>
+                <CardContent className="space-y-3 p-4 sm:p-5">
+                  <h2 className="font-serif text-base font-bold text-foreground">Other versions</h2>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {audiobook.other_versions.map((ver) => (
+                      <Link
+                        key={ver.slug}
+                        to={audiobookUrl(ver.slug)}
+                        className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-foreground">{ver.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {ver.narrator ? `Narrated by ${ver.narrator}` : "Alternate recording"}
+                          </p>
+                        </div>
+                        {ver.total_duration_seconds && (
+                          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                            {formatLong(ver.total_duration_seconds)}
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* You may also like */}
+            {!isFullscreen && audiobook.suggested.length > 0 && (
+              <section className="space-y-3 pt-2">
+                <h2 className="font-serif text-lg font-bold text-foreground">You may also like</h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {audiobook.suggested.slice(0, 6).map((item) => (
+                    <AudiobookCard key={item.id} audiobook={item} />
+                  ))}
+                </div>
+              </section>
             )}
 
             {!isFullscreen && (
@@ -654,7 +744,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                     <ListMusic className="h-4 w-4 text-[#D92F4C]" aria-hidden="true" />
                     <h2 className="text-sm font-semibold text-foreground">Chapters</h2>
                   </div>
-                  <Badge variant="secondary">{story.audios.length}</Badge>
+                  <Badge variant="secondary">{tracks.length}</Badge>
                 </div>
 
                 {showChapterSearch && (
@@ -685,7 +775,9 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                 )}
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">{renderChapterRows(true)}</div>
+              <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+                {renderChapterRows(true)}
+              </div>
             </Card>
           </aside>
         </div>
@@ -713,7 +805,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
               <ListMusic className="h-4 w-4 text-[#D92F4C]" aria-hidden="true" />
               <SheetTitle className="text-sm font-semibold text-foreground">Chapters</SheetTitle>
             </div>
-            <Badge variant="secondary">{story.audios.length}</Badge>
+            <Badge variant="secondary">{tracks.length}</Badge>
           </SheetHeader>
 
           {showChapterSearch && (
@@ -745,21 +837,23 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
             </div>
           )}
 
-          <div className="overflow-y-auto scrollbar-thin">{renderChapterRows(false, () => setPlaylistOpen(false))}</div>
+          <div className="overflow-y-auto scrollbar-thin">
+            {renderChapterRows(false, () => setPlaylistOpen(false))}
+          </div>
         </SheetContent>
       </Sheet>
 
       <PlayerMiniBar
         visible={showMiniBar}
-        coverImage={story.cover_image}
-        storyTitle={story.title}
-        storyAuthor={story.author?.name}
-        chapterTitle={currentAudio?.title || story.title}
+        coverImage={audiobook.cover_image}
+        storyTitle={audiobook.title}
+        storyAuthor={audiobook.author ?? undefined}
+        chapterTitle={currentAudio?.title || audiobook.title}
         currentTime={player.currentTime}
         duration={player.duration}
         isPlaying={player.isPlaying}
         isLoading={player.isLoading}
-        hasNext={currentIndex < story.audios.length - 1}
+        hasNext={currentIndex < tracks.length - 1}
         onTogglePlay={player.togglePlay}
         onSkipBack={() => player.skip(-15)}
         onNext={playNext}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { storyApi } from "@/api/story";
+import { audiobookUrl } from "@/lib/urls";
 import { useStory } from "@/hooks/useStory";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
 import { useFavoriteToggle } from "@/hooks/useFavoriteToggle";
@@ -264,7 +265,7 @@ const StorySummary = ({ loaderData }: Route.ComponentProps) => {
                         )}
                         {firstAudioSlug && (
                           <Link
-                            to={`/listen/${story.slug}/${firstAudioSlug}`}
+                            to={audiobookUrl(story.audiobooks?.[0]?.slug || story.slug, firstAudioSlug)}
                             className="inline-flex items-center gap-1.5 rounded-full tinted-chip border [--tint:#f43f5e] px-3 py-1.5 text-sm font-medium shadow-sm transition-all hover:scale-105"
                           >
                             <Headphones className="h-3.5 w-3.5" />

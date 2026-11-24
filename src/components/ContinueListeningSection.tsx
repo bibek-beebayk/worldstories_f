@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Clock3, Headphones } from "lucide-react";
 import { Link } from "react-router";
+import { audiobookUrl } from "@/lib/urls";
 import CoverImage from "@/components/CoverImage";
 
 interface ContinueListeningSectionProps {
@@ -83,7 +84,7 @@ const ContinueListeningSection = ({
           {visibleItems.map((item) => {
             const progress = getCompletionPercentage(item.overall_progress);
             const continueHref = item.audio_slug
-              ? `/listen/${item.story.slug}/${item.audio_slug}`
+              ? audiobookUrl(item.story.slug, item.audio_slug)
               : `/read/${item.story.slug}`;
 
             return (

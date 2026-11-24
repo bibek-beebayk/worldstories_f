@@ -8,6 +8,7 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { audiobookUrl } from "@/lib/urls";
 import AchievementsSection from "@/components/AchievementsSection";
 import { buildMeta } from "@/lib/buildMeta";
 
@@ -278,7 +279,7 @@ const ProfileReader = () => {
                   coverImage={item.story.cover_image}
                   title={item.story.title}
                   author={item.story.author}
-                  linkTo={`/listen/${item.story.slug}`}
+                  linkTo={audiobookUrl(item.story.slug)}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="line-clamp-1 min-w-0 font-medium">{item.story.title}</p>
@@ -289,7 +290,7 @@ const ProfileReader = () => {
                     <div className="h-full bg-primary" style={{ width: `${Math.round(item.overall_progress * 100)}%` }} />
                   </div>
                   {item.audio_slug ? (
-                    <Link to={`/listen/${item.story.slug}/${item.audio_slug}`}>
+                    <Link to={audiobookUrl(item.story.slug, item.audio_slug)}>
                       <Button size="sm" className="mt-3">Continue Listening</Button>
                     </Link>
                   ) : (

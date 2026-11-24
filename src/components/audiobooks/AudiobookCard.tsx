@@ -1,38 +1,65 @@
 import { Link } from "react-router";
 import { Play } from "lucide-react";
-import type { Story } from "@/api/types";
+import type { PublicAudiobook, Story } from "@/api/types";
 import CoverImage from "@/components/CoverImage";
 import { formatAudioDuration } from "@/lib/audiobooks";
+import { formatLong } from "@/lib/formatDuration";
+import { audiobookUrl } from "@/lib/urls";
 
 export interface AudiobookCardProps {
-  story: Story;
+  /** Preferred Phase 3 public audiobook object. */
+  audiobook?: PublicAudiobook;
+  /** Legacy Story-shaped prop (used by admin preview and any remaining callers). */
+  story?: Story;
+  /** Optional track slug to link directly to (e.g. from Continue Listening). */
+  trackSlug?: string | null;
   /** Listening progress percentage (1-100) for a signed-in reader, when known. */
   progressPercent?: number;
 }
 
-export function AudiobookCard({ story, progressPercent }: AudiobookCardProps) {
-  const duration = formatAudioDuration(story.audio_minutes);
-  const badgeLabel = story.has_read_along ? "Read-along" : story.has_video ? "Video" : null;
-  const firstGenre = story.genres?.[0] ?? null;
+export function AudiobookCard({
+  audiobook,
+  story,
+  trackSlug,
+  progressPercent,
+}: AudiobookCardProps) {
+  const slug = audiobook?.slug ?? story?.slug ?? "";
+  const title = audiobook?.title ?? story?.title ?? "";
+  const author = audiobook ? audiobook.author : story?.author;
+  const coverImage = audiobook ? audiobook.cover_image : story?.cover_image;
+  const duration = audiobook
+    ? formatLong(audiobook.total_duration_seconds) || formatAudioDuration(audiobook.minutes)
+    : formatAudioDuration(story?.audio_minutes);
+  const trackCount = audiobook?.track_count ?? null;
+  const badgeLabel = audiobook
+    ? audiobook.has_read_along
+      ? "Read-along"
+      : null
+    : story?.has_read_along
+      ? "Read-along"
+      : story?.has_video
+        ? "Video"
+        : null;
+  const firstGenre = audiobook ? (audiobook.genres?.[0] ?? null) : (story?.genres?.[0] ?? null);
   const showProgress =
     typeof progressPercent === "number" &&
     Number.isFinite(progressPercent) &&
     progressPercent > 0 &&
     progressPercent < 100;
-  const ariaLabel = duration ? `Listen to ${story.title}, ${duration}` : `Listen to ${story.title}`;
+  const ariaLabel = duration ? `Listen to ${title}, ${duration}` : `Listen to ${title}`;
 
   return (
     <Link
-      to={`/listen/${story.slug}`}
+      to={audiobookUrl(slug, trackSlug)}
       aria-label={ariaLabel}
       className="group block rounded-md transition-transform duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C] focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-visible:translate-y-0"
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-muted shadow-sm transition-shadow duration-200 group-hover:shadow-md group-focus-visible:shadow-md">
         <CoverImage
-          src={story.cover_image}
+          src={coverImage}
           alt=""
-          title={story.title}
-          author={story.author}
+          title={title}
+          author={author}
           loading="lazy"
           decoding="async"
           className="h-full w-full object-cover"
@@ -70,16 +97,27 @@ export function AudiobookCard({ story, progressPercent }: AudiobookCardProps) {
           >
             <div className="h-full rounded-full bg-[#D92F4C]" style={{ width: `${progressPercent}%` }} />
           </div>
-          <p className="text-[11px] font-medium text-[#A71B36] dark:text-rose-300">{progressPercent}% listened</p>
+          <p className="text-[11px] font-medium text-[#A71B36] dark:text-rose-300">
+            {progressPercent}% listened
+          </p>
         </div>
       )}
 
       <div className="mt-2 space-y-0.5">
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-[#A71B36]">
-          {story.title}
+          {title}
         </h3>
-        {story.author && <p className="truncate text-xs text-muted-foreground">{story.author}</p>}
-        {firstGenre && <p className="truncate text-[11px] text-muted-foreground/85">{firstGenre}</p>}
+        {author && <p className="truncate text-xs text-muted-foreground">{author}</p>}
+        {(firstGenre || (trackCount !== null && trackCount > 1)) && (
+          <p className="truncate text-[11px] text-muted-foreground/85">
+            {[
+              firstGenre,
+              trackCount !== null && trackCount > 1 ? `${trackCount} tracks` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
       </div>
     </Link>
   );

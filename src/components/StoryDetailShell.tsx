@@ -21,6 +21,7 @@ import { useStory } from "@/hooks/useStory";
 import { useStoryProgress, type StoryProgressMode } from "@/hooks/useStoryProgress";
 import { useStoryViewBeacon } from "@/hooks/useStoryViewBeacon";
 import { isStoryNotFoundData, type StoryNotFoundData } from "@/lib/storyLoader";
+import { audiobookUrl, readAlongUrl } from "@/lib/urls";
 import { useState } from "react";
 
 export type StoryDetailMode = StoryProgressMode;
@@ -103,14 +104,14 @@ const StoryDetailShellContent = ({ mode, loaderData }: { mode: StoryDetailMode; 
       )}
       {mode === "listen" && listenAudioSlug && (
         <Button asChild size="lg" className="bg-rose-600 text-white hover:bg-rose-700">
-          <Link to={`/listen/${story.slug}/${listenAudioSlug}`}>
+          <Link to={audiobookUrl(story.audiobooks?.[0]?.slug || story.slug, listenAudioSlug)}>
             {hasSavedAudio ? "Continue Listening" : "Listen to Audio"}
           </Link>
         </Button>
       )}
       {mode === "read-along" && readAlongStartSlug && (
         <Button asChild size="lg" className="bg-sky-600 text-white hover:bg-sky-700">
-          <Link to={`/read-along/${story.slug}/${readAlongStartSlug}`}>
+          <Link to={readAlongUrl(story.audiobooks?.[0]?.slug || story.slug, readAlongStartSlug)}>
             <Captions className="mr-2 h-4 w-4" />
             {readAlongResumeSlug ? "Continue Read Along" : "Start Read Along"}
           </Link>
@@ -164,12 +165,18 @@ const StoryDetailShellContent = ({ mode, loaderData }: { mode: StoryDetailMode; 
           </Link>
         )}
         {mode !== "listen" && story.audios.length > 0 && (
-          <Link className="rounded-full border px-3 py-1.5 hover:border-primary" to={`/listen/${story.slug}`}>
+          <Link
+            className="rounded-full border px-3 py-1.5 hover:border-primary"
+            to={audiobookUrl(story.audiobooks?.[0]?.slug || story.slug)}
+          >
             Listen
           </Link>
         )}
         {mode !== "read-along" && readAlongTracks.length > 0 && (
-          <Link className="rounded-full border px-3 py-1.5 hover:border-primary" to={`/read-along/${story.slug}`}>
+          <Link
+            className="rounded-full border px-3 py-1.5 hover:border-primary"
+            to={readAlongUrl(story.audiobooks?.[0]?.slug || story.slug)}
+          >
             Read Along
           </Link>
         )}

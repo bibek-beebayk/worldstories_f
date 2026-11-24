@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Check } from "lucide-react";
 import type { Audio } from "@/api/types";
 import { formatClock } from "@/lib/formatDuration";
+import { audiobookUrl } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 
 export interface ChapterRowProps {
@@ -26,7 +27,7 @@ export const ChapterRow = forwardRef<HTMLAnchorElement, ChapterRowProps>(
     return (
       <Link
         ref={ref}
-        to={`/listen/${storySlug}/${audio.slug}`}
+        to={audiobookUrl(storySlug, audio.slug)}
         state={linkState}
         onClick={onSelect}
         aria-current={isActive ? "true" : undefined}

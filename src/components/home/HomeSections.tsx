@@ -17,7 +17,7 @@ import { SectionFrame } from "@/components/home/SectionFrame";
 import { SectionLayout } from "@/components/home/SectionLayouts";
 import { OriginalsRail } from "@/components/OriginalsRail";
 import { sectionIcon } from "@/components/home/sectionIcons";
-import { useContinueListening } from "@/hooks/useContinueListening";
+import { useAudiobooksOverview } from "@/hooks/useAudiobooks";
 import { useContinueReading } from "@/hooks/useContinueReading";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useRecommendations } from "@/hooks/useRecommendations";
@@ -26,7 +26,14 @@ import type { ClickableItem } from "@/lib/homeClicks";
 import { cardShowFlagsFromDisplay, isInvertedSurface, normalizeDisplay } from "@/lib/homeDisplay";
 import { effectiveCardStyle } from "@/lib/homeLayouts";
 import { createRailDeduplicator, storiesBehindVideos } from "@/lib/railDeduplication";
-import type { Blog, HomeSectionCardStyle, HomeSectionData, PublicVideo, Story } from "@/api/types";
+import type {
+  Blog,
+  ContinueListeningItem,
+  HomeSectionCardStyle,
+  HomeSectionData,
+  PublicVideo,
+  Story,
+} from "@/api/types";
 
 const BANNER_THEMES: Record<string, string> = {
   ocean: "[--banner-from:#0891b2] [--banner-via:#2563eb] [--banner-to:#0d9488]",
@@ -192,14 +199,37 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
   const needsContinue = sections.some((s) => s.section_type === "continue_shelf");
   const needsRecommended = sections.some((s) => s.section_type === "recommended");
   const reading = useContinueReading(isLoggedIn && needsContinue);
-  const listening = useContinueListening(isLoggedIn && needsContinue);
+  const audiobookOverview = useAudiobooksOverview(isLoggedIn && needsContinue);
+  const listeningItems: ContinueListeningItem[] = (
+    audiobookOverview.data?.continue_listening ?? []
+  ).map((item) => ({
+    story: {
+      id: item.audiobook.story?.id ?? item.audiobook.id,
+      title: item.audiobook.title,
+      slug: item.audiobook.slug,
+      author: item.audiobook.author ?? "",
+      cover_image: item.audiobook.cover_image ?? "",
+      genres: item.audiobook.genres,
+      rating: 0,
+      views: 0,
+      has_audio: true,
+    } as Story,
+    audio_slug: item.track_slug,
+    audio_title: item.track_title,
+    audio_progress: item.progress_percent / 100,
+    position_seconds: item.position_seconds ?? 0,
+    duration_seconds: item.audiobook.total_duration_seconds ?? 0,
+    overall_progress: item.progress_percent / 100,
+    remaining_minutes: null,
+    updated_at: item.updated_at,
+  }));
   const recommendations = useRecommendations(isLoggedIn && needsRecommended);
 
   const rails = createRailDeduplicator();
   // The reader's own queue is claimed in full first: a story sixth in
   // Continue Reading is still theirs, not a fresh suggestion further down.
   rails.reserve(reading.data?.results.map((item) => item.story));
-  rails.reserve(listening.data?.results.map((item) => item.story));
+  rails.reserve(listeningItems.map((item) => item.story));
   rails.reserve(reservedStories);
 
   const renderSection = (section: HomeSectionData) => {
@@ -210,7 +240,7 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
         if (!isLoggedIn) return null;
         // Reading and listening in one row, newest first; the streak is a chip
         // in the row header (so there is no separate streak banner).
-        const entries = mergeContinueItems(reading.data?.results, listening.data?.results);
+        const entries = mergeContinueItems(reading.data?.results, listeningItems);
         if (entries.length === 0) return null;
         return <ContinueShelf key={key} entries={entries} title={section.title || undefined} />;
       }

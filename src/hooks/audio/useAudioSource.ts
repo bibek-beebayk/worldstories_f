@@ -3,7 +3,8 @@ import { API_BASE_URL } from "@/api/client";
 import { isIOSDevice } from "@/lib/device";
 
 interface UseAudioSourceOptions {
-  storySlug: string | undefined;
+  audiobookSlug?: string | undefined;
+  storySlug?: string | undefined;
   audioSlug: string | undefined;
   /** The public R2 object URL for the track, or null when unknown. */
   directUrl: string | null;
@@ -31,6 +32,7 @@ interface UseAudioSourceResult {
  * automatic fallback).
  */
 export function useAudioSource({
+  audiobookSlug,
   storySlug,
   audioSlug,
   directUrl,
@@ -39,7 +41,9 @@ export function useAudioSource({
 
   const directAudioSrc = directUrl || null;
   const proxiedAudioSrc = audioSlug
-    ? `${API_BASE_URL}/stories/${encodeURIComponent(storySlug || "")}/audios/${encodeURIComponent(audioSlug)}/stream/`
+    ? audiobookSlug
+      ? `${API_BASE_URL}/audiobooks/${encodeURIComponent(audiobookSlug)}/tracks/${encodeURIComponent(audioSlug)}/stream/`
+      : `${API_BASE_URL}/stories/${encodeURIComponent(storySlug || "")}/audios/${encodeURIComponent(audioSlug)}/stream/`
     : null;
   const audioSrc = !useProxiedAudio && directAudioSrc ? directAudioSrc : proxiedAudioSrc;
 

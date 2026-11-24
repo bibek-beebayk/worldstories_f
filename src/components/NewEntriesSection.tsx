@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import StoryCard from "@/components/StoryCard";
 import { storyApi } from "@/api/story";
 import type { Story } from "@/api/types";
+import { audiobookUrl, readAlongUrl } from "@/lib/urls";
 
 interface EntryType {
   key: string;
@@ -28,14 +29,14 @@ const ENTRY_TYPES: EntryType[] = [
     key: "listen",
     label: "Listen",
     icon: Headphones,
-    linkTo: (slug) => `/listen/${slug}`,
+    linkTo: (slug) => audiobookUrl(slug),
     labelClass: "tinted-chip [--tint:#f43f5e]",
   },
   {
     key: "read-along",
     label: "Read Along",
     icon: Captions,
-    linkTo: (slug) => `/read-along/${slug}`,
+    linkTo: (slug) => readAlongUrl(slug),
     labelClass: "tinted-chip [--tint:#0ea5e9]",
   },
   {

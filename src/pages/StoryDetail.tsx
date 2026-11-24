@@ -13,6 +13,7 @@ import StoryCompletionScreen from "@/components/StoryCompletionScreen";
 import StoryReactions from "@/components/StoryReactions";
 import WatchModal from "@/components/WatchModal";
 import SimilarTitles from "@/components/story/SimilarTitles";
+import { StoryListenAction } from "@/components/story/StoryListenAction";
 import StoryContentList from "@/components/story/StoryContentList";
 import StoryHeader from "@/components/story/StoryHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -180,29 +181,19 @@ const StoryDetailContent = ({ initialStory }: { initialStory?: StoryDetailData }
           </Button>
         </Link>
       )}
-      {story.audios.length > 0 && listenAudioSlug && (
-        <div className={cn("flex", ACTION_ITEM)}>
-          <Link to={`/listen/${story.slug}/${listenAudioSlug}`} className="flex min-w-0 flex-1">
-            <Button size="lg" variant="secondary" className={cn(ACTION_BTN, hasReadAlong && "rounded-r-none")}>
-              <Headphones className="h-4 w-4 mr-2 shrink-0" />
-              <span className="truncate sm:hidden">Listen</span>
-              <span className="hidden truncate sm:inline">{listenLabel}</span>
-            </Button>
-          </Link>
-          {hasReadAlong && readAlongStartSlug && (
-            <Link to={`/read-along/${story.slug}/${readAlongStartSlug}`}>
-              <Button
-                size="lg"
-                variant="secondary"
-                className={cn(ACTION_ICON_BTN, "-ml-px rounded-l-none")}
-                aria-label={readAlongResumeSlug ? "Continue Read Along" : "Read Along"}
-                title="Read Along — follow the transcript while listening"
-              >
-                <Captions className="h-4 w-4" />
-              </Button>
-            </Link>
-          )}
-        </div>
+      {((story.audiobooks && story.audiobooks.length > 0) || (story.audios.length > 0 && listenAudioSlug)) && (
+        <StoryListenAction
+          storySlug={story.slug}
+          audiobooks={story.audiobooks}
+          listenAudioSlug={listenAudioSlug}
+          listenLabel={listenLabel}
+          hasReadAlong={hasReadAlong}
+          readAlongStartSlug={readAlongStartSlug}
+          readAlongResumeSlug={readAlongResumeSlug}
+          itemClassName={ACTION_ITEM}
+          buttonClassName={ACTION_BTN}
+          iconButtonClassName={ACTION_ICON_BTN}
+        />
       )}
       {story.videos.length > 0 && (
         <Button

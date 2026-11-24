@@ -386,6 +386,7 @@ export interface StoryDetail extends Story {
   tags: Tag[];
   themes: Theme[];
   audios: Audio[];
+  audiobooks?: AudiobookOtherVersion[];
   videos: Video[];
   reviews_count: number;
   reading_time_minutes: number | null;
@@ -3106,5 +3107,218 @@ export interface AudiobookStats {
 export type QuickReadHeroResponse =
   { mode: "continue"; story: Story; progress: number } | { mode: "pick"; story: Story } | { mode: "none" };
 
-export type QuickReadHeroResponse =
-  { mode: "continue"; story: Story; progress: number } | { mode: "pick"; story: Story } | { mode: "none" };
+export type AdminAudiobookStatus = "published" | "draft" | "scheduled";
+
+export interface AdminAudiobookSeries {
+  id: number;
+  title: string;
+  slug: string;
+  description: string;
+  audiobook_count: number;
+}
+
+export interface AdminAudiobookTrack {
+  id: number;
+  title: string;
+  slug: string | null;
+  order: number;
+  audio_file: string;
+  audio_file_name: string;
+  duration_seconds: number | null;
+  file_size_bytes: number;
+  has_transcript: boolean;
+  has_cues: boolean;
+  cue_count: number;
+  transcript_state: "synced" | "plain" | "empty";
+  read_along_offset_ms: number;
+}
+
+export interface AdminAudiobookListItem {
+  id: number;
+  title: string;
+  display_title: string;
+  effective_title: string;
+  slug: string;
+  cover: string | null;
+  author_name: string;
+  narrator: string;
+  story: { id: number; title: string; slug: string } | null;
+  is_standalone: boolean;
+  series: { id: number; title: string } | null;
+  series_order: number;
+  track_count: number;
+  total_duration_seconds: number | null;
+  missing_duration_count: number;
+  is_published: boolean;
+  publish_at: string | null;
+  status: AdminAudiobookStatus;
+  updated_at: string;
+}
+
+export interface AdminAudiobookEffective {
+  title: string;
+  author: { id: number; name: string } | null;
+  author_name: string;
+  language: string;
+  about: string;
+  genres: { id: number; name: string }[];
+  cover: string | null;
+}
+
+export interface AdminAudiobookDetail {
+  id: number;
+  title: string;
+  display_title: string;
+  effective_title: string;
+  slug: string;
+  story: number | null;
+  story_detail: { id: number; title: string; slug: string } | null;
+  is_standalone: boolean;
+  author: number | null;
+  author_name: string;
+  narrator: string;
+  language: string;
+  about: string;
+  genres: number[];
+  series: number | null;
+  series_detail: { id: number; title: string } | null;
+  series_order: number;
+  cover_image_file: string | null;
+  own_cover: string | null;
+  cover: string | null;
+  is_published: boolean;
+  publish_at: string | null;
+  status: AdminAudiobookStatus;
+  track_count: number;
+  total_duration_seconds: number | null;
+  missing_duration_count: number;
+  effective: AdminAudiobookEffective;
+  tracks: AdminAudiobookTrack[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminAudiobookStats {
+  total: number;
+  standalone: number;
+  series_count: number;
+  missing_duration: number;
+}
+
+export interface AdminStorySearchItem {
+  id: number;
+  title: string;
+  slug: string;
+  author: string;
+  cover: string | null;
+  audiobook_count: number;
+}
+
+export interface AdminAudiobookListParams {
+  page?: number;
+  q?: string;
+  story_link?: "all" | "linked" | "standalone";
+  series?: string;
+  status?: "" | AdminAudiobookStatus;
+  ordering?: string;
+}
+
+export interface AdminAudiobookUploadTracksResult {
+  created: AdminAudiobookTrack[];
+  errors: { filename: string; error: string }[];
+}
+
+// --- Public Audiobooks (Phase 3) ---
+
+export interface PublicAudiobookSeries {
+  id?: number;
+  slug: string;
+  name: string;
+  description?: string;
+}
+
+export interface PublicAudiobookStoryRef {
+  id: number;
+  slug: string;
+  title: string;
+}
+
+export interface AudiobookOtherVersion {
+  slug: string;
+  title: string;
+  narrator: string;
+  total_duration_seconds: number | null;
+}
+
+export interface PublicAudiobookTrack extends Audio {
+  duration_seconds: number | null;
+}
+
+export interface PublicAudiobook {
+  id: number;
+  slug: string;
+  title: string;
+  author: string | null;
+  narrator: string;
+  language: string;
+  about: string;
+  cover_image: string | null;
+  genres: string[];
+  series: PublicAudiobookSeries | null;
+  series_order: number;
+  track_count: number;
+  total_duration_seconds: number | null;
+  minutes: number | null;
+  has_read_along: boolean;
+  story: PublicAudiobookStoryRef | null;
+  created_at: string;
+}
+
+export interface PublicAudiobookDetail extends PublicAudiobook {
+  tracks: PublicAudiobookTrack[];
+  other_versions: AudiobookOtherVersion[];
+  suggested: PublicAudiobook[];
+}
+
+export interface AudiobookOverviewShelf {
+  series: PublicAudiobookSeries;
+  audiobooks: PublicAudiobook[];
+}
+
+export interface AudiobookContinueItem {
+  audiobook: PublicAudiobook;
+  audio_id: number | null;
+  track_slug: string | null;
+  track_title: string | null;
+  position_seconds?: number;
+  progress_percent: number;
+  updated_at: string;
+}
+
+export interface AudiobooksOverviewResponse {
+  featured: PublicAudiobook | null;
+  shelves: AudiobookOverviewShelf[];
+  count: number;
+  continue_listening: AudiobookContinueItem[];
+}
+
+export interface PublicAudiobookListParams {
+  page?: number;
+  q?: string;
+  genre?: string;
+  language?: string;
+  series?: string;
+  narrator?: string;
+  has_read_along?: boolean;
+  audio_length?: string;
+  max_minutes?: number;
+  sort?: string;
+}
+
+export interface AudiobookProgressPayload {
+  audio_id?: number;
+  audio_slug?: string;
+  progress: number;
+  position_seconds: number;
+  duration_seconds: number;
+}

@@ -1,5 +1,6 @@
 import { BookMarked, Captions, CheckCircle2, Eye, Headphones, Youtube } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+import { audiobookUrl, readAlongUrl } from "@/lib/urls";
 import type { StoryDetail } from "@/api/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -58,9 +59,9 @@ const StoryContentList = ({
               mode === "read"
                 ? `/read/${story.slug}/${item.slug}`
                 : mode === "read-along"
-                  ? `/read-along/${story.slug}/${item.slug}`
+                  ? readAlongUrl(story.audiobooks?.[0]?.slug || story.slug, item.slug)
                   : mode === "listen"
-                    ? `/listen/${story.slug}/${item.slug}`
+                    ? audiobookUrl(story.audiobooks?.[0]?.slug || story.slug, item.slug)
                     : null;
             const progress = mode === "read" ? chapterProgressMap[item.slug] || 0 : videoProgressMap[item.slug] || 0;
             const completed = mode === "read" ? progress >= 1 : progress >= 0.995;

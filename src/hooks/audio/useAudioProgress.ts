@@ -14,9 +14,11 @@ export type AudioProgressEntry = {
 };
 
 interface UseAudioProgressOptions {
+  /** Preferred Phase 3 audiobook slug for audiobook-keyed progress API. */
+  audiobookSlug?: string | undefined;
   storySlug: string | undefined;
-  /** Every audio track of the story — used only for the all-tracks-finished check. */
-  audios: Array<{ slug: string }>;
+  /** Every audio track of the audiobook/story — used for track id lookup and all-tracks-finished check. */
+  audios: Array<{ id?: number; slug: string }>;
   isAuthenticated: boolean;
   currentAudioSlug: string | undefined;
   /**
@@ -66,19 +68,14 @@ type PendingSave = {
  * source of truth — it never touches `ChapterReadingProgress`.
  */
 export function useAudioProgress({
+  audiobookSlug,
   storySlug,
   audios,
   isAuthenticated,
   currentAudioSlug,
   completionContentType = "audio",
 }: UseAudioProgressOptions): UseAudioProgressResult {
-  // Keyed by audio slug rather than a single shared timer — with one shared
-  // timer, finishing track N and moving to track N+1 would have the new
-  // track's very first timeupdate cancel track N's still-pending "100%
-  // complete" save before it ever fired, permanently losing that track's
-  // final progress and dragging down the book's overall completion. Each
-  // entry also carries its pending values so `flushPendingSaves()` can fire
-  // them synchronously.
+  const effectiveKey = audiobookSlug || storySlug;
   const saveTimersRef = useRef<Record<string, PendingSave>>({});
   const restoredAudioSlugRef = useRef<string | null>(null);
   const loadedAudioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -88,16 +85,21 @@ export function useAudioProgress({
   >({});
 
   const { data: audioProgress, isFetched: isServerProgressFetched } = useQuery({
-    queryKey: ["audio-progress", storySlug],
-    queryFn: () => storyApi.getAudioProgress(storySlug!),
-    enabled: !!storySlug && isAuthenticated,
+    queryKey: audiobookSlug
+      ? ["audiobook-progress", audiobookSlug]
+      : ["audio-progress", storySlug],
+    queryFn: () =>
+      audiobookSlug
+        ? storyApi.getAudiobookProgress(audiobookSlug)
+        : storyApi.getAudioProgress(storySlug!),
+    enabled: !!effectiveKey && isAuthenticated,
     retry: false,
   });
 
   const { data: localProgress, isFetched: isLocalProgressFetched } = useQuery({
-    queryKey: ["local-audio-progress", storySlug],
-    queryFn: () => listLocalProgress(storySlug),
-    enabled: !!storySlug && !isAuthenticated && typeof window !== "undefined",
+    queryKey: ["local-audio-progress", effectiveKey],
+    queryFn: () => listLocalProgress(effectiveKey),
+    enabled: !!effectiveKey && !isAuthenticated && typeof window !== "undefined",
     retry: false,
   });
 
@@ -144,12 +146,13 @@ export function useAudioProgress({
     positionSeconds: number,
     durationSeconds: number
   ) => {
-    if (!storySlug) return;
+    if (!effectiveKey) return;
     const normalizedProgress = Math.min(1, Math.max(0, progress));
     const normalizedPosition = Math.max(0, positionSeconds);
     const normalizedDuration = Math.max(0, durationSeconds);
+    const matchedTrack = audios.find((a) => a.slug === audioSlug);
     saveAudioProgressLocally(
-      storySlug,
+      effectiveKey,
       audioSlug,
       normalizedProgress,
       normalizedPosition,
@@ -157,21 +160,40 @@ export function useAudioProgress({
       completionContentType
     );
     if (isAuthenticated) {
-      storyApi
-        .saveAudioProgress(storySlug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)
+      const savePromise = audiobookSlug
+        ? storyApi.saveAudiobookProgress(audiobookSlug, {
+            audio_id: matchedTrack?.id,
+            audio_slug: audioSlug,
+            progress: normalizedProgress,
+            position_seconds: normalizedPosition,
+            duration_seconds: normalizedDuration,
+          })
+        : storyApi.saveAudioProgress(
+            storySlug!,
+            audioSlug,
+            normalizedProgress,
+            normalizedPosition,
+            normalizedDuration
+          );
+      savePromise
         .then((response) => {
-          // The server settles completion on the write itself, so it is right
-          // about "finished just now" even on a device that has never seen
-          // this story before.
-          if (response?.story_completed) {
+          if (response?.story_completed && storySlug) {
             noteServerConfirmedCompletion(storySlug);
             announceCountryUnlocked(response.unlocked_country);
             announceAchievements(response.unlocked_achievements);
           }
         })
-        .catch(() =>
-          queueAudioProgress(storySlug, audioSlug, normalizedProgress, normalizedPosition, normalizedDuration)
-        );
+        .catch(() => {
+          if (storySlug) {
+            queueAudioProgress(
+              storySlug,
+              audioSlug,
+              normalizedProgress,
+              normalizedPosition,
+              normalizedDuration
+            );
+          }
+        });
     } else if (normalizedProgress >= 0.995 && audios && audios.length > 0) {
       // Signed-out readers have no server record, so the local check stands.
       const allTracksFinished = audios.every(

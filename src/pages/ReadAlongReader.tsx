@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { data, Link, useLocation, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownToLine,
@@ -27,8 +27,12 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
 import { useContentSessionAnalytics } from "@/hooks/useContentSessionAnalytics";
-import { useReadAlong } from "@/hooks/useReadAlong";
-import { useStory } from "@/hooks/useStory";
+import { useAudiobook, useAudiobookReadAlong } from "@/hooks/useAudiobooks";
+import {
+  isAudiobookNotFoundData,
+  loadReadAlongReaderOrRedirect,
+} from "@/lib/audiobookLoader";
+import { audiobookUrl, readAlongUrl } from "@/lib/urls";
 import { useReaderAppearance } from "@/hooks/useReaderAppearance";
 import { ReaderSettingsPanel } from "@/components/reader/ReaderSettingsPanel";
 import { READER_GLASS_PANEL_CLASS } from "@/components/reader/glassPanel";
@@ -56,21 +60,15 @@ import {
 } from "@/lib/readAlongKeyboard";
 import type { Route } from "./+types/ReadAlongReader";
 
-// Fetched here to feed meta() server-side and seed the client query — the
-// component still reads through useReadAlong() with this as initialData.
+// Fetched here to feed meta() server-side and seed the client query — supports
+// two-step slug resolution (audiobook slug first, 301 redirect from story slug, 404 otherwise).
 export async function loader({ params }: Route.LoaderArgs) {
-  try {
-    return await storyApi.getReadAlong(params.story_slug!, params.audio_slug!);
-  } catch (error) {
-    console.error("[SSR loader] request failed:", error);
-    return data(null, { status: 404 });
-  }
+  return loadReadAlongReaderOrRedirect(params.story_slug!, params.audio_slug!);
 }
 
-// Always noIndex: Read Along is a playback surface, not a landing page — the
-// story's own page is the indexable route for its audio and transcripts.
+// Always noIndex: Read Along is a playback surface, not a landing page.
 export function meta({ data: readAlong, params }: Route.MetaArgs) {
-  if (!readAlong) {
+  if (!readAlong || isAudiobookNotFoundData(readAlong)) {
     return buildMeta({
       title: "Read Along Not Found | WorldStories",
       description: "The requested read-along could not be found.",
@@ -131,7 +129,12 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const backHref = (location.state as { backTo?: string } | null)?.backTo || `/read-along/${story_slug}`;
+  const isNotFound = isAudiobookNotFoundData(loaderData);
+  const initialReadAlong =
+    !isNotFound && loaderData && loaderData.audio?.slug === audio_slug ? loaderData : undefined;
+  const backHref =
+    (location.state as { backTo?: string } | null)?.backTo ||
+    (story_slug ? readAlongUrl(story_slug) : "/audiobooks");
 
   const isAuthenticated = useIsLoggedIn();
   const { setIsImmersiveReaderActive } = useImmersiveReader();
@@ -140,16 +143,12 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
     isLoading,
     isError,
     refetch,
-  } = useReadAlong(
-    story_slug,
-    audio_slug,
-    // Only seed from the loader when it's actually this track's payload. RR
-    // holds a same-route navigation until the loader resolves, so params and
-    // loaderData shouldn't desync — this is a cheap guard against that ever
-    // changing (e.g. a future clientLoader).
-    loaderData?.audio?.slug === audio_slug ? loaderData : undefined
+  } = useAudiobookReadAlong(
+    isNotFound ? undefined : story_slug,
+    isNotFound ? undefined : audio_slug,
+    initialReadAlong,
   );
-  const { data: story } = useStory(story_slug);
+  const { data: audiobook } = useAudiobook(isNotFound ? undefined : story_slug);
 
   const [hasMounted, setHasMounted] = useState(false);
   const isOnline = useOnlineStatus();
@@ -190,14 +189,16 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   );
 
   const source = useAudioSource({
-    storySlug: story_slug,
+    audiobookSlug: audiobook?.slug || story_slug,
+    storySlug: audiobook?.story?.slug,
     audioSlug: audio_slug,
     directUrl: readAlong?.audio.audio_file || null,
   });
 
   const progress = useAudioProgress({
-    storySlug: story_slug,
-    audios: story?.audios ?? [],
+    audiobookSlug: audiobook?.slug || story_slug,
+    storySlug: audiobook?.story?.slug,
+    audios: audiobook?.tracks ?? [],
     isAuthenticated,
     currentAudioSlug: audio_slug,
     completionContentType: "read_along",
@@ -206,7 +207,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   const goToTrack = (slug: string) => {
     // Persist the current position now rather than losing it to the debounce.
     progress.flushPendingSaves();
-    navigate(`/read-along/${story_slug}/${slug}`, { state: location.state });
+    navigate(readAlongUrl(story_slug || "", slug), { state: location.state });
   };
 
   const player = useAudioPlayback({
@@ -470,7 +471,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
         <MessageScreen
           title="Read Along needs a connection"
           body="Connect to the internet to use Read Along."
-          primary={{ label: "Listen instead", to: `/listen/${story_slug}/${audio_slug}` }}
+          primary={{ label: "Listen instead", to: audiobookUrl(story_slug || "", audio_slug) }}
           secondary={{ label: "Back", to: backHref }}
         />
       );
@@ -488,7 +489,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
   const { story: readAlongStory, audio, transcript } = readAlong;
   const audioUnavailable = !audio.stream_url && !audio.audio_file;
   const transcriptEmpty = transcript.state === "empty" || !transcript.html?.trim();
-  const listenHref = `/listen/${story_slug}/${audio_slug}`;
+  const listenHref = audiobookUrl(story_slug || "", audio_slug);
   const playbackPercent =
     player.duration > 0
       ? Math.min(100, Math.max(0, Math.round((player.currentTime / player.duration) * 100)))
@@ -499,7 +500,7 @@ const ReadAlongReader = ({ loaderData }: Route.ComponentProps) => {
     ? "bg-sky-400/15 shadow-[inset_3px_0_0_theme(colors.sky.400)]"
     : "bg-amber-300/35 shadow-[inset_3px_0_0_theme(colors.amber.500)]";
 
-  const compatibleTracks = (story?.audios ?? [])
+  const compatibleTracks = (audiobook?.tracks ?? [])
     .filter((track) => track.read_along_available)
     .sort((a, b) => a.order - b.order);
 

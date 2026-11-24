@@ -36,7 +36,21 @@ import {
   AdminDailyStory,
   AdminChapter,
   AdminAudio,
+  AdminAudiobookDetail,
+  AdminAudiobookListItem,
+  AdminAudiobookListParams,
+  AdminAudiobookSeries,
+  AdminAudiobookStats,
+  AdminAudiobookTrack,
+  AdminAudiobookUploadTracksResult,
+  AdminStorySearchItem,
+  AudiobookProgressPayload,
+  AudiobooksOverviewResponse,
+  AudiobookStats,
   AudioTranscriptImportResult,
+  PublicAudiobook,
+  PublicAudiobookDetail,
+  PublicAudiobookListParams,
   AudioTranscriptCuesResponse,
   AdminVideo,
   PublicVideo,
@@ -1019,4 +1033,121 @@ export const storyApi = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+
+  // --- Admin Audiobooks ---
+  listAdminAudiobooks: (params: AdminAudiobookListParams = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page && params.page > 1) qs.set("page", String(params.page));
+    if (params.q && params.q.trim()) qs.set("q", params.q.trim());
+    if (params.story_link && params.story_link !== "all") qs.set("story_link", params.story_link);
+    if (params.series) qs.set("series", params.series);
+    if (params.status) qs.set("status", params.status);
+    if (params.ordering) qs.set("ordering", params.ordering);
+    const query = qs.toString();
+    return apiClient<PaginatedResponse<AdminAudiobookListItem>>(`/admin/audiobooks/${query ? `?${query}` : ""}`);
+  },
+  getAdminAudiobook: (id: number) => apiClient<AdminAudiobookDetail>(`/admin/audiobooks/${id}/`),
+  createAdminAudiobook: (payload: FormData | Record<string, unknown>) =>
+    apiClient<AdminAudiobookDetail>("/admin/audiobooks/", {
+      method: "POST",
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }),
+  updateAdminAudiobook: (id: number, payload: FormData | Record<string, unknown>) =>
+    apiClient<AdminAudiobookDetail>(`/admin/audiobooks/${id}/`, {
+      method: "PATCH",
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }),
+  deleteAdminAudiobook: (id: number) =>
+    apiClient<void>(`/admin/audiobooks/${id}/`, {
+      method: "DELETE",
+    }),
+  getAdminAudiobookStats: () => apiClient<AdminAudiobookStats>("/admin/audiobooks/stats/"),
+  searchAdminStoriesForAudiobook: (q: string) =>
+    apiClient<AdminStorySearchItem[]>(`/admin/audiobooks/story-search/?q=${encodeURIComponent(q)}`),
+  uploadAdminAudiobookTracks: (id: number, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append("files", f));
+    return apiClient<AdminAudiobookUploadTracksResult>(`/admin/audiobooks/${id}/tracks/`, {
+      method: "POST",
+      body: formData,
+    });
+  },
+  reorderAdminAudiobookTracks: (id: number, ids: number[]) =>
+    apiClient<AdminAudiobookTrack[]>(`/admin/audiobooks/${id}/tracks/reorder/`, {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+  updateAdminAudiobookTrack: (
+    audiobookId: number,
+    trackId: number,
+    payload: FormData | { title?: string; order?: number; read_along_offset_ms?: number },
+  ) =>
+    apiClient<AdminAudiobookTrack>(`/admin/audiobooks/${audiobookId}/tracks/${trackId}/`, {
+      method: "PATCH",
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }),
+  deleteAdminAudiobookTrack: (audiobookId: number, trackId: number) =>
+    apiClient<void>(`/admin/audiobooks/${audiobookId}/tracks/${trackId}/`, {
+      method: "DELETE",
+    }),
+  rereadAdminAudiobookTrackDuration: (audiobookId: number, trackId: number) =>
+    apiClient<AdminAudiobookTrack>(`/admin/audiobooks/${audiobookId}/tracks/${trackId}/reread-duration/`, {
+      method: "POST",
+    }),
+  moveAdminAudiobookTrack: (audiobookId: number, trackId: number, targetAudiobookId: number) =>
+    apiClient<AdminAudiobookTrack>(`/admin/audiobooks/${audiobookId}/tracks/${trackId}/move/`, {
+      method: "POST",
+      body: JSON.stringify({ audiobook_id: targetAudiobookId }),
+    }),
+  listAdminAudiobookSeries: (q?: string) =>
+    apiClient<AdminAudiobookSeries[]>(`/admin/audiobook-series/${q ? `?search=${encodeURIComponent(q)}` : ""}`),
+  createAdminAudiobookSeries: (payload: { title: string; slug?: string; description?: string }) =>
+    apiClient<AdminAudiobookSeries>("/admin/audiobook-series/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateAdminAudiobookSeries: (id: number, payload: Partial<{ title: string; slug: string; description: string }>) =>
+    apiClient<AdminAudiobookSeries>(`/admin/audiobook-series/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteAdminAudiobookSeries: (id: number) =>
+    apiClient<void>(`/admin/audiobook-series/${id}/`, {
+      method: "DELETE",
+    }),
+
+  // --- Public Audiobooks (Phase 3) ---
+  getAudiobooks: (params: PublicAudiobookListParams = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page && params.page > 1) qs.set("page", String(params.page));
+    if (params.q && params.q.trim()) qs.set("q", params.q.trim());
+    if (params.genre && params.genre !== "all") qs.set("genre", params.genre);
+    if (params.language && params.language !== "all") qs.set("language", params.language);
+    if (params.series) qs.set("series", params.series);
+    if (params.narrator && params.narrator.trim()) qs.set("narrator", params.narrator.trim());
+    if (params.has_read_along) qs.set("has_read_along", "true");
+    if (params.audio_length && params.audio_length !== "all")
+      qs.set("audio_length", params.audio_length);
+    if (params.max_minutes !== undefined) qs.set("max_minutes", String(params.max_minutes));
+    if (params.sort) qs.set("sort", params.sort);
+    const query = qs.toString();
+    return apiClient<PaginatedResponse<PublicAudiobook>>(
+      `/audiobooks/${query ? `?${query}` : ""}`,
+    );
+  },
+  getAudiobooksOverview: () => apiClient<AudiobooksOverviewResponse>("/audiobooks/overview/"),
+  getAudiobook: (slug: string) =>
+    apiClient<PublicAudiobookDetail>(`/audiobooks/${encodeURIComponent(slug)}/`),
+  getAudiobookStatsPublic: () => apiClient<AudiobookStats>("/audiobooks/stats/"),
+  getAudiobookProgress: (slug: string) =>
+    apiClient<AudioReadingProgress>(`/audio-progress/audiobook/${encodeURIComponent(slug)}/`),
+  saveAudiobookProgress: (slug: string, payload: AudiobookProgressPayload) =>
+    apiClient<AudioReadingProgress>(`/audio-progress/audiobook/${encodeURIComponent(slug)}/`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  getAudiobookReadAlong: (slug: string, audioSlug: string) =>
+    apiClient<ReadAlongPayload>(
+      `/audiobooks/${encodeURIComponent(slug)}/read-along/${encodeURIComponent(audioSlug)}/`,
+    ),
 };

@@ -30,6 +30,7 @@ import {
   SwatchBook,
   Settings2,
   Clapperboard,
+  Headphones,
   MessageSquare,
   Mail,
 } from "lucide-react";
@@ -59,6 +60,7 @@ const menuItems: MenuEntry[] = [
     icon: FolderOpen,
     children: [
       { to: "/admin/content", label: "Stories", icon: Library, exact: false },
+      { to: "/admin/audiobooks", label: "Audiobooks", icon: Headphones, exact: false },
       { to: "/admin/videos", label: "Videos", icon: Clapperboard, exact: false },
       { to: "/admin/blog", label: "Blog", icon: Newspaper, exact: false },
       { to: "/admin/categories", label: "Categories", icon: Tag, exact: false },

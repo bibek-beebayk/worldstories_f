@@ -1,5 +1,6 @@
 import { BookOpenText, Captions, Headphones, Youtube, Zap } from "lucide-react";
 import type { ComponentType } from "react";
+import { audiobookUrl, readAlongUrl } from "@/lib/urls";
 
 // The five ways to take a story in, named once: the Library's format tabs, the
 // story card's badges and the list view's icons all read from here, so a format
@@ -11,8 +12,8 @@ export const FORMAT_META: Record<
   { label: string; icon: ComponentType<{ className?: string }>; badgeClass: string; route: (slug: string) => string }
 > = {
   read: { label: "Read", icon: BookOpenText, badgeClass: "bg-emerald-600", route: (slug) => `/read/${slug}` },
-  listen: { label: "Listen", icon: Headphones, badgeClass: "bg-rose-600", route: (slug) => `/listen/${slug}` },
-  read_along: { label: "Read Along", icon: Captions, badgeClass: "bg-sky-600", route: (slug) => `/read-along/${slug}` },
+  listen: { label: "Listen", icon: Headphones, badgeClass: "bg-rose-600", route: (slug) => audiobookUrl(slug) },
+  read_along: { label: "Read Along", icon: Captions, badgeClass: "bg-sky-600", route: (slug) => readAlongUrl(slug) },
   watch: { label: "Watch", icon: Youtube, badgeClass: "bg-indigo-600", route: (slug) => `/watch/${slug}` },
   quick_read: { label: "Quick Read", icon: Zap, badgeClass: "bg-amber-600", route: (slug) => `/quick-read/${slug}` },
 };

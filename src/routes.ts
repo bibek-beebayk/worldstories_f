@@ -74,6 +74,9 @@ export default [
       layout("layouts/AdminShellLayout.tsx", [
         index("pages/AdminHome.tsx"),
         route("content", "pages/AdminContent.tsx"),
+        route("audiobooks", "pages/admin/AdminAudiobooks.tsx"),
+        route("audiobooks/new", "pages/admin/AdminAudiobookCreate.tsx"),
+        route("audiobooks/:id", "pages/admin/AdminAudiobookEdit.tsx"),
         route("featured", "pages/AdminFeatured.tsx"),
         route("hero", "pages/AdminHero.tsx"),
         route("home-sections", "pages/AdminHomeSections.tsx"),

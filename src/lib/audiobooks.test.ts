@@ -36,6 +36,7 @@ describe("parseAudiobookParams and buildAudiobookParams", () => {
       q: "sherlock",
       genre: "5",
       language: "en",
+      series: "",
       sort: "audio_shortest",
       length: "short",
       readalong: true,

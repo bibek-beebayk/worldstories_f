@@ -46,10 +46,18 @@ export default function NewsletterSignupCard({
   const [email, setEmail] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [error, setError] = useState("");
-  const [subscribedHint, setSubscribedHint] = useState(() => newsletterPrefs.getSubscribedHint());
+  // Always start false so the initial client render matches SSR (where
+  // localStorage doesn't exist); reading it in useState's initializer causes
+  // a hydration mismatch on every public page once subscribed, dropping Vite's
+  // dev CSS. Sync immediately after mount in the effect below.
+  const [subscribedHint, setSubscribedHint] = useState(false);
   const remoteStatus = statusQuery.data?.status;
 
-  useEffect(() => newsletterPrefs.subscribe(() => setSubscribedHint(newsletterPrefs.getSubscribedHint())), []);
+  useEffect(() => {
+    const sync = () => setSubscribedHint(newsletterPrefs.getSubscribedHint());
+    sync();
+    return newsletterPrefs.subscribe(sync);
+  }, []);
 
   if (remoteStatus === "confirmed" || (subscribedHint && state === "idle")) return null;
 

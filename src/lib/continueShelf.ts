@@ -1,4 +1,5 @@
 import type { ContinueListeningItem, ContinueReadingItem, Story } from "@/api/types";
+import { audiobookUrl } from "@/lib/urls";
 
 // The homepage "Continue" row merges what a reader is reading and listening to
 // into one list, newest activity first. Items nobody has touched for a month,
@@ -54,7 +55,9 @@ export function mergeContinueItems(
       (item): ContinueEntry => ({
         kind: "listening",
         story: item.story,
-        href: item.audio_slug ? `/listen/${item.story.slug}/${item.audio_slug}` : `/read/${item.story.slug}`,
+        href: item.audio_slug
+          ? audiobookUrl(item.story.slug, item.audio_slug)
+          : `/read/${item.story.slug}`,
         detail: item.audio_title,
         progress: item.overall_progress,
         remainingMinutes: item.remaining_minutes,

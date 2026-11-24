@@ -1,4 +1,4 @@
-import type { ContinueListeningItem } from "@/api/types";
+import type { AudiobookContinueItem, ContinueListeningItem } from "@/api/types";
 
 export type AudiobookSort = "popular" | "recent" | "rating" | "audio_shortest" | "audio_longest";
 export type AudiobookLength = "all" | "short" | "medium" | "long" | "epic";
@@ -7,6 +7,7 @@ export interface AudiobookFilters {
   q: string;
   genre: string;
   language: string;
+  series: string;
   sort: AudiobookSort;
   length: AudiobookLength;
   readalong: boolean;
@@ -16,6 +17,7 @@ export const DEFAULT_AUDIOBOOK_FILTERS: AudiobookFilters = {
   q: "",
   genre: "all",
   language: "all",
+  series: "",
   sort: "popular",
   length: "all",
   readalong: false,
@@ -69,6 +71,7 @@ export function parseAudiobookParams(params: URLSearchParams): AudiobookFilters 
   const genre = /^\d+$/.test(rawGenre) ? rawGenre : "all";
   const rawLanguage = (params.get("language") ?? "").trim().toLowerCase();
   const language = rawLanguage && rawLanguage !== "all" ? rawLanguage : "all";
+  const series = (params.get("series") ?? "").trim();
   const rawSort = (params.get("sort") ?? "").trim().toLowerCase() as AudiobookSort;
   const sort: AudiobookSort = VALID_SORTS.has(rawSort) ? rawSort : "popular";
   const rawLength = (params.get("length") ?? "").trim().toLowerCase() as AudiobookLength;
@@ -76,7 +79,7 @@ export function parseAudiobookParams(params: URLSearchParams): AudiobookFilters 
   const rawReadalong = (params.get("readalong") ?? "").trim().toLowerCase();
   const readalong = rawReadalong === "1" || rawReadalong === "true";
 
-  return { q, genre, language, sort, length, readalong };
+  return { q, genre, language, series, sort, length, readalong };
 }
 
 export function buildAudiobookParams(filters: AudiobookFilters): URLSearchParams {
@@ -85,6 +88,7 @@ export function buildAudiobookParams(filters: AudiobookFilters): URLSearchParams
   if (q) next.set("q", q);
   if (filters.genre && filters.genre !== "all") next.set("genre", filters.genre);
   if (filters.language && filters.language !== "all") next.set("language", filters.language);
+  if (filters.series && filters.series.trim()) next.set("series", filters.series.trim());
   if (filters.sort && filters.sort !== "popular") next.set("sort", filters.sort);
   if (filters.length && filters.length !== "all") next.set("length", filters.length);
   if (filters.readalong) next.set("readalong", "1");
@@ -94,11 +98,45 @@ export function buildAudiobookParams(filters: AudiobookFilters): URLSearchParams
 export function hasActiveAudiobookFilters(filters: AudiobookFilters): boolean {
   return Boolean(
     filters.q.trim() ||
-    filters.genre !== "all" ||
-    filters.language !== "all" ||
-    filters.length !== "all" ||
-    filters.readalong,
+      filters.genre !== "all" ||
+      filters.language !== "all" ||
+      filters.series.trim() ||
+      filters.length !== "all" ||
+      filters.readalong,
   );
+}
+
+/** Map frontend URL sort param to `/api/audiobooks/?sort=` param. */
+export function mapAudiobookApiSort(sort: AudiobookSort): string {
+  switch (sort) {
+    case "recent":
+      return "newest";
+    case "audio_shortest":
+      return "shortest";
+    case "audio_longest":
+      return "longest";
+    case "rating":
+      return "popular";
+    case "popular":
+    default:
+      return "popular";
+  }
+}
+
+/**
+ * Build a Map<audiobookSlug, percent (0..100)> from overview continue_listening items.
+ */
+export function buildAudiobookContinueMap(items?: AudiobookContinueItem[]): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!items) return map;
+  for (const item of items) {
+    const slug = item.audiobook?.slug;
+    if (!slug) continue;
+    if (typeof item.progress_percent === "number" && item.progress_percent > 0) {
+      map.set(slug, Math.max(1, Math.min(100, Math.round(item.progress_percent))));
+    }
+  }
+  return map;
 }
 
 /**

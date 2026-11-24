@@ -1,36 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Headphones, Loader2, Play, Search, X } from "lucide-react";
-import { storyApi } from "@/api/story";
-import type { Story } from "@/api/types";
 import CoverImage from "@/components/CoverImage";
 import { AudiobookCard } from "@/components/audiobooks/AudiobookCard";
 import { AudiobookShelf } from "@/components/audiobooks/AudiobookShelf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAudiobookStats } from "@/hooks/useAudiobookStats";
-import { useContinueListening } from "@/hooks/useContinueListening";
+import {
+  useAudiobooks,
+  useAudiobooksOverview,
+  useInfiniteAudiobooks,
+  usePublicAudiobookStats,
+} from "@/hooks/useAudiobooks";
 import { useGenres } from "@/hooks/useGenres";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
-import { useInfiniteStories } from "@/hooks/useInfiniteStories";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import {
   AUDIOBOOK_LENGTH_OPTIONS,
   AUDIOBOOK_SORT_OPTIONS,
+  buildAudiobookContinueMap,
   buildAudiobookParams,
-  buildContinueListeningMap,
   DEFAULT_AUDIOBOOK_FILTERS,
   formatAudioDuration,
   hasActiveAudiobookFilters,
+  mapAudiobookApiSort,
   parseAudiobookParams,
   type AudiobookFilters,
   type AudiobookLength,
   type AudiobookSort,
 } from "@/lib/audiobooks";
+import { formatLong } from "@/lib/formatDuration";
 import { buildMeta } from "@/lib/buildMeta";
 import { LANGUAGE_OPTIONS } from "@/lib/languages";
+import { audiobookUrl } from "@/lib/urls";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const STICKY_GAP = 6;
@@ -68,163 +71,74 @@ const Audiobooks = () => {
   useEffect(() => {
     const trimmed = searchInput.trim();
     if (trimmed === filters.q) return;
-    const timer = window.setTimeout(() => updateFilters({ q: trimmed }, { replace: true }), SEARCH_DEBOUNCE_MS);
+    const timer = window.setTimeout(
+      () => updateFilters({ q: trimmed }, { replace: true }),
+      SEARCH_DEBOUNCE_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [searchInput, filters.q, updateFilters]);
 
-  // Hero & filter reference data
-  const { data: stats } = useAudiobookStats();
+  // Hero, series shelves, continue listening & stats from public Audiobook API
+  const { data: stats } = usePublicAudiobookStats();
+  const { data: overview } = useAudiobooksOverview();
   const { data: genres = [] } = useGenres();
-  const { data: continueData } = useContinueListening(isSignedIn);
 
-  const continueItems = continueData?.results;
-  const continueHeroItem = isSignedIn && continueItems && continueItems.length > 0 ? continueItems[0] : null;
-  const progressBySlug = useMemo(() => buildContinueListeningMap(continueItems), [continueItems]);
+  const continueItems = useMemo(
+    () => (isSignedIn ? (overview?.continue_listening ?? []) : []),
+    [isSignedIn, overview?.continue_listening],
+  );
+  const continueHeroItem = continueItems[0] ?? null;
+  const featuredAudiobook = overview?.featured ?? null;
+  const seriesShelves = overview?.shelves ?? [];
 
-  // Top popular audiobook for the signed-out / no-progress hero card.
-  const { data: featuredQuery } = useQuery({
-    queryKey: ["audiobooks-hero-featured"],
-    queryFn: () => storyApi.getStories(1, [], "popular", "all", "", "all", "all", [], true),
-    enabled: !continueHeroItem,
-    staleTime: 5 * 60 * 1000,
-  });
-  const featuredStory = featuredQuery?.results?.[0] ?? null;
+  const progressBySlug = useMemo(() => buildAudiobookContinueMap(continueItems), [continueItems]);
+  const trackSlugBySlug = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const item of continueItems) {
+      map.set(item.audiobook.slug, item.track_slug);
+    }
+    return map;
+  }, [continueItems]);
 
   // Duration shelves (default browsing view only)
-  const { data: shortShelfData } = useQuery({
-    queryKey: ["audiobooks-shelf", "short"],
-    queryFn: () =>
-      storyApi.getStories(
-        1,
-        [],
-        "popular",
-        "all",
-        "",
-        "all",
-        "all",
-        [],
-        true,
-        false,
-        "all",
-        false,
-        [],
-        false,
-        "all",
-        "short",
-      ),
-    enabled: !hasFilters,
-    staleTime: 5 * 60 * 1000,
-  });
-  const { data: mediumShelfData } = useQuery({
-    queryKey: ["audiobooks-shelf", "medium"],
-    queryFn: () =>
-      storyApi.getStories(
-        1,
-        [],
-        "popular",
-        "all",
-        "",
-        "all",
-        "all",
-        [],
-        true,
-        false,
-        "all",
-        false,
-        [],
-        false,
-        "all",
-        "medium",
-      ),
-    enabled: !hasFilters,
-    staleTime: 5 * 60 * 1000,
-  });
-  const { data: longShelfData } = useQuery({
-    queryKey: ["audiobooks-shelf", "long-epic"],
-    queryFn: async () => {
-      const [longRes, epicRes] = await Promise.all([
-        storyApi.getStories(
-          1,
-          [],
-          "audio_longest",
-          "all",
-          "",
-          "all",
-          "all",
-          [],
-          true,
-          false,
-          "all",
-          false,
-          [],
-          false,
-          "all",
-          "long",
-        ),
-        storyApi.getStories(
-          1,
-          [],
-          "audio_longest",
-          "all",
-          "",
-          "all",
-          "all",
-          [],
-          true,
-          false,
-          "all",
-          false,
-          [],
-          false,
-          "all",
-          "epic",
-        ),
-      ]);
-      const seen = new Set<number>();
-      const merged: Story[] = [];
-      for (const story of [...epicRes.results, ...longRes.results]) {
-        if (!seen.has(story.id)) {
-          seen.add(story.id);
-          merged.push(story);
-        }
-      }
-      merged.sort((a, b) => (b.audio_minutes ?? 0) - (a.audio_minutes ?? 0));
-      return merged.slice(0, 6);
-    },
-    enabled: !hasFilters,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: shortShelfData } = useAudiobooks(
+    { audio_length: "short", sort: "popular", page: 1 },
+    !hasFilters,
+  );
+  const { data: mediumShelfData } = useAudiobooks(
+    { audio_length: "medium", sort: "popular", page: 1 },
+    !hasFilters,
+  );
+  const { data: longShelfData } = useAudiobooks(
+    { audio_length: "long", sort: "longest", page: 1 },
+    !hasFilters,
+  );
 
   // Main "All audiobooks" grid
-  const genreIds = useMemo(() => (filters.genre !== "all" ? [Number(filters.genre)] : []), [filters.genre]);
   const {
-    data: storiesData,
+    data: audiobooksData,
     isLoading: isGridLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteStories(
-    genreIds,
-    filters.sort,
-    "all",
-    filters.q,
-    filters.language,
-    "all",
-    true,
-    [],
-    true,
-    false,
-    false,
-    [],
-    filters.readalong,
-    filters.length,
+  } = useInfiniteAudiobooks({
+    q: filters.q,
+    genre: filters.genre,
+    language: filters.language,
+    series: filters.series || undefined,
+    has_read_along: filters.readalong || undefined,
+    audio_length: filters.length,
+    sort: mapAudiobookApiSort(filters.sort),
+  });
+
+  const audiobooks = useMemo(
+    () => audiobooksData?.pages.flatMap((page) => page.results) ?? [],
+    [audiobooksData],
   );
+  const totalCount = audiobooksData?.pages[0]?.pagination?.count ?? 0;
 
-  const stories = useMemo(() => storiesData?.pages.flatMap((page) => page.results) ?? [], [storiesData]);
-  const totalCount = storiesData?.pages[0]?.pagination?.count ?? 0;
-
-  const handleShelfSeeAll = (length: AudiobookLength) => {
-    updateFilters({ length });
+  const handleShelfSeeAll = (patch: Partial<AudiobookFilters>) => {
+    updateFilters(patch);
     window.requestAnimationFrame(() => {
       gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -236,24 +150,18 @@ const Audiobooks = () => {
   };
 
   const totalHours = stats && stats.total_seconds > 0 ? Math.floor(stats.total_seconds / 3600) : 0;
-  const heroContinuePercent = continueHeroItem
-    ? Math.max(
-        1,
-        Math.min(
-          100,
-          Math.round(
-            ((continueHeroItem.overall_progress > 0
-              ? continueHeroItem.overall_progress
-              : continueHeroItem.audio_progress) || 0) * 100,
-          ),
-        ),
-      )
-    : 0;
+  const heroContinuePercent = continueHeroItem?.progress_percent ?? 0;
   const heroContinueHref = continueHeroItem
-    ? continueHeroItem.audio_slug
-      ? `/listen/${continueHeroItem.story.slug}/${continueHeroItem.audio_slug}`
-      : `/listen/${continueHeroItem.story.slug}`
+    ? audiobookUrl(continueHeroItem.audiobook.slug, continueHeroItem.track_slug)
     : "/audiobooks";
+  const featuredDuration = featuredAudiobook
+    ? formatLong(featuredAudiobook.total_duration_seconds) ||
+      formatAudioDuration(featuredAudiobook.minutes)
+    : null;
+
+  const activeSeriesName = filters.series
+    ? seriesShelves.find((s) => s.series.slug === filters.series)?.series.name ?? filters.series
+    : null;
 
   return (
     <div className="min-h-screen overflow-x-clip bg-background">
@@ -265,7 +173,9 @@ const Audiobooks = () => {
               <Headphones className="h-3.5 w-3.5" aria-hidden="true" />
               Listen
             </div>
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Audiobooks</h1>
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              Audiobooks
+            </h1>
             <p className="text-sm text-muted-foreground" aria-live="polite">
               {stats ? (
                 <>
@@ -283,10 +193,10 @@ const Audiobooks = () => {
               <div className="flex items-center gap-3 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur-sm">
                 <div className="h-20 w-14 shrink-0 overflow-hidden rounded bg-muted">
                   <CoverImage
-                    src={continueHeroItem.story.cover_image}
+                    src={continueHeroItem.audiobook.cover_image}
                     alt=""
-                    title={continueHeroItem.story.title}
-                    author={continueHeroItem.story.author}
+                    title={continueHeroItem.audiobook.title}
+                    author={continueHeroItem.audiobook.author}
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -294,9 +204,13 @@ const Audiobooks = () => {
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-[#A71B36] dark:text-rose-300">
                     Continue listening
                   </p>
-                  <p className="truncate text-sm font-semibold text-foreground">{continueHeroItem.story.title}</p>
-                  {continueHeroItem.audio_title && (
-                    <p className="truncate text-xs text-muted-foreground">{continueHeroItem.audio_title}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {continueHeroItem.audiobook.title}
+                  </p>
+                  {continueHeroItem.track_title && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {continueHeroItem.track_title}
+                    </p>
                   )}
                   {heroContinuePercent > 0 && (
                     <div className="flex items-center gap-2 pt-0.5">
@@ -312,21 +226,25 @@ const Audiobooks = () => {
                     </div>
                   )}
                 </div>
-                <Button asChild size="sm" className="shrink-0 bg-[#D92F4C] text-white hover:bg-[#A71B36]">
+                <Button
+                  asChild
+                  size="sm"
+                  className="shrink-0 bg-[#D92F4C] text-white hover:bg-[#A71B36]"
+                >
                   <Link to={heroContinueHref}>
                     <Play className="mr-1 h-3.5 w-3.5 fill-current" aria-hidden="true" />
                     Resume
                   </Link>
                 </Button>
               </div>
-            ) : featuredStory ? (
+            ) : featuredAudiobook ? (
               <div className="flex items-center gap-3 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur-sm">
                 <div className="h-20 w-14 shrink-0 overflow-hidden rounded bg-muted">
                   <CoverImage
-                    src={featuredStory.cover_image}
+                    src={featuredAudiobook.cover_image}
                     alt=""
-                    title={featuredStory.title}
-                    author={featuredStory.author}
+                    title={featuredAudiobook.title}
+                    author={featuredAudiobook.author}
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -334,18 +252,24 @@ const Audiobooks = () => {
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-[#A71B36] dark:text-rose-300">
                     Featured
                   </p>
-                  <p className="line-clamp-1 text-sm font-semibold text-foreground">{featuredStory.title}</p>
-                  {featuredStory.author && (
-                    <p className="truncate text-xs text-muted-foreground">{featuredStory.author}</p>
-                  )}
-                  {formatAudioDuration(featuredStory.audio_minutes) && (
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatAudioDuration(featuredStory.audio_minutes)}
+                  <p className="line-clamp-1 text-sm font-semibold text-foreground">
+                    {featuredAudiobook.title}
+                  </p>
+                  {featuredAudiobook.author && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {featuredAudiobook.author}
                     </p>
                   )}
+                  {featuredDuration && (
+                    <p className="text-[11px] text-muted-foreground">{featuredDuration}</p>
+                  )}
                 </div>
-                <Button asChild size="sm" className="shrink-0 bg-[#D92F4C] text-white hover:bg-[#A71B36]">
-                  <Link to={`/listen/${featuredStory.slug}`}>
+                <Button
+                  asChild
+                  size="sm"
+                  className="shrink-0 bg-[#D92F4C] text-white hover:bg-[#A71B36]"
+                >
+                  <Link to={audiobookUrl(featuredAudiobook.slug)}>
                     <Play className="mr-1 h-3.5 w-3.5 fill-current" aria-hidden="true" />
                     Play
                   </Link>
@@ -372,7 +296,7 @@ const Audiobooks = () => {
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search audiobooks, authors, genres…"
+                placeholder="Search audiobooks, authors, narrators…"
                 aria-label="Search audiobooks"
                 className="h-9 pl-8 pr-8 text-sm"
               />
@@ -403,7 +327,10 @@ const Audiobooks = () => {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.language} onValueChange={(language) => updateFilters({ language })}>
+              <Select
+                value={filters.language}
+                onValueChange={(language) => updateFilters({ language })}
+              >
                 <SelectTrigger className="h-9 text-xs sm:text-sm md:w-[140px]" aria-label="Filter by language">
                   <SelectValue placeholder="Language" />
                 </SelectTrigger>
@@ -417,7 +344,10 @@ const Audiobooks = () => {
                 </SelectContent>
               </Select>
 
-              <Select value={filters.sort} onValueChange={(sort) => updateFilters({ sort: sort as AudiobookSort })}>
+              <Select
+                value={filters.sort}
+                onValueChange={(sort) => updateFilters({ sort: sort as AudiobookSort })}
+              >
                 <SelectTrigger className="h-9 text-xs sm:text-sm md:w-[150px]" aria-label="Sort audiobooks">
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
@@ -444,7 +374,7 @@ const Audiobooks = () => {
                   key={opt.value}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => updateFilters({ length: opt.value })}
+                  onClick={() => updateFilters({ length: opt.value as AudiobookLength })}
                   className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C] ${
                     active
                       ? "border-[#D92F4C] bg-[#D92F4C] text-white"
@@ -471,34 +401,68 @@ const Audiobooks = () => {
               <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
               Has read-along
             </button>
+
+            {activeSeriesName && (
+              <button
+                type="button"
+                onClick={() => updateFilters({ series: "" })}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#D92F4C] bg-[#D92F4C]/10 px-3 py-1.5 text-xs font-medium text-[#A71B36] dark:text-rose-300"
+              >
+                Series: {activeSeriesName}
+                <X className="h-3 w-3" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       <main className="container mx-auto space-y-10 px-3 py-6 sm:px-4 sm:py-8">
-        {/* Duration shelves (default browsing state only) */}
+        {/* Default browsing shelves */}
         {!hasFilters && (
           <div className="space-y-8">
+            {continueItems.length > 0 && (
+              <AudiobookShelf
+                title="Continue listening"
+                subtitle="Pick up right where you left off"
+                audiobooks={continueItems.map((i) => i.audiobook)}
+                progressBySlug={progressBySlug}
+                trackSlugBySlug={trackSlugBySlug}
+                minItems={1}
+              />
+            )}
+
+            {seriesShelves.map((shelf) => (
+              <AudiobookShelf
+                key={shelf.series.slug}
+                title={shelf.series.name}
+                subtitle={shelf.series.description || "Curated audiobook series"}
+                audiobooks={shelf.audiobooks}
+                progressBySlug={progressBySlug}
+                minItems={1}
+                onSeeAll={() => handleShelfSeeAll({ series: shelf.series.slug })}
+              />
+            ))}
+
             <AudiobookShelf
               title="Quick listens"
               subtitle="Under 30 minutes — perfect for a walk or coffee break"
-              stories={shortShelfData?.results ?? []}
+              audiobooks={shortShelfData?.results ?? []}
               progressBySlug={progressBySlug}
-              onSeeAll={() => handleShelfSeeAll("short")}
+              onSeeAll={() => handleShelfSeeAll({ length: "short" })}
             />
             <AudiobookShelf
               title="Evening listens"
               subtitle="30 minutes to 2 hours — settle in for a full story"
-              stories={mediumShelfData?.results ?? []}
+              audiobooks={mediumShelfData?.results ?? []}
               progressBySlug={progressBySlug}
-              onSeeAll={() => handleShelfSeeAll("medium")}
+              onSeeAll={() => handleShelfSeeAll({ length: "medium" })}
             />
             <AudiobookShelf
               title="Long listens"
               subtitle="2 hours and up — deeper novels and multi-part journeys"
-              stories={longShelfData ?? []}
+              audiobooks={longShelfData?.results ?? []}
               progressBySlug={progressBySlug}
-              onSeeAll={() => handleShelfSeeAll("long")}
+              onSeeAll={() => handleShelfSeeAll({ length: "long" })}
             />
           </div>
         )}
@@ -532,21 +496,29 @@ const Audiobooks = () => {
                 </div>
               ))}
             </div>
-          ) : stories.length === 0 ? (
+          ) : audiobooks.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-10 text-center">
-              <p className="text-sm font-medium text-foreground">No audiobooks match these filters</p>
-              <Button type="button" variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
+              <p className="text-sm font-medium text-foreground">
+                No audiobooks match these filters
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={clearFilters}
+              >
                 Clear filters
               </Button>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {stories.map((story) => (
+                {audiobooks.map((ab) => (
                   <AudiobookCard
-                    key={story.id}
-                    story={story}
-                    progressPercent={progressBySlug.get(story.slug)}
+                    key={ab.id}
+                    audiobook={ab}
+                    progressPercent={progressBySlug.get(ab.slug)}
                   />
                 ))}
               </div>
