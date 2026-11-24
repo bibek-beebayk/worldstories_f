@@ -3117,6 +3117,36 @@ export interface AdminAudiobookSeries {
   audiobook_count: number;
 }
 
+export interface AdminAudiobookSeriesMembership {
+  id: number;
+  title: string;
+  slug: string;
+  order: number;
+}
+
+export interface AdminSeriesAudiobookRow {
+  id: number;
+  title: string;
+  slug: string;
+  cover: string | null;
+  author_name: string;
+  narrator: string;
+  order: number;
+  track_count: number;
+  total_duration_seconds: number | null;
+  status: AdminAudiobookStatus;
+}
+
+export interface AdminAudiobookSeriesDetail extends AdminAudiobookSeries {
+  audiobooks: AdminSeriesAudiobookRow[];
+}
+
+export interface AdminAudiobookSeriesBulkResult {
+  added: number;
+  removed: number;
+  skipped: number;
+}
+
 export interface AdminAudiobookTrack {
   id: number;
   title: string;
@@ -3144,8 +3174,8 @@ export interface AdminAudiobookListItem {
   narrator: string;
   story: { id: number; title: string; slug: string } | null;
   is_standalone: boolean;
-  series: { id: number; title: string } | null;
-  series_order: number;
+  series: AdminAudiobookSeriesMembership[];
+  series_count: number;
   track_count: number;
   total_duration_seconds: number | null;
   missing_duration_count: number;
@@ -3180,9 +3210,8 @@ export interface AdminAudiobookDetail {
   language: string;
   about: string;
   genres: number[];
-  series: number | null;
-  series_detail: { id: number; title: string } | null;
-  series_order: number;
+  series: AdminAudiobookSeriesMembership[];
+  series_count: number;
   cover_image_file: string | null;
   own_cover: string | null;
   cover: string | null;
@@ -3219,6 +3248,8 @@ export interface AdminAudiobookListParams {
   q?: string;
   story_link?: "all" | "linked" | "standalone";
   series?: string;
+  series_filter?: "none";
+  exclude_series?: string;
   status?: "" | AdminAudiobookStatus;
   ordering?: string;
 }
@@ -3235,6 +3266,20 @@ export interface PublicAudiobookSeries {
   slug: string;
   name: string;
   description?: string;
+}
+
+export interface PublicAudiobookSeriesMembership {
+  id: number;
+  title: string;
+  slug: string;
+  order: number;
+}
+
+export interface AudiobookSeriesContext {
+  id: number;
+  title: string;
+  slug: string;
+  audiobooks: PublicAudiobook[];
 }
 
 export interface PublicAudiobookStoryRef {
@@ -3264,8 +3309,7 @@ export interface PublicAudiobook {
   about: string;
   cover_image: string | null;
   genres: string[];
-  series: PublicAudiobookSeries | null;
-  series_order: number;
+  series: PublicAudiobookSeriesMembership[];
   track_count: number;
   total_duration_seconds: number | null;
   minutes: number | null;
@@ -3278,6 +3322,7 @@ export interface PublicAudiobookDetail extends PublicAudiobook {
   tracks: PublicAudiobookTrack[];
   other_versions: AudiobookOtherVersion[];
   suggested: PublicAudiobook[];
+  series_context: AudiobookSeriesContext[];
 }
 
 export interface AudiobookOverviewShelf {

@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { storyApi } from "@/api/story";
-import type { AdminAudiobookDetail, AdminAudiobookListParams, AdminAudiobookTrack } from "@/api/types";
+import type {
+  AdminAudiobookDetail,
+  AdminAudiobookListParams,
+  AdminAudiobookSeriesDetail,
+  AdminAudiobookTrack,
+  AdminSeriesAudiobookRow,
+} from "@/api/types";
 
 export const adminAudiobookKeys = {
   all: ["admin-audiobooks"] as const,
@@ -8,6 +14,7 @@ export const adminAudiobookKeys = {
   detail: (id: number) => ["admin-audiobook", id] as const,
   stats: ["admin-audiobook-stats"] as const,
   series: ["admin-audiobook-series"] as const,
+  seriesDetail: (id: number) => ["admin-audiobook-series", "detail", id] as const,
   storySearch: (q: string) => ["admin-audiobook-story-search", q] as const,
 };
 
@@ -215,8 +222,9 @@ export function useUpdateAdminAudiobookSeries() {
       id: number;
       payload: Partial<{ title: string; slug: string; description: string }>;
     }) => storyApi.updateAdminAudiobookSeries(id, payload),
-    onSuccess: () => {
+    onSuccess: (_res, variables) => {
       qc.invalidateQueries({ queryKey: adminAudiobookKeys.series });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.seriesDetail(variables.id) });
       qc.invalidateQueries({ queryKey: adminAudiobookKeys.all });
     },
   });
@@ -226,9 +234,94 @@ export function useDeleteAdminAudiobookSeries() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => storyApi.deleteAdminAudiobookSeries(id),
-    onSuccess: () => {
+    onSuccess: (_res, id) => {
+      qc.removeQueries({ queryKey: adminAudiobookKeys.seriesDetail(id) });
       qc.invalidateQueries({ queryKey: adminAudiobookKeys.series });
       qc.invalidateQueries({ queryKey: adminAudiobookKeys.all });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.stats });
+    },
+  });
+}
+
+export function useAdminSeries(id: number | null) {
+  return useQuery({
+    queryKey: adminAudiobookKeys.seriesDetail(id ?? 0),
+    queryFn: () => storyApi.getAdminAudiobookSeries(id as number),
+    enabled: typeof id === "number" && Number.isFinite(id) && id > 0,
+  });
+}
+
+export function useAddAudiobooksToSeries(seriesId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (audiobookIds: number[]) => storyApi.addAudiobooksToAdminSeries(seriesId, audiobookIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.seriesDetail(seriesId) });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.series });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.all });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.stats });
+    },
+  });
+}
+
+export function useRemoveAudiobooksFromSeries(seriesId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (audiobookIds: number[]) => storyApi.removeAudiobooksFromAdminSeries(seriesId, audiobookIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.seriesDetail(seriesId) });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.series });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.all });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.stats });
+    },
+  });
+}
+
+export function useReorderSeries(seriesId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) => storyApi.reorderAdminSeries(seriesId, ids),
+    onMutate: async (ids: number[]) => {
+      await qc.cancelQueries({ queryKey: adminAudiobookKeys.seriesDetail(seriesId) });
+      const previous = qc.getQueryData<AdminAudiobookSeriesDetail>(adminAudiobookKeys.seriesDetail(seriesId));
+      if (previous) {
+        const byId = new Map<number, AdminSeriesAudiobookRow>(previous.audiobooks.map((ab) => [ab.id, ab]));
+        const reordered = ids
+          .map((id, index) => {
+            const row = byId.get(id);
+            return row ? { ...row, order: index + 1 } : null;
+          })
+          .filter((row): row is AdminSeriesAudiobookRow => row !== null);
+        if (reordered.length === previous.audiobooks.length) {
+          qc.setQueryData<AdminAudiobookSeriesDetail>(adminAudiobookKeys.seriesDetail(seriesId), {
+            ...previous,
+            audiobooks: reordered,
+          });
+        }
+      }
+      return { previous };
+    },
+    onError: (_err, _ids, context) => {
+      if (context?.previous) {
+        qc.setQueryData(adminAudiobookKeys.seriesDetail(seriesId), context.previous);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.seriesDetail(seriesId) });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.series });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.all });
+    },
+  });
+}
+
+export function useBulkSeries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { ids: number[]; series_ids: number[]; mode: "add" | "remove" }) =>
+      storyApi.bulkAdminAudiobookSeries(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.all });
+      qc.invalidateQueries({ queryKey: adminAudiobookKeys.series });
       qc.invalidateQueries({ queryKey: adminAudiobookKeys.stats });
     },
   });

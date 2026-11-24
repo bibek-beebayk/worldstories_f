@@ -9,10 +9,7 @@ import NotFoundBody from "@/components/NotFoundBody";
 import { AudiobookCard } from "@/components/audiobooks/AudiobookCard";
 import { useAudiobook, useAudiobookProgress } from "@/hooks/useAudiobooks";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
-import {
-  isAudiobookNotFoundData,
-  loadAudiobookOrRedirect,
-} from "@/lib/audiobookLoader";
+import { isAudiobookNotFoundData, loadAudiobookOrRedirect } from "@/lib/audiobookLoader";
 import { buildAudiobookMeta, buildAudiobookNotFoundMeta } from "@/lib/audiobookMeta";
 import { formatClock, formatLong } from "@/lib/formatDuration";
 import { audiobookUrl, readAlongUrl } from "@/lib/urls";
@@ -33,10 +30,7 @@ const ListenDetail = ({ loaderData }: Route.ComponentProps) => {
   const { slug } = useParams();
   const isNotFound = isAudiobookNotFoundData(loaderData);
   const initialAudiobook = !isNotFound && loaderData ? loaderData : undefined;
-  const { data: audiobook, isLoading, error, refetch } = useAudiobook(
-    isNotFound ? undefined : slug,
-    initialAudiobook,
-  );
+  const { data: audiobook, isLoading, error, refetch } = useAudiobook(isNotFound ? undefined : slug, initialAudiobook);
   const isLoggedIn = useIsLoggedIn();
   const { data: progress } = useAudiobookProgress(audiobook?.slug, isLoggedIn);
 
@@ -82,9 +76,7 @@ const ListenDetail = ({ loaderData }: Route.ComponentProps) => {
                 <Headphones className="h-3.5 w-3.5" aria-hidden="true" />
                 Audiobook
               </div>
-              <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">
-                {audiobook.title}
-              </h1>
+              <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">{audiobook.title}</h1>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 {audiobook.author && <span>By {audiobook.author}</span>}
                 {audiobook.narrator && (
@@ -116,9 +108,7 @@ const ListenDetail = ({ loaderData }: Route.ComponentProps) => {
             )}
 
             {audiobook.about && (
-              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                {audiobook.about}
-              </p>
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{audiobook.about}</p>
             )}
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -213,6 +203,20 @@ const ListenDetail = ({ loaderData }: Route.ComponentProps) => {
             </div>
           </section>
         )}
+
+        {/* More in each series */}
+        {(audiobook.series_context ?? [])
+          .filter((ctx) => ctx.audiobooks.length > 0)
+          .map((ctx) => (
+            <section key={ctx.id} className="space-y-3">
+              <h2 className="font-serif text-lg font-bold text-foreground">More in {ctx.title}</h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+                {ctx.audiobooks.slice(0, 6).map((item) => (
+                  <AudiobookCard key={item.id} audiobook={item} />
+                ))}
+              </div>
+            </section>
+          ))}
 
         {/* Suggested audiobooks */}
         {audiobook.suggested.length > 0 && (

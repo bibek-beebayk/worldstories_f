@@ -22,6 +22,7 @@ import { StatusChip } from "@/components/admin/audiobooks/StatusChip";
 import { StoryPicker } from "@/components/admin/audiobooks/StoryPicker";
 import { DeleteAudiobookDialog } from "@/components/admin/audiobooks/DeleteAudiobookDialog";
 import { SeriesDialog } from "@/components/admin/audiobooks/SeriesDialog";
+import { SeriesMultiSelect, type SeriesItemDraft } from "@/components/admin/audiobooks/SeriesMultiSelect";
 import { AudiobookTracksCard } from "@/components/admin/audiobooks/AudiobookTracksCard";
 import { AudiobookCard } from "@/components/audiobooks/AudiobookCard";
 import { LANGUAGE_OPTIONS, getLanguageLabel } from "@/lib/languages";
@@ -39,8 +40,7 @@ interface FormState {
   about: string;
   genres: number[];
   story: number | null;
-  series: string;
-  series_order: string;
+  series_items: SeriesItemDraft[];
   is_published: boolean;
   publish_at: string;
   remove_cover: boolean;
@@ -57,8 +57,7 @@ function buildInitialForm(ab: AdminAudiobookDetail): FormState {
     about: ab.about ?? "",
     genres: ab.genres ?? [],
     story: ab.story,
-    series: ab.series ? String(ab.series) : "",
-    series_order: String(ab.series_order ?? 0),
+    series_items: (ab.series ?? []).map((s) => ({ series_id: s.id, order: s.order })),
     is_published: ab.is_published,
     publish_at: isoToLocalInput(ab.publish_at),
     remove_cover: false,
@@ -234,8 +233,7 @@ export default function AdminAudiobookEdit() {
       formData.append("language", form.language);
       formData.append("about", form.about);
       if (form.story) formData.append("story", String(form.story));
-      if (form.series) formData.append("series", form.series);
-      formData.append("series_order", form.series_order || "0");
+      formData.append("series_items", JSON.stringify(form.series_items));
       formData.append("is_published", String(form.is_published));
       if (publishIso) formData.append("publish_at", publishIso);
       formData.append("cover_image_file", coverFile);
@@ -251,8 +249,7 @@ export default function AdminAudiobookEdit() {
         language: form.language,
         about: form.about,
         story: form.story,
-        series: form.series ? Number(form.series) : null,
-        series_order: Number(form.series_order || "0"),
+        series_items: form.series_items,
         is_published: form.is_published,
         publish_at: publishIso,
         remove_cover: form.remove_cover,
@@ -289,9 +286,18 @@ export default function AdminAudiobookEdit() {
   const handleCreateSeries = async (values: { title: string; slug: string; description: string }) => {
     try {
       const created = await createSeriesMutation.mutateAsync(values);
-      setForm((prev) => (prev ? { ...prev, series: String(created.id) } : prev));
+      setForm((prev) =>
+        prev
+          ? {
+              ...prev,
+              series_items: prev.series_items.some((item) => item.series_id === created.id)
+                ? prev.series_items
+                : [...prev.series_items, { series_id: created.id, order: null }],
+            }
+          : prev,
+      );
       setSeriesDialogOpen(false);
-      toast({ title: "Series created and selected" });
+      toast({ title: "Series created and added" });
     } catch (err) {
       toast({
         title: "Could not create series",
@@ -638,36 +644,12 @@ export default function AdminAudiobookEdit() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Select
-                value={form.series || "none"}
-                onValueChange={(v) => setForm({ ...form, series: v === "none" ? "" : v })}
-              >
-                <SelectTrigger aria-label="Series">
-                  <SelectValue placeholder="No series" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No series</SelectItem>
-                  {seriesList.map((s) => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {form.series && (
-                <div className="space-y-1">
-                  <Label htmlFor="edit-series-order" className="text-xs">
-                    Order in series
-                  </Label>
-                  <Input
-                    id="edit-series-order"
-                    type="number"
-                    min={0}
-                    value={form.series_order}
-                    onChange={(e) => setForm({ ...form, series_order: e.target.value })}
-                  />
-                </div>
-              )}
+              <SeriesMultiSelect
+                seriesList={seriesList}
+                value={form.series_items}
+                onChange={(next) => setForm({ ...form, series_items: next })}
+                onRequestCreateSeries={() => setSeriesDialogOpen(true)}
+              />
             </CardContent>
           </Card>
 

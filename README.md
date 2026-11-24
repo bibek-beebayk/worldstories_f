@@ -76,11 +76,12 @@ export default defineConfig([
 
 Routes under the admin shell (`src/routes.ts`, sidebar link in `src/layouts/AdminShellLayout.tsx`):
 
-- `/admin/audiobooks` (`src/pages/admin/AdminAudiobooks.tsx`) — paginated list with URL-synced search/filters (`q`, `story_link`, `series`, `status`, `ordering`, `page`), 4 stat tiles, dismissible backfill notice, and Series management tab.
-- `/admin/audiobooks/new` (`src/pages/admin/AdminAudiobookCreate.tsx`) — create standalone or story-linked audiobooks with initial `.mp3` track upload.
-- `/admin/audiobooks/:id` (`src/pages/admin/AdminAudiobookEdit.tsx`) — two-column editor with story-inherited field indicators, track drag-and-drop/keyboard reorder, multi-file track uploader, transcript & read-along cue editor dialog (`AudioTranscriptImportPanel`), move-track dialog, cover/series/publishing sidebar controls, and live `AudiobookCard` preview.
+- `/admin/audiobooks` (`src/pages/admin/AdminAudiobooks.tsx`) — paginated list with URL-synced search/filters (`q`, `story_link`, `series` including `Not in a series`, `status`, `ordering`, `page`), multi-row selection with bulk **Add to series** / **Remove from series** actions (up to 200 audiobooks), 4 stat tiles, dismissible backfill notice, and Series management tab linking to each series detail screen.
+- `/admin/audiobooks/new` (`src/pages/admin/AdminAudiobookCreate.tsx`) — create standalone or story-linked audiobooks with initial `.mp3` track upload and multi-series assignment.
+- `/admin/audiobooks/:id` (`src/pages/admin/AdminAudiobookEdit.tsx`) — two-column editor with story-inherited field indicators, track drag-and-drop/keyboard reorder, multi-file track uploader, transcript & read-along cue editor dialog (`AudioTranscriptImportPanel`), move-track dialog, multi-series combobox (`SeriesMultiSelect`), cover/publishing sidebar controls, and live `AudiobookCard` preview.
+- `/admin/audiobook-series/:id` (`src/pages/admin/AdminAudiobookSeriesDetail.tsx`) — dedicated series management screen with editable title/description, drag-and-drop and keyboard Up/Down reordering (with optimistic rollback), bulk remove, and the **Add audiobooks** search dialog (`AddAudiobooksToSeriesDialog`).
 
-Shared components live in `src/components/admin/audiobooks/` (`StatusChip`, `StoryPicker`, `TrackRow`, `AudiobookTracksCard`, `DeleteAudiobookDialog`, `SeriesDialog`, `MoveTrackDialog`), backed by React Query hooks in `src/hooks/useAdminAudiobooks.ts`.
+Shared components live in `src/components/admin/audiobooks/` (`StatusChip`, `StoryPicker`, `TrackRow`, `AudiobookTracksCard`, `DeleteAudiobookDialog`, `SeriesDialog`, `MoveTrackDialog`, `SeriesMultiSelect`, `BulkSeriesPopover`, `AddAudiobooksToSeriesDialog`), backed by React Query hooks in `src/hooks/useAdminAudiobooks.ts`.
 
 ## Public audiobooks & slug resolution (Phase 3)
 

@@ -31,8 +31,7 @@ const standaloneAudiobook: PublicAudiobookDetail = {
   about: "A standalone audio drama recorded exclusively for WorldStories.",
   cover_image: null,
   genres: ["Mystery", "Drama"],
-  series: null,
-  series_order: 0,
+  series: [],
   track_count: 1,
   total_duration_seconds: 600,
   minutes: 10,
@@ -53,6 +52,7 @@ const standaloneAudiobook: PublicAudiobookDetail = {
   ],
   other_versions: [],
   suggested: [],
+  series_context: [],
 };
 
 const linkedAudiobook: PublicAudiobookDetail = {
@@ -66,9 +66,7 @@ const linkedAudiobook: PublicAudiobookDetail = {
 describe("Phase 3: urls helper", () => {
   it("builds canonical /listen/ and /read-along/ URLs", () => {
     expect(audiobookUrl("pride-and-prejudice")).toBe("/listen/pride-and-prejudice");
-    expect(audiobookUrl({ slug: "pride-and-prejudice" }, "chapter-1")).toBe(
-      "/listen/pride-and-prejudice/chapter-1",
-    );
+    expect(audiobookUrl({ slug: "pride-and-prejudice" }, "chapter-1")).toBe("/listen/pride-and-prejudice/chapter-1");
     expect(audiobookUrl("solo", { slug: "part-2" })).toBe("/listen/solo/part-2");
     expect(readAlongUrl("solo", "part-2")).toBe("/read-along/solo/part-2");
     expect(readAlongUrl("solo")).toBe("/read-along/solo");

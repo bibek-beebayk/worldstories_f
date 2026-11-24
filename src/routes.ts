@@ -77,6 +77,7 @@ export default [
         route("audiobooks", "pages/admin/AdminAudiobooks.tsx"),
         route("audiobooks/new", "pages/admin/AdminAudiobookCreate.tsx"),
         route("audiobooks/:id", "pages/admin/AdminAudiobookEdit.tsx"),
+        route("audiobook-series/:id", "pages/admin/AdminAudiobookSeriesDetail.tsx"),
         route("featured", "pages/AdminFeatured.tsx"),
         route("hero", "pages/AdminHero.tsx"),
         route("home-sections", "pages/AdminHomeSections.tsx"),

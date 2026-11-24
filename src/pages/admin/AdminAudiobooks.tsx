@@ -13,10 +13,12 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,7 @@ import {
   useAdminAudiobooks,
   useAdminAudiobookSeries,
   useAdminAudiobookStats,
+  useBulkSeries,
   useCreateAdminAudiobookSeries,
   useDeleteAdminAudiobook,
   useDeleteAdminAudiobookSeries,
@@ -45,11 +48,13 @@ import {
 import { StatusChip } from "@/components/admin/audiobooks/StatusChip";
 import { DeleteAudiobookDialog } from "@/components/admin/audiobooks/DeleteAudiobookDialog";
 import { SeriesDialog } from "@/components/admin/audiobooks/SeriesDialog";
+import { BulkSeriesPopover } from "@/components/admin/audiobooks/BulkSeriesPopover";
 import { formatLong } from "@/lib/formatDuration";
 import { audiobookUrl } from "@/lib/urls";
 import type { AdminAudiobookListItem, AdminAudiobookSeries, AdminAudiobookStatus } from "@/api/types";
 
 const BACKFILL_NOTICE_KEY = "ws_audiobook_backfill_notice_dismissed";
+const MAX_BULK_SELECTED = 200;
 
 export default function AdminAudiobooks() {
   const navigate = useNavigate();
@@ -74,6 +79,7 @@ export default function AdminAudiobooks() {
   const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
   const [editingSeries, setEditingSeries] = useState<AdminAudiobookSeries | null>(null);
   const [deleteSeriesTarget, setDeleteSeriesTarget] = useState<AdminAudiobookSeries | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setSearchInput(qParam);
@@ -111,7 +117,8 @@ export default function AdminAudiobooks() {
     page: pageParam,
     q: qParam,
     story_link: storyLinkParam,
-    series: seriesParam,
+    series: seriesParam && seriesParam !== "none" ? seriesParam : undefined,
+    series_filter: seriesParam === "none" ? "none" : undefined,
     status: statusParam,
     ordering: orderingParam,
   });
@@ -120,6 +127,7 @@ export default function AdminAudiobooks() {
   const createSeriesMutation = useCreateAdminAudiobookSeries();
   const updateSeriesMutation = useUpdateAdminAudiobookSeries();
   const deleteSeriesMutation = useDeleteAdminAudiobookSeries();
+  const bulkSeriesMutation = useBulkSeries();
 
   const audiobooks = listData?.results ?? [];
   const pagination = listData?.pagination;
@@ -128,6 +136,91 @@ export default function AdminAudiobooks() {
   const totalPages = pagination?.pages ?? 1;
   const startRow = totalCount === 0 ? 0 : (pageParam - 1) * pageSize + 1;
   const endRow = Math.min(totalCount, pageParam * pageSize);
+  const allCurrentPageSelected = audiobooks.length > 0 && audiobooks.every((ab) => selectedIds.has(ab.id));
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      if (next.size >= MAX_BULK_SELECTED) {
+        toast({
+          title: `Maximum ${MAX_BULK_SELECTED} audiobooks`,
+          description: `You can select up to ${MAX_BULK_SELECTED} audiobooks at a time.`,
+          variant: "destructive",
+        });
+        return prev;
+      }
+      next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectCurrentPage = () => {
+    if (allCurrentPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        audiobooks.forEach((ab) => next.delete(ab.id));
+        return next;
+      });
+      return;
+    }
+    let hitLimit = false;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const ab of audiobooks) {
+        if (!next.has(ab.id)) {
+          if (next.size >= MAX_BULK_SELECTED) {
+            hitLimit = true;
+            break;
+          }
+          next.add(ab.id);
+        }
+      }
+      return next;
+    });
+    if (hitLimit) {
+      toast({
+        title: `Selection capped at ${MAX_BULK_SELECTED}`,
+        description: `You can select up to ${MAX_BULK_SELECTED} audiobooks at a time.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkSeries = async (mode: "add" | "remove", seriesIds: number[]) => {
+    if (selectedIds.size === 0 || seriesIds.length === 0) return;
+    try {
+      const res = await bulkSeriesMutation.mutateAsync({
+        ids: Array.from(selectedIds),
+        series_ids: seriesIds,
+        mode,
+      });
+      setSelectedIds(new Set());
+      if (mode === "add") {
+        toast({
+          title: "Added to series",
+          description:
+            res.skipped > 0
+              ? `Added ${res.added} assignment(s), ${res.skipped} already in series.`
+              : `Added ${res.added} assignment(s).`,
+        });
+      } else {
+        toast({
+          title: "Removed from series",
+          description: `Removed ${res.removed} assignment(s).`,
+        });
+      }
+    } catch (err) {
+      toast({
+        title: mode === "add" ? "Could not add to series" : "Could not remove from series",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const dismissNotice = () => {
     setNoticeDismissed(true);
@@ -320,6 +413,7 @@ export default function AdminAudiobooks() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All series</SelectItem>
+                <SelectItem value="none">Not in a series</SelectItem>
                 {seriesList.map((s) => (
                   <SelectItem key={s.id} value={String(s.id)}>
                     {s.title}
@@ -357,6 +451,40 @@ export default function AdminAudiobooks() {
             </Select>
           </div>
 
+          {/* Bulk selection bar */}
+          {selectedIds.size > 0 && (
+            <div
+              role="region"
+              aria-label="Bulk selection actions"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/50 px-4 py-2.5"
+            >
+              <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <BulkSeriesPopover
+                  mode="add"
+                  selectedCount={selectedIds.size}
+                  seriesList={seriesList}
+                  isPending={bulkSeriesMutation.isPending}
+                  onApply={(seriesIds) => handleBulkSeries("add", seriesIds)}
+                  onRequestCreateSeries={() => {
+                    setEditingSeries(null);
+                    setSeriesDialogOpen(true);
+                  }}
+                />
+                <BulkSeriesPopover
+                  mode="remove"
+                  selectedCount={selectedIds.size}
+                  seriesList={seriesList}
+                  isPending={bulkSeriesMutation.isPending}
+                  onApply={(seriesIds) => handleBulkSeries("remove", seriesIds)}
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Table */}
           {isError ? (
             <Card>
@@ -391,148 +519,192 @@ export default function AdminAudiobooks() {
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-x-auto rounded-lg border bg-card">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b bg-muted/40 text-xs font-medium text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3">Audiobook</th>
-                    <th className="px-4 py-3">Story</th>
-                    <th className="px-4 py-3">Series</th>
-                    <th className="px-4 py-3 text-right">Tracks</th>
-                    <th className="px-4 py-3">Duration</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {audiobooks.map((ab) => {
-                    const durationLabel = formatLong(ab.total_duration_seconds);
-                    const publicPath = audiobookUrl(ab.slug);
-                    return (
-                      <tr key={ab.id} className="hover:bg-muted/30">
-                        <td className="px-4 py-3">
-                          <Link to={`/admin/audiobooks/${ab.id}`} className="flex items-center gap-3 group">
-                            {ab.cover ? (
-                              <img src={ab.cover} alt="" className="h-11 w-11 shrink-0 rounded object-cover" />
-                            ) : (
-                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-                                <Headphones className="h-4 w-4" />
+            <TooltipProvider>
+              <div className="overflow-x-auto rounded-lg border bg-card">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b bg-muted/40 text-xs font-medium text-muted-foreground">
+                    <tr>
+                      <th className="w-10 px-3 py-3">
+                        <Checkbox
+                          checked={allCurrentPageSelected}
+                          onCheckedChange={toggleSelectCurrentPage}
+                          aria-label="Select all audiobooks on this page"
+                        />
+                      </th>
+                      <th className="px-4 py-3">Audiobook</th>
+                      <th className="px-4 py-3">Story</th>
+                      <th className="px-4 py-3">Series</th>
+                      <th className="px-4 py-3 text-right">Tracks</th>
+                      <th className="px-4 py-3">Duration</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {audiobooks.map((ab) => {
+                      const durationLabel = formatLong(ab.total_duration_seconds);
+                      const publicPath = audiobookUrl(ab.slug);
+                      const isSelected = selectedIds.has(ab.id);
+                      const abSeries = ab.series ?? [];
+                      return (
+                        <tr key={ab.id} className="hover:bg-muted/30">
+                          <td className="px-3 py-3">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleSelectOne(ab.id)}
+                              aria-label={`Select ${ab.effective_title || ab.title}`}
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link to={`/admin/audiobooks/${ab.id}`} className="flex items-center gap-3 group">
+                              {ab.cover ? (
+                                <img src={ab.cover} alt="" className="h-11 w-11 shrink-0 rounded object-cover" />
+                              ) : (
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
+                                  <Headphones className="h-4 w-4" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate font-medium text-foreground group-hover:underline">
+                                  {ab.effective_title || ab.title}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {[ab.author_name, ab.narrator ? `Narrated by ${ab.narrator}` : ""]
+                                    .filter(Boolean)
+                                    .join(" · ") || "No author set"}
+                                </p>
                               </div>
-                            )}
-                            <div className="min-w-0">
-                              <p className="truncate font-medium text-foreground group-hover:underline">
-                                {ab.effective_title || ab.title}
-                              </p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {[ab.author_name, ab.narrator ? `Narrated by ${ab.narrator}` : ""]
-                                  .filter(Boolean)
-                                  .join(" · ") || "No author set"}
-                              </p>
-                            </div>
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          {ab.story ? (
-                            <span className="inline-flex max-w-[180px] items-center truncate rounded-full border border-blue-200 bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-900 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-200">
-                              {ab.story.title}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-900 dark:border-purple-800 dark:bg-purple-950/60 dark:text-purple-200">
-                              Standalone
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {ab.series ? <span className="text-foreground">{ab.series.title}</span> : <span>—</span>}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-foreground">{ab.track_count}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-medium tabular-nums text-foreground">
-                              {durationLabel || "—"}
-                            </span>
-                            {ab.missing_duration_count > 0 && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-300">
-                                <AlertTriangle className="h-3 w-3" />
-                                Duration missing
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            {ab.story ? (
+                              <span className="inline-flex max-w-[180px] items-center truncate rounded-full border border-blue-200 bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-900 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-200">
+                                {ab.story.title}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-900 dark:border-purple-800 dark:bg-purple-950/60 dark:text-purple-200">
+                                Standalone
                               </span>
                             )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusChip status={ab.status} />
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                aria-label={`Actions for ${ab.effective_title || ab.title}`}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onSelect={() => navigate(`/admin/audiobooks/${ab.id}`)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <a href={publicPath} target="_blank" rel="noreferrer">
-                                  <ExternalLink className="mr-2 h-4 w-4" />
-                                  View on site
-                                </a>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onSelect={() => setDeleteTarget(ab)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">
+                            {abSeries.length === 0 ? (
+                              <span>—</span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <Link
+                                  to={`/admin/audiobook-series/${abSeries[0].id}`}
+                                  className="inline-flex max-w-[140px] items-center truncate rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-foreground hover:underline"
+                                >
+                                  {abSeries[0].title}
+                                </Link>
+                                {abSeries.length > 1 && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span
+                                        tabIndex={0}
+                                        className="inline-flex shrink-0 cursor-default items-center rounded-full border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground"
+                                      >
+                                        +{abSeries.length - 1}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs text-xs">{abSeries.map((s) => s.title).join(", ")}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-foreground">{ab.track_count}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs font-medium tabular-nums text-foreground">
+                                {durationLabel || "—"}
+                              </span>
+                              {ab.missing_duration_count > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Duration missing
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusChip status={ab.status} />
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  aria-label={`Actions for ${ab.effective_title || ab.title}`}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onSelect={() => navigate(`/admin/audiobooks/${ab.id}`)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <a href={publicPath} target="_blank" rel="noreferrer">
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    View on site
+                                  </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onSelect={() => setDeleteTarget(ab)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
 
-              {/* Pagination footer */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground">
-                <span>
-                  Showing {startRow} to {endRow} of {totalCount}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={pageParam <= 1}
-                    onClick={() => updateParams({ page: String(pageParam - 1) })}
-                  >
-                    Previous
-                  </Button>
-                  <span className="tabular-nums">
-                    Page {pageParam} of {Math.max(1, totalPages)}
+                {/* Pagination footer */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground">
+                  <span>
+                    Showing {startRow} to {endRow} of {totalCount}
                   </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={pageParam >= totalPages}
-                    onClick={() => updateParams({ page: String(pageParam + 1) })}
-                  >
-                    Next
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={pageParam <= 1}
+                      onClick={() => updateParams({ page: String(pageParam - 1) })}
+                    >
+                      Previous
+                    </Button>
+                    <span className="tabular-nums">
+                      Page {pageParam} of {Math.max(1, totalPages)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={pageParam >= totalPages}
+                      onClick={() => updateParams({ page: String(pageParam + 1) })}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </TooltipProvider>
           )}
         </TabsContent>
 
@@ -581,7 +753,11 @@ export default function AdminAudiobooks() {
                 <tbody className="divide-y">
                   {seriesList.map((s) => (
                     <tr key={s.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium text-foreground">{s.title}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        <Link to={`/admin/audiobook-series/${s.id}`} className="hover:underline">
+                          {s.title}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{s.slug}</td>
                       <td className="max-w-xs truncate px-4 py-3 text-xs text-muted-foreground">
                         {s.description || "—"}

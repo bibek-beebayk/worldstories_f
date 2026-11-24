@@ -12,10 +12,7 @@ import AdSpace from "@/components/AdSpace";
 import CoverImage from "@/components/CoverImage";
 import { AudiobookCard } from "@/components/audiobooks/AudiobookCard";
 import { buildAudiobookMeta, buildAudiobookNotFoundMeta } from "@/lib/audiobookMeta";
-import {
-  isAudiobookNotFoundData,
-  loadAudiobookOrRedirect,
-} from "@/lib/audiobookLoader";
+import { isAudiobookNotFoundData, loadAudiobookOrRedirect } from "@/lib/audiobookLoader";
 import { formatLeft, formatLong } from "@/lib/formatDuration";
 import { audiobookUrl, readAlongUrl } from "@/lib/urls";
 import { useAudiobook } from "@/hooks/useAudiobooks";
@@ -93,9 +90,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
   useEffect(() => {
     if (!tracks.length) return;
     const slugToFind = chapter_slug || tracks[0].slug;
-    const idx = tracks.findIndex(
-      (a) => a.slug === slugToFind || String(a.order) === slugToFind,
-    );
+    const idx = tracks.findIndex((a) => a.slug === slugToFind || String(a.order) === slugToFind);
     setCurrentIndex(idx === -1 ? 0 : idx);
   }, [tracks, chapter_slug]);
 
@@ -355,10 +350,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
     player.duration > 0 ? formatLeft(Math.max(0, player.duration - player.currentTime)) : undefined;
   const showMiniBar = !isMainCardVisible && !isFullscreen && Boolean(currentAudio);
   const showChapterSearch = tracks.length > 10;
-  const authorAndNarrator = [
-    audiobook.author,
-    audiobook.narrator ? `Narrated by ${audiobook.narrator}` : null,
-  ]
+  const authorAndNarrator = [audiobook.author, audiobook.narrator ? `Narrated by ${audiobook.narrator}` : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -505,9 +497,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                       <h1 className="font-serif line-clamp-2 text-[26px] font-bold leading-tight tracking-tight text-white sm:text-[30px]">
                         {audiobook.title}
                       </h1>
-                      {authorAndNarrator && (
-                        <p className="mt-1 text-sm text-[#D9C9D1]">{authorAndNarrator}</p>
-                      )}
+                      {authorAndNarrator && <p className="mt-1 text-sm text-[#D9C9D1]">{authorAndNarrator}</p>}
                     </div>
 
                     <div className="text-center sm:text-left">
@@ -639,9 +629,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
               <Card className="border-rose-200/80 bg-[#FDECEF]/60 dark:border-rose-900/50 dark:bg-rose-950/20">
                 <CardContent className="flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
                   <div className="space-y-1">
-                    <h2 className="font-serif text-base font-bold text-foreground">
-                      Follow the text as it plays
-                    </h2>
+                    <h2 className="font-serif text-base font-bold text-foreground">Follow the text as it plays</h2>
                     <p className="text-xs text-muted-foreground sm:text-sm">
                       This chapter has a read-along. Words highlight in time with the narrator.
                     </p>
@@ -664,13 +652,9 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
             {!isFullscreen && !linkedStorySlug && (audiobook.about || audiobook.genres.length > 0) && (
               <Card>
                 <CardContent className="space-y-3 p-4 sm:p-5">
-                  <h2 className="font-serif text-base font-bold text-foreground">
-                    About this audiobook
-                  </h2>
+                  <h2 className="font-serif text-base font-bold text-foreground">About this audiobook</h2>
                   {audiobook.about && (
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {audiobook.about}
-                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{audiobook.about}</p>
                   )}
                   {audiobook.genres.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
@@ -716,6 +700,36 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
             )}
 
             {/* You may also like */}
+            {!isFullscreen &&
+              (audiobook.series_context ?? [])
+                .filter((ctx) => ctx.audiobooks.length > 0)
+                .map((ctx) => (
+                  <section key={ctx.id} className="space-y-3 pt-2">
+                    <h2 className="font-serif text-lg font-bold text-foreground">More in {ctx.title}</h2>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {ctx.audiobooks.slice(0, 6).map((item) => (
+                        <AudiobookCard key={item.id} audiobook={item} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+
+            {!isFullscreen &&
+              (audiobook.series_context ?? [])
+                .filter((ctx) => ctx.audiobooks.length > 0)
+                .map((ctx) => (
+                  <section key={ctx.id} className="space-y-3 pt-2">
+                    <h2 className="font-serif text-lg font-bold text-foreground">
+                      More in {ctx.title}
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {ctx.audiobooks.slice(0, 6).map((item) => (
+                        <AudiobookCard key={item.id} audiobook={item} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+
             {!isFullscreen && audiobook.suggested.length > 0 && (
               <section className="space-y-3 pt-2">
                 <h2 className="font-serif text-lg font-bold text-foreground">You may also like</h2>
@@ -775,9 +789,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
                 )}
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-                {renderChapterRows(true)}
-              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">{renderChapterRows(true)}</div>
             </Card>
           </aside>
         </div>
@@ -837,9 +849,7 @@ const AudioPlayerPage = ({ loaderData }: Route.ComponentProps) => {
             </div>
           )}
 
-          <div className="overflow-y-auto scrollbar-thin">
-            {renderChapterRows(false, () => setPlaylistOpen(false))}
-          </div>
+          <div className="overflow-y-auto scrollbar-thin">{renderChapterRows(false, () => setPlaylistOpen(false))}</div>
         </SheetContent>
       </Sheet>
 

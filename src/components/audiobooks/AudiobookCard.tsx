@@ -17,12 +17,7 @@ export interface AudiobookCardProps {
   progressPercent?: number;
 }
 
-export function AudiobookCard({
-  audiobook,
-  story,
-  trackSlug,
-  progressPercent,
-}: AudiobookCardProps) {
+export function AudiobookCard({ audiobook, story, trackSlug, progressPercent }: AudiobookCardProps) {
   const slug = audiobook?.slug ?? story?.slug ?? "";
   const title = audiobook?.title ?? story?.title ?? "";
   const author = audiobook ? audiobook.author : story?.author;
@@ -41,6 +36,9 @@ export function AudiobookCard({
         ? "Video"
         : null;
   const firstGenre = audiobook ? (audiobook.genres?.[0] ?? null) : (story?.genres?.[0] ?? null);
+  const seriesList = audiobook?.series ?? [];
+  const firstSeries = seriesList[0] ?? null;
+  const extraSeriesCount = seriesList.length > 1 ? seriesList.length - 1 : 0;
   const showProgress =
     typeof progressPercent === "number" &&
     Number.isFinite(progressPercent) &&
@@ -97,9 +95,7 @@ export function AudiobookCard({
           >
             <div className="h-full rounded-full bg-[#D92F4C]" style={{ width: `${progressPercent}%` }} />
           </div>
-          <p className="text-[11px] font-medium text-[#A71B36] dark:text-rose-300">
-            {progressPercent}% listened
-          </p>
+          <p className="text-[11px] font-medium text-[#A71B36] dark:text-rose-300">{progressPercent}% listened</p>
         </div>
       )}
 
@@ -110,13 +106,22 @@ export function AudiobookCard({
         {author && <p className="truncate text-xs text-muted-foreground">{author}</p>}
         {(firstGenre || (trackCount !== null && trackCount > 1)) && (
           <p className="truncate text-[11px] text-muted-foreground/85">
-            {[
-              firstGenre,
-              trackCount !== null && trackCount > 1 ? `${trackCount} tracks` : null,
-            ]
+            {[firstGenre, trackCount !== null && trackCount > 1 ? `${trackCount} tracks` : null]
               .filter(Boolean)
               .join(" · ")}
           </p>
+        )}
+        {firstSeries && (
+          <div className="flex items-center gap-1 pt-0.5">
+            <span className="max-w-[140px] truncate rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {firstSeries.title}
+            </span>
+            {extraSeriesCount > 0 && (
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                +{extraSeriesCount}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </Link>
