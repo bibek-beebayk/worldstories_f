@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { ArrowRight, BookOpen, Calendar, HelpCircle, Quote, User } from "lucide-react";
+import { ArrowRight, BookOpen, Calendar, Grid3x3, HelpCircle, Quote, User } from "lucide-react";
 import { buildMeta } from "@/lib/buildMeta";
 import {
   PUZZLE_TYPE_META,
@@ -70,6 +70,41 @@ export default function GamesHub() {
             >
               <Calendar className="h-4 w-4" aria-hidden="true" />
               Archive
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Mini Crossword Card */}
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-600">
+              <Grid3x3 className="h-4 w-4 text-slate-900" aria-hidden="true" />
+              Daily 5x5 Grid
+            </div>
+            <h2 className="mt-2 font-serif text-2xl font-bold text-slate-900 sm:text-3xl">
+              Mini Crossword
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              A bite-sized 5x5 literary crossword every day. Race the clock, check your letters,
+              and discover classic stories hiding inside the grid.
+            </p>
+          </div>
+          <div className="flex flex-shrink-0 flex-wrap gap-3">
+            <Link
+              to="/games/mini-crossword"
+              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+            >
+              Play Mini
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              to="/games/mini-crossword/archive"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+            >
+              <Calendar className="h-4 w-4" aria-hidden="true" />
+              Past grids
             </Link>
           </div>
         </div>

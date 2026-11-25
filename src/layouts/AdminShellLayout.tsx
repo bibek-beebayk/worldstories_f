@@ -35,6 +35,7 @@ import {
   Mail,
   Gamepad2,
   CalendarDays,
+  Grid3x3,
 } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,10 @@ const menuItems: MenuEntry[] = [
   {
     label: "Games",
     icon: Gamepad2,
-    children: [{ to: "/admin/games/daily-puzzle", label: "Daily Puzzle", icon: CalendarDays, exact: false }],
+    children: [
+      { to: "/admin/games/daily-puzzle", label: "Daily Puzzle", icon: CalendarDays, exact: false },
+      { to: "/admin/games/mini-crossword", label: "Mini Crossword", icon: Grid3x3, exact: false },
+    ],
   },
   { to: "/admin/story-report", label: "Story Report", icon: ClipboardList, exact: false },
   { to: "/admin/users", label: "Users", icon: UserCog, exact: false },

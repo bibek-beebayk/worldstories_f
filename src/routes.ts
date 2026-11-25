@@ -42,6 +42,9 @@ export default [
     route("games/name-that-story", "pages/NameThatStory.tsx"),
     route("games/name-that-story/archive", "pages/NameThatStoryArchive.tsx"),
     route("games/name-that-story/:date", "pages/NameThatStory.tsx", { id: "nts-archive-date" }),
+    route("games/mini-crossword", "pages/MiniCrossword.tsx"),
+    route("games/mini-crossword/archive", "pages/MiniCrosswordArchive.tsx"),
+    route("games/mini-crossword/:date", "pages/MiniCrossword.tsx", { id: "mini-archive-date" }),
     route("newsletter/confirm", "pages/NewsletterConfirm.tsx"),
     route("newsletter/unsubscribe", "pages/NewsletterUnsubscribe.tsx"),
     // Admin-built pages (apps/pages); main site only.
@@ -110,6 +113,11 @@ export default [
         route("games/daily-puzzle/new", "pages/admin/AdminDailyPuzzleEdit.tsx"),
         route("games/daily-puzzle/:id", "pages/admin/AdminDailyPuzzleEdit.tsx", {
           id: "admin-daily-puzzle-edit",
+        }),
+        route("games/mini-crossword", "pages/admin/AdminMiniCrossword.tsx"),
+        route("games/mini-crossword/new", "pages/admin/AdminMiniCrosswordEdit.tsx"),
+        route("games/mini-crossword/:id", "pages/admin/AdminMiniCrosswordEdit.tsx", {
+          id: "admin-mini-crossword-edit",
         }),
       ]),
     ]),
