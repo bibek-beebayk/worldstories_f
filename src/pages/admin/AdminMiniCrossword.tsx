@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
   Download,
   Edit3,
   Plus,
@@ -13,10 +15,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  type AdminAutogenerateResponse,
   type AdminMiniRowStatus,
   useAdminAddClueBank,
   useAdminAutogenerateMinis,
   useAdminClueBank,
+  useAdminClueBankHealth,
   useAdminDeleteClueBank,
   useAdminDeleteMini,
   useAdminExportClueBank,
@@ -52,6 +56,8 @@ export default function AdminMiniCrossword() {
   const [liveStatus, setLiveStatus] = useState("");
   const [exportStatus, setExportStatus] = useState("");
   const [exportError, setExportError] = useState("");
+  const [autogenReport, setAutogenReport] = useState<AdminAutogenerateResponse | null>(null);
+  const [healthExpanded, setHealthExpanded] = useState(false);
 
   const bankScrollRef = useRef<HTMLDivElement | null>(null);
   const bankSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -101,6 +107,7 @@ export default function AdminMiniCrossword() {
   const deleteBank = useAdminDeleteClueBank();
   const importBank = useAdminImportClueBank();
   const exportBank = useAdminExportClueBank();
+  const { data: bankHealth } = useAdminClueBankHealth();
 
   // Announce newly loaded pages via aria-live region
   const loadedPagesCount = bankData?.pages.length ?? 0;
@@ -138,11 +145,17 @@ export default function AdminMiniCrossword() {
   const rows = listData?.results ?? [];
 
   const handleAutogen = () => {
+    setAutogenReport(null);
     autogen.mutate(14, {
       onSuccess: (res) => {
-        toast.success(
-          `Auto-generate finished: ${res.created_count} draft(s) created, ${res.skipped_count} skipped.`
-        );
+        setAutogenReport(res);
+        if (res.reason === "bank_too_small") {
+          toast.error("Could not generate grids: clue bank is too small.");
+        } else {
+          toast.success(
+            `Auto-generate finished: ${res.created_count} draft(s) created, ${res.skipped_count} skipped.`
+          );
+        }
       },
       onError: () => toast.error("Auto-generate failed."),
     });
@@ -234,8 +247,11 @@ export default function AdminMiniCrossword() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Mini Crossword</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-700">
             Create, validate, and schedule daily 5x5 literary mini crosswords.
+          </p>
+          <p className="mt-0.5 text-xs text-slate-600">
+            Generated grids use only words from the clue bank.
           </p>
         </div>
 
@@ -266,6 +282,60 @@ export default function AdminMiniCrossword() {
           </Link>
         </div>
       </div>
+
+      {/* Auto-generate structured result banner */}
+      {autogenReport && (
+        <div
+          role={autogenReport.reason === "bank_too_small" ? "alert" : "status"}
+          data-testid="autogenerate-report"
+          className={`rounded-xl border p-4 text-sm ${
+            autogenReport.reason === "bank_too_small"
+              ? "border-amber-300 bg-amber-50 text-amber-950"
+              : "border-emerald-300 bg-emerald-50 text-emerald-950"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              {autogenReport.reason === "bank_too_small" ? (
+                <>
+                  <p className="font-semibold">
+                    Could not generate grids from the clue bank (0 of {autogenReport.requested}{" "}
+                    requested).
+                  </p>
+                  <p className="text-xs">
+                    Clue bank has {autogenReport.bank.total_answers} distinct answers (3-letter:{" "}
+                    {autogenReport.bank.by_length["3"]}, 4-letter:{" "}
+                    {autogenReport.bank.by_length["4"]}, 5-letter:{" "}
+                    {autogenReport.bank.by_length["5"]}).
+                    {autogenReport.bank.scarce_letters.length > 0 && (
+                      <>
+                        {" "}
+                        Scarce letters:{" "}
+                        {autogenReport.bank.scarce_letters.map((s) => s.letter).join(", ")}.
+                      </>
+                    )}
+                  </p>
+                  {autogenReport.suggestion && (
+                    <p className="text-xs font-medium">{autogenReport.suggestion}</p>
+                  )}
+                </>
+              ) : (
+                <p className="font-semibold">
+                  Generated {autogenReport.created_count} of {autogenReport.requested} draft{" "}
+                  {autogenReport.created_count === 1 ? "grid" : "grids"} from the clue bank.
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setAutogenReport(null)}
+              className="rounded-md border border-current/25 px-2.5 py-1 text-xs font-semibold hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200">
@@ -517,6 +587,57 @@ export default function AdminMiniCrossword() {
                 <option value="5">5 letters</option>
               </select>
             </div>
+
+            {bankHealth && (
+              <div
+                data-testid="clue-bank-health"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-800"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p>
+                    <span className="font-semibold text-slate-900">Bank health:</span>{" "}
+                    {bankHealth.total_answers} distinct answers (3-letter:{" "}
+                    {bankHealth.by_length["3"]}, 4-letter: {bankHealth.by_length["4"]}, 5-letter:{" "}
+                    {bankHealth.by_length["5"]})
+                  </p>
+                  <button
+                    type="button"
+                    aria-expanded={healthExpanded}
+                    onClick={() => setHealthExpanded((prev) => !prev)}
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                  >
+                    {healthExpanded ? (
+                      <>
+                        Hide details
+                        <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+                      </>
+                    ) : (
+                      <>
+                        Details
+                        <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                      </>
+                    )}
+                  </button>
+                </div>
+                {healthExpanded && (
+                  <div className="mt-2 space-y-1 border-t border-slate-200 pt-2 text-slate-700">
+                    <p>
+                      Total clues: {bankHealth.total} · Answers with multiple clues:{" "}
+                      {bankHealth.multi_clue_answers}
+                    </p>
+                    <p>
+                      Scarce letters (&lt; 2%):{" "}
+                      {bankHealth.scarce_letters.length > 0
+                        ? bankHealth.scarce_letters
+                            .map((s) => `${s.letter} (${s.count}, ${s.percent}%)`)
+                            .join(", ")
+                        : "None"}
+                    </p>
+                    <p className="font-medium text-slate-900">{bankHealth.suggestion}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center justify-between text-xs font-medium text-slate-700">
               <span data-testid="clue-bank-count">

@@ -208,7 +208,7 @@ export default function AdminMiniCrosswordEdit() {
       {
         onSuccess: (res) => {
           if (res.solutions.length === 0) {
-            toast.error("No valid fill found for this pattern within 2 seconds.");
+            toast.error("No valid fill found from the clue bank for this pattern.");
           } else {
             setFillOptions(res.solutions);
           }

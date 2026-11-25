@@ -214,6 +214,46 @@ export interface ClueBankExportResult {
   rowCount: number;
 }
 
+export interface ClueBankScarceLetter {
+  letter: string;
+  count: number;
+  percent: number;
+}
+
+export interface ClueBankHealth {
+  total: number;
+  total_answers: number;
+  by_length: {
+    "3": number;
+    "4": number;
+    "5": number;
+  };
+  multi_clue_answers: number;
+  scarce_letters: ClueBankScarceLetter[];
+  suggestion: string;
+}
+
+export interface AdminAutogenerateResponse {
+  created: number;
+  created_count: number;
+  created_dates: string[];
+  requested: number;
+  skipped: string[];
+  skipped_count: number;
+  reason: "bank_too_small" | null;
+  bank: {
+    total_answers: number;
+    by_length: {
+      "3": number;
+      "4": number;
+      "5": number;
+    };
+    scarce_letters: ClueBankScarceLetter[];
+  };
+  suggestion: string;
+  elapsed_seconds?: number;
+}
+
 // =====================================================================
 // Pure Helpers
 // =====================================================================
@@ -540,7 +580,7 @@ export const miniApi = {
 
   adminAutogenerate: async (
     days = 14
-  ): Promise<{ created: string[]; skipped: string[]; created_count: number; skipped_count: number }> =>
+  ): Promise<AdminAutogenerateResponse> =>
     apiClient(`${ADMIN_BASE}/autogenerate/`, {
       method: "POST",
       body: JSON.stringify({ days }),
@@ -574,6 +614,9 @@ export const miniApi = {
     const blob = new Blob([buffer], { type: contentType || "text/csv;charset=utf-8" });
     return { blob, filename: filename || "clue-bank.csv", rowCount };
   },
+
+  adminClueBankHealth: async (): Promise<ClueBankHealth> =>
+    apiClient<ClueBankHealth>(`${ADMIN_BASE}/clue-bank/health/`),
 
   adminClueBankAdd: async (payload: {
     answer: string;
@@ -634,6 +677,7 @@ export const miniKeys = {
       { q: filters?.q ?? "", length: filters?.length ?? "" },
     ] as const;
   },
+  adminClueBankHealth: () => [...miniKeys.all, "admin", "clue-bank", "health"] as const,
 };
 
 export function useMiniToday() {
@@ -982,7 +1026,7 @@ export function useAdminDeleteClueBank() {
       qc.setQueriesData<InfiniteData<ClueBankPage, string | null>>(
         { queryKey: baseKey },
         (old) => {
-          if (!old) return old;
+          if (!old || !Array.isArray(old.pages)) return old;
           let removed = false;
           const pages = old.pages.map((page) => {
             const nextResults = page.results.filter((row) => {
@@ -1031,5 +1075,12 @@ export function useAdminImportClueBank() {
 export function useAdminExportClueBank() {
   return useMutation({
     mutationFn: (filters?: ClueBankListFilters) => miniApi.adminClueBankExport(filters),
+  });
+}
+
+export function useAdminClueBankHealth() {
+  return useQuery({
+    queryKey: miniKeys.adminClueBankHealth(),
+    queryFn: () => miniApi.adminClueBankHealth(),
   });
 }

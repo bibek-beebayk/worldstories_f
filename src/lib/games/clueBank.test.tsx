@@ -159,6 +159,17 @@ describe("Clue bank tab infinite scroll, fallbacks, optimistic delete, and error
       players_today: 0,
       needs_attention: [],
     });
+    vi.spyOn(miniApi, "adminClueBankHealth").mockResolvedValue({
+      total: 4,
+      total_answers: 3,
+      by_length: { "3": 1, "4": 1, "5": 1 },
+      multi_clue_answers: 1,
+      scarce_letters: [
+        { letter: "Q", count: 0, percent: 0 },
+        { letter: "Z", count: 0, percent: 0 },
+      ],
+      suggestion: "Add more clues, especially 5-letter answers (scarce letters: Q, Z).",
+    });
   });
 
   afterEach(() => {
@@ -289,5 +300,48 @@ describe("Clue bank tab infinite scroll, fallbacks, optimistic delete, and error
 
     expect(await screen.findByText("RAVEN")).toBeInTheDocument();
     expect(screen.getByTestId("clue-bank-count")).toHaveTextContent("Showing 2 of 2");
+  });
+
+  it("renders inline bank_too_small report on auto-generate and Bank health summary with details", async () => {
+    vi.spyOn(miniApi, "adminClueBankList").mockResolvedValue({
+      results: [makeItem(1, "RAVEN")],
+      next_cursor: null,
+      total: 1,
+    });
+    vi.spyOn(miniApi, "adminAutogenerate").mockResolvedValue({
+      created: 0,
+      created_count: 0,
+      created_dates: [],
+      requested: 14,
+      skipped: ["2026-11-26"],
+      skipped_count: 14,
+      reason: "bank_too_small",
+      bank: {
+        total_answers: 3,
+        by_length: { "3": 1, "4": 1, "5": 1 },
+        scarce_letters: [{ letter: "Q", count: 0, percent: 0 }],
+      },
+      suggestion: "Add more clues, especially 5-letter answers (scarce letters: Q).",
+    });
+
+    renderAdmin();
+    expect(
+      screen.getByText("Generated grids use only words from the clue bank.")
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Auto-generate next 14 days" }));
+    const alert = await screen.findByTestId("autogenerate-report");
+    expect(alert).toHaveTextContent("0 of 14 requested");
+    expect(alert).toHaveTextContent("Add more clues, especially 5-letter answers");
+
+    // Switch to Clue bank tab and expand Bank health details
+    fireEvent.click(screen.getByRole("button", { name: "Clue bank" }));
+    const health = await screen.findByTestId("clue-bank-health");
+    expect(health).toHaveTextContent("Bank health:");
+    expect(health).toHaveTextContent("3 distinct answers");
+
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(health).toHaveTextContent("Answers with multiple clues: 1");
+    expect(health).toHaveTextContent("Q (0, 0%)");
   });
 });
