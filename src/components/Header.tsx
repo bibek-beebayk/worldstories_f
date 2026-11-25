@@ -163,12 +163,6 @@ const Header = () => {
               <Link to="/blog" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
                 Blog
               </Link>
-              <Link
-                to="/games"
-                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-              >
-                Games
-              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-foreground outline-none transition-colors hover:text-primary data-[state=open]:text-primary">
                   More <ChevronDown className="h-4 w-4" />
@@ -634,11 +628,6 @@ const Header = () => {
                     </Link>
                   </SheetClose>
 
-                  <SheetClose asChild>
-                    <Link to="/games" className="text-lg font-medium hover:text-primary">
-                      Games
-                    </Link>
-                  </SheetClose>
 
                   <SheetClose asChild>
                     <Link to="/journeys" className="text-lg font-medium hover:text-primary">
