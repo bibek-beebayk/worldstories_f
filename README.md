@@ -96,3 +96,21 @@ Shared components live in `src/components/admin/audiobooks/` (`StatusChip`, `Sto
 2. Choose **Standalone** (no linked story; requires Title, Author, Language, and About) or **Linked to a story** (pick an existing story; blank metadata fields inherit from the story).
 3. Drop one or more `.mp3` files to create tracks (titles are inferred from filenames and durations are probed automatically), then click **Create audiobook**.
 4. On the edit screen (`/admin/audiobooks/:id`), reorder tracks by drag-and-drop or arrow buttons, import `.vtt`/`.srt`/`.txt` transcripts for Read Along, optionally assign a Series and cover override, and toggle **Published** (or set a future publish date).
+
+## Blog editor images
+
+- **Components & helpers**: `src/components/admin/blog/BlogContentEditor.tsx`, `ImageInsertDialog.tsx`, `ImageEditToolbar.tsx`, `blogUploadPlaceholder.ts`, `src/lib/blogEditorImages.ts`, and `src/hooks/useBlogImageUpload.ts`.
+- **Figure markup & classes**:
+  `<figure class="ws-fig ws-size-wide ws-align-center"><img src="..." alt="..." width="..." height="..." loading="lazy" decoding="async" /><figcaption>...</figcaption></figure>`
+  - Sizes: `.ws-size-small` (`40%`), `.ws-size-wide` (`78%`), `.ws-size-full` (`100%`; all sizes `100%` below `640px`).
+  - Alignment: `.ws-align-left`, `.ws-align-center`.
+  - Styles live in `src/index.css` and apply identically to both the reader (`.prose`) and the editor (`.ws-blog-editor`).
+- **Sanitization**: `src/lib/sanitizeHtml.ts` allows `figure`, `figcaption`, and `img` with `src` (`http`, `https`, or relative URLs only — no `data:` or `javascript:`), `alt`, `width`, `height`, `loading` (`lazy` or `eager` only), and `decoding` (`async`/`sync`/`auto`). No `on*` attributes are ever allowed.
+- **Manual QA checklist**:
+  1. Click **Image** in the blog editor toolbar, upload an image with alt text + caption, confirm placeholder progress and final WebP figure insertion.
+  2. Paste a screenshot (`Ctrl+V` / `Cmd+V`), confirm upload placeholder, final figure, `"No alt text"` amber tag, and `"Add alt text"` toast action.
+  3. Drag and drop an image file into the editor, confirm red dashed drop highlight and insertion at drop point.
+  4. Click a figure to open the floating toolbar, switch Small / Wide / Full and Left / Center, drag corner handles to snap sizes, and edit alt text & caption.
+  5. Test a failed upload (>8 MB or invalid file) and confirm Save/Publish is blocked with `"Wait for images to finish uploading"` until retried or removed.
+  6. Publish a post with an image missing alt text and confirm the warning dialog (`"Fix it first"` vs `"Publish anyway"`); verify drafts save without the prompt.
+  7. Open an existing blog post without figures on `/blog/:slug` and confirm layout is unchanged.

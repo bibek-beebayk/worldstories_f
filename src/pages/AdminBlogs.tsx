@@ -34,24 +34,10 @@ import {
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import {
-  ArrowLeft,
-  Bold,
-  Code2,
-  Heading2,
-  Heading3,
-  Italic,
-  Link2,
-  List,
-  ListOrdered,
-  Loader2,
-  Plus,
-  Search,
-  Underline,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Search, X } from "lucide-react";
 import { AdminBlog, AdminStory } from "@/api/types";
-import { handleRichTextPaste } from "@/lib/richTextPaste";
+import { BlogContentEditor, type BlogContentEditorHandle } from "@/components/admin/blog/BlogContentEditor";
+import { countImagesMissingAlt } from "@/lib/blogEditorImages";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import { getLanguageLabel } from "@/lib/languages";
 import { AiGenerationResultBanner } from "@/components/admin/AiGenerationControls";
@@ -178,9 +164,11 @@ const AdminBlogs = () => {
   const [pendingDeleteBlog, setPendingDeleteBlog] = useState<AdminBlog | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [excerptBannerDismissed, setExcerptBannerDismissed] = useState(false);
-  const [isContentHtmlMode, setIsContentHtmlMode] = useState(false);
+  const [hasBlockingUploads, setHasBlockingUploads] = useState(false);
+  const [editorSeedKey, setEditorSeedKey] = useState(0);
+  const [missingAltDialogCount, setMissingAltDialogCount] = useState<number | null>(null);
 
-  const contentEditorRef = useRef<HTMLDivElement | null>(null);
+  const contentEditorRef = useRef<BlogContentEditorHandle | null>(null);
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
   const lastAppliedExcerptStatusRef = useRef<string | null>(null);
 
@@ -245,47 +233,6 @@ const AdminBlogs = () => {
     enabled: debouncedBlogSearchQuery.length >= 2,
   });
 
-  useEffect(() => {
-    if (!showForm || !contentEditorRef.current) return;
-    // Seeded through the readers' sanitizer so the editor shows what the
-    // published post will (inline styles from older pastes stripped, their
-    // bold/italic kept as tags) — see the chapter editor in AdminContent.tsx.
-    const cleanContent = sanitizeHtml(content);
-    contentEditorRef.current.innerHTML = cleanContent;
-    setContent(cleanContent);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showForm]);
-
-  const syncContentEditor = () => {
-    setContent(contentEditorRef.current?.innerHTML || "");
-  };
-
-  const runContentCommand = (command: string, value?: string) => {
-    contentEditorRef.current?.focus();
-    document.execCommand(command, false, value);
-    syncContentEditor();
-  };
-
-  const addContentLink = () => {
-    const url = window.prompt("Enter URL");
-    if (!url) return;
-    runContentCommand("createLink", url);
-  };
-
-  // Switching *out* of HTML mode has to push whatever was typed in the
-  // textarea back into the actual contentEditable node — editing the
-  // textarea only ever touches the `content` string state, not that DOM
-  // node, so without this the WYSIWYG view would silently show stale
-  // content until something else happened to re-sync it.
-  const toggleContentHtmlMode = () => {
-    setIsContentHtmlMode((prev) => {
-      if (prev && contentEditorRef.current) {
-        contentEditorRef.current.innerHTML = content;
-      }
-      return !prev;
-    });
-  };
-
   const resetForm = () => {
     setEditingBlog(null);
     setTitle("");
@@ -309,12 +256,14 @@ const AdminBlogs = () => {
     setStorySearchQuery("");
     setBlogSearchQuery("");
     setExcerptBannerDismissed(false);
-    setIsContentHtmlMode(false);
+    setHasBlockingUploads(false);
+    setMissingAltDialogCount(null);
     lastAppliedExcerptStatusRef.current = null;
   };
 
   const openCreateForm = () => {
     resetForm();
+    setEditorSeedKey((k) => k + 1);
     setShowForm(true);
   };
 
@@ -344,8 +293,10 @@ const AdminBlogs = () => {
       setStorySearchQuery("");
       setBlogSearchQuery("");
       setExcerptBannerDismissed(false);
-      setIsContentHtmlMode(false);
+      setHasBlockingUploads(false);
+      setMissingAltDialogCount(null);
       lastAppliedExcerptStatusRef.current = fullBlog.excerpt_status;
+      setEditorSeedKey((k) => k + 1);
       setShowForm(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load blog post.");
@@ -379,8 +330,8 @@ const AdminBlogs = () => {
   const useRetrospectiveAsContent = () => {
     if (!linkStoryOffer?.retrospective) return;
     if (content.trim() && !window.confirm("This will replace the current blog content. Continue?")) return;
+    contentEditorRef.current?.setHtml(linkStoryOffer.retrospective);
     setContent(linkStoryOffer.retrospective);
-    if (contentEditorRef.current) contentEditorRef.current.innerHTML = linkStoryOffer.retrospective;
     toast.success("Retrospective copied into the blog content — feel free to edit it.");
   };
 
@@ -392,9 +343,17 @@ const AdminBlogs = () => {
     setRemoveCoverImage(false);
   };
 
-  const saveBlog = async (event: FormEvent) => {
-    event.preventDefault();
+  const persistBlog = async () => {
     if (!title.trim() || !content.trim()) return;
+    // Placeholders must never be saved
+    if (
+      hasBlockingUploads ||
+      contentEditorRef.current?.hasBlockingUploads() ||
+      /data-upload(?:ing|-id)\s*=/.test(content)
+    ) {
+      toast.error("Wait for images to finish uploading");
+      return;
+    }
     try {
       setSaving(true);
       const formData = new FormData();
@@ -440,6 +399,27 @@ const AdminBlogs = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const saveBlog = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!title.trim() || !content.trim()) return;
+    if (
+      hasBlockingUploads ||
+      contentEditorRef.current?.hasBlockingUploads() ||
+      /data-upload(?:ing|-id)\s*=/.test(content)
+    ) {
+      toast.error("Wait for images to finish uploading");
+      return;
+    }
+    if (isPublished) {
+      const missingCount = contentEditorRef.current?.getMissingAltCount() ?? countImagesMissingAlt(content);
+      if (missingCount > 0) {
+        setMissingAltDialogCount(missingCount);
+        return;
+      }
+    }
+    await persistBlog();
   };
 
   const handleGenerateExcerpt = async () => {
@@ -696,96 +676,13 @@ const AdminBlogs = () => {
 
               <div>
                 <Label htmlFor="blog-content">Content *</Label>
-                <div className="mt-2 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
-                    {!isContentHtmlMode && (
-                      <>
-                        <Button type="button" variant="outline" size="sm" onClick={() => runContentCommand("bold")}>
-                          <Bold className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={() => runContentCommand("italic")}>
-                          <Italic className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => runContentCommand("underline")}
-                        >
-                          <Underline className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => runContentCommand("formatBlock", "h2")}
-                        >
-                          <Heading2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => runContentCommand("formatBlock", "h3")}
-                        >
-                          <Heading3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => runContentCommand("insertUnorderedList")}
-                        >
-                          <List className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => runContentCommand("insertOrderedList")}
-                        >
-                          <ListOrdered className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={addContentLink}>
-                          <Link2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      type="button"
-                      variant={isContentHtmlMode ? "default" : "outline"}
-                      size="sm"
-                      onClick={toggleContentHtmlMode}
-                      className="ml-auto gap-1.5"
-                      title={isContentHtmlMode ? "Switch to visual editor" : "Edit raw HTML"}
-                    >
-                      <Code2 className="h-4 w-4" />
-                      HTML
-                    </Button>
-                  </div>
-                  {isContentHtmlMode ? (
-                    <Textarea
-                      id="blog-content"
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="min-h-60 font-mono text-xs"
-                      spellCheck={false}
-                      placeholder="<p>Raw HTML for this post&hellip;</p>"
-                    />
-                  ) : (
-                    <div
-                      id="blog-content"
-                      ref={contentEditorRef}
-                      contentEditable
-                      dir="ltr"
-                      style={{ direction: "ltr", unicodeBidi: "isolate", writingMode: "horizontal-tb" }}
-                      suppressContentEditableWarning
-                      onInput={syncContentEditor}
-                      onPaste={(e) => handleRichTextPaste(e, syncContentEditor)}
-                      className="prose prose-sm min-h-60 max-w-none rounded-md border px-3 py-2 text-left [unicode-bidi:isolate] [&_*]:text-left focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  )}
-                </div>
+                <BlogContentEditor
+                  ref={contentEditorRef}
+                  value={content}
+                  onChange={setContent}
+                  onUploadingChange={setHasBlockingUploads}
+                  seedKey={editorSeedKey}
+                />
               </div>
 
               <div>
@@ -1075,6 +972,45 @@ const AdminBlogs = () => {
             </Card>
           </div>
         )}
+        <AlertDialog
+          open={missingAltDialogCount !== null}
+          onOpenChange={(open) => {
+            if (!open) setMissingAltDialogCount(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {missingAltDialogCount === 1
+                  ? "1 image has no alt text"
+                  : `${missingAltDialogCount ?? 0} images have no alt text`}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Alt text helps readers using screen readers and improves search engine visibility. You can add it now or
+                publish anyway.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setMissingAltDialogCount(null);
+                  contentEditorRef.current?.focusFirstMissingAlt();
+                }}
+              >
+                Fix it first
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(event) => {
+                  event.preventDefault();
+                  setMissingAltDialogCount(null);
+                  void persistBlog();
+                }}
+              >
+                Publish anyway
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }

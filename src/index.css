@@ -232,3 +232,88 @@ All colors MUST be HSL.
   --tw-prose-th-borders: hsl(var(--border));
   --tw-prose-td-borders: hsl(var(--border));
 }
+
+/* Blog body figures — shared between reader (.prose) and admin blog editor (.ws-blog-editor) */
+.ws-fig {
+  margin: 1.75rem auto;
+  width: 100%;
+  max-width: 78%;
+  position: relative;
+}
+
+.ws-fig.ws-size-small {
+  max-width: 40%;
+}
+
+.ws-fig.ws-size-wide {
+  max-width: 78%;
+}
+
+.ws-fig.ws-size-full {
+  max-width: 100%;
+}
+
+.ws-fig.ws-align-left {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.ws-fig.ws-align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ws-fig img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.ws-fig figcaption {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #525252;
+}
+
+@media (max-width: 639px) {
+  .ws-fig,
+  .ws-fig.ws-size-small,
+  .ws-fig.ws-size-wide,
+  .ws-fig.ws-size-full {
+    max-width: 100%;
+  }
+}
+
+/* Editor-only image affordances (selection ring + missing-alt badge) */
+.ws-blog-editor .ws-fig {
+  cursor: pointer;
+}
+
+.ws-blog-editor .ws-fig.ws-fig-selected {
+  outline: 2px solid #d92f4c;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.ws-blog-editor .ws-fig:not([data-upload-id]):has(img[alt=""])::after,
+.ws-blog-editor .ws-fig:not([data-upload-id]):has(img:not([alt]))::after {
+  content: "No alt text";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #78350f;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+}

@@ -13,14 +13,77 @@ import sanitizeHtmlLib from "sanitize-html";
 // comment-box use case. script/style/iframe/object/embed/form are excluded
 // on purpose, mirroring the previous FORBID_TAGS list.
 const ALLOWED_TAGS = [
-  "a", "abbr", "address", "article", "aside", "b", "bdi", "bdo", "blockquote",
-  "br", "caption", "cite", "code", "col", "colgroup", "data", "dd", "del",
-  "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer",
-  "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "ins",
-  "kbd", "li", "main", "mark", "nav", "ol", "p", "pre", "q", "rp", "rt",
-  "ruby", "s", "samp", "section", "small", "span", "strong", "sub", "summary",
-  "sup", "table", "tbody", "td", "tfoot", "th", "thead", "time", "tr", "u",
-  "ul", "var", "wbr",
+  "a",
+  "abbr",
+  "address",
+  "article",
+  "aside",
+  "b",
+  "bdi",
+  "bdo",
+  "blockquote",
+  "br",
+  "caption",
+  "cite",
+  "code",
+  "col",
+  "colgroup",
+  "data",
+  "dd",
+  "del",
+  "details",
+  "dfn",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "figcaption",
+  "figure",
+  "footer",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "hr",
+  "i",
+  "img",
+  "ins",
+  "kbd",
+  "li",
+  "main",
+  "mark",
+  "nav",
+  "ol",
+  "p",
+  "pre",
+  "q",
+  "rp",
+  "rt",
+  "ruby",
+  "s",
+  "samp",
+  "section",
+  "small",
+  "span",
+  "strong",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "time",
+  "tr",
+  "u",
+  "ul",
+  "var",
+  "wbr",
 ];
 
 // `style` is deliberately excluded (mirrors the previous FORBID_ATTR) except
@@ -31,7 +94,7 @@ const ALLOWED_ATTRIBUTES: sanitizeHtmlLib.IOptions["allowedAttributes"] = {
   "*": ["class", "id", "title", "lang", "dir"],
   span: ["style"],
   a: ["href", "name", "target", "rel"],
-  img: ["src", "alt", "width", "height"],
+  img: ["src", "alt", "width", "height", "loading", "decoding"],
   time: ["datetime"],
   td: ["colspan", "rowspan"],
   th: ["colspan", "rowspan", "scope"],
@@ -84,6 +147,30 @@ const ALLOWED_STYLES: sanitizeHtmlLib.IOptions["allowedStyles"] = {
   },
 };
 
+const VALID_IMG_LOADING = new Set(["lazy", "eager"]);
+const VALID_IMG_DECODING = new Set(["async", "sync", "auto"]);
+
+const sanitizeImgAttributes: sanitizeHtmlLib.Transformer = (tagName, attribs) => {
+  const next = { ...attribs };
+  if (next.loading !== undefined) {
+    const normalized = next.loading.trim().toLowerCase();
+    if (VALID_IMG_LOADING.has(normalized)) {
+      next.loading = normalized;
+    } else {
+      delete next.loading;
+    }
+  }
+  if (next.decoding !== undefined) {
+    const normalized = next.decoding.trim().toLowerCase();
+    if (VALID_IMG_DECODING.has(normalized)) {
+      next.decoding = normalized;
+    } else {
+      delete next.decoding;
+    }
+  }
+  return { tagName, attribs: next };
+};
+
 const STYLE_TRANSFORMS: Record<string, sanitizeHtmlLib.Transformer> = {
   b: styleToSemanticTag,
   strong: styleToSemanticTag,
@@ -91,6 +178,11 @@ const STYLE_TRANSFORMS: Record<string, sanitizeHtmlLib.Transformer> = {
   em: styleToSemanticTag,
   span: styleToSemanticTag,
   font: styleToSemanticTag,
+  img: sanitizeImgAttributes,
+};
+
+const ALLOWED_SCHEMES_BY_TAG: sanitizeHtmlLib.IOptions["allowedSchemesByTag"] = {
+  img: ["http", "https"],
 };
 
 export function sanitizeHtml(html: string | null | undefined): string {
@@ -98,8 +190,10 @@ export function sanitizeHtml(html: string | null | undefined): string {
     allowedTags: ALLOWED_TAGS,
     allowedAttributes: ALLOWED_ATTRIBUTES,
     // Default safe schemes (http/https/mailto/tel/etc.) — blocks
-    // javascript: URLs the same way DOMPurify does.
+    // javascript: URLs the same way DOMPurify does; images are further
+    // restricted to http, https, and relative URLs (no data: or javascript:).
     allowedSchemes: sanitizeHtmlLib.defaults.allowedSchemes,
+    allowedSchemesByTag: ALLOWED_SCHEMES_BY_TAG,
     disallowedTagsMode: "discard",
     allowedStyles: ALLOWED_STYLES,
     transformTags: STYLE_TRANSFORMS,
@@ -118,6 +212,7 @@ export function sanitizeBlogContent(html: string | null | undefined): string {
     allowedTags: ALLOWED_TAGS,
     allowedAttributes: ALLOWED_ATTRIBUTES,
     allowedSchemes: sanitizeHtmlLib.defaults.allowedSchemes,
+    allowedSchemesByTag: ALLOWED_SCHEMES_BY_TAG,
     disallowedTagsMode: "discard",
     allowedStyles: ALLOWED_STYLES,
     transformTags: {
