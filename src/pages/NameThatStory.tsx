@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, redirect, useParams } from "react-router";
 import { ArrowLeft, Check, Info, Lock, X } from "lucide-react";
 import { buildMeta } from "@/lib/buildMeta";
+import { NAME_THAT_STORY_ENABLED } from "@/lib/games/gamesConfig";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useAuthModal } from "@/context/AuthModalContext";
 import StoryGuessCombobox from "@/components/games/StoryGuessCombobox";
@@ -20,6 +21,13 @@ import {
   useSkip,
   useWeek,
 } from "@/lib/games/nameThatStory";
+
+export function loader() {
+  if (!NAME_THAT_STORY_ENABLED) {
+    return redirect("/games", 302);
+  }
+  return null;
+}
 
 export function meta() {
   return buildMeta({

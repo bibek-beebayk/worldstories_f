@@ -83,6 +83,20 @@ export interface MiniPublicResponse {
   linked_stories?: MiniLinkedStory[];
 }
 
+export interface MiniTodaySummary {
+  date: string;
+  number: number;
+  title: string;
+  difficulty: MiniDifficulty;
+  pattern: string[];
+  white_cells: number;
+  status: "not_started" | "in_progress" | "solved";
+  filled_cells: number;
+  elapsed_seconds: number | null;
+  hints_used: number;
+  current_streak: number;
+}
+
 export interface MiniStatsResponse {
   played: number;
   solved: number;
@@ -413,6 +427,9 @@ export const miniApi = {
   getToday: async (): Promise<MiniPublicResponse> =>
     apiClient<MiniPublicResponse>(`${PUBLIC_BASE}/today/`, { headers: guestHeaders() }),
 
+  getTodaySummary: async (): Promise<MiniTodaySummary> =>
+    apiClient<MiniTodaySummary>(`${PUBLIC_BASE}/today/summary/`, { headers: guestHeaders() }),
+
   getPuzzle: async (date: string): Promise<MiniPublicResponse> =>
     apiClient<MiniPublicResponse>(`${PUBLIC_BASE}/puzzles/${encodeURIComponent(date)}/`, {
       headers: guestHeaders(),
@@ -659,6 +676,7 @@ export const miniApi = {
 export const miniKeys = {
   all: ["games", "mini-crossword"] as const,
   today: () => [...miniKeys.all, "today"] as const,
+  todaySummary: () => [...miniKeys.all, "today", "summary"] as const,
   puzzle: (date: string) => [...miniKeys.all, "puzzle", date] as const,
   stats: () => [...miniKeys.all, "stats"] as const,
   archive: (page: number) => [...miniKeys.all, "archive", page] as const,
@@ -688,6 +706,17 @@ export function useMiniToday() {
   });
 }
 
+export function useMiniTodaySummary(enabled = true) {
+  return useQuery({
+    queryKey: miniKeys.todaySummary(),
+    queryFn: () => miniApi.getTodaySummary(),
+    enabled,
+    retry: false,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function useMiniPuzzle(date?: string) {
   return useQuery({
     queryKey: date ? miniKeys.puzzle(date) : miniKeys.today(),
@@ -702,6 +731,7 @@ export function useStart(date?: string) {
     mutationFn: () => miniApi.start(date),
     onSuccess: (data) => {
       qc.setQueryData(date ? miniKeys.puzzle(date) : miniKeys.today(), data);
+      qc.invalidateQueries({ queryKey: miniKeys.todaySummary() });
     },
   });
 }
@@ -710,11 +740,15 @@ export function useStart(date?: string) {
  * Debounced 1500ms save hook that flushes on blur, visibilitychange, and unmount.
  */
 export function useSave(date?: string) {
+  const qc = useQueryClient();
   const timerRef = useRef<number | null>(null);
   const pendingRef = useRef<string[] | null>(null);
 
   const mutation = useMutation({
     mutationFn: (letters: string[]) => miniApi.save({ date, letters }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: miniKeys.todaySummary() });
+    },
   });
 
   const flushSave = useCallback(() => {
@@ -794,6 +828,7 @@ export function useReveal(date?: string) {
           },
         };
       });
+      qc.invalidateQueries({ queryKey: miniKeys.todaySummary() });
     },
   });
 }
@@ -805,6 +840,7 @@ export function useSubmit(date?: string) {
     onSuccess: (res) => {
       if (res.solved && res.puzzle) {
         qc.setQueryData(date ? miniKeys.puzzle(date) : miniKeys.today(), res.puzzle);
+        qc.invalidateQueries({ queryKey: miniKeys.todaySummary() });
         qc.invalidateQueries({ queryKey: miniKeys.stats() });
         qc.invalidateQueries({ queryKey: [...miniKeys.all, "archive"] });
       }

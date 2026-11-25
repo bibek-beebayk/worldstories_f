@@ -31,16 +31,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { formatViews } from "@/lib/utils";
 import CoverImage from "@/components/CoverImage";
 import AuthorPortrait from "@/components/AuthorPortrait";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import PwaInstallDialog from "@/components/PwaInstallDialog";
+import { hasVisitedGames, markGamesVisited } from "@/lib/games/gamesConfig";
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const isLoggedIn = useIsLoggedIn();
+  const [showGamesDot, setShowGamesDot] = useState(false);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/games")) {
+      markGamesVisited();
+      setShowGamesDot(false);
+    } else {
+      setShowGamesDot(!hasVisitedGames());
+    }
+  }, [location.pathname]);
   const { openLoginModal } = useAuthModal();
   const { openFeedback } = useFeedback();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -162,6 +174,23 @@ const Header = () => {
               </Link>
               <Link to="/blog" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
                 Blog
+              </Link>
+              <Link
+                to="/games"
+                onClick={() => {
+                  markGamesVisited();
+                  setShowGamesDot(false);
+                }}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+              >
+                Games
+                {showGamesDot && (
+                  <span
+                    aria-hidden="true"
+                    data-testid="games-nav-dot"
+                    className="h-2 w-2 rounded-full bg-[#D92F4C]"
+                  />
+                )}
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-foreground outline-none transition-colors hover:text-primary data-[state=open]:text-primary">
@@ -601,6 +630,25 @@ const Header = () => {
                   <SheetClose asChild>
                     <Link to="/discover" className="text-lg font-medium hover:text-primary">
                       Discover
+                    </Link>
+                  </SheetClose>
+
+                  <SheetClose asChild>
+                    <Link
+                      to="/games"
+                      onClick={() => {
+                        markGamesVisited();
+                        setShowGamesDot(false);
+                      }}
+                      className="inline-flex items-center gap-2 text-lg font-medium hover:text-primary"
+                    >
+                      Games
+                      {showGamesDot && (
+                        <span
+                          aria-hidden="true"
+                          className="h-2 w-2 rounded-full bg-[#D92F4C]"
+                        />
+                      )}
                     </Link>
                   </SheetClose>
 

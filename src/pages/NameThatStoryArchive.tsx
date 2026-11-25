@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import { ArrowLeft, Check, Play, X } from "lucide-react";
 import { buildMeta } from "@/lib/buildMeta";
+import { NAME_THAT_STORY_ENABLED } from "@/lib/games/gamesConfig";
 import { PUZZLE_TYPE_META, useArchive } from "@/lib/games/nameThatStory";
+
+export function loader() {
+  if (!NAME_THAT_STORY_ENABLED) {
+    return redirect("/games", 302);
+  }
+  return null;
+}
 
 export function meta() {
   return buildMeta({

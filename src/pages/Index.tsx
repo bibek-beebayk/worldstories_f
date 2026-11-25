@@ -1,4 +1,5 @@
 import FeaturedStoriesSection from "@/components/FeaturedStoriesSection";
+import HomeGamesStrip from "@/components/home/HomeGamesStrip";
 import HomeHero from "@/components/home/HomeHero";
 import HomeSections from "@/components/home/HomeSections";
 import { buildDefaultHero, heroFontsUrl } from "@/components/home/heroPresets";
@@ -71,6 +72,8 @@ const Index = ({ loaderData }: Route.ComponentProps) => {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_50%),linear-gradient(to_bottom,var(--theme-page-wash,#f8fafc),transparent_320px)]">
       <HomeHero hero={hero} compact={isLoggedIn} />
+
+      <HomeGamesStrip />
 
       <main>
         {!isLoading && data && !awaitingMemberData && !isLoggedIn && (
