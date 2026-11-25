@@ -164,7 +164,7 @@ const Header = () => {
                 Blog
               </Link>
               <Link
-                to="/games/name-that-story"
+                to="/games"
                 className="text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
                 Games
@@ -635,7 +635,7 @@ const Header = () => {
                   </SheetClose>
 
                   <SheetClose asChild>
-                    <Link to="/games/name-that-story" className="text-lg font-medium hover:text-primary">
+                    <Link to="/games" className="text-lg font-medium hover:text-primary">
                       Games
                     </Link>
                   </SheetClose>

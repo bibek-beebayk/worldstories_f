@@ -1,311 +1,369 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router";
+import "@testing-library/jest-dom/vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+
+afterEach(() => {
+  cleanup();
+});
+import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthModalProvider } from "@/context/AuthModalContext";
 import {
   buildShareText,
   clearGuestKey,
   gamesApi,
+  getCountdownToUtcMidnight,
   getOrCreateGuestKey,
-  getUtcMidnightCountdown,
-  peekGuestKey,
-  type PuzzlePayload,
-  type PuzzleStats,
+  getStoredGuestKey,
+  type PublicPuzzleResponse,
+  type PuzzleStatsResponse,
 } from "@/lib/games/nameThatStory";
-import { StoryGuessCombobox } from "@/components/games/StoryGuessCombobox";
-import NameThatStory from "@/pages/NameThatStory";
+import StoryGuessCombobox from "@/components/games/StoryGuessCombobox";
+import NameThatStory, { ClueLadder, MatchChips } from "@/pages/NameThatStory";
 
-function makeQc() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+vi.mock("@/hooks/useIsLoggedIn", () => ({
+  useIsLoggedIn: vi.fn(() => false),
+}));
+
+vi.mock("@/context/AuthModalContext", () => ({
+  useAuthModal: () => ({ openLoginModal: vi.fn() }),
+}));
+
+function renderWithProviders(ui: React.ReactElement) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
   });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>
+  );
 }
 
-const sampleStats: PuzzleStats = {
-  played: 3,
-  wins: 2,
-  win_percentage: 67,
+const BASE_STATS: PuzzleStatsResponse = {
+  played: 4,
+  wins: 3,
+  win_percentage: 75,
   current_streak: 2,
-  best_streak: 2,
-  guess_distribution: { "1": 1, "2": 1, "3": 0, "4": 0, "5": 0, "6": 0 },
-  week_days: [
-    { date: "2026-11-19", label: "T", solved: false },
-    { date: "2026-11-20", label: "F", solved: false },
-    { date: "2026-11-21", label: "S", solved: false },
-    { date: "2026-11-22", label: "S", solved: false },
-    { date: "2026-11-23", label: "M", solved: false },
-    { date: "2026-11-24", label: "T", solved: true },
-    { date: "2026-11-25", label: "W", solved: true },
+  best_streak: 3,
+  guess_distribution: { "1": 0, "2": 2, "3": 1, "4": 0, "5": 0, "6": 0 },
+  week_history: [
+    { date: "2026-11-24", status: "solved" },
+    { date: "2026-11-25", status: "unplayed" },
   ],
 };
 
-const baseFreshPuzzle: PuzzlePayload = {
+const STORY_FRESH: PublicPuzzleResponse = {
   puzzle_number: 12,
   date: "2026-11-25",
-  opening_line: "Call me Ishmael.",
-  clues: [{ key: "genre", label: "Genre", value: "Adventure" }],
-  guesses_used: 0,
-  guesses: [],
-  status: "in_progress",
+  puzzle_type: "opening_line",
+  answer_kind: "story",
   max_guesses: 6,
+  guesses_used: 0,
+  status: "in_progress",
+  is_archive: false,
+  clues: [
+    {
+      position: 1,
+      kind: "text",
+      label: "Opening line",
+      value: "Call me Ishmael on a cold autumn morning.",
+      locked: false,
+    },
+    { position: 2, locked: true },
+    { position: 3, locked: true },
+    { position: 4, locked: true },
+  ],
+  guesses: [],
   yesterday: null,
+};
+
+const AUTHOR_IN_PROGRESS: PublicPuzzleResponse = {
+  puzzle_number: 13,
+  date: "2026-11-25",
+  puzzle_type: "author_bio",
+  answer_kind: "author",
+  max_guesses: 6,
+  guesses_used: 1,
+  status: "in_progress",
+  is_archive: false,
+  clues: [
+    { position: 1, kind: "attribute", label: "Genres", value: "Gothic, Mystery", locked: false },
+    {
+      position: 2,
+      kind: "attribute",
+      label: "Notable work",
+      value: "The Tell-Tale Heart",
+      locked: false,
+    },
+    { position: 3, locked: true },
+    { position: 4, locked: true },
+  ],
+  guesses: [
+    {
+      target_id: 2,
+      title: "Mary Shelley",
+      subtitle: "United Kingdom, 1810s",
+      initials: "M. S.",
+      correct: false,
+      matches: { genre: true, country: false, era: "close" },
+      skipped: false,
+    },
+  ],
+  yesterday: null,
+};
+
+const STORY_SOLVED: PublicPuzzleResponse = {
+  ...STORY_FRESH,
+  guesses_used: 2,
+  status: "solved",
+  clues: [
+    {
+      position: 1,
+      kind: "text",
+      label: "Opening line",
+      value: "Call me Ishmael on a cold autumn morning.",
+      locked: false,
+    },
+    { position: 2, kind: "attribute", label: "Genre", value: "Adventure", locked: false },
+  ],
+  guesses: [
+    {
+      target_id: 99,
+      title: "Treasure Island",
+      subtitle: "Robert Louis Stevenson",
+      initials: "",
+      correct: false,
+      matches: { genre: true, country: false, era: "close" },
+      skipped: false,
+    },
+    {
+      target_id: 1,
+      title: "Moby-Dick",
+      subtitle: "Herman Melville",
+      initials: "",
+      correct: true,
+      matches: { genre: true, country: true, era: "same" },
+      skipped: false,
+    },
+  ],
+  answer: {
+    kind: "story",
+    id: 1,
+    title: "Moby-Dick",
+    slug: "moby-dick",
+    author: "Herman Melville",
+    year: 1851,
+    cover: null,
+    read_time: 120,
+    audiobook_slug: "moby-dick",
+  },
+  share_tokens: ["wrong", "right", "empty", "empty", "empty", "empty"],
+};
+
+const AUTHOR_FAILED: PublicPuzzleResponse = {
+  ...AUTHOR_IN_PROGRESS,
+  guesses_used: 6,
+  status: "failed",
+  answer: {
+    kind: "author",
+    id: 1,
+    name: "Edgar Allan Poe",
+    slug: "edgar-allan-poe",
+    years: "1809–1849",
+    initials: "E. A. P.",
+    image: null,
+    works: [
+      { id: 10, title: "The Black Cat", slug: "the-black-cat", year: 1843, cover: null },
+    ],
+  },
+  share_tokens: ["wrong", "wrong", "wrong", "wrong", "wrong", "wrong"],
 };
 
 describe("Name That Story pure helpers", () => {
   beforeEach(() => {
-    window.localStorage.clear();
+    clearGuestKey();
   });
 
-  it("buildShareText formats solved and failed grids without answer or opening line", () => {
+  it("builds share text without leaking answer or clue text", () => {
     const solvedText = buildShareText(
-      12,
+      42,
       "solved",
       3,
       ["wrong", "wrong", "right", "empty", "empty", "empty"],
-      "https://worldstories.net",
+      "https://worldstories.org/games/name-that-story"
     );
-    const lines = solvedText.split("\n");
-    expect(lines).toHaveLength(3);
-    expect(lines[0]).toBe("Name That Story #12 3/6");
-    expect(lines[2]).toBe("https://worldstories.net/games/name-that-story");
-    expect(solvedText).not.toContain("Ishmael");
+    expect(solvedText).toBe(
+      "Name That Story #42 3/6\nXXO---\nhttps://worldstories.org/games/name-that-story"
+    );
 
-    const failedText = buildShareText(12, "failed", 6, ["wrong", "wrong", "wrong", "wrong", "wrong", "wrong"]);
-    expect(failedText.split("\n")[0]).toBe("Name That Story #12 X/6");
+    const failedText = buildShareText(
+      42,
+      "failed",
+      6,
+      ["wrong", "wrong", "wrong", "wrong", "wrong", "wrong"],
+      "https://worldstories.org/games/name-that-story"
+    );
+    expect(failedText).toContain("Name That Story #42 X/6");
+    expect(failedText).toContain("XXXXXX");
   });
 
-  it("guest key helper creates, persists, and clears UUID in localStorage", () => {
-    expect(peekGuestKey()).toBeNull();
+  it("persists and clears the guest key in localStorage", () => {
+    expect(getStoredGuestKey()).toBe("");
     const key1 = getOrCreateGuestKey();
-    expect(key1.length).toBeGreaterThan(10);
-    expect(peekGuestKey()).toBe(key1);
+    expect(key1.length).toBeGreaterThan(8);
     expect(getOrCreateGuestKey()).toBe(key1);
+    expect(getStoredGuestKey()).toBe(key1);
     clearGuestKey();
-    expect(peekGuestKey()).toBeNull();
+    expect(getStoredGuestKey()).toBe("");
   });
 
-  it("getUtcMidnightCountdown computes remaining time to next UTC midnight", () => {
-    const sample = new Date(Date.UTC(2026, 10, 25, 22, 30, 15));
-    const cd = getUtcMidnightCountdown(sample);
-    expect(cd.hours).toBe(1);
-    expect(cd.minutes).toBe(29);
-    expect(cd.seconds).toBe(45);
+  it("computes countdown to next UTC midnight", () => {
+    const now = new Date(Date.UTC(2026, 10, 25, 22, 30, 15));
+    const cd = getCountdownToUtcMidnight(now);
     expect(cd.formatted).toBe("01:29:45");
+    expect(cd.totalSeconds).toBe(5385);
+  });
+});
+
+describe("ClueLadder and MatchChips", () => {
+  it("renders opening_line quote card and locked tiles", () => {
+    renderWithProviders(<ClueLadder puzzle={STORY_FRESH} />);
+    expect(screen.getByText(/Call me Ishmael/)).toBeInTheDocument();
+    expect(screen.getByText("Unlocks after guess 1")).toBeInTheDocument();
+    expect(screen.getByText("Unlocks after guess 2")).toBeInTheDocument();
+  });
+
+  it("renders author_bio numbered ladder with New badge on newest clue and locked rows", () => {
+    renderWithProviders(<ClueLadder puzzle={AUTHOR_IN_PROGRESS} />);
+    expect(screen.getByText("Gothic, Mystery")).toBeInTheDocument();
+    expect(screen.getByText("The Tell-Tale Heart")).toBeInTheDocument();
+    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.getByText("Unlocks after guess 2")).toBeInTheDocument();
+  });
+
+  it("renders Era: close chip for close era matches", () => {
+    renderWithProviders(<MatchChips item={AUTHOR_IN_PROGRESS.guesses[0]} />);
+    expect(screen.getByText("Genre")).toBeInTheDocument();
+    expect(screen.getByText("Country")).toBeInTheDocument();
+    expect(screen.getByText("Era: close")).toBeInTheDocument();
   });
 });
 
 describe("StoryGuessCombobox keyboard behaviour", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   afterEach(() => {
-    cleanup();
+    vi.restoreAllMocks();
   });
 
-  it("navigates with ArrowDown/Enter, closes on Escape, and blocks submitting raw text", async () => {
-    vi.spyOn(gamesApi, "searchStories").mockResolvedValue({
+  it("navigates with ArrowDown/Enter/Escape and requires selection before submitting", async () => {
+    vi.spyOn(gamesApi, "search").mockResolvedValue({
+      kind: "author",
       results: [
-        { key: "story:1", title: "Moby-Dick", author: "Herman Melville", cover_thumb: "" },
-        { key: "book:2", title: "Moby Tales", author: "Other Author", cover_thumb: "" },
+        { id: 1, name: "Edgar Allan Poe", subtitle: "United States, 1800s", initials: "E. A. P." },
+        { id: 2, name: "Mary Shelley", subtitle: "United Kingdom, 1810s", initials: "M. S." },
       ],
     });
-    const onSubmitGuess = vi.fn();
-    const qc = makeQc();
+    const onGuess = vi.fn();
+    const onSkip = vi.fn();
 
-    render(
-      <QueryClientProvider client={qc}>
-        <StoryGuessCombobox guessedKeys={new Set(["story:1"])} isSubmitting={false} onSubmitGuess={onSubmitGuess} />
-      </QueryClientProvider>,
+    renderWithProviders(
+      <StoryGuessCombobox
+        puzzleDate="2026-11-25"
+        answerKind="author"
+        guessedIds={new Set([2])}
+        onSubmitGuess={onGuess}
+        onSkip={onSkip}
+      />
     );
 
-    const input = screen.getByRole("combobox", { name: "Search for a story title" });
-    const guessBtn = screen.getByRole("button", { name: "Guess" }) as HTMLButtonElement;
-    expect(guessBtn.disabled).toBe(true);
+    const input = screen.getByRole("combobox", { name: "Search authors" });
+    const guessBtn = screen.getByRole("button", { name: "Guess" });
+    expect(guessBtn).toBeDisabled();
 
-    fireEvent.change(input, { target: { value: "Moby" } });
-    expect(guessBtn.disabled).toBe(true); // raw text cannot be submitted
+    fireEvent.change(input, { target: { value: "Ed" } });
 
-    expect(await screen.findByText("Moby-Dick")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText("Edgar Allan Poe")).toBeInTheDocument();
+    });
+
+    // ArrowDown highlights first option, Enter selects it
     fireEvent.keyDown(input, { key: "ArrowDown" });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(guessBtn.disabled).toBe(false);
+    expect(guessBtn).not.toBeDisabled();
     fireEvent.click(guessBtn);
-    expect(onSubmitGuess).toHaveBeenCalledWith(expect.objectContaining({ key: "book:2", title: "Moby Tales" }));
+    expect(onGuess).toHaveBeenCalledWith(1);
+
+    // Escape closes listbox
+    fireEvent.change(input, { target: { value: "Mary" } });
+    await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument());
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });
 
 describe("NameThatStory page states", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    window.localStorage.clear();
-    vi.spyOn(gamesApi, "getStats").mockResolvedValue(sampleStats);
-  });
-
   afterEach(() => {
-    cleanup();
+    vi.restoreAllMocks();
   });
 
-  function renderPage() {
-    const qc = makeQc();
-    return render(
-      <QueryClientProvider client={qc}>
-        <AuthModalProvider>
-          <MemoryRouter initialEntries={["/games/name-that-story"]}>
-            <Routes>
-              <Route path="/games/name-that-story" element={<NameThatStory />} />
-            </Routes>
-          </MemoryRouter>
-        </AuthModalProvider>
-      </QueryClientProvider>,
+  it("renders fresh state with guest banner", async () => {
+    vi.spyOn(gamesApi, "getToday").mockResolvedValue(STORY_FRESH);
+    vi.spyOn(gamesApi, "getStats").mockResolvedValue(BASE_STATS);
+    vi.spyOn(gamesApi, "getWeek").mockResolvedValue({
+      days: [
+        { date: "2026-11-25", puzzle_type: "opening_line", answer_kind: "story", is_today: true },
+        { date: "2026-11-26", puzzle_type: "quote", answer_kind: "story", is_today: false },
+      ],
+    });
+
+    renderWithProviders(<NameThatStory />);
+    await waitFor(() => expect(screen.getByText(/Daily puzzle #12/)).toBeInTheDocument());
+    expect(screen.getByText("Guess 1 of 6")).toBeInTheDocument();
+    expect(screen.getByText("Playing as a guest")).toBeInTheDocument();
+    expect(screen.getByText("Tomorrow: In-book quote")).toBeInTheDocument();
+  });
+
+  it("renders in-progress author puzzle with match chips", async () => {
+    vi.spyOn(gamesApi, "getToday").mockResolvedValue(AUTHOR_IN_PROGRESS);
+    vi.spyOn(gamesApi, "getStats").mockResolvedValue(BASE_STATS);
+    vi.spyOn(gamesApi, "getWeek").mockResolvedValue({ days: [] });
+
+    renderWithProviders(<NameThatStory />);
+    await waitFor(() => expect(screen.getByText("Guess 2 of 6")).toBeInTheDocument());
+    expect(screen.getByText("Mary Shelley")).toBeInTheDocument();
+    expect(screen.getByText("Era: close")).toBeInTheDocument();
+  });
+
+  it("renders solved / already-played state with story card, Listen link, and no input", async () => {
+    vi.spyOn(gamesApi, "getToday").mockResolvedValue(STORY_SOLVED);
+    vi.spyOn(gamesApi, "getStats").mockResolvedValue(BASE_STATS);
+    vi.spyOn(gamesApi, "getWeek").mockResolvedValue({ days: [] });
+
+    renderWithProviders(<NameThatStory />);
+    await waitFor(() => expect(screen.getByText("You got it in 2 guesses")).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: /Read it free/i })).toHaveAttribute(
+      "href",
+      "/story/moby-dick"
     );
-  }
-
-  it("renders fresh state with guest banner and locked clues", async () => {
-    vi.spyOn(gamesApi, "getTodayPuzzle").mockResolvedValue(baseFreshPuzzle);
-    renderPage();
-
-    expect(await screen.findByText("Call me Ishmael.")).toBeTruthy();
-    expect(screen.getByText("Guess 1 of 6")).toBeTruthy();
-    expect(screen.getByText("Playing as a guest")).toBeTruthy();
-    expect(screen.getByText("Adventure")).toBeTruthy();
-    expect(screen.getByText("Unlocks after guess 1")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Listen/i })).toHaveAttribute(
+      "href",
+      "/listen/moby-dick"
+    );
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("renders in-progress state with guess history and era-close chip", async () => {
-    vi.spyOn(gamesApi, "getTodayPuzzle").mockResolvedValue({
-      ...baseFreshPuzzle,
-      guesses_used: 1,
-      clues: [
-        { key: "genre", label: "Genre", value: "Adventure" },
-        { key: "country", label: "Country", value: "United States" },
-      ],
-      guesses: [
-        {
-          story_id: 9,
-          title: "Treasure Island",
-          author: "Robert Louis Stevenson",
-          correct: false,
-          matches: { genre: true, country: false, era: "close" },
-          skipped: false,
-        },
-      ],
-    });
-    renderPage();
+  it("renders failed state for author puzzle with author works", async () => {
+    vi.spyOn(gamesApi, "getToday").mockResolvedValue(AUTHOR_FAILED);
+    vi.spyOn(gamesApi, "getStats").mockResolvedValue(BASE_STATS);
+    vi.spyOn(gamesApi, "getWeek").mockResolvedValue({ days: [] });
 
-    expect(await screen.findByText("Guess 2 of 6")).toBeTruthy();
-    expect(screen.getByText("Treasure Island")).toBeTruthy();
-    expect(screen.getByText("Era: close")).toBeTruthy();
-  });
-
-  it("renders solved (already played) state with answer card, Listen link, and no combobox", async () => {
-    vi.spyOn(gamesApi, "getTodayPuzzle").mockResolvedValue({
-      ...baseFreshPuzzle,
-      status: "solved",
-      guesses_used: 2,
-      guesses: [
-        {
-          story_id: 9,
-          title: "Treasure Island",
-          author: "R. L. S.",
-          correct: false,
-          matches: { genre: true, country: false, era: "different" },
-          skipped: false,
-        },
-        {
-          story_id: 1,
-          title: "Moby-Dick",
-          author: "Herman Melville",
-          correct: true,
-          matches: { genre: true, country: true, era: "same" },
-          skipped: false,
-        },
-      ],
-      answer: {
-        id: 1,
-        title: "Moby-Dick",
-        slug: "moby-dick",
-        author: "Herman Melville",
-        year: 1851,
-        cover: "",
-        read_time: 180,
-        has_audiobook: true,
-        audiobook_slug: "moby-dick",
-      },
-      share: {
-        header: "Name That Story #12 · 2/6",
-        tokens: ["wrong", "right", "empty", "empty", "empty", "empty"],
-      },
-    });
-    renderPage();
-
-    expect(await screen.findByText("You got it in 2 guesses")).toBeTruthy();
-    expect(screen.queryByRole("combobox")).toBeNull();
-    expect(screen.getByRole("link", { name: /Read it free/i })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Listen/i })).toBeTruthy();
-    expect(screen.getByText("Next puzzle in")).toBeTruthy();
-  });
-
-  it("renders failed state calmly with answer card", async () => {
-    vi.spyOn(gamesApi, "getTodayPuzzle").mockResolvedValue({
-      ...baseFreshPuzzle,
-      status: "failed",
-      guesses_used: 6,
-      answer: {
-        id: 1,
-        title: "Moby-Dick",
-        slug: "moby-dick",
-        author: "Herman Melville",
-        year: 1851,
-        cover: "",
-        read_time: 180,
-        has_audiobook: false,
-        audiobook_slug: null,
-      },
-      share: {
-        header: "Name That Story #12 · X/6",
-        tokens: ["wrong", "wrong", "wrong", "wrong", "wrong", "wrong"],
-      },
-    });
-    renderPage();
-
-    expect(await screen.findByText(/Out of guesses/i)).toBeTruthy();
-    await waitFor(() => {
-      expect(screen.getByText("Moby-Dick")).toBeTruthy();
-    });
-    expect(screen.queryByRole("link", { name: /Listen/i })).toBeNull();
-  });
-
-  it("renders external book answer card without Read it free or Listen links", async () => {
-    vi.spyOn(gamesApi, "getTodayPuzzle").mockResolvedValue({
-      ...baseFreshPuzzle,
-      status: "solved",
-      guesses_used: 1,
-      answer: {
-        key: "book:7",
-        id: 7,
-        title: "Dune",
-        slug: null,
-        author: "Frank Herbert",
-        year: 1965,
-        cover: "",
-        read_time: null,
-        has_audiobook: false,
-        audiobook_slug: null,
-      },
-      share: {
-        header: "Name That Story #12 · 1/6",
-        tokens: ["right", "empty", "empty", "empty", "empty", "empty"],
-      },
-    });
-    renderPage();
-
-    expect(await screen.findByText("Dune")).toBeTruthy();
-    expect(screen.getByText("Frank Herbert · 1965")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /Read it free/i })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Listen/i })).toBeNull();
+    renderWithProviders(<NameThatStory />);
+    await waitFor(() => expect(screen.getByText("Out of guesses for today")).toBeInTheDocument());
+    expect(screen.getByText("Edgar Allan Poe")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /The Black Cat/i })).toHaveAttribute(
+      "href",
+      "/story/the-black-cat"
+    );
   });
 });

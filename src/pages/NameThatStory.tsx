@@ -1,406 +1,512 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, Check, Lock, SkipForward, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { toast } from "@/components/ui/sonner";
-import { useAuthModal } from "@/context/AuthModalContext";
-import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { ArrowLeft, Check, Info, Lock, X } from "lucide-react";
 import { buildMeta } from "@/lib/buildMeta";
+import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
+import { useAuthModal } from "@/context/AuthModalContext";
+import StoryGuessCombobox from "@/components/games/StoryGuessCombobox";
+import PuzzleResultPanel from "@/components/games/PuzzleResultPanel";
+import PuzzleSidebar from "@/components/games/PuzzleSidebar";
 import {
-  peekGuestKey,
+  PUZZLE_TYPE_META,
+  type GuessHistoryItem,
+  type PublicClue,
+  type PublicPuzzleResponse,
+  getStoredGuestKey,
   useGuess,
   useMergeGuest,
   usePuzzle,
   usePuzzleStats,
   useSkip,
-  type PuzzleClue,
-  type PuzzleSearchItem,
+  useWeek,
 } from "@/lib/games/nameThatStory";
-import { PuzzleResultPanel } from "@/components/games/PuzzleResultPanel";
-import { PuzzleSidebar } from "@/components/games/PuzzleSidebar";
-import { StoryGuessCombobox } from "@/components/games/StoryGuessCombobox";
-
-const CLUE_SLOTS: { key: PuzzleClue["key"]; label: string; unlockAfter: number }[] = [
-  { key: "genre", label: "Genre", unlockAfter: 0 },
-  { key: "country", label: "Country", unlockAfter: 1 },
-  { key: "era", label: "Era", unlockAfter: 2 },
-  { key: "length", label: "Length", unlockAfter: 3 },
-  { key: "author_initials", label: "Author initials", unlockAfter: 4 },
-  { key: "cover", label: "Blurred cover", unlockAfter: 5 },
-];
 
 export function meta() {
   return buildMeta({
     title: "Name That Story — Daily Literary Puzzle | WorldStories",
     description:
-      "Can you name the story from its opening line? Six guesses, six clues, a new literary puzzle every day on WorldStories.",
+      "Guess the classic story or author in 6 tries using a ladder of daily literary clues.",
     path: "/games/name-that-story",
   });
 }
 
-export default function NameThatStory() {
-  const { date: archiveDate } = useParams();
-  const isArchive = Boolean(archiveDate);
-  const isLoggedIn = useIsLoggedIn();
-  const { openLoginModal } = useAuthModal();
+function formatDisplayDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+  return dt.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
 
-  const { data: puzzle, isLoading, isError, refetch } = usePuzzle(archiveDate);
-  const { data: stats } = usePuzzleStats();
-  const guessMutation = useGuess(archiveDate);
-  const skipMutation = useSkip(archiveDate);
-  const mergeGuestMutation = useMergeGuest();
-  const mergedRef = useRef(false);
+export function MatchChips({ item }: { item: GuessHistoryItem }) {
+  if (item.skipped) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+        Skipped
+      </span>
+    );
+  }
+  const genreMatch = Boolean(item.matches?.genre);
+  const countryMatch = Boolean(item.matches?.country);
+  const eraMatch = item.matches?.era ?? "different";
 
-  // Merge guest attempts once after login if a guest key exists
-  useEffect(() => {
-    if (!isLoggedIn || mergedRef.current) return;
-    const key = peekGuestKey();
-    if (!key) return;
-    mergedRef.current = true;
-    mergeGuestMutation.mutate(key);
-  }, [isLoggedIn, mergeGuestMutation]);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          genreMatch
+            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+            : "bg-slate-100 text-slate-700 border border-slate-200"
+        }`}
+      >
+        {genreMatch ? (
+          <Check className="h-3 w-3" aria-hidden="true" />
+        ) : (
+          <X className="h-3 w-3" aria-hidden="true" />
+        )}
+        Genre
+      </span>
 
-  const guessedKeys = useMemo(() => {
-    const keys = new Set<string>();
-    (puzzle?.guesses ?? []).forEach((g) => {
-      if (g.key) {
-        keys.add(g.key);
-      } else if (typeof g.story_id === "number") {
-        keys.add(`story:${g.story_id}`);
-      } else if (typeof g.book_id === "number") {
-        keys.add(`book:${g.book_id}`);
-      }
-    });
-    return keys;
-  }, [puzzle?.guesses]);
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          countryMatch
+            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+            : "bg-slate-100 text-slate-700 border border-slate-200"
+        }`}
+      >
+        {countryMatch ? (
+          <Check className="h-3 w-3" aria-hidden="true" />
+        ) : (
+          <X className="h-3 w-3" aria-hidden="true" />
+        )}
+        Country
+      </span>
 
-  const cluesByKey = useMemo(() => {
-    const map = new Map<string, PuzzleClue>();
-    (puzzle?.clues ?? []).forEach((c) => map.set(c.key, c));
-    return map;
-  }, [puzzle?.clues]);
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          eraMatch === "same"
+            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+            : eraMatch === "close"
+            ? "bg-amber-100 text-amber-950 border border-amber-300"
+            : "bg-slate-100 text-slate-700 border border-slate-200"
+        }`}
+      >
+        {eraMatch === "same" ? (
+          <Check className="h-3 w-3" aria-hidden="true" />
+        ) : eraMatch === "close" ? (
+          <Info className="h-3 w-3" aria-hidden="true" />
+        ) : (
+          <X className="h-3 w-3" aria-hidden="true" />
+        )}
+        {eraMatch === "close" ? "Era: close" : "Era"}
+      </span>
+    </div>
+  );
+}
 
-  const handleGuess = async (story: PuzzleSearchItem) => {
-    try {
-      await guessMutation.mutateAsync(story.key);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not submit guess.");
+export function ClueLadder({ puzzle }: { puzzle: PublicPuzzleResponse }) {
+  const isQuoteStyle = puzzle.puzzle_type === "opening_line" || puzzle.puzzle_type === "quote";
+  const isComplete = puzzle.status === "solved" || puzzle.status === "failed";
+
+  // Newest revealed clue position (only highlighted when >= 1 guess has been made & still in progress)
+  const revealedClues = puzzle.clues.filter((c) => !c.locked);
+  const newestPos =
+    !isComplete && puzzle.guesses_used > 0 && revealedClues.length > 0
+      ? revealedClues[revealedClues.length - 1].position
+      : -1;
+
+  const renderClueValue = (clue: Extract<PublicClue, { locked: false }>) => {
+    if (clue.kind === "cover" && clue.value) {
+      return (
+        <div className="mt-2 inline-block overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+          <img
+            src={clue.value}
+            alt="Blurred cover clue"
+            className="h-32 w-24 object-cover blur-md scale-110 transition-none"
+          />
+        </div>
+      );
     }
+    return <p className="mt-0.5 text-sm font-medium text-slate-900">{clue.value || "—"}</p>;
   };
 
-  const handleSkip = async () => {
-    try {
-      await skipMutation.mutateAsync();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not skip guess.");
+  if (isQuoteStyle) {
+    const firstClue = puzzle.clues[0];
+    const restClues = puzzle.clues.slice(1);
+
+    return (
+      <div className="space-y-4">
+        {firstClue && !firstClue.locked && (
+          <div className="rounded-2xl bg-slate-900 p-6 text-white shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+              {firstClue.label}
+            </p>
+            <blockquote className="mt-3 font-serif text-xl leading-relaxed sm:text-2xl">
+              &ldquo;{firstClue.value}&rdquo;
+            </blockquote>
+          </div>
+        )}
+
+        <div
+          className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+          aria-label="Clue ladder"
+        >
+          {restClues.map((clue) => {
+            if (clue.locked) {
+              return (
+                <div
+                  key={clue.position}
+                  className="flex flex-col justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-3 text-slate-600"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-medium">
+                    <Lock className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
+                    <span>Clue {clue.position}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Unlocks after guess {clue.position - 1}
+                  </p>
+                </div>
+              );
+            }
+            const isNewest = clue.position === newestPos;
+            return (
+              <div
+                key={clue.position}
+                className={`rounded-xl bg-white px-3.5 py-3 ${
+                  isNewest
+                    ? "border-2 border-slate-900 shadow-sm"
+                    : "border border-slate-200"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    {clue.label}
+                  </span>
+                  {isNewest && (
+                    <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      New
+                    </span>
+                  )}
+                </div>
+                {renderClueValue(clue)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Trivia and Author Bio: numbered ladder rows
+  return (
+    <ol className="space-y-2.5" aria-label="Clue ladder">
+      {puzzle.clues.map((clue) => {
+        if (clue.locked) {
+          return (
+            <li
+              key={clue.position}
+              className="flex items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-slate-600"
+            >
+              <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-semibold text-slate-500">
+                {clue.position}
+              </span>
+              <Lock className="h-4 w-4 flex-shrink-0 text-slate-500" aria-hidden="true" />
+              <span className="text-sm text-slate-600">
+                Unlocks after guess {clue.position - 1}
+              </span>
+            </li>
+          );
+        }
+
+        const isNewest = clue.position === newestPos;
+        return (
+          <li
+            key={clue.position}
+            className={`flex items-start gap-3 rounded-xl bg-white px-4 py-3.5 ${
+              isNewest ? "border-2 border-slate-900 shadow-sm" : "border border-slate-200"
+            }`}
+          >
+            <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+              {clue.position}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  {clue.label}
+                </span>
+                {isNewest && (
+                  <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                    New
+                  </span>
+                )}
+              </div>
+              {renderClueValue(clue)}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export default function NameThatStory() {
+  const { date } = useParams<{ date?: string }>();
+  const isLoggedIn = useIsLoggedIn();
+  const { openLoginModal } = useAuthModal();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const mergedOnceRef = useRef(false);
+
+  const { data: puzzle, isLoading, isError } = usePuzzle(date);
+  const { data: stats } = usePuzzleStats();
+  const { data: weekData } = useWeek();
+  const guessMutation = useGuess(date);
+  const skipMutation = useSkip(date);
+  const mergeMutation = useMergeGuest();
+
+  useEffect(() => {
+    if (isLoggedIn && !mergedOnceRef.current && getStoredGuestKey()) {
+      mergedOnceRef.current = true;
+      mergeMutation.mutate();
     }
+  }, [isLoggedIn, mergeMutation]);
+
+  const guessedIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const g of puzzle?.guesses ?? []) {
+      if (!g.skipped && g.target_id !== null) ids.add(g.target_id);
+    }
+    return ids;
+  }, [puzzle?.guesses]);
+
+  const tomorrow = useMemo(() => {
+    const days = weekData?.days ?? [];
+    return days.length > 1 ? days[1] : null;
+  }, [weekData]);
+
+  const handleGuess = (targetId: number) => {
+    setSubmitError(null);
+    guessMutation.mutate(targetId, {
+      onError: (err: unknown) => {
+        const msg =
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not submit your guess. Please try again.";
+        setSubmitError(msg);
+      },
+    });
+  };
+
+  const handleSkip = () => {
+    setSubmitError(null);
+    skipMutation.mutate(undefined, {
+      onError: () => setSubmitError("Could not skip this guess. Please try again."),
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="container mx-auto max-w-5xl space-y-4 px-4 py-8">
-        <div className="h-10 w-64 animate-pulse rounded-md bg-muted" />
-        <div className="h-44 w-full animate-pulse rounded-xl bg-muted" />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />
-          ))}
-        </div>
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="h-8 w-56 rounded bg-slate-200 animate-pulse motion-reduce:animate-none" />
+        <div className="mt-6 h-48 rounded-2xl bg-slate-100 animate-pulse motion-reduce:animate-none" />
       </div>
     );
   }
 
   if (isError || !puzzle) {
     return (
-      <div className="container mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="font-serif text-2xl font-bold text-foreground">No puzzle available</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {isArchive
-            ? "We could not find a puzzle for that date."
-            : "Today's puzzle has not been scheduled yet. Please check back soon."}
+      <div className="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6">
+        <h1 className="font-serif text-2xl font-bold text-slate-900">
+          No puzzle available for this date
+        </h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Check back soon or browse the archive of past daily puzzles.
         </p>
-        <div className="mt-5 flex justify-center gap-2">
-          <Button type="button" variant="outline" onClick={() => void refetch()}>
-            Retry
-          </Button>
-          <Button asChild>
-            <Link to="/games/name-that-story/archive">Browse archive</Link>
-          </Button>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link
+            to="/games"
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+          >
+            Back to Games
+          </Link>
+          <Link
+            to="/games/name-that-story/archive"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+          >
+            Browse archive
+          </Link>
         </div>
       </div>
     );
   }
 
+  const typeMeta = PUZZLE_TYPE_META[puzzle.puzzle_type];
   const isComplete = puzzle.status === "solved" || puzzle.status === "failed";
-  const currentGuessNum = Math.min(puzzle.max_guesses, puzzle.guesses_used + 1);
+  const currentGuessNum = Math.min(puzzle.guesses_used + 1, puzzle.max_guesses);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-5xl px-4 py-6 sm:py-8">
-        {/* Header block */}
-        <div className="mb-6 space-y-2">
-          {isArchive && (
-            <Link
-              to="/games/name-that-story/archive"
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-              Back to archive
-            </Link>
-          )}
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#A71B36] dark:text-rose-300">
-            <span>Puzzle #{puzzle.puzzle_number}</span>
-            <span aria-hidden="true">·</span>
-            <span>{puzzle.date}</span>
-            {isArchive && (
-              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-foreground">
-                Archive
-              </span>
-            )}
-          </div>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">Name That Story</h1>
-          <p className="text-sm text-muted-foreground">
-            Read the opening line and guess the story in 6 tries. Each wrong guess unlocks a new clue.
-          </p>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      {puzzle.is_archive && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-700">
+          <span>Archive puzzle — archive plays do not change your streak.</span>
+          <Link
+            to="/games/name-that-story/archive"
+            className="inline-flex items-center gap-1 font-semibold text-slate-900 hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            All archive puzzles
+          </Link>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px] lg:items-start">
-          {/* Main game column */}
-          <div className="space-y-6">
-            {/* Dark opening-line card */}
-            <section
-              aria-label="Opening line"
-              className="relative overflow-hidden rounded-xl bg-neutral-900 px-6 py-8 text-neutral-50 shadow-md sm:px-8 sm:py-10"
-            >
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute left-4 top-2 select-none font-serif text-7xl leading-none text-white/15"
-              >
-                &ldquo;
+      <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+        {/* Main Column */}
+        <main className="space-y-6">
+          {/* Header */}
+          <header>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
+              <span>
+                Daily puzzle #{puzzle.puzzle_number}, {formatDisplayDate(puzzle.date)}
               </span>
-              <blockquote
-                className="relative z-10 font-serif text-xl leading-relaxed text-neutral-50 sm:text-2xl"
-                style={{ fontFamily: "'Literata', Georgia, serif" }}
-              >
-                {puzzle.opening_line}
-              </blockquote>
-            </section>
+              <span className="rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-semibold text-white">
+                {typeMeta.label}
+              </span>
+            </div>
+            <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-slate-900">
+              Name That Story
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">{typeMeta.instructions}</p>
+          </header>
 
-            {/* Clue grid: 3 cols desktop, 2 cols mobile */}
-            <section aria-label="Clues" className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              {CLUE_SLOTS.map((slot) => {
-                const clue = cluesByKey.get(slot.key);
-                if (!clue) {
-                  return (
-                    <div
-                      key={slot.key}
-                      className="flex min-h-[84px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 p-3 text-center"
-                    >
-                      <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      <p className="mt-1 text-xs font-medium text-foreground">{slot.label}</p>
-                      <p className="text-[11px] text-muted-foreground">Unlocks after guess {slot.unlockAfter}</p>
-                    </div>
-                  );
-                }
+          {/* Guess Counter & 6 Pips */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <span className="text-sm font-semibold text-slate-900">
+              {isComplete
+                ? puzzle.status === "solved"
+                  ? `Solved in ${puzzle.guesses_used} of ${puzzle.max_guesses}`
+                  : `Used ${puzzle.guesses_used} of ${puzzle.max_guesses} guesses`
+                : `Guess ${currentGuessNum} of ${puzzle.max_guesses}`}
+            </span>
 
-                if (clue.key === "cover") {
-                  return (
-                    <div
-                      key={slot.key}
-                      className="flex min-h-[84px] items-center gap-3 rounded-lg border bg-card p-3 shadow-sm"
-                    >
-                      {clue.value ? (
-                        <div className="h-14 w-11 shrink-0 overflow-hidden rounded bg-muted">
-                          <img
-                            src={clue.value}
-                            alt="Blurred story cover clue"
-                            className="h-full w-full scale-110 object-cover blur-md"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-14 w-11 shrink-0 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">
-                          No cover
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                          {clue.label}
-                        </p>
-                        <p className="text-xs font-semibold text-foreground">Cover unlocked</p>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={slot.key}
-                    className="flex min-h-[84px] flex-col justify-center rounded-lg border bg-card p-3 shadow-sm"
-                  >
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                      {clue.label}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-sm font-semibold text-foreground">{clue.value}</p>
-                  </div>
-                );
-              })}
-            </section>
-
-            {/* Guess counter & pips */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-foreground">
-                {isComplete
-                  ? `Finished (${puzzle.guesses_used} of ${puzzle.max_guesses})`
-                  : `Guess ${currentGuessNum} of ${puzzle.max_guesses}`}
-              </p>
-              <div className="flex items-center gap-1.5" aria-label="Guess progress">
-                {Array.from({ length: puzzle.max_guesses }).map((_, idx) => {
-                  const entry = puzzle.guesses[idx];
-                  const isCurrent = !isComplete && idx === puzzle.guesses_used;
+            <div className="flex items-center gap-1.5" aria-label="Guess progress">
+              {Array.from({ length: puzzle.max_guesses }).map((_, idx) => {
+                const g = puzzle.guesses[idx];
+                const isCurrent = !isComplete && idx === puzzle.guesses_used;
+                if (g?.correct) {
                   return (
                     <span
                       key={idx}
-                      aria-label={
-                        entry
-                          ? entry.correct
-                            ? `Guess ${idx + 1}: correct`
-                            : `Guess ${idx + 1}: wrong`
-                          : isCurrent
-                            ? `Guess ${idx + 1}: current`
-                            : `Guess ${idx + 1}: remaining`
-                      }
-                      className={`flex h-7 w-7 items-center justify-center rounded border text-xs font-semibold ${
-                        entry
-                          ? entry.correct
-                            ? "border-emerald-600 bg-emerald-600 text-white"
-                            : "border-rose-600 bg-rose-600 text-white"
-                          : isCurrent
-                            ? "border-2 border-[#D92F4C] bg-background text-foreground"
-                            : "border-border bg-muted/40 text-muted-foreground"
-                      }`}
+                      className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-700 text-white"
+                      aria-label={`Guess ${idx + 1}: correct`}
                     >
-                      {entry ? (
-                        entry.correct ? (
-                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                        ) : (
-                          <X className="h-3.5 w-3.5" aria-hidden="true" />
-                        )
-                      ) : null}
+                      <Check className="h-4 w-4" aria-hidden="true" />
                     </span>
                   );
-                })}
-              </div>
-            </div>
-
-            {/* Active input OR Result summary */}
-            {isComplete ? (
-              <PuzzleResultPanel puzzle={puzzle} stats={stats} isArchive={isArchive} />
-            ) : (
-              <Card>
-                <CardContent className="space-y-3 p-4">
-                  <StoryGuessCombobox
-                    guessedKeys={guessedKeys}
-                    isSubmitting={guessMutation.isPending}
-                    onSubmitGuess={handleGuess}
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={skipMutation.isPending || guessMutation.isPending}
-                      onClick={() => void handleSkip()}
-                      className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <SkipForward className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                      Skip this guess
-                    </Button>
-                    <p className="text-xs text-muted-foreground">Skipping reveals the next clue and uses 1 guess.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Guess history rows */}
-            {puzzle.guesses.length > 0 && (
-              <section aria-label="Guess history" className="space-y-2">
-                <h2 className="text-sm font-semibold text-foreground">Your guesses</h2>
-                <div className="space-y-2">
-                  {puzzle.guesses.map((g, idx) => (
-                    <div
+                }
+                if (g) {
+                  return (
+                    <span
                       key={idx}
-                      className="flex flex-col gap-2 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex h-7 w-7 items-center justify-center rounded-md bg-red-700 text-white"
+                      aria-label={`Guess ${idx + 1}: wrong`}
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {g.skipped ? "Skipped guess" : g.title || "Unknown story"}
-                        </p>
-                        {!g.skipped && (
-                          <p className="truncate text-xs text-muted-foreground">{g.author || "Unknown author"}</p>
-                        )}
-                      </div>
-
-                      {!g.skipped && (
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                              g.matches.genre
-                                ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {g.matches.genre ? (
-                              <Check className="h-3 w-3" aria-hidden="true" />
-                            ) : (
-                              <X className="h-3 w-3" aria-hidden="true" />
-                            )}
-                            Genre
-                          </span>
-
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                              g.matches.country
-                                ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {g.matches.country ? (
-                              <Check className="h-3 w-3" aria-hidden="true" />
-                            ) : (
-                              <X className="h-3 w-3" aria-hidden="true" />
-                            )}
-                            Country
-                          </span>
-
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                              g.matches.era === "same"
-                                ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                : g.matches.era === "close"
-                                  ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
-                                  : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {g.matches.era === "same" ? (
-                              <Check className="h-3 w-3" aria-hidden="true" />
-                            ) : g.matches.era === "different" ? (
-                              <X className="h-3 w-3" aria-hidden="true" />
-                            ) : null}
-                            {g.matches.era === "close" ? "Era: close" : "Era"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  );
+                }
+                return (
+                  <span
+                    key={idx}
+                    className={`flex h-7 w-7 items-center justify-center rounded-md ${
+                      isCurrent
+                        ? "border-2 border-slate-900 bg-white"
+                        : "border border-slate-300 bg-slate-50"
+                    }`}
+                    aria-label={`Guess ${idx + 1}: ${isCurrent ? "current" : "empty"}`}
+                  />
+                );
+              })}
+            </div>
           </div>
 
-          {/* Right sidebar (stacks below on mobile) */}
-          <PuzzleSidebar isLoggedIn={isLoggedIn} onSignIn={openLoginModal} stats={stats} yesterday={puzzle.yesterday} />
-        </div>
+          {/* Clue Ladder */}
+          <ClueLadder puzzle={puzzle} />
+
+          {/* Result OR Input */}
+          {isComplete ? (
+            <PuzzleResultPanel puzzle={puzzle} stats={stats} />
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+              <StoryGuessCombobox
+                puzzleDate={puzzle.date}
+                answerKind={puzzle.answer_kind}
+                guessedIds={guessedIds}
+                isSubmitting={guessMutation.isPending || skipMutation.isPending}
+                errorMessage={submitError}
+                onSubmitGuess={handleGuess}
+                onSkip={handleSkip}
+              />
+            </div>
+          )}
+
+          {/* Guess History */}
+          {puzzle.guesses.length > 0 && (
+            <section aria-labelledby="guess-history-heading" className="space-y-2.5">
+              <h2
+                id="guess-history-heading"
+                className="text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Your guesses
+              </h2>
+              <ul className="space-y-2">
+                {puzzle.guesses.map((g, idx) => (
+                  <li
+                    key={idx}
+                    className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {puzzle.answer_kind === "author" && !g.skipped ? (
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-800">
+                          {g.initials || "?"}
+                        </div>
+                      ) : (
+                        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
+                          {idx + 1}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">{g.title}</p>
+                        {g.subtitle && (
+                          <p className="truncate text-xs text-slate-600">{g.subtitle}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {g.correct ? (
+                      <span className="inline-flex items-center gap-1 self-start rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-900 sm:self-center">
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                        Correct
+                      </span>
+                    ) : (
+                      <MatchChips item={g} />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </main>
+
+        {/* Sidebar */}
+        <PuzzleSidebar
+          stats={stats}
+          yesterday={puzzle.yesterday}
+          tomorrow={tomorrow}
+          isLoggedIn={isLoggedIn}
+          onSignIn={() => openLoginModal()}
+        />
       </div>
     </div>
   );

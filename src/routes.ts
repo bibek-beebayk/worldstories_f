@@ -38,6 +38,7 @@ export default [
     route("terms", "pages/Terms.tsx"),
     route("blog", "pages/BlogList.tsx"),
     route("blog/:slug", "pages/BlogDetail.tsx"),
+    route("games", "pages/GamesHub.tsx"),
     route("games/name-that-story", "pages/NameThatStory.tsx"),
     route("games/name-that-story/archive", "pages/NameThatStoryArchive.tsx"),
     route("games/name-that-story/:date", "pages/NameThatStory.tsx", { id: "nts-archive-date" }),
@@ -106,6 +107,10 @@ export default [
         route("blog", "pages/AdminBlogs.tsx"),
         route("videos", "pages/AdminVideos.tsx"),
         route("games/daily-puzzle", "pages/admin/AdminDailyPuzzle.tsx"),
+        route("games/daily-puzzle/new", "pages/admin/AdminDailyPuzzleEdit.tsx"),
+        route("games/daily-puzzle/:id", "pages/admin/AdminDailyPuzzleEdit.tsx", {
+          id: "admin-daily-puzzle-edit",
+        }),
       ]),
     ]),
     route("*", "pages/NotFound.tsx", { id: "admin-not-found" }),
