@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   type AdminMiniClue,
   type ClueBankItem,
+  type MiniDifficultyBreakdown,
   extractAnswerClient,
   miniApi,
   numberGridClient,
@@ -23,6 +24,7 @@ import {
   useAdminSaveMini,
   useAdminUnapproveMini,
 } from "@/lib/games/miniCrossword";
+import MiniDifficultyChip from "@/components/games/MiniDifficultyChip";
 
 const DEFAULT_PATTERN = ["....#", ".....", ".....", ".....", "#...."];
 
@@ -53,9 +55,14 @@ export default function AdminMiniCrosswordEdit() {
   const [openSuggestKey, setOpenSuggestKey] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<ClueBankItem[]>([]);
 
-  // Live validation
+  // Live validation & difficulty
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [difficultyBreakdown, setDifficultyBreakdown] =
+    useState<MiniDifficultyBreakdown | null>(null);
+  const [difficultySelect, setDifficultySelect] = useState<"auto" | "easy" | "medium" | "hard">(
+    "auto"
+  );
 
   const saveMutation = useAdminSaveMini();
   const approveMutation = useAdminApproveMini();
@@ -72,6 +79,17 @@ export default function AdminMiniCrosswordEdit() {
     setPattern(existing.pattern);
     setSolution(existing.solution);
     setClues(existing.clues || []);
+    setDifficultyBreakdown(existing.difficulty_breakdown || null);
+    if (
+      existing.difficulty_override &&
+      (existing.difficulty === "easy" ||
+        existing.difficulty === "medium" ||
+        existing.difficulty === "hard")
+    ) {
+      setDifficultySelect(existing.difficulty);
+    } else {
+      setDifficultySelect("auto");
+    }
   }, [existing]);
 
   const { numbering, entries } = useMemo(() => numberGridClient(pattern), [pattern]);
@@ -92,6 +110,8 @@ export default function AdminMiniCrosswordEdit() {
         answer: ans,
         clue: existingClue?.clue ?? "",
         story_id: existingClue?.story_id ?? null,
+        save_to_bank: existingClue?.save_to_bank ?? true,
+        in_bank: existingClue?.in_bank ?? false,
       };
     });
   }, [entries, clues, solution]);
@@ -108,6 +128,7 @@ export default function AdminMiniCrosswordEdit() {
         });
         setErrors(res.errors);
         setWarnings(res.warnings);
+        setDifficultyBreakdown(res.difficulty ?? null);
       } catch {
         // ignore transient errors
       }
@@ -259,6 +280,8 @@ export default function AdminMiniCrosswordEdit() {
         pattern,
         solution,
         clues: syncedClues,
+        difficulty: difficultySelect === "auto" ? null : difficultySelect,
+        difficulty_override: difficultySelect !== "auto",
       });
       toast.success("Draft saved.");
       if (!numericId) {
@@ -553,6 +576,26 @@ export default function AdminMiniCrosswordEdit() {
                           aria-label={`Linked story ID for ${c.number} ${c.direction}`}
                           className="h-8 w-24 rounded border border-slate-300 bg-white px-2 text-xs text-slate-900"
                         />
+                        {c.in_bank ? (
+                          <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-900">
+                            In bank
+                          </span>
+                        ) : (
+                          <label className="inline-flex items-center gap-1.5 text-xs text-slate-700 whitespace-nowrap">
+                            <input
+                              type="checkbox"
+                              checked={c.save_to_bank !== false}
+                              disabled={isLocked}
+                              aria-label={`Save ${c.number} ${c.direction} to clue bank`}
+                              onChange={(e) =>
+                                updateClueRow(c.number, c.direction, {
+                                  save_to_bank: e.target.checked,
+                                })
+                              }
+                            />
+                            Save to clue bank
+                          </label>
+                        )}
                       </div>
 
                       {openSuggestKey === key && (
@@ -586,6 +629,85 @@ export default function AdminMiniCrosswordEdit() {
                   );
                 })}
               </div>
+            </section>
+
+            {/* Difficulty Card */}
+            <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-slate-900">Difficulty</h2>
+                  <MiniDifficultyChip
+                    difficulty={
+                      difficultySelect === "auto"
+                        ? difficultyBreakdown?.label || existing?.difficulty
+                        : difficultySelect
+                    }
+                  />
+                  {difficultySelect !== "auto" && (
+                    <span className="text-xs font-medium text-amber-800">Override on</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    aria-label="Difficulty override"
+                    value={difficultySelect}
+                    onChange={(e) =>
+                      setDifficultySelect(
+                        e.target.value as "auto" | "easy" | "medium" | "hard"
+                      )
+                    }
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs font-medium text-slate-900"
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                  {difficultySelect !== "auto" && (
+                    <button
+                      type="button"
+                      onClick={() => setDifficultySelect("auto")}
+                      className="text-xs font-semibold text-slate-700 underline hover:text-slate-950"
+                    >
+                      Reset to auto
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {difficultyBreakdown && (
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-700 sm:grid-cols-4">
+                  <div>
+                    <span className="block text-[11px] text-slate-500">Computed</span>
+                    <span className="font-semibold capitalize text-slate-900">
+                      {difficultyBreakdown.label} ({difficultyBreakdown.score})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-slate-500">Avg commonness</span>
+                    <span className="font-mono font-semibold text-slate-900">
+                      {difficultyBreakdown.avg_zipf.toFixed(2)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-slate-500">Rare words</span>
+                    <span className="font-mono text-slate-900">
+                      {difficultyBreakdown.rare_words.length > 0
+                        ? difficultyBreakdown.rare_words.join(", ")
+                        : "None"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-slate-500">Names</span>
+                    <span className="font-mono text-slate-900">
+                      {difficultyBreakdown.names.length > 0
+                        ? difficultyBreakdown.names.join(", ")
+                        : "None"}
+                    </span>
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Live Validation Panel */}

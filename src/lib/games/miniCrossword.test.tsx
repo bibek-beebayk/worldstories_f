@@ -13,6 +13,8 @@ import {
   type MiniStatsResponse,
 } from "@/lib/games/miniCrossword";
 import MiniCrossword from "@/pages/MiniCrossword";
+import MiniDifficultyChip from "@/components/games/MiniDifficultyChip";
+import AdminMiniCrosswordEdit from "@/pages/admin/AdminMiniCrosswordEdit";
 
 vi.mock("@/hooks/useIsLoggedIn", () => ({
   useIsLoggedIn: vi.fn(() => false),
@@ -208,5 +210,56 @@ describe("MiniCrossword UI states & keyboard navigation", () => {
       "/story/the-raven"
     );
     expect(screen.getByRole("button", { name: /Copy result/i })).toBeInTheDocument();
+  });
+});
+
+describe("MiniDifficultyChip and AdminMiniCrosswordEdit", () => {
+  it("renders text labels for all three difficulty levels", () => {
+    renderWithProviders(
+      <div>
+        <MiniDifficultyChip difficulty="easy" />
+        <MiniDifficultyChip difficulty="medium" />
+        <MiniDifficultyChip difficulty="hard" />
+      </div>
+    );
+    expect(screen.getByText("Easy")).toBeInTheDocument();
+    expect(screen.getByText("Medium")).toBeInTheDocument();
+    expect(screen.getByText("Hard")).toBeInTheDocument();
+  });
+
+  it("handles difficulty override select, Reset to auto, and save-to-bank checkbox", async () => {
+    vi.spyOn(miniApi, "adminValidate").mockResolvedValue({
+      errors: [],
+      warnings: ["This grid has 2 names (POE, HUGO)."],
+      difficulty: {
+        label: "medium",
+        score: 1.4,
+        avg_zipf: 4.5,
+        rare_words: [],
+        names: ["POE", "HUGO"],
+        entry_count: 10,
+      },
+    });
+
+    renderWithProviders(<AdminMiniCrosswordEdit />);
+
+    const select = screen.getByLabelText("Difficulty override") as HTMLSelectElement;
+    expect(select.value).toBe("auto");
+    expect(screen.queryByText("Override on")).not.toBeInTheDocument();
+
+    // Change to Hard -> Override on + Reset to auto appear
+    fireEvent.change(select, { target: { value: "hard" } });
+    expect(screen.getByText("Override on")).toBeInTheDocument();
+    const resetBtn = screen.getByRole("button", { name: "Reset to auto" });
+    fireEvent.click(resetBtn);
+    expect(select.value).toBe("auto");
+    expect(screen.queryByText("Override on")).not.toBeInTheDocument();
+
+    // Save to clue bank checkbox defaults to checked and toggles
+    const checkboxes = screen.getAllByRole("checkbox", { name: /Save .* to clue bank/i });
+    expect(checkboxes.length).toBeGreaterThan(0);
+    expect(checkboxes[0]).toBeChecked();
+    fireEvent.click(checkboxes[0]);
+    expect(checkboxes[0]).not.toBeChecked();
   });
 });

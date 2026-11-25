@@ -30,6 +30,7 @@ import {
 } from "@/lib/games/miniCrossword";
 import MiniCrosswordGrid from "@/components/games/MiniCrosswordGrid";
 import MiniResultPanel from "@/components/games/MiniResultPanel";
+import MiniDifficultyChip from "@/components/games/MiniDifficultyChip";
 
 export function meta() {
   return buildMeta({
@@ -448,9 +449,12 @@ export default function MiniCrossword() {
       {/* Header */}
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-            Mini #{puzzle.number}, {formatDisplayDate(puzzle.date)}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Mini #{puzzle.number}, {formatDisplayDate(puzzle.date)}
+            </p>
+            <MiniDifficultyChip difficulty={puzzle.difficulty} />
+          </div>
           <h1 className="mt-1 font-serif text-3xl font-bold text-slate-900">
             {puzzle.title || "Mini Crossword"}
           </h1>

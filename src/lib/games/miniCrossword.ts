@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/api/client";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { apiClient, fetchAuthenticatedFile } from "@/api/client";
 import {
   clearGuestKey,
   getOrCreateGuestKey,
@@ -14,6 +20,16 @@ import {
 export type ClueDirection = "across" | "down";
 export type MiniAttemptStatus = "in_progress" | "solved";
 export type AdminMiniRowStatus = "live_today" | "scheduled" | "auto" | "draft" | "empty";
+export type MiniDifficulty = "easy" | "medium" | "hard" | "";
+
+export interface MiniDifficultyBreakdown {
+  label: Exclude<MiniDifficulty, "">;
+  score: number;
+  avg_zipf: number;
+  rare_words: string[];
+  names: string[];
+  entry_count: number;
+}
 
 export interface MiniEntry {
   number: number;
@@ -55,6 +71,7 @@ export interface MiniPublicResponse {
   number: number;
   date: string;
   title: string;
+  difficulty?: MiniDifficulty;
   pattern: string[];
   numbering: Array<Array<number | null>>;
   entries: MiniEntry[];
@@ -82,6 +99,7 @@ export interface MiniArchiveItem {
   number: number;
   date: string;
   title: string;
+  difficulty?: MiniDifficulty;
   status: "solved" | "in_progress" | "unplayed";
   elapsed_seconds: number | null;
   hints_used: number;
@@ -102,6 +120,8 @@ export interface AdminMiniClue {
   answer: string;
   clue: string;
   story_id: number | null;
+  save_to_bank?: boolean;
+  in_bank?: boolean;
 }
 
 export interface AdminMiniListItem {
@@ -109,6 +129,9 @@ export interface AdminMiniListItem {
   date: string;
   number: number | null;
   title: string;
+  difficulty?: MiniDifficulty;
+  difficulty_score?: number | null;
+  difficulty_override?: boolean;
   filled_clues: string;
   status: AdminMiniRowStatus;
   approval_status: "draft" | "approved" | null;
@@ -131,6 +154,10 @@ export interface AdminMiniDetail {
   pattern: string[];
   solution: string[];
   clues: AdminMiniClue[];
+  difficulty: MiniDifficulty;
+  difficulty_score: number | null;
+  difficulty_override: boolean;
+  difficulty_breakdown: MiniDifficultyBreakdown | null;
   approval_status: "draft" | "approved";
   status: AdminMiniRowStatus;
   auto_generated: boolean;
@@ -162,7 +189,29 @@ export interface ClueBankItem {
   story_id: number | null;
   story_slug?: string | null;
   story_title: string | null;
+  is_name: boolean;
   times_used: number;
+}
+
+export interface ClueBankPage {
+  results: ClueBankItem[];
+  next_cursor: string | null;
+  total: number;
+}
+
+export interface ClueBankListFilters {
+  q?: string;
+  length?: 3 | 4 | 5 | number | "";
+  storyId?: number | null;
+  isName?: boolean | null;
+  answer?: string;
+  pageSize?: number;
+}
+
+export interface ClueBankExportResult {
+  blob: Blob;
+  filename: string;
+  rowCount: number;
 }
 
 // =====================================================================
@@ -273,6 +322,43 @@ function guestHeaders(): Record<string, string> {
   return key ? { "X-Guest-Key": key } : {};
 }
 
+export function countCsvDataRows(csvText: string): number {
+  const cleaned = csvText.replace(/^\uFEFF/, "").trim();
+  if (!cleaned) return 0;
+  let rows = 0;
+  let inQuotes = false;
+  for (let i = 0; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (ch === '"') {
+      if (inQuotes && cleaned[i + 1] === '"') {
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (!inQuotes && ch === "\n") {
+      rows++;
+    }
+  }
+  // Total logical rows = newlines outside quotes + 1; subtract 1 for header
+  return Math.max(0, rows);
+}
+
+export function buildClueBankQueryParams(
+  params?: ClueBankListFilters & { cursor?: string | null }
+): Record<string, string | number | undefined> {
+  if (!params) return {};
+  return {
+    q: params.q?.trim() || undefined,
+    cursor: params.cursor || undefined,
+    page_size: params.pageSize,
+    length: params.length ? Number(params.length) : undefined,
+    story_id: params.storyId ?? undefined,
+    is_name:
+      typeof params.isName === "boolean" ? (params.isName ? "true" : "false") : undefined,
+    answer: params.answer?.trim().toUpperCase() || undefined,
+  };
+}
+
 function withQuery(path: string, params?: Record<string, string | number | undefined>): string {
   if (!params) return path;
   const qs = new URLSearchParams();
@@ -380,6 +466,8 @@ export const miniApi = {
     pattern: string[];
     solution: string[];
     clues: AdminMiniClue[];
+    difficulty?: string | null;
+    difficulty_override?: boolean;
   }): Promise<AdminMiniDetail> =>
     apiClient<AdminMiniDetail>(`${ADMIN_BASE}/puzzles/`, {
       method: "POST",
@@ -394,6 +482,8 @@ export const miniApi = {
       pattern?: string[];
       solution?: string[];
       clues?: AdminMiniClue[];
+      difficulty?: string | null;
+      difficulty_override?: boolean;
     }
   ): Promise<AdminMiniDetail> =>
     apiClient<AdminMiniDetail>(`${ADMIN_BASE}/puzzles/${id}/`, {
@@ -416,7 +506,11 @@ export const miniApi = {
     solution: string[];
     clues: AdminMiniClue[];
     exclude_puzzle_id?: number | null;
-  }): Promise<{ errors: string[]; warnings: string[] }> =>
+  }): Promise<{
+    errors: string[];
+    warnings: string[];
+    difficulty: MiniDifficultyBreakdown | null;
+  }> =>
     apiClient(`${ADMIN_BASE}/validate/`, {
       method: "POST",
       body: JSON.stringify(payload),
@@ -455,17 +549,50 @@ export const miniApi = {
   adminSummary: async (): Promise<AdminMiniSummaryResponse> =>
     apiClient<AdminMiniSummaryResponse>(`${ADMIN_BASE}/summary/`),
 
-  adminClueBankList: async (q?: string): Promise<{ results: ClueBankItem[] }> =>
-    apiClient(withQuery(`${ADMIN_BASE}/clue-bank/`, { q })),
+  adminClueBankList: async (
+    params?: (ClueBankListFilters & { cursor?: string | null }) | string
+  ): Promise<ClueBankPage> => {
+    const normalized = typeof params === "string" ? { q: params } : params;
+    return apiClient<ClueBankPage>(
+      withQuery(`${ADMIN_BASE}/clue-bank/`, buildClueBankQueryParams(normalized))
+    );
+  },
+
+  adminClueBankExport: async (
+    filters?: ClueBankListFilters
+  ): Promise<ClueBankExportResult> => {
+    const endpoint = withQuery(
+      `${ADMIN_BASE}/clue-bank/export/`,
+      buildClueBankQueryParams(filters)
+    );
+    const { buffer, filename, contentType } = await fetchAuthenticatedFile(
+      endpoint,
+      "clue-bank.csv"
+    );
+    const text = new TextDecoder("utf-8").decode(buffer);
+    const rowCount = countCsvDataRows(text);
+    const blob = new Blob([buffer], { type: contentType || "text/csv;charset=utf-8" });
+    return { blob, filename: filename || "clue-bank.csv", rowCount };
+  },
 
   adminClueBankAdd: async (payload: {
     answer: string;
     clue: string;
     story_slug?: string;
     story_id?: number | null;
+    is_name?: boolean;
   }): Promise<ClueBankItem> =>
     apiClient(`${ADMIN_BASE}/clue-bank/`, {
       method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  adminClueBankUpdate: async (
+    id: number,
+    payload: { is_name: boolean }
+  ): Promise<ClueBankItem> =>
+    apiClient(`${ADMIN_BASE}/clue-bank/${id}/`, {
+      method: "PATCH",
       body: JSON.stringify(payload),
     }),
 
@@ -496,7 +623,17 @@ export const miniKeys = {
     [...miniKeys.all, "admin", "list", params ?? {}] as const,
   adminDetail: (id: number) => [...miniKeys.all, "admin", "detail", id] as const,
   adminSummary: () => [...miniKeys.all, "admin", "summary"] as const,
-  adminClueBank: (q?: string) => [...miniKeys.all, "admin", "clue-bank", q ?? ""] as const,
+  adminClueBank: (filters?: { q?: string; length?: number | "" } | string) => {
+    if (typeof filters === "string") {
+      return [...miniKeys.all, "admin", "clue-bank", { q: filters, length: "" }] as const;
+    }
+    return [
+      ...miniKeys.all,
+      "admin",
+      "clue-bank",
+      { q: filters?.q ?? "", length: filters?.length ?? "" },
+    ] as const;
+  },
 };
 
 export function useMiniToday() {
@@ -687,6 +824,8 @@ export function useAdminSaveMini() {
       pattern: string[];
       solution: string[];
       clues: AdminMiniClue[];
+      difficulty?: string | null;
+      difficulty_override?: boolean;
     }) => {
       const { id, ...body } = vars;
       return id ? miniApi.adminUpdate(id, body) : miniApi.adminCreate(body);
@@ -761,11 +900,46 @@ export function useAdminMiniSummary() {
   });
 }
 
-export function useAdminClueBank(q?: string) {
-  return useQuery({
-    queryKey: miniKeys.adminClueBank(q),
-    queryFn: () => miniApi.adminClueBankList(q),
+export function useAdminClueBank(
+  filters?: ClueBankListFilters | string
+) {
+  const normalized: ClueBankListFilters =
+    typeof filters === "string" ? { q: filters } : (filters ?? {});
+  const q = normalized.q?.trim() || "";
+  const length = normalized.length ? Number(normalized.length) : "";
+  const pageSize = normalized.pageSize ?? 50;
+
+  const query = useInfiniteQuery<
+    ClueBankPage,
+    Error,
+    InfiniteData<ClueBankPage, string | null>,
+    ReturnType<typeof miniKeys.adminClueBank>,
+    string | null
+  >({
+    queryKey: miniKeys.adminClueBank({ q, length }),
+    initialPageParam: null,
+    queryFn: ({ pageParam }) =>
+      miniApi.adminClueBankList({
+        ...normalized,
+        q: q || undefined,
+        length: length || undefined,
+        pageSize,
+        cursor: pageParam,
+      }),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
   });
+
+  const items = useMemo(
+    () => query.data?.pages.flatMap((page) => page.results) ?? [],
+    [query.data]
+  );
+  const total = query.data?.pages[0]?.total ?? 0;
+
+  return {
+    ...query,
+    items,
+    total,
+  };
 }
 
 export function useAdminAddClueBank() {
@@ -776,7 +950,19 @@ export function useAdminAddClueBank() {
       clue: string;
       story_slug?: string;
       story_id?: number | null;
+      is_name?: boolean;
     }) => miniApi.adminClueBankAdd(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...miniKeys.all, "admin", "clue-bank"] });
+    },
+  });
+}
+
+export function useAdminUpdateClueBank() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: number; is_name: boolean }) =>
+      miniApi.adminClueBankUpdate(vars.id, { is_name: vars.is_name }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...miniKeys.all, "admin", "clue-bank"] });
     },
@@ -785,10 +971,49 @@ export function useAdminAddClueBank() {
 
 export function useAdminDeleteClueBank() {
   const qc = useQueryClient();
+  const baseKey = [...miniKeys.all, "admin", "clue-bank"] as const;
   return useMutation({
     mutationFn: (id: number) => miniApi.adminClueBankDelete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [...miniKeys.all, "admin", "clue-bank"] });
+    onMutate: async (id: number) => {
+      await qc.cancelQueries({ queryKey: baseKey });
+      const previous = qc.getQueriesData<InfiniteData<ClueBankPage, string | null>>({
+        queryKey: baseKey,
+      });
+      qc.setQueriesData<InfiniteData<ClueBankPage, string | null>>(
+        { queryKey: baseKey },
+        (old) => {
+          if (!old) return old;
+          let removed = false;
+          const pages = old.pages.map((page) => {
+            const nextResults = page.results.filter((row) => {
+              if (row.id === id) {
+                removed = true;
+                return false;
+              }
+              return true;
+            });
+            return { ...page, results: nextResults };
+          });
+          if (!removed) return old;
+          return {
+            ...old,
+            pages: pages.map((page) => ({
+              ...page,
+              total: Math.max(0, page.total - 1),
+            })),
+          };
+        }
+      );
+      return { previous };
+    },
+    onError: (_err, _id, ctx) => {
+      if (!ctx?.previous) return;
+      for (const [key, data] of ctx.previous) {
+        qc.setQueryData(key, data);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: baseKey });
     },
   });
 }
@@ -800,5 +1025,11 @@ export function useAdminImportClueBank() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...miniKeys.all, "admin", "clue-bank"] });
     },
+  });
+}
+
+export function useAdminExportClueBank() {
+  return useMutation({
+    mutationFn: (filters?: ClueBankListFilters) => miniApi.adminClueBankExport(filters),
   });
 }

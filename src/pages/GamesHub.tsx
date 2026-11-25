@@ -6,6 +6,8 @@ import {
   type PuzzleType,
   useWeek,
 } from "@/lib/games/nameThatStory";
+import { useMiniToday } from "@/lib/games/miniCrossword";
+import MiniDifficultyChip from "@/components/games/MiniDifficultyChip";
 
 export function meta() {
   return buildMeta({
@@ -37,6 +39,7 @@ const TYPE_CARDS: Array<{
 
 export default function GamesHub() {
   const { data: weekData, isLoading } = useWeek();
+  const { data: miniToday } = useMiniToday();
   const days = weekData?.days ?? [];
 
   return (
@@ -79,9 +82,12 @@ export default function GamesHub() {
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-600">
-              <Grid3x3 className="h-4 w-4 text-slate-900" aria-hidden="true" />
-              Daily 5x5 Grid
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-600">
+              <span className="inline-flex items-center gap-2">
+                <Grid3x3 className="h-4 w-4 text-slate-900" aria-hidden="true" />
+                Daily 5x5 Grid
+              </span>
+              <MiniDifficultyChip difficulty={miniToday?.difficulty} />
             </div>
             <h2 className="mt-2 font-serif text-2xl font-bold text-slate-900 sm:text-3xl">
               Mini Crossword

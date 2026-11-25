@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { ArrowLeft, Check, Play } from "lucide-react";
 import { buildMeta } from "@/lib/buildMeta";
 import { formatTimer, useMiniArchive } from "@/lib/games/miniCrossword";
+import MiniDifficultyChip from "@/components/games/MiniDifficultyChip";
 
 export function meta() {
   return buildMeta({
@@ -73,6 +74,7 @@ export default function MiniCrosswordArchive() {
                     <span className="text-sm font-medium text-slate-800">
                       {formatShortDate(item.date)}
                     </span>
+                    <MiniDifficultyChip difficulty={item.difficulty} />
                     {item.title && (
                       <span className="text-xs text-slate-600">{item.title}</span>
                     )}
