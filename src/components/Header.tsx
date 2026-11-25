@@ -10,15 +10,21 @@ import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useIsHeaderScrolled } from "@/hooks/useIsHeaderScrolled";
 import { useAuthModal } from "@/context/AuthModalContext";
 import { useFeedback } from "@/context/FeedbackContext";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { BookOpen, ChevronDown, Compass, FileText, LogIn, LogOut, Menu, Search, User, UsersRound, X, Youtube } from "lucide-react";
+  BookOpen,
+  ChevronDown,
+  Compass,
+  FileText,
+  LogIn,
+  LogOut,
+  Menu,
+  Search,
+  User,
+  UsersRound,
+  X,
+  Youtube,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,18 +70,9 @@ const Header = () => {
   }, [mobileSearchOpen]);
 
   const { data: suggestionData } = useSearchStories(debouncedQuery, 1, "popular");
-  const storySuggestions = useMemo(
-    () => (suggestionData?.titles.results || []).slice(0, 4),
-    [suggestionData]
-  );
-  const authorSuggestions = useMemo(
-    () => (suggestionData?.authors.results || []).slice(0, 3),
-    [suggestionData]
-  );
-  const chapterSuggestions = useMemo(
-    () => (suggestionData?.chapters.results || []).slice(0, 3),
-    [suggestionData]
-  );
+  const storySuggestions = useMemo(() => (suggestionData?.titles.results || []).slice(0, 4), [suggestionData]);
+  const authorSuggestions = useMemo(() => (suggestionData?.authors.results || []).slice(0, 3), [suggestionData]);
+  const chapterSuggestions = useMemo(() => (suggestionData?.chapters.results || []).slice(0, 3), [suggestionData]);
 
   const handleLogout = () => {
     // Best-effort — blacklists the refresh token server-side, but the local
@@ -141,91 +138,324 @@ const Header = () => {
             isScrolled ? "h-12" : "h-16"
           }`}
         >
-        {/* Logo */}
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <div
-              className={`flex items-center justify-center rounded-md transition-[height,width] duration-300 ease-in-out ${
-                isScrolled ? "h-10 w-10" : "h-20 w-20"
-              }`}
-            >
-              {/* <span className="text-lg font-bold text-primary-foreground">W</span> */}
-              <img src="/worldstories-logo.png" alt="" />
-            </div>
-            {/* <span className="text-xl font-bold">WorldStories</span> */}
-          </Link>
+          {/* Logo */}
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex items-center gap-2">
+              <div
+                className={`flex items-center justify-center rounded-md transition-[height,width] duration-300 ease-in-out ${
+                  isScrolled ? "h-10 w-10" : "h-20 w-20"
+                }`}
+              >
+                {/* <span className="text-lg font-bold text-primary-foreground">W</span> */}
+                <img src="/worldstories-logo.png" alt="" />
+              </div>
+              {/* <span className="text-xl font-bold">WorldStories</span> */}
+            </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-4 xl:gap-6">
-            <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Library
-            </Link>
-            <Link to="/discover" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Discover
-            </Link>
-            <Link to="/blog" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-              Blog
-            </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-foreground outline-none transition-colors hover:text-primary data-[state=open]:text-primary">
-                More <ChevronDown className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-44">
-                {[
-                  { to: "/authors", label: "Authors" },
-                  { to: "/story-map", label: "Story Map" },
-                  { to: "/journeys", label: "Story Journeys" },
-                  // Beside the Story Map, which is the catalogue by country —
-                  // this is the reader's own progress through it. Signed-in
-                  // only: the page has nothing to say to a signed-out visitor.
-                  ...(isLoggedIn ? [{ to: "/story-passport", label: "My Passport" }] : []),
-                  { to: "/audiobooks", label: "Audiobooks" },
-                  { to: "/watch", label: "Watch" },
-                  { to: "/quick-reads", label: "Quick Reads" },
-                ].map((item) => (
-                  <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
-                    <Link to={item.to}>{item.label}</Link>
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-4 xl:gap-6">
+              <Link to="/library" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+                Library
+              </Link>
+              <Link to="/discover" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+                Discover
+              </Link>
+              <Link to="/blog" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+                Blog
+              </Link>
+              <Link
+                to="/games/name-that-story"
+                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                Games
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-foreground outline-none transition-colors hover:text-primary data-[state=open]:text-primary">
+                  More <ChevronDown className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  {[
+                    { to: "/authors", label: "Authors" },
+                    { to: "/story-map", label: "Story Map" },
+                    { to: "/journeys", label: "Story Journeys" },
+                    // Beside the Story Map, which is the catalogue by country —
+                    // this is the reader's own progress through it. Signed-in
+                    // only: the page has nothing to say to a signed-out visitor.
+                    ...(isLoggedIn ? [{ to: "/story-passport", label: "My Passport" }] : []),
+                    { to: "/audiobooks", label: "Audiobooks" },
+                    { to: "/watch", label: "Watch" },
+                    { to: "/quick-reads", label: "Quick Reads" },
+                  ].map((item) => (
+                    <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
+                      <Link to={item.to}>{item.label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                  {!isPwaInstalled && (
+                    <DropdownMenuItem className="cursor-pointer" onSelect={() => setInstallModalOpen(true)}>
+                      Install app
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem className="cursor-pointer" onSelect={openFeedback}>
+                    Send feedback
                   </DropdownMenuItem>
-                ))}
-                {!isPwaInstalled && (
-                  <DropdownMenuItem className="cursor-pointer" onSelect={() => setInstallModalOpen(true)}>
-                    Install app
-                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Link
+                to="/contest"
+                className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 hover:bg-amber-500 transition-colors"
+              >
+                <span className="text-xs font-semibold text-amber-900">⭐</span>
+                <span className="text-xs font-semibold text-amber-900">Contest</span>
+              </Link>
+            </nav>
+          </div>
+
+          {/* Right Side */}
+          <div className="relative flex items-center gap-1.5 md:gap-3">
+            {/* Desktop Search */}
+            <div className="hidden lg:flex items-center gap-2">
+              <div className="relative">
+                <form onSubmit={handleDesktopSubmit}>
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search titles or authors..."
+                    className="w-64 pl-9 bg-secondary border-0"
+                    value={desktopQuery}
+                    onChange={(e) => setDesktopQuery(e.target.value)}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => {
+                      blurTimerRef.current = window.setTimeout(() => {
+                        setShowSuggestions(false);
+                      }, 150);
+                    }}
+                  />
+                </form>
+                {showSuggestions && debouncedQuery.length >= 2 && (
+                  <div className="absolute left-0 top-11 z-50 w-80 rounded-md border bg-background p-2 shadow-lg">
+                    {storySuggestions.length > 0 || authorSuggestions.length > 0 || chapterSuggestions.length > 0 ? (
+                      <>
+                        {authorSuggestions.length > 0 && (
+                          <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <UsersRound className="h-3.5 w-3.5" /> Authors
+                          </p>
+                        )}
+                        {authorSuggestions.map((author) => (
+                          <button
+                            key={`author-${author.id}`}
+                            type="button"
+                            onMouseDown={() => {
+                              if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+                            }}
+                            onClick={() => {
+                              navigate(`/authors/${author.slug}`);
+                              setShowSuggestions(false);
+                            }}
+                            className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
+                          >
+                            <AuthorPortrait
+                              src={author.image}
+                              name={author.name}
+                              className="h-11 w-9 shrink-0 rounded"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{author.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {author.stories_count} {author.stories_count === 1 ? "title" : "titles"}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                        {storySuggestions.length > 0 && (
+                          <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <BookOpen className="h-3.5 w-3.5" /> Titles
+                          </p>
+                        )}
+                        {storySuggestions.map((story) => (
+                          <button
+                            key={story.id}
+                            type="button"
+                            onMouseDown={() => {
+                              if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+                            }}
+                            onClick={() => {
+                              navigate(`/story/${story.slug}`);
+                              setShowSuggestions(false);
+                            }}
+                            className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
+                          >
+                            <CoverImage
+                              src={story.cover_image}
+                              alt={story.title}
+                              author={story.author}
+                              className="h-12 w-10 rounded object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{story.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {story.rating} · {formatViews(story.views)} views
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                        {chapterSuggestions.length > 0 && (
+                          <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <FileText className="h-3.5 w-3.5" /> Chapters
+                          </p>
+                        )}
+                        {chapterSuggestions.map((chapter) => (
+                          <button
+                            key={`chapter-${chapter.story_slug}-${chapter.chapter_slug}`}
+                            type="button"
+                            onMouseDown={() => {
+                              if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+                            }}
+                            onClick={() => {
+                              navigate(`/read/${chapter.story_slug}/${chapter.chapter_slug}`);
+                              setShowSuggestions(false);
+                            }}
+                            className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
+                          >
+                            <CoverImage
+                              src={chapter.story_cover_image}
+                              alt={chapter.story_title}
+                              className="h-12 w-10 rounded object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{chapter.chapter_title}</p>
+                              <p className="truncate text-xs text-muted-foreground">{chapter.story_title}</p>
+                            </div>
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          className="mt-1 w-full rounded px-2 py-2 text-left text-sm font-medium text-primary hover:bg-muted"
+                          onMouseDown={() => {
+                            if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+                          }}
+                          onClick={() => goToSearchPage(desktopQuery)}
+                        >
+                          View all results
+                        </button>
+                      </>
+                    ) : (
+                      <p className="px-2 py-2 text-sm text-muted-foreground">
+                        No matching titles, authors, or chapters.
+                      </p>
+                    )}
+                  </div>
                 )}
-                <DropdownMenuItem className="cursor-pointer" onSelect={openFeedback}>
-                  Send feedback
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Link to="/contest" className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 hover:bg-amber-500 transition-colors">
-              <span className="text-xs font-semibold text-amber-900">⭐</span>
-              <span className="text-xs font-semibold text-amber-900">Contest</span>
-            </Link>
-          </nav>
-        </div>
+              </div>
+            </div>
 
-        {/* Right Side */}
-        <div className="relative flex items-center gap-1.5 md:gap-3">
-          {/* Desktop Search */}
-          <div className="hidden lg:flex items-center gap-2">
-            <div className="relative">
-              <form onSubmit={handleDesktopSubmit}>
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            {isLoggedIn ? (
+              <>
+                <Link to="/profile">
+                  <Button className="hidden rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex">
+                    <User className="mr-1.5 h-4 w-4" />
+                    Profile
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  className="hidden rounded-full border-destructive/30 text-destructive transition-colors hover:border-destructive hover:bg-destructive/10 hover:text-destructive sm:inline-flex"
+                  onClick={requestLogout}
+                >
+                  <LogOut className="mr-1.5 h-4 w-4" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  className="hidden rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex"
+                  onClick={handleOpenLoginModal}
+                >
+                  <LogIn className="mr-1.5 h-4 w-4" />
+                  Log In
+                </Button>
+                {/* <Link to="/register">
+                <Button className="hidden sm:inline-flex">Register</Button>
+              </Link> */}
+              </>
+            )}
+
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9 rounded-full bg-emerald-100 hover:bg-emerald-200"
+            >
+              <Link to="/discover" aria-label="Discover" title="Discover">
+                <Compass className="h-5 w-5 text-emerald-600" />
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9 rounded-full bg-red-100 hover:bg-red-200"
+            >
+              <Link to="/watch" aria-label="Watch videos" title="Watch">
+                <Youtube className="h-5 w-5 text-red-600" />
+              </Link>
+            </Button>
+
+            {/* Mobile/tablet search expands over the header from this icon. */}
+            <div className="md:hidden">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={`h-9 w-9 rounded-full bg-sky-100 hover:bg-sky-200 ${mobileSearchOpen ? "invisible" : "visible"}`}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setMobileSearchOpen(true);
+                }}
+                aria-label="Open site search"
+                aria-expanded={mobileSearchOpen}
+              >
+                <Search className="h-5 w-5 text-sky-600" />
+              </Button>
+
+              <form
+                onSubmit={handleMobileSubmit}
+                className={`absolute right-0 top-1/2 z-20 flex h-10 -translate-y-1/2 origin-right items-center overflow-hidden rounded-full border bg-background shadow-md transition-[width,opacity] duration-300 ease-out supports-[backdrop-filter]:bg-background/95 ${
+                  mobileSearchOpen ? "w-[calc(100vw-2rem)] opacity-100" : "pointer-events-none w-10 opacity-0"
+                }`}
+                role="search"
+              >
+                <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <Input
-                  placeholder="Search titles or authors..."
-                  className="w-64 pl-9 bg-secondary border-0"
-                  value={desktopQuery}
-                  onChange={(e) => setDesktopQuery(e.target.value)}
-                  onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => {
-                    blurTimerRef.current = window.setTimeout(() => {
-                      setShowSuggestions(false);
-                    }, 150);
+                  ref={mobileSearchInputRef}
+                  type="search"
+                  value={mobileQuery}
+                  onChange={(event) => setMobileQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      setMobileSearchOpen(false);
+                    }
                   }}
+                  placeholder="Search titles or authors..."
+                  aria-label="Search titles, authors, and chapters"
+                  className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  tabIndex={mobileSearchOpen ? 0 : -1}
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="mr-1 h-8 w-8 shrink-0 rounded-full"
+                  onClick={() => setMobileSearchOpen(false)}
+                  aria-label="Close site search"
+                  tabIndex={mobileSearchOpen ? 0 : -1}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </form>
-              {showSuggestions && debouncedQuery.length >= 2 && (
-                <div className="absolute left-0 top-11 z-50 w-80 rounded-md border bg-background p-2 shadow-lg">
+
+              {mobileSearchOpen && mobileQuery.trim().length >= 2 && debouncedQuery.length >= 2 && (
+                <div className="absolute right-0 top-[calc(50%+1.5rem)] z-20 max-h-[min(70vh,28rem)] w-[calc(100vw-2rem)] overflow-y-auto scrollbar-thin rounded-xl border bg-background p-2 shadow-xl">
                   {storySuggestions.length > 0 || authorSuggestions.length > 0 || chapterSuggestions.length > 0 ? (
                     <>
                       {authorSuggestions.length > 0 && (
@@ -235,16 +465,10 @@ const Header = () => {
                       )}
                       {authorSuggestions.map((author) => (
                         <button
-                          key={`author-${author.id}`}
+                          key={`mobile-author-${author.id}`}
                           type="button"
-                          onMouseDown={() => {
-                            if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
-                          }}
-                          onClick={() => {
-                            navigate(`/authors/${author.slug}`);
-                            setShowSuggestions(false);
-                          }}
-                          className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
+                          onClick={() => openMobileSearchResult(`/authors/${author.slug}`)}
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
                         >
                           <AuthorPortrait src={author.image} name={author.name} className="h-11 w-9 shrink-0 rounded" />
                           <div className="min-w-0 flex-1">
@@ -255,6 +479,7 @@ const Header = () => {
                           </div>
                         </button>
                       ))}
+
                       {storySuggestions.length > 0 && (
                         <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                           <BookOpen className="h-3.5 w-3.5" /> Titles
@@ -262,22 +487,16 @@ const Header = () => {
                       )}
                       {storySuggestions.map((story) => (
                         <button
-                          key={story.id}
+                          key={`mobile-story-${story.id}`}
                           type="button"
-                          onMouseDown={() => {
-                            if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
-                          }}
-                          onClick={() => {
-                            navigate(`/story/${story.slug}`);
-                            setShowSuggestions(false);
-                          }}
-                          className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
+                          onClick={() => openMobileSearchResult(`/story/${story.slug}`)}
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
                         >
                           <CoverImage
                             src={story.cover_image}
                             alt={story.title}
                             author={story.author}
-                            className="h-12 w-10 rounded object-cover"
+                            className="h-12 w-10 shrink-0 rounded object-cover"
                           />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{story.title}</p>
@@ -287,6 +506,7 @@ const Header = () => {
                           </div>
                         </button>
                       ))}
+
                       {chapterSuggestions.length > 0 && (
                         <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                           <FileText className="h-3.5 w-3.5" /> Chapters
@@ -294,21 +514,15 @@ const Header = () => {
                       )}
                       {chapterSuggestions.map((chapter) => (
                         <button
-                          key={`chapter-${chapter.story_slug}-${chapter.chapter_slug}`}
+                          key={`mobile-chapter-${chapter.story_slug}-${chapter.chapter_slug}`}
                           type="button"
-                          onMouseDown={() => {
-                            if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
-                          }}
-                          onClick={() => {
-                            navigate(`/read/${chapter.story_slug}/${chapter.chapter_slug}`);
-                            setShowSuggestions(false);
-                          }}
-                          className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted"
+                          onClick={() => openMobileSearchResult(`/read/${chapter.story_slug}/${chapter.chapter_slug}`)}
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
                         >
                           <CoverImage
                             src={chapter.story_cover_image}
                             alt={chapter.story_title}
-                            className="h-12 w-10 rounded object-cover"
+                            className="h-12 w-10 shrink-0 rounded object-cover"
                           />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{chapter.chapter_title}</p>
@@ -316,409 +530,197 @@ const Header = () => {
                           </div>
                         </button>
                       ))}
+
                       <button
                         type="button"
-                        className="mt-1 w-full rounded px-2 py-2 text-left text-sm font-medium text-primary hover:bg-muted"
-                        onMouseDown={() => {
-                          if (blurTimerRef.current) window.clearTimeout(blurTimerRef.current);
+                        className="mt-1 w-full rounded-lg border-t px-2 py-2 text-left text-sm font-medium text-primary active:bg-muted"
+                        onClick={() => {
+                          goToSearchPage(mobileQuery);
+                          setMobileSearchOpen(false);
                         }}
-                        onClick={() => goToSearchPage(desktopQuery)}
                       >
                         View all results
                       </button>
                     </>
                   ) : (
-                    <p className="px-2 py-2 text-sm text-muted-foreground">No matching titles, authors, or chapters.</p>
+                    <p className="px-2 py-3 text-sm text-muted-foreground">No matching titles, authors, or chapters.</p>
                   )}
                 </div>
               )}
             </div>
-          </div>
 
-          {isLoggedIn ? (
-            <>
-              <Link to="/profile">
-                <Button className="hidden rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex">
-                  <User className="mr-1.5 h-4 w-4" />
-                  Profile
+            {/* Mobile Menu Trigger */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden h-9 w-9 rounded-full bg-violet-100 hover:bg-violet-200"
+                >
+                  <Menu className="h-5 w-5 text-violet-600" />
                 </Button>
-              </Link>
-              <Button
-                variant="outline"
-                className="hidden rounded-full border-destructive/30 text-destructive transition-colors hover:border-destructive hover:bg-destructive/10 hover:text-destructive sm:inline-flex"
-                onClick={requestLogout}
-              >
-                <LogOut className="mr-1.5 h-4 w-4" />
-                Logout
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                className="hidden rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm transition-transform hover:scale-105 hover:shadow-md sm:inline-flex"
-                onClick={handleOpenLoginModal}
-              >
-                <LogIn className="mr-1.5 h-4 w-4" />
-                Log In
-              </Button>
-              {/* <Link to="/register">
-                <Button className="hidden sm:inline-flex">Register</Button>
-              </Link> */}
-            </>
-          )}
+              </SheetTrigger>
 
-          <Button asChild variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full bg-emerald-100 hover:bg-emerald-200">
-            <Link to="/discover" aria-label="Discover" title="Discover">
-              <Compass className="h-5 w-5 text-emerald-600" />
-            </Link>
-          </Button>
-
-          <Button asChild variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full bg-red-100 hover:bg-red-200">
-            <Link to="/watch" aria-label="Watch videos" title="Watch">
-              <Youtube className="h-5 w-5 text-red-600" />
-            </Link>
-          </Button>
-
-          {/* Mobile/tablet search expands over the header from this icon. */}
-          <div className="md:hidden">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={`h-9 w-9 rounded-full bg-sky-100 hover:bg-sky-200 ${mobileSearchOpen ? "invisible" : "visible"}`}
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setMobileSearchOpen(true);
-              }}
-              aria-label="Open site search"
-              aria-expanded={mobileSearchOpen}
-            >
-              <Search className="h-5 w-5 text-sky-600" />
-            </Button>
-
-            <form
-              onSubmit={handleMobileSubmit}
-              className={`absolute right-0 top-1/2 z-20 flex h-10 -translate-y-1/2 origin-right items-center overflow-hidden rounded-full border bg-background shadow-md transition-[width,opacity] duration-300 ease-out supports-[backdrop-filter]:bg-background/95 ${
-                mobileSearchOpen
-                  ? "w-[calc(100vw-2rem)] opacity-100"
-                  : "pointer-events-none w-10 opacity-0"
-              }`}
-              role="search"
-            >
-              <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <Input
-                ref={mobileSearchInputRef}
-                type="search"
-                value={mobileQuery}
-                onChange={(event) => setMobileQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    setMobileSearchOpen(false);
-                  }
-                }}
-                placeholder="Search titles or authors..."
-                aria-label="Search titles, authors, and chapters"
-                className="h-full min-w-0 flex-1 border-0 bg-transparent px-3 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                tabIndex={mobileSearchOpen ? 0 : -1}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="mr-1 h-8 w-8 shrink-0 rounded-full"
-                onClick={() => setMobileSearchOpen(false)}
-                aria-label="Close site search"
-                tabIndex={mobileSearchOpen ? 0 : -1}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </form>
-
-            {mobileSearchOpen && mobileQuery.trim().length >= 2 && debouncedQuery.length >= 2 && (
-              <div className="absolute right-0 top-[calc(50%+1.5rem)] z-20 max-h-[min(70vh,28rem)] w-[calc(100vw-2rem)] overflow-y-auto scrollbar-thin rounded-xl border bg-background p-2 shadow-xl">
-                {storySuggestions.length > 0 || authorSuggestions.length > 0 || chapterSuggestions.length > 0 ? (
-                  <>
-                    {authorSuggestions.length > 0 && (
-                      <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        <UsersRound className="h-3.5 w-3.5" /> Authors
-                      </p>
-                    )}
-                    {authorSuggestions.map((author) => (
-                      <button
-                        key={`mobile-author-${author.id}`}
-                        type="button"
-                        onClick={() => openMobileSearchResult(`/authors/${author.slug}`)}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
-                      >
-                        <AuthorPortrait src={author.image} name={author.name} className="h-11 w-9 shrink-0 rounded" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{author.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {author.stories_count} {author.stories_count === 1 ? "title" : "titles"}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-
-                    {storySuggestions.length > 0 && (
-                      <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        <BookOpen className="h-3.5 w-3.5" /> Titles
-                      </p>
-                    )}
-                    {storySuggestions.map((story) => (
-                      <button
-                        key={`mobile-story-${story.id}`}
-                        type="button"
-                        onClick={() => openMobileSearchResult(`/story/${story.slug}`)}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
-                      >
-                        <CoverImage
-                          src={story.cover_image}
-                          alt={story.title}
-                          author={story.author}
-                          className="h-12 w-10 shrink-0 rounded object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{story.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {story.rating} · {formatViews(story.views)} views
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-
-                    {chapterSuggestions.length > 0 && (
-                      <p className="mt-1 flex items-center gap-1.5 border-t px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        <FileText className="h-3.5 w-3.5" /> Chapters
-                      </p>
-                    )}
-                    {chapterSuggestions.map((chapter) => (
-                      <button
-                        key={`mobile-chapter-${chapter.story_slug}-${chapter.chapter_slug}`}
-                        type="button"
-                        onClick={() => openMobileSearchResult(`/read/${chapter.story_slug}/${chapter.chapter_slug}`)}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left active:bg-muted"
-                      >
-                        <CoverImage
-                          src={chapter.story_cover_image}
-                          alt={chapter.story_title}
-                          className="h-12 w-10 shrink-0 rounded object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{chapter.chapter_title}</p>
-                          <p className="truncate text-xs text-muted-foreground">{chapter.story_title}</p>
-                        </div>
-                      </button>
-                    ))}
-
-                    <button
-                      type="button"
-                      className="mt-1 w-full rounded-lg border-t px-2 py-2 text-left text-sm font-medium text-primary active:bg-muted"
-                      onClick={() => {
-                        goToSearchPage(mobileQuery);
-                        setMobileSearchOpen(false);
-                      }}
-                    >
-                      View all results
-                    </button>
-                  </>
-                ) : (
-                  <p className="px-2 py-3 text-sm text-muted-foreground">
-                    No matching titles, authors, or chapters.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Menu Trigger */}
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-full bg-violet-100 hover:bg-violet-200">
-                <Menu className="h-5 w-5 text-violet-600" />
-              </Button>
-            </SheetTrigger>
-
-            {/* `flex flex-col` on a sheet that is already `h-full`, so the nav
+              {/* `flex flex-col` on a sheet that is already `h-full`, so the nav
                 below can own the overflow. Without it the menu is clipped at
                 the viewport with nothing to scroll — which a phone in
                 landscape, or a long menu, reaches easily. */}
-            <SheetContent
-              side="left"
-              className="flex w-72 flex-col p-4"
-              onOpenAutoFocus={(event) => event.preventDefault()}
-            >
-              <SheetHeader className="flex shrink-0 flex-row items-center justify-between">
-                <SheetTitle className="text-xl font-bold"><Link to="/" className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md">
-                    <img src="/worldstories-logo.png" alt="" />
-                  </div>
-                  <span className="text-xl font-bold">WorldStories</span>
-                </Link></SheetTitle>
-                <SheetClose asChild>
-                  {/* <Button variant="ghost" size="icon">
+              <SheetContent
+                side="left"
+                className="flex w-72 flex-col p-4"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+              >
+                <SheetHeader className="flex shrink-0 flex-row items-center justify-between">
+                  <SheetTitle className="text-xl font-bold">
+                    <Link to="/" className="flex items-center gap-2">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md">
+                        <img src="/worldstories-logo.png" alt="" />
+                      </div>
+                      <span className="text-xl font-bold">WorldStories</span>
+                    </Link>
+                  </SheetTitle>
+                  <SheetClose asChild>
+                    {/* <Button variant="ghost" size="icon">
                     <X className="h-5 w-5" />
                   </Button> */}
-                </SheetClose>
-              </SheetHeader>
+                  </SheetClose>
+                </SheetHeader>
 
-              <Separator className="my-4 shrink-0" />
+                <Separator className="my-4 shrink-0" />
 
-              {/* min-h-0 is what actually lets this shrink below its content
+                {/* min-h-0 is what actually lets this shrink below its content
                   height — a flex child defaults to min-height:auto, and
                   overflow-y-auto on its own would do nothing. */}
-              <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin pr-1">
-                <SheetClose asChild>
-                  <Link
-                    to="/library"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Library
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/authors"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Authors
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/discover"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Discover
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/audiobooks"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Audiobooks
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/watch"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Watch
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/quick-reads"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Quick Reads
-                  </Link>
-                </SheetClose>
-
-                <SheetClose asChild>
-                  <Link
-                    to="/blog"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Blog
-                  </Link>
-                </SheetClose>
-
-
-                <SheetClose asChild>
-                  <Link
-                    to="/journeys"
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    Story Journeys
-                  </Link>
-                </SheetClose>
-
-                {isLoggedIn && (
+                <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin pr-1">
                   <SheetClose asChild>
-                    <Link
-                      to="/story-passport"
-                      className="text-lg font-medium hover:text-primary"
-                    >
-                      My Passport
+                    <Link to="/library" className="text-lg font-medium hover:text-primary">
+                      Library
                     </Link>
                   </SheetClose>
-                )}
 
-                {!isPwaInstalled && (
                   <SheetClose asChild>
-                    <button
-                      type="button"
-                      onClick={() => setInstallModalOpen(true)}
-                      className="text-left text-lg font-medium hover:text-primary"
-                    >
-                      Install app
-                    </button>
+                    <Link to="/authors" className="text-lg font-medium hover:text-primary">
+                      Authors
+                    </Link>
                   </SheetClose>
-                )}
 
-                <SheetClose asChild>
-                  <Link
-                    to="/contest"
-                    className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 w-fit hover:bg-amber-500"
-                  >
-                    <span className="text-xs font-semibold text-amber-900">⭐</span>
-                    <span className="text-xs font-semibold text-amber-900">Contest</span>
-                  </Link>
-                </SheetClose>
+                  <SheetClose asChild>
+                    <Link to="/discover" className="text-lg font-medium hover:text-primary">
+                      Discover
+                    </Link>
+                  </SheetClose>
 
-                <Separator className="my-2" />
+                  <SheetClose asChild>
+                    <Link to="/audiobooks" className="text-lg font-medium hover:text-primary">
+                      Audiobooks
+                    </Link>
+                  </SheetClose>
 
-                {isLoggedIn ? (
-                  <>
+                  <SheetClose asChild>
+                    <Link to="/watch" className="text-lg font-medium hover:text-primary">
+                      Watch
+                    </Link>
+                  </SheetClose>
+
+                  <SheetClose asChild>
+                    <Link to="/quick-reads" className="text-lg font-medium hover:text-primary">
+                      Quick Reads
+                    </Link>
+                  </SheetClose>
+
+                  <SheetClose asChild>
+                    <Link to="/blog" className="text-lg font-medium hover:text-primary">
+                      Blog
+                    </Link>
+                  </SheetClose>
+
+                  <SheetClose asChild>
+                    <Link to="/games/name-that-story" className="text-lg font-medium hover:text-primary">
+                      Games
+                    </Link>
+                  </SheetClose>
+
+                  <SheetClose asChild>
+                    <Link to="/journeys" className="text-lg font-medium hover:text-primary">
+                      Story Journeys
+                    </Link>
+                  </SheetClose>
+
+                  {isLoggedIn && (
                     <SheetClose asChild>
-                      <Link to="/profile">
-                        <Button className="w-full rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm">
-                          <User className="mr-1.5 h-4 w-4" />
-                          Profile
-                        </Button>
+                      <Link to="/story-passport" className="text-lg font-medium hover:text-primary">
+                        My Passport
                       </Link>
                     </SheetClose>
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-full border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={requestLogout}
-                    >
-                      <LogOut className="mr-1.5 h-4 w-4" />
-                      Logout
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      className="w-full rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm"
-                      onClick={handleOpenLoginModal}
-                    >
-                      <LogIn className="mr-1.5 h-4 w-4" />
-                      Log In
-                    </Button>
+                  )}
 
-                    {/* <SheetClose asChild>
+                  {!isPwaInstalled && (
+                    <SheetClose asChild>
+                      <button
+                        type="button"
+                        onClick={() => setInstallModalOpen(true)}
+                        className="text-left text-lg font-medium hover:text-primary"
+                      >
+                        Install app
+                      </button>
+                    </SheetClose>
+                  )}
+
+                  <SheetClose asChild>
+                    <Link
+                      to="/contest"
+                      className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 w-fit hover:bg-amber-500"
+                    >
+                      <span className="text-xs font-semibold text-amber-900">⭐</span>
+                      <span className="text-xs font-semibold text-amber-900">Contest</span>
+                    </Link>
+                  </SheetClose>
+
+                  <Separator className="my-2" />
+
+                  {isLoggedIn ? (
+                    <>
+                      <SheetClose asChild>
+                        <Link to="/profile">
+                          <Button className="w-full rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm">
+                            <User className="mr-1.5 h-4 w-4" />
+                            Profile
+                          </Button>
+                        </Link>
+                      </SheetClose>
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-full border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={requestLogout}
+                      >
+                        <LogOut className="mr-1.5 h-4 w-4" />
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        className="w-full rounded-full bg-gradient-to-r from-primary to-[var(--theme-banner-via,#f97316)] shadow-sm"
+                        onClick={handleOpenLoginModal}
+                      >
+                        <LogIn className="mr-1.5 h-4 w-4" />
+                        Log In
+                      </Button>
+
+                      {/* <SheetClose asChild>
                       <Link to="/register">
                         <Button className="w-full">
                           Register
                         </Button>
                       </Link>
                     </SheetClose> */}
-                  </>
-                )}
-              </nav>
-            </SheetContent>
-          </Sheet>
+                    </>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
-      </div>
       </div>
 
       {showLogoutModal && (
@@ -739,9 +741,7 @@ const Header = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pb-6">
-              <p className="text-sm text-muted-foreground">
-                Are you sure you want to log out?
-              </p>
+              <p className="text-sm text-muted-foreground">Are you sure you want to log out?</p>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowLogoutModal(false)}>
                   Cancel

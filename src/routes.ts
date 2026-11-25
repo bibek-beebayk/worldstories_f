@@ -38,6 +38,9 @@ export default [
     route("terms", "pages/Terms.tsx"),
     route("blog", "pages/BlogList.tsx"),
     route("blog/:slug", "pages/BlogDetail.tsx"),
+    route("games/name-that-story", "pages/NameThatStory.tsx"),
+    route("games/name-that-story/archive", "pages/NameThatStoryArchive.tsx"),
+    route("games/name-that-story/:date", "pages/NameThatStory.tsx", { id: "nts-archive-date" }),
     route("newsletter/confirm", "pages/NewsletterConfirm.tsx"),
     route("newsletter/unsubscribe", "pages/NewsletterUnsubscribe.tsx"),
     // Admin-built pages (apps/pages); main site only.
@@ -102,6 +105,7 @@ export default [
         route("ai-settings", "pages/AdminAiSettings.tsx"),
         route("blog", "pages/AdminBlogs.tsx"),
         route("videos", "pages/AdminVideos.tsx"),
+        route("games/daily-puzzle", "pages/admin/AdminDailyPuzzle.tsx"),
       ]),
     ]),
     route("*", "pages/NotFound.tsx", { id: "admin-not-found" }),

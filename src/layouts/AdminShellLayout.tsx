@@ -33,6 +33,8 @@ import {
   Headphones,
   MessageSquare,
   Mail,
+  Gamepad2,
+  CalendarDays,
 } from "lucide-react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,6 +87,11 @@ const menuItems: MenuEntry[] = [
       { to: "/admin/site-themes", label: "Site Themes", icon: SwatchBook, exact: false },
       { to: "/admin/site-settings", label: "Site Settings", icon: Settings2, exact: false },
     ],
+  },
+  {
+    label: "Games",
+    icon: Gamepad2,
+    children: [{ to: "/admin/games/daily-puzzle", label: "Daily Puzzle", icon: CalendarDays, exact: false }],
   },
   { to: "/admin/story-report", label: "Story Report", icon: ClipboardList, exact: false },
   { to: "/admin/users", label: "Users", icon: UserCog, exact: false },
