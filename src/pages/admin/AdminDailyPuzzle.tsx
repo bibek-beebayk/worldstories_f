@@ -1,5 +1,15 @@
-import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +22,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +46,8 @@ import {
   useAdminPuzzleSummary,
   useAutofillPuzzles,
   useDeleteAdminPuzzle,
+  useImportAdminBooksCsv,
+  type AdminBookImportResult,
   type AdminPuzzleRow,
 } from "@/lib/games/nameThatStory";
 
@@ -63,6 +83,9 @@ export default function AdminDailyPuzzle() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<AdminPuzzleRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminPuzzleRow | null>(null);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [csvResult, setCsvResult] = useState<AdminBookImportResult | null>(null);
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
 
   const fromDate = useMemo(() => utcIsoDate(dayOffset), [dayOffset]);
   const toDate = useMemo(() => utcIsoDate(dayOffset + 6), [dayOffset]);
@@ -81,6 +104,7 @@ export default function AdminDailyPuzzle() {
   });
   const autofillMutation = useAutofillPuzzles();
   const deleteMutation = useDeleteAdminPuzzle();
+  const importCsvMutation = useImportAdminBooksCsv();
 
   const rows = listData?.results ?? [];
 
@@ -115,6 +139,17 @@ export default function AdminDailyPuzzle() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setCsvResult(null);
+              setCsvDialogOpen(true);
+            }}
+          >
+            <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
+            Import books CSV
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -273,8 +308,15 @@ export default function AdminDailyPuzzle() {
                     <td className="max-w-xs truncate px-4 py-3 text-xs text-foreground">
                       {row.opening_line || <span className="text-muted-foreground">No puzzle scheduled</span>}
                     </td>
-                    <td className="max-w-[180px] truncate px-4 py-3 text-xs font-medium text-foreground">
-                      {row.story?.title || "—"}
+                    <td className="max-w-[200px] px-4 py-3 text-xs font-medium text-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate">{row.answer?.title || row.story?.title || "—"}</span>
+                        {row.answer && !row.answer.in_catalogue && (
+                          <span className="shrink-0 rounded-full border border-purple-200 bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-900">
+                            External
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-3 text-xs capitalize text-muted-foreground">{row.difficulty || "—"}</td>
                     <td className="px-3 py-3">
@@ -348,7 +390,7 @@ export default function AdminDailyPuzzle() {
             <AlertDialogTitle>Delete scheduled puzzle</AlertDialogTitle>
             <AlertDialogDescription>
               Delete the puzzle for <strong className="text-foreground">{deleteTarget?.date}</strong> (
-              {deleteTarget?.story?.title})? This cannot be undone.
+              {deleteTarget?.answer?.title || deleteTarget?.story?.title})? This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -366,6 +408,75 @@ export default function AdminDailyPuzzle() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* CSV bulk import dialog */}
+      <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Import external books (CSV)</DialogTitle>
+            <DialogDescription>
+              Upload a UTF-8 CSV with columns:{" "}
+              <code className="text-[11px]">
+                title, author_name, genres, country, original_published_year, length_label, cover_image_link
+              </code>
+              . Duplicates are skipped automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                try {
+                  const res = await importCsvMutation.mutateAsync(file);
+                  setCsvResult(res);
+                  toast.success(`Imported ${res.created} book(s), skipped ${res.skipped}.`);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "CSV import failed.");
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={importCsvMutation.isPending}
+              onClick={() => csvInputRef.current?.click()}
+            >
+              <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
+              {importCsvMutation.isPending ? "Importing..." : "Choose CSV file"}
+            </Button>
+
+            {csvResult && (
+              <div className="space-y-2 rounded-md border bg-muted/30 p-3 text-xs">
+                <p className="font-semibold text-foreground">
+                  Created: {csvResult.created} · Skipped: {csvResult.skipped} · Errors: {csvResult.errors.length}
+                </p>
+                {csvResult.errors.length > 0 && (
+                  <ul className="max-h-32 list-disc space-y-1 overflow-y-auto pl-4 text-destructive">
+                    {csvResult.errors.map((err) => (
+                      <li key={`${err.row}-${err.error}`}>
+                        Row {err.row}: {err.error}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCsvDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

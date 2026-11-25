@@ -108,8 +108,8 @@ describe("StoryGuessCombobox keyboard behaviour", () => {
   it("navigates with ArrowDown/Enter, closes on Escape, and blocks submitting raw text", async () => {
     vi.spyOn(gamesApi, "searchStories").mockResolvedValue({
       results: [
-        { id: 1, title: "Moby-Dick", author: "Herman Melville", cover_thumb: "" },
-        { id: 2, title: "Moby Tales", author: "Other Author", cover_thumb: "" },
+        { key: "story:1", title: "Moby-Dick", author: "Herman Melville", cover_thumb: "" },
+        { key: "book:2", title: "Moby Tales", author: "Other Author", cover_thumb: "" },
       ],
     });
     const onSubmitGuess = vi.fn();
@@ -117,7 +117,7 @@ describe("StoryGuessCombobox keyboard behaviour", () => {
 
     render(
       <QueryClientProvider client={qc}>
-        <StoryGuessCombobox guessedStoryIds={new Set()} isSubmitting={false} onSubmitGuess={onSubmitGuess} />
+        <StoryGuessCombobox guessedKeys={new Set(["story:1"])} isSubmitting={false} onSubmitGuess={onSubmitGuess} />
       </QueryClientProvider>,
     );
 
@@ -134,7 +134,7 @@ describe("StoryGuessCombobox keyboard behaviour", () => {
 
     expect(guessBtn.disabled).toBe(false);
     fireEvent.click(guessBtn);
-    expect(onSubmitGuess).toHaveBeenCalledWith(expect.objectContaining({ id: 2, title: "Moby Tales" }));
+    expect(onSubmitGuess).toHaveBeenCalledWith(expect.objectContaining({ key: "book:2", title: "Moby Tales" }));
   });
 });
 
@@ -276,6 +276,36 @@ describe("NameThatStory page states", () => {
     await waitFor(() => {
       expect(screen.getByText("Moby-Dick")).toBeTruthy();
     });
+    expect(screen.queryByRole("link", { name: /Listen/i })).toBeNull();
+  });
+
+  it("renders external book answer card without Read it free or Listen links", async () => {
+    vi.spyOn(gamesApi, "getTodayPuzzle").mockResolvedValue({
+      ...baseFreshPuzzle,
+      status: "solved",
+      guesses_used: 1,
+      answer: {
+        key: "book:7",
+        id: 7,
+        title: "Dune",
+        slug: null,
+        author: "Frank Herbert",
+        year: 1965,
+        cover: "",
+        read_time: null,
+        has_audiobook: false,
+        audiobook_slug: null,
+      },
+      share: {
+        header: "Name That Story #12 · 1/6",
+        tokens: ["right", "empty", "empty", "empty", "empty", "empty"],
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByText("Dune")).toBeTruthy();
+    expect(screen.getByText("Frank Herbert · 1965")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Read it free/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /Listen/i })).toBeNull();
   });
 });

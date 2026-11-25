@@ -96,16 +96,22 @@ export function PuzzleSidebar({ isLoggedIn, onSignIn, stats, yesterday }: Puzzle
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground">{yesterday.title}</p>
-                <p className="truncate text-xs text-muted-foreground">{yesterday.author || "Unknown author"}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {[yesterday.author || "Unknown author", yesterday.year ? String(yesterday.year) : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
                 <p className="text-[11px] text-muted-foreground">Puzzle #{yesterday.puzzle_number}</p>
               </div>
             </div>
-            <Button asChild size="sm" variant="outline" className="w-full">
-              <Link to={`/story/${yesterday.slug}`}>
-                <BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                Read it free
-              </Link>
-            </Button>
+            {yesterday.slug && (
+              <Button asChild size="sm" variant="outline" className="w-full">
+                <Link to={`/story/${yesterday.slug}`}>
+                  <BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                  Read it free
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

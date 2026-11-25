@@ -61,12 +61,18 @@ export default function NameThatStory() {
     mergeGuestMutation.mutate(key);
   }, [isLoggedIn, mergeGuestMutation]);
 
-  const guessedStoryIds = useMemo(() => {
-    const ids = new Set<number>();
+  const guessedKeys = useMemo(() => {
+    const keys = new Set<string>();
     (puzzle?.guesses ?? []).forEach((g) => {
-      if (typeof g.story_id === "number") ids.add(g.story_id);
+      if (g.key) {
+        keys.add(g.key);
+      } else if (typeof g.story_id === "number") {
+        keys.add(`story:${g.story_id}`);
+      } else if (typeof g.book_id === "number") {
+        keys.add(`book:${g.book_id}`);
+      }
     });
-    return ids;
+    return keys;
   }, [puzzle?.guesses]);
 
   const cluesByKey = useMemo(() => {
@@ -77,7 +83,7 @@ export default function NameThatStory() {
 
   const handleGuess = async (story: PuzzleSearchItem) => {
     try {
-      await guessMutation.mutateAsync(story.id);
+      await guessMutation.mutateAsync(story.key);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not submit guess.");
     }
@@ -294,7 +300,7 @@ export default function NameThatStory() {
               <Card>
                 <CardContent className="space-y-3 p-4">
                   <StoryGuessCombobox
-                    guessedStoryIds={guessedStoryIds}
+                    guessedKeys={guessedKeys}
                     isSubmitting={guessMutation.isPending}
                     onSubmitGuess={handleGuess}
                   />

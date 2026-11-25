@@ -14,7 +14,9 @@ export interface PuzzleClue {
 }
 
 export interface PuzzleGuessEntry {
+  key?: string | null;
   story_id: number | null;
+  book_id?: number | null;
   title: string | null;
   author: string;
   correct: boolean;
@@ -27,9 +29,10 @@ export interface PuzzleGuessEntry {
 }
 
 export interface PuzzleAnswerCard {
+  key?: string;
   id: number;
   title: string;
-  slug: string;
+  slug: string | null;
   author: string;
   year: number | null;
   cover: string;
@@ -64,10 +67,22 @@ export interface PuzzlePayload {
 }
 
 export interface PuzzleSearchItem {
-  id: number;
+  key: string;
   title: string;
   author: string;
   cover_thumb: string;
+}
+
+export function parseGuessKey(key: string): { story_id: number } | { book_id: number } | null {
+  if (key.startsWith("story:")) {
+    const id = Number(key.slice(6));
+    return Number.isInteger(id) && id > 0 ? { story_id: id } : null;
+  }
+  if (key.startsWith("book:")) {
+    const id = Number(key.slice(5));
+    return Number.isInteger(id) && id > 0 ? { book_id: id } : null;
+  }
+  return null;
 }
 
 export interface PuzzleStats {
@@ -97,17 +112,49 @@ export interface ArchiveResponse {
   };
 }
 
+export interface AdminPuzzleAnswerSummary {
+  key: string;
+  title: string;
+  author: string;
+  in_catalogue: boolean;
+}
+
 export interface AdminPuzzleRow {
   id: number | null;
   date: string;
   number: number | null;
   opening_line: string;
   story: { id: number; title: string } | null;
+  book?: { id: number; title: string } | null;
+  answer?: AdminPuzzleAnswerSummary | null;
   difficulty: PuzzleDifficulty;
   auto_filled: boolean;
   status: "live_today" | "scheduled" | "auto" | "empty";
   players_count: number;
   solve_rate: number | null;
+}
+
+export type PuzzleBookLength = "Short story" | "Novella" | "Novel";
+
+export interface AdminPuzzleBook {
+  id: number;
+  key: string;
+  title: string;
+  author_name: string;
+  genres: { id: number; name: string }[];
+  country: string;
+  country_display: string;
+  original_published_year: number | null;
+  length_label: PuzzleBookLength;
+  cover: string;
+  cover_image: string;
+  puzzle_count: number;
+}
+
+export interface AdminBookImportResult {
+  created: number;
+  skipped: number;
+  errors: { row: number; error: string }[];
 }
 
 export interface AdminPuzzleSummary {
@@ -247,7 +294,7 @@ export const gamesApi = {
     apiClient<{ results: PuzzleSearchItem[] }>(`/games/name-that-story/search/?q=${encodeURIComponent(q)}`, {
       headers: guestHeaders(),
     }),
-  submitGuess: (payload: { date?: string; story_id: number }) =>
+  submitGuess: (payload: { date?: string; story_id?: number; book_id?: number }) =>
     apiClient<PuzzlePayload>("/games/name-that-story/guess/", {
       method: "POST",
       headers: guestHeaders(),
@@ -285,7 +332,8 @@ export const gamesApi = {
   },
   createAdminPuzzle: (payload: {
     date: string;
-    story_id: number;
+    story_id?: number;
+    book_id?: number;
     opening_line: string;
     difficulty?: PuzzleDifficulty;
     allow_custom?: boolean;
@@ -298,7 +346,8 @@ export const gamesApi = {
     id: number,
     payload: Partial<{
       date: string;
-      story_id: number;
+      story_id: number | null;
+      book_id: number | null;
       opening_line: string;
       difficulty: PuzzleDifficulty;
       allow_custom: boolean;
@@ -312,8 +361,36 @@ export const gamesApi = {
     apiClient<void>(`/admin/games/name-that-story/puzzles/${id}/`, {
       method: "DELETE",
     }),
-  getAdminCandidates: (storyId: number) =>
-    apiClient<AdminCandidatesResponse>(`/admin/games/name-that-story/candidates/?story_id=${storyId}`),
+  getAdminCandidates: (target: { storyId?: number; bookId?: number }) => {
+    const qs = target.bookId ? `book_id=${target.bookId}` : `story_id=${target.storyId ?? 0}`;
+    return apiClient<AdminCandidatesResponse>(`/admin/games/name-that-story/candidates/?${qs}`);
+  },
+  listAdminBooks: (q?: string) =>
+    apiClient<{ results: AdminPuzzleBook[] }>(
+      `/admin/games/name-that-story/books/${q && q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`,
+    ),
+  createAdminBook: (payload: FormData | Record<string, unknown>) =>
+    apiClient<AdminPuzzleBook>("/admin/games/name-that-story/books/", {
+      method: "POST",
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }),
+  updateAdminBook: (id: number, payload: FormData | Record<string, unknown>) =>
+    apiClient<AdminPuzzleBook>(`/admin/games/name-that-story/books/${id}/`, {
+      method: "PATCH",
+      body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }),
+  deleteAdminBook: (id: number) =>
+    apiClient<void>(`/admin/games/name-that-story/books/${id}/`, {
+      method: "DELETE",
+    }),
+  importAdminBooksCsv: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return apiClient<AdminBookImportResult>("/admin/games/name-that-story/books/import-csv/", {
+      method: "POST",
+      body: fd,
+    });
+  },
   autofillAdminPuzzles: (days = 14) =>
     apiClient<{ created: { id: number; date: string; story_title: string }[]; skipped: unknown[] }>(
       "/admin/games/name-that-story/autofill/",
@@ -337,7 +414,8 @@ export const gameKeys = {
   archive: (page: number) => ["nts", "archive", page] as const,
   adminList: (params: Record<string, string | undefined>) => ["admin-nts", "list", params] as const,
   adminSummary: ["admin-nts", "summary"] as const,
-  adminCandidates: (storyId: number) => ["admin-nts", "candidates", storyId] as const,
+  adminCandidates: (key: string) => ["admin-nts", "candidates", key] as const,
+  adminBooks: (q: string) => ["admin-nts", "books", q] as const,
 };
 
 export function useTodayPuzzle(enabled = true) {
@@ -375,8 +453,11 @@ export function useSearchStories(query: string) {
 export function useGuess(dateStr?: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (storyId: number) =>
-      gamesApi.submitGuess(dateStr ? { date: dateStr, story_id: storyId } : { story_id: storyId }),
+    mutationFn: (key: string) => {
+      const parsed = parseGuessKey(key);
+      if (!parsed) throw new Error("Invalid story selection.");
+      return gamesApi.submitGuess(dateStr ? { date: dateStr, ...parsed } : parsed);
+    },
     onSuccess: (updated) => {
       qc.setQueryData(dateStr ? gameKeys.byDate(dateStr) : gameKeys.today, (prev: PuzzlePayload | undefined) => ({
         ...updated,
@@ -443,11 +524,40 @@ export function useAdminPuzzleSummary() {
   });
 }
 
-export function useAdminPuzzleCandidates(storyId: number | null) {
+export function useAdminPuzzleCandidates(target: { storyId?: number; bookId?: number } | null) {
+  const key = target?.bookId ? `book:${target.bookId}` : target?.storyId ? `story:${target.storyId}` : "";
   return useQuery({
-    queryKey: gameKeys.adminCandidates(storyId ?? 0),
-    queryFn: () => gamesApi.getAdminCandidates(storyId as number),
-    enabled: typeof storyId === "number" && storyId > 0,
+    queryKey: gameKeys.adminCandidates(key),
+    queryFn: () => gamesApi.getAdminCandidates(target!),
+    enabled: Boolean(key),
+  });
+}
+
+export function useAdminPuzzleBooks(q = "", enabled = true) {
+  return useQuery({
+    queryKey: gameKeys.adminBooks(q),
+    queryFn: () => gamesApi.listAdminBooks(q),
+    enabled,
+  });
+}
+
+export function useCreateAdminPuzzleBook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: FormData | Record<string, unknown>) => gamesApi.createAdminBook(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-nts", "books"] });
+    },
+  });
+}
+
+export function useImportAdminBooksCsv() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => gamesApi.importAdminBooksCsv(file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-nts", "books"] });
+    },
   });
 }
 

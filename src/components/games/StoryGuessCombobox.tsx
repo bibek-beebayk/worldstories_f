@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { useSearchStories, type PuzzleSearchItem } from "@/lib/games/nameThatStory";
 
 interface StoryGuessComboboxProps {
-  guessedStoryIds: Set<number>;
+  guessedKeys: Set<string>;
   isSubmitting: boolean;
   onSubmitGuess: (story: PuzzleSearchItem) => void;
 }
 
-export function StoryGuessCombobox({ guessedStoryIds, isSubmitting, onSubmitGuess }: StoryGuessComboboxProps) {
+export function StoryGuessCombobox({ guessedKeys, isSubmitting, onSubmitGuess }: StoryGuessComboboxProps) {
   const listboxId = useId();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<PuzzleSearchItem | null>(null);
@@ -48,7 +48,7 @@ export function StoryGuessCombobox({ guessedStoryIds, isSubmitting, onSubmitGues
     setOpen(false);
   };
 
-  const alreadyGuessed = selected ? guessedStoryIds.has(selected.id) : false;
+  const alreadyGuessed = selected ? guessedKeys.has(selected.key) : false;
   const canSubmit = Boolean(selected && !alreadyGuessed && !isSubmitting);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -88,7 +88,7 @@ export function StoryGuessCombobox({ guessedStoryIds, isSubmitting, onSubmitGues
 
   const activeOptionId =
     showDropdown && activeIndex >= 0 && activeIndex < results.length
-      ? `${listboxId}-opt-${results[activeIndex].id}`
+      ? `${listboxId}-opt-${results[activeIndex].key}`
       : undefined;
 
   return (
@@ -145,11 +145,11 @@ export function StoryGuessCombobox({ guessedStoryIds, isSubmitting, onSubmitGues
               ) : (
                 results.map((story, idx) => {
                   const isHighlighted = idx === activeIndex;
-                  const isUsed = guessedStoryIds.has(story.id);
+                  const isUsed = guessedKeys.has(story.key);
                   return (
                     <button
-                      key={story.id}
-                      id={`${listboxId}-opt-${story.id}`}
+                      key={story.key}
+                      id={`${listboxId}-opt-${story.key}`}
                       type="button"
                       role="option"
                       aria-selected={isHighlighted}

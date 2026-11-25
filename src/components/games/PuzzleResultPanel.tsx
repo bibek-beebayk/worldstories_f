@@ -130,27 +130,31 @@ export function PuzzleResultPanel({ puzzle, stats, isArchive }: PuzzleResultPane
                   {[
                     answer.author || null,
                     answer.year ? String(answer.year) : null,
-                    answer.read_time ? `${answer.read_time} min read` : null,
+                    answer.slug && answer.read_time ? `${answer.read_time} min read` : null,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Button asChild size="sm">
-                    <Link to={`/story/${answer.slug}`}>
-                      <BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                      Read it free
-                    </Link>
-                  </Button>
-                  {answer.has_audiobook && answer.audiobook_slug && (
-                    <Button asChild size="sm" variant="outline">
-                      <Link to={audiobookUrl(answer.audiobook_slug)}>
-                        <Headphones className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                        Listen
-                      </Link>
-                    </Button>
-                  )}
-                </div>
+                {(answer.slug || (answer.has_audiobook && answer.audiobook_slug)) && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {answer.slug && (
+                      <Button asChild size="sm">
+                        <Link to={`/story/${answer.slug}`}>
+                          <BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                          Read it free
+                        </Link>
+                      </Button>
+                    )}
+                    {answer.has_audiobook && answer.audiobook_slug && (
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={audiobookUrl(answer.audiobook_slug)}>
+                          <Headphones className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                          Listen
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
