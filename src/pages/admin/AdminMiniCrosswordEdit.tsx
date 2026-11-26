@@ -118,6 +118,8 @@ export default function AdminMiniCrosswordEdit() {
 
   // Debounced live validation
   useEffect(() => {
+    if (numericId && !existing) return;
+    let cancelled = false;
     const timer = window.setTimeout(async () => {
       try {
         const res = await miniApi.adminValidate({
@@ -126,6 +128,7 @@ export default function AdminMiniCrosswordEdit() {
           clues: syncedClues,
           exclude_puzzle_id: numericId,
         });
+        if (cancelled) return;
         setErrors(res.errors);
         setWarnings(res.warnings);
         setDifficultyBreakdown(res.difficulty ?? null);
@@ -133,8 +136,11 @@ export default function AdminMiniCrosswordEdit() {
         // ignore transient errors
       }
     }, 350);
-    return () => window.clearTimeout(timer);
-  }, [pattern, solution, syncedClues, numericId]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [pattern, solution, syncedClues, numericId, existing]);
 
   const toggleBlackAt = (r: number, c: number) => {
     if (isLocked) return;

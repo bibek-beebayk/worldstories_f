@@ -263,4 +263,52 @@ describe("MiniDifficultyChip and AdminMiniCrosswordEdit", () => {
     fireEvent.click(checkboxes[0]);
     expect(checkboxes[0]).not.toBeChecked();
   });
+
+  it("ignores stale slow validation replies when a newer grid edit resolves first", async () => {
+    let resolveSlow!: (val: {
+      errors: string[];
+      warnings: string[];
+      difficulty: null;
+    }) => void;
+    let callCount = 0;
+
+    vi.spyOn(miniApi, "adminValidate").mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Promise((resolve) => {
+          resolveSlow = resolve;
+        });
+      }
+      return Promise.resolve({
+        errors: [],
+        warnings: [],
+        difficulty: null,
+      });
+    });
+
+    renderWithProviders(<AdminMiniCrosswordEdit />);
+
+    // Wait for first debounced validation call (default grid) to fire and stay in flight
+    await waitFor(() => expect(callCount).toBe(1), { timeout: 1500 });
+
+    // Edit a cell so a second validation call fires and resolves fast with zero errors
+    const cell00 = screen.getByRole("button", { name: /Row 1 Col 1/i });
+    fireEvent.keyDown(cell00, { key: "A" });
+
+    await waitFor(() => expect(callCount).toBe(2), { timeout: 1500 });
+
+    // Now resolve the stale first call with errors; cancelled guard must ignore it
+    resolveSlow({
+      errors: ["Solution cell (1,1) must be an uppercase letter A-Z."],
+      warnings: [],
+      difficulty: null,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Solution cell (1,1) must be an uppercase letter A-Z.")
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(/Ready to approve/i)).toBeInTheDocument();
+  });
 });
