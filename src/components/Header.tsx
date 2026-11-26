@@ -704,6 +704,16 @@ const Header = () => {
                   )}
 
                   <SheetClose asChild>
+                    <button
+                      type="button"
+                      onClick={openFeedback}
+                      className="text-left text-lg font-medium hover:text-primary"
+                    >
+                      Send feedback
+                    </button>
+                  </SheetClose>
+
+                  <SheetClose asChild>
                     <Link
                       to="/contest"
                       className="flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 w-fit hover:bg-amber-500"

@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { authApi } from "@/api/auth";
 import { useIsLoggedIn } from "@/hooks/useIsLoggedIn";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquarePlus, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router";
 import { useEffect } from "react";
 import { useImmersiveReader } from "@/context/ImmersiveReaderContext";
-import { useFeedback } from "@/context/FeedbackContext";
 import { flushPendingSaves } from "@/lib/progressSync";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { buildMeta } from "@/lib/buildMeta";
@@ -46,7 +45,6 @@ export default function DefaultLayout() {
   const location = useLocation();
   const isLoggedIn = useIsLoggedIn();
   const { isImmersiveReaderActive } = useImmersiveReader();
-  const { openFeedback } = useFeedback();
 
   const { data: currentUser } = useQuery({
     queryKey: ["profile-me"],
@@ -117,19 +115,6 @@ export default function DefaultLayout() {
       </PullToRefresh>
 
       {!isImmersiveReaderRoute && <Footer />}
-
-      {/* Bottom-left so it never sits on the admin shortcut (bottom-right);
-          hidden in the immersive readers, which own the whole viewport. */}
-      {!isImmersiveReaderRoute && (
-        <Button
-          type="button"
-          onClick={openFeedback}
-          className="fixed bottom-20 left-4 z-50 h-10 gap-2 rounded-full px-4 shadow-lg sm:bottom-6 sm:left-6"
-        >
-          <MessageSquarePlus aria-hidden="true" className="h-4 w-4" />
-          Feedback
-        </Button>
-      )}
 
       {currentUser?.is_superuser && (
         <Button
