@@ -46,9 +46,9 @@ import MiniDifficultyChip from "@/components/games/MiniDifficultyChip";
 
 export function meta() {
   return buildMeta({
-    title: "Mini Crossword — Daily 5x5 Literary Puzzle | WorldStories",
+    title: "Mini Crossword — Daily 5x5 Puzzle | WorldStories",
     description:
-      "Solve a daily 5x5 literary mini crossword on WorldStories. Free to play, archive included.",
+      "Solve a daily 5x5 mini crossword on WorldStories. Free to play, archive included.",
     path: "/games/mini-crossword",
   });
 }
@@ -426,11 +426,47 @@ export default function MiniCrossword() {
     );
   };
 
+  const aboutSection = !date ? (
+    <section
+      aria-labelledby="mini-about-heading"
+      className="mx-auto mt-10 max-w-5xl px-4 pb-8 md:px-0"
+    >
+      <div className="rounded-2xl border border-[#E8DED3] bg-white p-5 sm:p-6 space-y-3">
+        <h2
+          id="mini-about-heading"
+          className="font-serif text-lg font-bold text-[#1B1220]"
+        >
+          About the Mini Crossword
+        </h2>
+        <p className="text-sm leading-relaxed text-[#1B1220]/85">
+          Play a free daily 5x5 crossword crafted from classic public-domain literature. A new grid
+          arrives every day at midnight UTC, with past puzzles available in the archive.{" "}
+          <Link
+            to="/library"
+            className="font-semibold text-[#D92F4C] underline underline-offset-4 hover:text-[#b8253e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C] rounded"
+          >
+            Find the stories behind the clues in our library.
+          </Link>
+        </p>
+        <div className="space-y-1.5 pt-1">
+          <h3 className="text-sm font-semibold text-[#1B1220]">How to play</h3>
+          <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-[#1B1220]/85">
+            <li>Tap a square and type to enter letters.</li>
+            <li>Tap the selected square again to switch between across and down.</li>
+            <li>Use Check, Reveal, and Pencil if you get stuck.</li>
+            <li>Finish the grid to keep your daily streak.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  ) : null;
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="h-8 w-56 rounded bg-slate-200 animate-pulse motion-reduce:animate-none" />
         <div className="mt-6 h-80 rounded-2xl bg-slate-100 animate-pulse motion-reduce:animate-none" />
+        {aboutSection}
       </div>
     );
   }
@@ -458,6 +494,7 @@ export default function MiniCrossword() {
             Past grids
           </Link>
         </div>
+        <div className="text-left">{aboutSection}</div>
       </div>
     );
   }
@@ -1105,6 +1142,8 @@ export default function MiniCrossword() {
           </Sheet>
         </>
       )}
+
+      {aboutSection}
 
       {/* Reveal Letter Confirm Dialog */}
       {revealConfirmOpen && (

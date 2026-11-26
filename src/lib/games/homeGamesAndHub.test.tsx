@@ -28,7 +28,7 @@ function makeSummary(overrides: Partial<MiniTodaySummary> = {}): MiniTodaySummar
   return {
     date: "2026-11-26",
     number: 42,
-    title: "Literary Mini",
+    title: "Mini Crossword",
     difficulty: "medium",
     pattern: MOCK_PATTERN,
     white_cells: 23,

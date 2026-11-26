@@ -309,6 +309,8 @@ describe("MiniDifficultyChip and AdminMiniCrosswordEdit", () => {
         screen.queryByText("Solution cell (1,1) must be an uppercase letter A-Z.")
       ).not.toBeInTheDocument();
     });
-    expect(screen.getByText(/Ready to approve/i)).toBeInTheDocument();
+    expect(
+      screen.getByText("All pattern, word, and clue checks passed.")
+    ).toBeInTheDocument();
   });
 });

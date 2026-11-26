@@ -248,7 +248,7 @@ export default function AdminMiniCrossword() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Mini Crossword</h1>
           <p className="mt-1 text-sm text-slate-700">
-            Create, validate, and schedule daily 5x5 literary mini crosswords.
+            Create, validate, and schedule daily 5x5 mini crosswords.
           </p>
           <p className="mt-0.5 text-xs text-slate-600">
             Generated grids use only words from the clue bank.

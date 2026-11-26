@@ -37,7 +37,7 @@ export function meta() {
     return buildMeta({
       title: "Games — Mini Crossword | WorldStories",
       description:
-        "Play the daily 5x5 literary Mini Crossword on WorldStories. Solve clues, build your streak, and discover classic stories.",
+        "Play the daily 5x5 Mini Crossword on WorldStories. Solve clues, build your streak, and discover classic stories.",
       path: "/games",
     });
   }
@@ -105,7 +105,7 @@ function MiniCrosswordGamesHub() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-xl space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#F6EBDD]/85">
-              Daily literary puzzle
+              Daily puzzle
             </p>
             <h1
               id="games-hub-heading"
@@ -114,7 +114,7 @@ function MiniCrosswordGamesHub() {
               Mini Crossword
             </h1>
             <p className="text-sm leading-relaxed text-[#F6EBDD]/90 sm:text-base">
-              A bite-sized 5x5 literary crossword every day at UTC midnight. Race the clock, check
+              A bite-sized 5x5 crossword every day at UTC midnight. Race the clock, check
               your letters, and discover classic stories hiding inside the grid.
             </p>
 
@@ -310,7 +310,7 @@ function MiniCrosswordGamesHub() {
             </span>
             <p className="text-sm font-semibold text-[#1B1220]">One 5x5 grid every day</p>
             <p className="text-xs leading-relaxed text-[#1B1220]/75">
-              A fresh literary crossword drops daily at 00:00 UTC with Easy, Medium, or Hard clues.
+              A fresh crossword drops daily at 00:00 UTC with Easy, Medium, or Hard clues.
             </p>
           </li>
           <li className="rounded-xl border border-[#1B1220]/10 bg-slate-50 p-4 space-y-1.5">
@@ -354,7 +354,7 @@ function LegacyGamesHub() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-              Daily Literary Puzzle
+              Daily Puzzle
             </p>
             <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl">
               Name That Story
@@ -398,7 +398,7 @@ function LegacyGamesHub() {
               Mini Crossword
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              A bite-sized 5x5 literary crossword every day. Race the clock, check your letters,
+              A bite-sized 5x5 crossword every day. Race the clock, check your letters,
               and discover classic stories hiding inside the grid.
             </p>
           </div>
@@ -519,6 +519,54 @@ function LegacyGamesHub() {
   );
 }
 
+function AboutMiniCrosswordSection() {
+  return (
+    <section
+      aria-labelledby="about-mini-crossword-heading"
+      className="mx-auto max-w-5xl px-4 pb-10 sm:px-6 lg:px-8"
+    >
+      <div className="rounded-2xl border border-[#1B1220]/10 bg-white p-6 space-y-4">
+        <h2
+          id="about-mini-crossword-heading"
+          className="font-serif text-lg font-bold text-[#1B1220]"
+        >
+          About the Mini Crossword
+        </h2>
+        <p className="text-sm leading-relaxed text-[#1B1220]/85">
+          The WorldStories Mini Crossword is a free daily 5x5 crossword puzzle with clues drawn from
+          classic public-domain literature. A fresh grid is published every day at midnight UTC, and
+          past puzzles remain playable anytime in the full archive.
+        </p>
+        <p className="text-sm leading-relaxed text-[#1B1220]/85">
+          Every puzzle takes just a few minutes to complete and highlights memorable stories,
+          characters, and authors from around the world.{" "}
+          <Link
+            to="/library"
+            className="font-semibold text-[#D92F4C] underline underline-offset-4 hover:text-[#b8253e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C] rounded"
+          >
+            Find the stories behind the clues in our library.
+          </Link>
+        </p>
+
+        <div className="space-y-2 pt-1">
+          <h3 className="text-sm font-semibold text-[#1B1220]">How to play</h3>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-[#1B1220]/85">
+            <li>Tap a square and type to enter letters across or down.</li>
+            <li>Tap the selected square again to switch between across and down clues.</li>
+            <li>Use Check, Reveal, and Pencil mode whenever you get stuck.</li>
+            <li>Finish today&apos;s puzzle before midnight UTC to keep your daily streak going.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function GamesHub() {
-  return NAME_THAT_STORY_ENABLED ? <LegacyGamesHub /> : <MiniCrosswordGamesHub />;
+  return (
+    <>
+      {NAME_THAT_STORY_ENABLED ? <LegacyGamesHub /> : <MiniCrosswordGamesHub />}
+      <AboutMiniCrosswordSection />
+    </>
+  );
 }
