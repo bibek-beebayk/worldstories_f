@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Delete, X } from "lucide-react";
+import { Delete, X } from "lucide-react";
 import type { ClueDirection, MiniEntry } from "@/lib/games/miniCrossword";
 
 interface MiniCrosswordGridProps {
@@ -100,7 +100,7 @@ export default function MiniCrosswordGrid({
       <div
         role="grid"
         aria-label="5 by 5 mini crossword grid"
-        className="mx-auto grid w-full max-w-[340px] grid-cols-5 border-2 border-slate-900 bg-slate-900 gap-[1px] select-none"
+        className="mx-auto grid w-full md:max-w-[340px] grid-cols-5 border-2 border-[#1B1220] bg-[#1B1220] gap-[1px] select-none"
       >
         {pattern.map((rowStr, r) => (
           <div key={r} role="row" className="contents">
@@ -113,7 +113,7 @@ export default function MiniCrosswordGrid({
                     key={cellKey}
                     role="gridcell"
                     aria-label={`Row ${r + 1}, Column ${c + 1}, black square`}
-                    className="aspect-square bg-slate-900"
+                    className="aspect-square bg-[#1B1220]"
                   />
                 );
               }
@@ -146,9 +146,9 @@ export default function MiniCrosswordGrid({
               if (isWrong) {
                 bgClass = "bg-red-50";
               } else if (isActive) {
-                bgClass = "bg-sky-200";
+                bgClass = "bg-[#FDE6EB]";
               } else if (inWord) {
-                bgClass = "bg-sky-50";
+                bgClass = "bg-[#FDE6EB]/75";
               }
 
               return (
@@ -164,14 +164,14 @@ export default function MiniCrosswordGrid({
                     aria-pressed={isActive}
                     onClick={() => onSelectCell(r, c)}
                     onKeyDown={handleKeyDown}
-                    className={`relative flex h-full w-full items-center justify-center ${bgClass} transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-900 ${
-                      isActive ? "z-10 ring-2 ring-inset ring-slate-900" : ""
+                    className={`relative flex h-full w-full items-center justify-center ${bgClass} transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-[#D92F4C] ${
+                      isActive ? "z-10 ring-[3px] ring-inset ring-[#D92F4C]" : ""
                     }`}
                   >
                     {num !== null && (
                       <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute left-1 top-0.5 text-[10px] font-bold leading-none text-slate-700"
+                        className="pointer-events-none absolute left-1 top-0.5 text-[11px] md:text-[10px] font-bold leading-none text-[#1B1220]/75"
                       >
                         {num}
                       </span>
@@ -194,18 +194,18 @@ export default function MiniCrosswordGrid({
 
                     {hasPen ? (
                       <span
-                        className={`text-2xl font-bold leading-none ${
+                        className={`text-[clamp(1.6rem,7.5vw,2.2rem)] md:text-2xl font-bold leading-none ${
                           isWrong
                             ? "text-red-800"
                             : isRevealed
                             ? "text-amber-900"
-                            : "text-slate-900"
+                            : "text-[#1B1220]"
                         }`}
                       >
                         {penChar}
                       </span>
                     ) : pencilChar ? (
-                      <span className="text-base italic font-medium leading-none text-slate-500">
+                      <span className="text-lg md:text-base italic font-medium leading-none text-slate-500">
                         {pencilChar}
                       </span>
                     ) : null}
@@ -217,36 +217,13 @@ export default function MiniCrosswordGrid({
         ))}
       </div>
 
-      {/* Mobile On-Screen Keyboard & Prev/Next Clue Controls */}
+      {/* Docked Mobile On-Screen Keyboard */}
       {!disabled && (
-        <div className="space-y-2 md:hidden" aria-label="On-screen keyboard">
-          <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => onTabEntry(-1)}
-              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 active:bg-slate-100"
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              Prev clue
-            </button>
-            <button
-              type="button"
-              onClick={onToggleDirection}
-              className="min-h-[40px] rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 active:bg-slate-100"
-            >
-              {direction === "across" ? "Across" : "Down"}
-            </button>
-            <button
-              type="button"
-              onClick={() => onTabEntry(1)}
-              className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 active:bg-slate-100"
-            >
-              Next clue
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-
-          <div className="space-y-1.5">
+        <div
+          aria-label="On-screen keyboard"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E8DED3] bg-[#EFE7DE] px-1.5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
+        >
+          <div className="mx-auto max-w-md space-y-1.5">
             {KEYBOARD_ROWS.map((row, rIdx) => (
               <div key={rIdx} className="flex justify-center gap-1">
                 {row.map((letter) => (
@@ -254,7 +231,7 @@ export default function MiniCrosswordGrid({
                     key={letter}
                     type="button"
                     onClick={() => onInputLetter(letter)}
-                    className="flex min-h-[46px] min-w-[33px] flex-1 max-w-[40px] items-center justify-center rounded-md border border-slate-300 bg-white text-sm font-bold text-slate-900 shadow-xs active:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                    className="flex h-[46px] min-w-[30px] flex-1 max-w-[38px] items-center justify-center rounded-md border border-[#E8DED3] bg-white text-[15px] font-bold text-[#1B1220] shadow-xs active:bg-[#FDE6EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C]"
                   >
                     {letter}
                   </button>
@@ -264,7 +241,7 @@ export default function MiniCrosswordGrid({
                     type="button"
                     aria-label="Backspace"
                     onClick={onBackspace}
-                    className="flex min-h-[46px] min-w-[46px] items-center justify-center rounded-md border border-slate-300 bg-slate-200 px-2 text-slate-900 active:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                    className="flex h-[46px] min-w-[52px] items-center justify-center rounded-md border border-[#E8DED3] bg-[#DFD5C9] px-2.5 text-[#1B1220] active:bg-[#CFC3B4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C]"
                   >
                     <Delete className="h-4 w-4" aria-hidden="true" />
                   </button>

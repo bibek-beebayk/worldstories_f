@@ -156,7 +156,8 @@ describe("MiniCrossword UI states & keyboard navigation", () => {
     await waitFor(() =>
       expect(screen.getByText("Timer starts when you press Start")).toBeInTheDocument()
     );
-    expect(screen.getByRole("button", { name: /Start/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start puzzle" })).toBeInTheDocument();
     expect(screen.getByText(/Playing as a guest/)).toBeInTheDocument();
   });
 

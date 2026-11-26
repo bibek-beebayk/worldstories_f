@@ -202,7 +202,7 @@ describe("Step 4: HomeGamesStrip component", () => {
     expect(screen.getByTestId("home-games-strip-skeleton")).toBeInTheDocument();
   });
 
-  it("renders not_started state with Play button and countdown", async () => {
+  it("renders not_started state with Play button", async () => {
     vi.spyOn(miniApi, "getTodaySummary").mockResolvedValue(makeSummary({ status: "not_started" }));
     const Wrapper = makeWrapper();
     render(
@@ -210,14 +210,11 @@ describe("Step 4: HomeGamesStrip component", () => {
         <HomeGamesStrip />
       </Wrapper>
     );
-    expect(await screen.findByText("Fill the 5x5 with literary clues")).toBeInTheDocument();
-    expect(screen.getByText("5x5")).toBeInTheDocument();
+    expect(await screen.findByText("Today's five-by-five is ready")).toBeInTheDocument();
+    expect(screen.getByText("Mini Crossword · #42")).toBeInTheDocument();
     expect(screen.getByText("About 3 min")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Play/i })).toHaveAttribute(
-      "href",
-      "/games/mini-crossword"
-    );
-    expect(screen.getByTestId("home-games-countdown")).toHaveTextContent(/^\d{2}:\d{2}:\d{2}$/);
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/games/mini-crossword");
+    expect(screen.getByText("Play")).toBeInTheDocument();
   });
 
   it("renders in_progress state with accessible progressbar and Continue CTA", async () => {
@@ -236,19 +233,16 @@ describe("Step 4: HomeGamesStrip component", () => {
         <HomeGamesStrip />
       </Wrapper>
     );
-    expect(await screen.findByText("You are 9 squares in")).toBeInTheDocument();
+    expect(await screen.findByText("9 of 23 squares in")).toBeInTheDocument();
     const bar = screen.getByRole("progressbar", { name: "Mini Crossword progress" });
     expect(bar).toHaveAttribute("aria-valuenow", "9");
     expect(bar).toHaveAttribute("aria-valuemin", "0");
     expect(bar).toHaveAttribute("aria-valuemax", "23");
-    expect(screen.getByText("4-day streak")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Continue/i })).toHaveAttribute(
-      "href",
-      "/games/mini-crossword"
-    );
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/games/mini-crossword");
+    expect(screen.getByText("Continue")).toBeInTheDocument();
   });
 
-  it("renders solved state with time, hints, streak, and View result button", async () => {
+  it("renders solved state with time, streak, countdown, and Result/View result button", async () => {
     vi.spyOn(miniApi, "getTodaySummary").mockResolvedValue(
       makeSummary({
         status: "solved",
@@ -265,11 +259,12 @@ describe("Step 4: HomeGamesStrip component", () => {
       </Wrapper>
     );
     expect(await screen.findByText("Solved in 1:45")).toBeInTheDocument();
-    expect(screen.getByText("No hints")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View result/i })).toHaveAttribute(
-      "href",
-      "/games/mini-crossword"
-    );
+    expect(screen.getByText("Mini Crossword · Solved")).toBeInTheDocument();
+    expect(screen.getByText("3-day streak")).toBeInTheDocument();
+    expect(screen.getByTestId("home-games-countdown")).toHaveTextContent(/^\d{2}:\d{2}:\d{2}$/);
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/games/mini-crossword");
+    expect(screen.getByText("View result")).toBeInTheDocument();
+    expect(screen.getByText("Result")).toBeInTheDocument();
   });
 
   it("renders nothing on 404 or network error", async () => {

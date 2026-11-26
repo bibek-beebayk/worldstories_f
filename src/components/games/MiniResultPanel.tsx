@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { BookOpen, Calendar, Check, Clock, Copy, Flame, Share2 } from "lucide-react";
+import { BookOpen, Calendar, Check, Clock, Copy, Flame, Share2, Sparkles } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getCountdownToUtcMidnight } from "@/lib/games/nameThatStory";
 import {
   type MiniPublicResponse,
@@ -12,12 +13,25 @@ import {
 interface MiniResultPanelProps {
   puzzle: MiniPublicResponse;
   stats?: MiniStatsResponse;
+  mobileSheet?: boolean;
 }
 
-export default function MiniResultPanel({ puzzle, stats }: MiniResultPanelProps) {
+export default function MiniResultPanel({
+  puzzle,
+  stats,
+  mobileSheet = false,
+}: MiniResultPanelProps) {
   const [copied, setCopied] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
   const [countdown, setCountdown] = useState("--:--:--");
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileSheet) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(max-width: 767px)").matches) {
+      setSheetOpen(true);
+    }
+  }, [mobileSheet]);
 
   useEffect(() => {
     setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
@@ -79,6 +93,108 @@ export default function MiniResultPanel({ puzzle, stats }: MiniResultPanelProps)
 
   const last7 = stats?.last_7_times ?? [];
   const maxTime = Math.max(1, ...last7.map((t) => t.elapsed_seconds));
+
+  if (mobileSheet) {
+    return (
+      <div className="space-y-4">
+        {/* Green solved grid visible behind/above the sheet */}
+        <div
+          aria-label="Solved grid"
+          className="mx-auto grid w-full grid-cols-5 gap-[2px] border-2 border-[#1B1220] bg-[#1B1220]"
+        >
+          {tokens.map((rowStr, r) =>
+            rowStr.split("").map((tok, c) => {
+              const letter = solution[r]?.[c] || "";
+              const bg =
+                tok === "K"
+                  ? "bg-[#1B1220]"
+                  : tok === "Y"
+                  ? "bg-amber-200 text-amber-950"
+                  : "bg-emerald-200 text-emerald-950";
+              return (
+                <div
+                  key={`${r}-${c}`}
+                  className={`flex aspect-square items-center justify-center text-2xl font-bold ${bg}`}
+                >
+                  {tok !== "K" ? letter : ""}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className="flex h-[48px] w-full items-center justify-center rounded-xl border border-[#1B1220] bg-white text-sm font-semibold text-[#1B1220] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C]"
+        >
+          View result
+        </button>
+
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent
+            side="bottom"
+            className="rounded-t-2xl border-t border-[#E8DED3] bg-[#FBF7F2] px-5 pt-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] motion-reduce:transition-none"
+          >
+            <SheetHeader className="text-center space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                Solved
+              </p>
+              <SheetTitle className="font-serif text-[34px] font-bold leading-none text-[#1B1220] tabular-nums">
+                {formatTimer(elapsed, false)}
+              </SheetTitle>
+            </SheetHeader>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs font-semibold text-[#1B1220]">
+              {(stats?.current_streak ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#E8DED3] bg-white px-3 py-1">
+                  <Flame className="h-3.5 w-3.5 text-[#D92F4C]" aria-hidden="true" />
+                  {stats?.current_streak}-day streak
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#E8DED3] bg-white px-3 py-1">
+                <Sparkles className="h-3.5 w-3.5 text-[#1B1220]/70" aria-hidden="true" />
+                {hintsUsed === 0
+                  ? "No hints"
+                  : `${hintsUsed} ${hintsUsed === 1 ? "hint" : "hints"}`}
+              </span>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={canNativeShare ? handleShare : handleCopy}
+                className="inline-flex h-[50px] items-center justify-center gap-2 rounded-xl bg-[#D92F4C] px-4 text-sm font-semibold text-white hover:bg-[#b8253e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B1220]"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Share2 className="h-4 w-4" aria-hidden="true" />
+                )}
+                {copied ? "Copied" : "Share result"}
+              </button>
+              <Link
+                to="/games/mini-crossword/archive"
+                className="inline-flex h-[50px] items-center justify-center gap-2 rounded-xl border border-[#1B1220] bg-white px-4 text-sm font-semibold text-[#1B1220] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D92F4C]"
+              >
+                <Calendar className="h-4 w-4" aria-hidden="true" />
+                Archive
+              </Link>
+            </div>
+
+            {!puzzle.is_archive && (
+              <p className="mt-4 text-center text-xs font-medium text-[#1B1220]/75">
+                Next puzzle in{" "}
+                <span aria-hidden="true" className="font-mono font-semibold tabular-nums text-[#1B1220]">
+                  {countdown}
+                </span>
+              </p>
+            )}
+          </SheetContent>
+        </Sheet>
+      </div>
+    );
+  }
 
   return (
     <section
