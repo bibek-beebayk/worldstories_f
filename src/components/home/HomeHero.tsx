@@ -45,11 +45,11 @@ const CompactHero = ({ hero }: { hero: HeroConfig }) => {
   return (
     <section className="relative overflow-hidden" style={{ backgroundColor: background.color }}>
       <div
-        className="container relative flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-3 py-4 sm:px-4 sm:py-5"
+        className="container relative flex items-center justify-between gap-x-3 px-3 py-2.5 sm:flex-wrap sm:gap-x-6 sm:gap-y-3 sm:px-4 sm:py-5"
         style={typography.body_font ? { fontFamily: fontStack(typography.body_font) } : undefined}
       >
         <h1
-          className="text-2xl sm:text-3xl"
+          className="min-w-0 text-lg leading-tight sm:text-3xl sm:leading-normal"
           style={{
             ...(typography.title_font ? { fontFamily: fontStack(typography.title_font) } : {}),
             fontWeight: typography.title_weight,
@@ -75,7 +75,7 @@ const CompactHero = ({ hero }: { hero: HeroConfig }) => {
           <Button
             asChild
             size="sm"
-            className="shrink-0 rounded-full px-4 font-semibold shadow-md"
+            className="h-8 shrink-0 rounded-full px-3 text-xs font-semibold shadow-md sm:h-9 sm:px-4 sm:text-sm"
             style={{ backgroundImage: `linear-gradient(to right, ${cta.bg_from}, ${cta.bg_to})`, color: cta.text_color }}
           >
             {isExternal(cta.url) ? (
