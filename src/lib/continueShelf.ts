@@ -30,6 +30,14 @@ const time = (iso: string) => {
   return Number.isNaN(value) ? 0 : value;
 };
 
+/** Where "Continue" should take a reader: their file reader, or the chapter they left off on. */
+export function continueReadingHref(
+  item: Pick<ContinueReadingItem, "story" | "chapter_slug" | "file_format">
+): string {
+  if (item.file_format) return `/story/${item.story.slug}/${item.file_format}`;
+  return item.chapter_slug ? `/read/${item.story.slug}/${item.chapter_slug}` : `/read/${item.story.slug}`;
+}
+
 /**
  * One list from both queues, most recent activity first. A story that is in
  * both (read a chapter, then listened to the audiobook) appears once, as
@@ -44,7 +52,7 @@ export function mergeContinueItems(
       (item): ContinueEntry => ({
         kind: "reading",
         story: item.story,
-        href: item.chapter_slug ? `/read/${item.story.slug}/${item.chapter_slug}` : `/read/${item.story.slug}`,
+        href: continueReadingHref(item),
         detail: item.chapter_title,
         progress: item.overall_progress,
         remainingMinutes: item.remaining_minutes,

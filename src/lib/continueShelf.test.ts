@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContinueListeningItem, ContinueReadingItem, Story } from "@/api/types";
-import { isStaleEntry, mergeContinueItems, splitContinueEntries } from "./continueShelf";
+import { continueReadingHref, isStaleEntry, mergeContinueItems, splitContinueEntries } from "./continueShelf";
 
 const NOW = new Date("2026-06-30T12:00:00Z").getTime();
 const daysAgo = (days: number) => new Date(NOW - days * 24 * 60 * 60 * 1000).toISOString();
@@ -72,5 +72,18 @@ describe("staleness", () => {
     const { recent, older } = splitContinueEntries(merged, NOW);
     expect(recent.map((e) => e.story.id)).toEqual([1, 4]);
     expect(older.map((e) => e.story.id)).toEqual([3, 2]);
+  });
+});
+
+describe("continueReadingHref", () => {
+  it("opens the file reader for an EPUB or PDF read, and the chapter otherwise", () => {
+    expect(continueReadingHref({ ...reading(1, 1), file_format: "epub", chapter_slug: null })).toBe("/story/story-1/epub");
+    expect(continueReadingHref({ ...reading(1, 1), file_format: "pdf", chapter_slug: null })).toBe("/story/story-1/pdf");
+    expect(continueReadingHref(reading(1, 1))).toBe("/read/story-1/ch-2");
+  });
+
+  it("flows through the merged shelf", () => {
+    const [entry] = mergeContinueItems([{ ...reading(1, 1), file_format: "epub", chapter_slug: null }], []);
+    expect(entry.href).toBe("/story/story-1/epub");
   });
 });

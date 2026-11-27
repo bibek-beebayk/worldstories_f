@@ -904,6 +904,8 @@ export interface ContinueReadingItem {
   overall_progress: number;
   updated_at: string;
   excerpt: string;
+  /** "epub" / "pdf" when the reader is partway through the story's file, not its chapters. */
+  file_format?: "epub" | "pdf" | null;
   // Null when the story has no length estimate at all — omit the label
   // rather than claim "~0 min remaining".
   remaining_minutes: number | null;

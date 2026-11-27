@@ -175,4 +175,20 @@ describe("ContinueCoverflow", () => {
 
     expect(screen.getByRole("img", { name: "40% complete" })).toBeInTheDocument();
   });
+
+  it("returns to the first card when newer activity becomes the first entry", () => {
+    const older = [makeEntry(1), makeEntry(2), makeEntry(3)];
+    const { rerender } = renderCoverflow(older);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next in Continue" }));
+    expect(screen.getByRole("heading", { name: "Story 2" })).toBeInTheDocument();
+
+    const newest = makeEntry(4, { updatedAt: "2026-11-28T10:00:00Z" });
+    rerender(
+      <MemoryRouter>
+        <ContinueCoverflow entries={[newest, ...older]} />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole("heading", { name: "Story 4" })).toBeInTheDocument();
+  });
 });

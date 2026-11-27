@@ -45,12 +45,16 @@ export function useInfiniteAudiobooks(params: Omit<PublicAudiobookListParams, "p
   });
 }
 
-export function useAudiobooksOverview(enabled: boolean = true) {
+export function useAudiobooksOverview(
+  enabled: boolean = true,
+  options: { alwaysFresh?: boolean } = {}
+) {
   return useQuery<AudiobooksOverviewResponse>({
     queryKey: audiobookKeys.overview,
     queryFn: () => storyApi.getAudiobooksOverview(),
     enabled,
-    staleTime: 60 * 1000,
+    staleTime: options.alwaysFresh ? 0 : 60 * 1000,
+    refetchOnMount: options.alwaysFresh ? "always" : true,
   });
 }
 

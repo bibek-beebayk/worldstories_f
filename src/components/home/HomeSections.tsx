@@ -199,7 +199,7 @@ const HomeSections = ({ sections, reservedStories }: HomeSectionsProps) => {
   const needsContinue = sections.some((s) => s.section_type === "continue_shelf");
   const needsRecommended = sections.some((s) => s.section_type === "recommended");
   const reading = useContinueReading(isLoggedIn && needsContinue);
-  const audiobookOverview = useAudiobooksOverview(isLoggedIn && needsContinue);
+  const audiobookOverview = useAudiobooksOverview(isLoggedIn && needsContinue, { alwaysFresh: true });
   const listeningItems: ContinueListeningItem[] = (
     audiobookOverview.data?.continue_listening ?? []
   ).map((item) => ({

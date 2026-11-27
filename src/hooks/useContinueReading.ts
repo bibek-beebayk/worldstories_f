@@ -7,6 +7,9 @@ export function useContinueReading(enabled: boolean) {
     queryKey: ["home-continue-reading"],
     queryFn: () => authApi.getContinueReading(1),
     enabled,
-    staleTime: 30_000,
+    // Always the latest read: a stale cache would show the wrong card first
+    // right after the reader comes back from a chapter, EPUB or PDF.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }

@@ -226,6 +226,14 @@ const ContinueCoverflow = ({ entries }: { entries: ContinueEntry[] }) => {
     prevActiveRef.current = safeIndex;
   }, [safeIndex]);
 
+  // The first card is always the item the reader touched last. When newer
+  // activity arrives (a refetch after returning from the reader), go back to it.
+  const lead = entries[0];
+  const leadKey = lead ? `${lead.kind}-${lead.story.id}-${lead.updatedAt}` : "";
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [leadKey]);
+
   if (count === 0) return null;
   if (count === 1) return <SingleEntryCard entry={entries[0]} />;
 

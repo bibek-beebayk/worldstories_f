@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpenText, Clock3, Headphones, Timer } from "lucide-react";
 import { Link } from "react-router";
 import CoverImage from "@/components/CoverImage";
+import { continueReadingHref } from "@/lib/continueShelf";
 import { formatRemainingMinutes } from "@/lib/readingTime";
 
 interface ContinueReadingSectionProps {
@@ -92,9 +93,7 @@ const ContinueReadingSection = ({
           {visibleItems.map((item) => {
             const progress = getCompletionPercentage(item.overall_progress);
             const remaining = formatRemainingMinutes(item.remaining_minutes);
-            const continueHref = item.chapter_slug
-              ? `/read/${item.story.slug}/${item.chapter_slug}`
-              : `/read/${item.story.slug}`;
+            const continueHref = continueReadingHref(item);
 
             return (
               <Link
